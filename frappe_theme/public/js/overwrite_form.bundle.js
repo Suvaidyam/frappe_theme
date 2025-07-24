@@ -572,7 +572,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
     }
 
     processConfigurationFields(dts, tab_fields) {
-        const dtFields = dts.child_doctypes?.filter(f => tab_fields.includes(f.html_field)) || [];
+        const dtFields = dts.child_doctypes?.filter(f => tab_fields.includes(f.html_field) && !f.hide_table) || [];
 
         const vm_fields = [
             ...(dts?.number_cards?.filter(f => tab_fields.includes(f.html_field)) || []).map(f => f.html_field),

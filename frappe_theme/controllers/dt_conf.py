@@ -107,7 +107,7 @@ class DTConf():
                 conditions += f" AND t.{f.get('fieldname')} = '{doc}'"
         if filters:
             conditions = conditions +' AND '+ DTConf.filters_to_sql_conditions(filters)
-        if limit_page_length and limit_start:
+        if limit_page_length and limit_start is not None:
             conditions += f" LIMIT {limit_start}, {limit_page_length}"
         # return conditions
         data = frappe.get_doc('Report',doctype)
