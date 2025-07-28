@@ -738,20 +738,22 @@ class GalleryComponent {
             const formData = new FormData();
             formData.append('file', file);
             formData.append('is_private', '0');
-            formData.append('attached_to_doctype', this.frm?.doctype || '');
-            formData.append('attached_to_name', this.frm?.docname || '');
             formData.append('doctype', this.frm?.doctype || '');
             formData.append('docname', this.frm?.docname || '');
-
+            
+            // Use the correct method for file upload without creating duplicate File records
             frappe.call({
                 method: 'frappe.handler.upload_file',
                 args: {},
                 type: 'POST',
                 data: formData,
                 success: function(response) {
+                    // The upload_file handler creates the File document automatically
+                    // and returns the File document data in response.message
                     resolve(response.message);
                 },
                 error: function(error) {
+                    console.error('Upload error:', error);
                     reject(error);
                 }
             });
