@@ -695,22 +695,7 @@ class GalleryComponent {
                     const uploadedFile = await this.uploadSingleFile(file);
                     
                     if (uploadedFile) {
-                        // Create file document
-                        const file_doc = {
-                            doctype: 'File',
-                            attached_to_doctype: self.frm?.doctype,
-                            attached_to_name: self.frm?.docname,
-                            file_url: uploadedFile.file_url,
-                            file_name: file.name,
-                            is_private: 0
-                        };
-
-                        const new_file = await frappe.db.insert(file_doc);
-                        if (new_file) {
-                            successCount++;
-                        } else {
-                            errorCount++;
-                        }
+                        successCount++;
                     } else {
                         errorCount++;
                     }
@@ -753,6 +738,8 @@ class GalleryComponent {
             const formData = new FormData();
             formData.append('file', file);
             formData.append('is_private', '0');
+            formData.append('attached_to_doctype', this.frm?.doctype || '');
+            formData.append('attached_to_name', this.frm?.docname || '');
             formData.append('doctype', this.frm?.doctype || '');
             formData.append('docname', this.frm?.docname || '');
 
