@@ -351,9 +351,16 @@ class GalleryComponent {
                             <li><a class="dropdown-item" id="listViewBtn"><i class="fa fa-list"></i> List View</a></li>
                         </ul>
                     </div>
-                    <button class="btn btn-primary btn-sm" id="customUploadButton">
-                        <i class="fa fa-upload"></i> Upload
-                    </button>
+                    <div class="btn-group">
+                        <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-toggle="dropdown">
+                            <i class="fa fa-upload"></i> Upload <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-right">
+                            <li><a class="dropdown-item" id="singleUploadButton"><i class="fa fa-file"></i> Single File</a></li>
+                            <li><a class="dropdown-item" id="bulkUploadButton"><i class="fa fa-files-o"></i> Multiple Files</a></li>
+                            <li><a class="dropdown-item" id="folderUploadButton"><i class="fa fa-folder"></i> Upload Folder</a></li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         `;
@@ -479,6 +486,456 @@ class GalleryComponent {
         }
     }
 
+    async renderBulkUploadForm() {
+        const self = this;
+        const loader = new Loader(this.wrapper.querySelector('.gallery-wrapper'), 'gallery-form-loader');
+        
+        // Create hidden file input for multiple files
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.multiple = true;
+        fileInput.style.display = 'none';
+        fileInput.accept = '*/*';
+        document.body.appendChild(fileInput);
+
+        const fields = [
+            {
+                fieldname: 'files_section',
+                fieldtype: 'HTML',
+                options: `
+                    <div class="bulk-upload-container">
+                        <div class="upload-area" id="uploadArea" style="
+                            border: 2px dashed #ccc;
+                            border-radius: 8px;
+                            padding: 40px 20px;
+                            text-align: center;
+                            cursor: pointer;
+                            transition: border-color 0.3s;
+                            background-color: #f9f9f9;
+                        ">
+                            <i class="fa fa-cloud-upload" style="font-size: 48px; color: #999; margin-bottom: 16px;"></i>
+                            <div style="font-size: 16px; color: #666; margin-bottom: 8px;">
+                                Drop files here or click to browse
+                            </div>
+                            <div style="font-size: 14px; color: #999;">
+                                You can select multiple files at once
+                            </div>
+                        </div>
+                        <div id="selectedFiles" style="margin-top: 20px; max-height: 200px; overflow-y: auto;"></div>
+                        <div id="uploadProgress" style="margin-top: 20px; display: none;"></div>
+                    </div>
+                `
+            }
+        ];
+
+        const bulkDialog = new frappe.ui.Dialog({
+            title: __("Bulk File Upload"),
+            fields: fields,
+            primary_action_label: __("Upload Files"),
+            size: 'large',
+            async primary_action() {
+                if (self.selectedBulkFiles.length === 0) {
+                    frappe.msgprint(__('Please select files to upload'));
+                    return;
+                }
+                await self.processBulkUpload();
+                this.hide();
+            }
+        });
+
+        bulkDialog.show();
+        
+        // Initialize after dialog is shown
+        setTimeout(() => {
+            this.initializeBulkUpload(fileInput, bulkDialog);
+        }, 100);
+        
+        this.selectedBulkFiles = [];
+        this.bulkDialog = bulkDialog;
+    }
+
+    initializeBulkUpload(fileInput, dialog) {
+        const self = this;
+        const uploadArea = dialog.$wrapper.find('#uploadArea');
+        const selectedFilesDiv = dialog.$wrapper.find('#selectedFiles');
+
+        // Click to browse
+        uploadArea.on('click', () => {
+            fileInput.click();
+        });
+
+        // File selection handler
+        fileInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            this.addFilesToBulkUpload(files, selectedFilesDiv);
+        });
+
+        // Drag and drop handlers
+        uploadArea.on('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.css('border-color', '#007bff');
+            uploadArea.css('background-color', '#f0f8ff');
+        });
+
+        uploadArea.on('dragleave', (e) => {
+            e.preventDefault();
+            uploadArea.css('border-color', '#ccc');
+            uploadArea.css('background-color', '#f9f9f9');
+        });
+
+        uploadArea.on('drop', (e) => {
+            e.preventDefault();
+            uploadArea.css('border-color', '#ccc');
+            uploadArea.css('background-color', '#f9f9f9');
+            
+            const files = Array.from(e.originalEvent.dataTransfer.files);
+            this.addFilesToBulkUpload(files, selectedFilesDiv);
+        });
+    }
+
+    addFilesToBulkUpload(files, selectedFilesDiv) {
+        files.forEach(file => {
+            if (!this.selectedBulkFiles.find(f => f.name === file.name && f.size === file.size)) {
+                this.selectedBulkFiles.push(file);
+            }
+        });
+        this.updateBulkFilesList(selectedFilesDiv);
+    }
+
+    updateBulkFilesList(selectedFilesDiv) {
+        if (this.selectedBulkFiles.length === 0) {
+            selectedFilesDiv.html('');
+            return;
+        }
+
+        const filesHtml = this.selectedBulkFiles.map((file, index) => `
+            <div class="file-item" style="
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 8px 12px;
+                border: 1px solid #e2e2e2;
+                border-radius: 4px;
+                margin-bottom: 4px;
+                background-color: #fff;
+            ">
+                <div style="display: flex; align-items: center; flex: 1;">
+                    <i class="fa fa-file-o" style="margin-right: 8px; color: #666;"></i>
+                    <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        ${file.name}
+                    </span>
+                    <span style="font-size: 12px; color: #999; margin-left: 8px;">
+                        (${this.formatFileSize(file.size)})
+                    </span>
+                </div>
+                <button class="btn btn-xs btn-link remove-file" data-index="${index}" style="color: #dc3545;">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+        `).join('');
+
+        selectedFilesDiv.html(`
+            <div style="margin-bottom: 8px; font-weight: 500;">
+                Selected Files (${this.selectedBulkFiles.length}):
+            </div>
+            ${filesHtml}
+        `);
+
+        // Add remove file handlers
+        selectedFilesDiv.find('.remove-file').on('click', (e) => {
+            const index = parseInt($(e.currentTarget).data('index'));
+            this.selectedBulkFiles.splice(index, 1);
+            this.updateBulkFilesList(selectedFilesDiv);
+        });
+    }
+
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    async processBulkUpload() {
+        const self = this;
+        const loader = new Loader(this.wrapper.querySelector('.gallery-wrapper'), 'gallery-bulk-upload-loader');
+        const progressDiv = this.bulkDialog.$wrapper.find('#uploadProgress');
+        
+        try {
+            loader.show();
+            progressDiv.show();
+            
+            let successCount = 0;
+            let errorCount = 0;
+            const totalFiles = this.selectedBulkFiles.length;
+
+            // Update progress
+            const updateProgress = (current, total, fileName = '') => {
+                const percentage = Math.round((current / total) * 100);
+                progressDiv.html(`
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar" role="progressbar" style="width: ${percentage}%">
+                            ${percentage}%
+                        </div>
+                    </div>
+                    <div style="margin-top: 8px; font-size: 14px;">
+                        ${fileName ? `Uploading: ${fileName}` : `Processing ${current} of ${total} files`}
+                    </div>
+                `);
+            };
+
+            // Upload files one by one
+            for (let i = 0; i < this.selectedBulkFiles.length; i++) {
+                const file = this.selectedBulkFiles[i];
+                updateProgress(i, totalFiles, file.name);
+
+                try {
+                    // Upload the file using Frappe's file upload mechanism
+                    const uploadedFile = await this.uploadSingleFile(file);
+                    
+                    if (uploadedFile) {
+                        // Create file document
+                        const file_doc = {
+                            doctype: 'File',
+                            attached_to_doctype: self.frm?.doctype,
+                            attached_to_name: self.frm?.docname,
+                            file_url: uploadedFile.file_url,
+                            file_name: file.name,
+                            is_private: 0
+                        };
+
+                        const new_file = await frappe.db.insert(file_doc);
+                        if (new_file) {
+                            successCount++;
+                        } else {
+                            errorCount++;
+                        }
+                    } else {
+                        errorCount++;
+                    }
+                } catch (error) {
+                    console.error(`Error uploading ${file.name}:`, error);
+                    errorCount++;
+                }
+            }
+
+            updateProgress(totalFiles, totalFiles);
+
+            // Refresh gallery
+            await this.fetchGalleryFiles();
+            this.updateGallery();
+
+            // Show completion message
+            frappe.show_alert({
+                message: __(`Upload completed: ${successCount} successful, ${errorCount} failed`),
+                indicator: successCount > 0 ? 'green' : 'red'
+            });
+
+        } catch (error) {
+            console.error('Error in bulk upload:', error);
+            frappe.msgprint(__('Error during bulk upload: ') + (error.message || error));
+        } finally {
+            loader.hide();
+            this.selectedBulkFiles = [];
+            // Clean up the file input
+            const fileInputs = document.querySelectorAll('input[type="file"][multiple]');
+            fileInputs.forEach(input => {
+                if (input.parentNode) {
+                    input.parentNode.removeChild(input);
+                }
+            });
+        }
+    }
+
+    async uploadSingleFile(file) {
+        return new Promise((resolve, reject) => {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('is_private', '0');
+            formData.append('doctype', this.frm?.doctype || '');
+            formData.append('docname', this.frm?.docname || '');
+
+            frappe.call({
+                method: 'frappe.handler.upload_file',
+                args: {},
+                type: 'POST',
+                data: formData,
+                success: function(response) {
+                    resolve(response.message);
+                },
+                error: function(error) {
+                    reject(error);
+                }
+            });
+        });
+    }
+
+    async renderFolderUploadForm() {
+        const self = this;
+        const loader = new Loader(this.wrapper.querySelector('.gallery-wrapper'), 'gallery-form-loader');
+        
+        // Create hidden file input for folder
+        const folderInput = document.createElement('input');
+        folderInput.type = 'file';
+        folderInput.webkitdirectory = true;
+        folderInput.directory = true;
+        folderInput.multiple = true;
+        folderInput.style.display = 'none';
+        document.body.appendChild(folderInput);
+
+        const fields = [
+            {
+                fieldname: 'folder_section',
+                fieldtype: 'HTML',
+                options: `
+                    <div class="folder-upload-container">
+                        <div class="upload-area" id="folderUploadArea" style="
+                            border: 2px dashed #ccc;
+                            border-radius: 8px;
+                            padding: 40px 20px;
+                            text-align: center;
+                            cursor: pointer;
+                            transition: border-color 0.3s;
+                            background-color: #f9f9f9;
+                        ">
+                            <i class="fa fa-folder-open" style="font-size: 48px; color: #999; margin-bottom: 16px;"></i>
+                            <div style="font-size: 16px; color: #666; margin-bottom: 8px;">
+                                Click to select a folder
+                            </div>
+                            <div style="font-size: 14px; color: #999;">
+                                All files within the folder will be uploaded
+                            </div>
+                        </div>
+                        <div id="selectedFolder" style="margin-top: 20px; max-height: 200px; overflow-y: auto;"></div>
+                        <div id="folderUploadProgress" style="margin-top: 20px; display: none;"></div>
+                    </div>
+                `
+            }
+        ];
+
+        const folderDialog = new frappe.ui.Dialog({
+            title: __("Folder Upload"),
+            fields: fields,
+            primary_action_label: __("Upload Folder"),
+            size: 'large',
+            async primary_action() {
+                if (self.selectedFolderFiles.length === 0) {
+                    frappe.msgprint(__('Please select a folder to upload'));
+                    return;
+                }
+                await self.processFolderUpload();
+                this.hide();
+            }
+        });
+
+        folderDialog.show();
+        
+        // Initialize after dialog is shown
+        setTimeout(() => {
+            this.initializeFolderUpload(folderInput, folderDialog);
+        }, 100);
+        
+        this.selectedFolderFiles = [];
+        this.folderDialog = folderDialog;
+    }
+
+    initializeFolderUpload(folderInput, dialog) {
+        const self = this;
+        const uploadArea = dialog.$wrapper.find('#folderUploadArea');
+        const selectedFolderDiv = dialog.$wrapper.find('#selectedFolder');
+
+        // Click to browse folder
+        uploadArea.on('click', () => {
+            folderInput.click();
+        });
+
+        // Folder selection handler
+        folderInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            this.selectedFolderFiles = files;
+            this.updateFolderFilesList(selectedFolderDiv);
+        });
+    }
+
+    updateFolderFilesList(selectedFolderDiv) {
+        if (this.selectedFolderFiles.length === 0) {
+            selectedFolderDiv.html('');
+            return;
+        }
+
+        // Group files by folder
+        const folderStructure = {};
+        this.selectedFolderFiles.forEach(file => {
+            const pathParts = file.webkitRelativePath.split('/');
+            const folderPath = pathParts.slice(0, -1).join('/');
+            if (!folderStructure[folderPath]) {
+                folderStructure[folderPath] = [];
+            }
+            folderStructure[folderPath].push(file);
+        });
+
+        let foldersHtml = '';
+        Object.keys(folderStructure).forEach(folderPath => {
+            const files = folderStructure[folderPath];
+            const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+            
+            foldersHtml += `
+                <div class="folder-item" style="margin-bottom: 12px;">
+                    <div style="font-weight: 500; color: #333; margin-bottom: 4px;">
+                        <i class="fa fa-folder" style="margin-right: 8px; color: #ffa500;"></i>
+                        ${folderPath || 'Root'}
+                        <span style="font-size: 12px; color: #999; margin-left: 8px;">
+                            (${files.length} files, ${this.formatFileSize(totalSize)})
+                        </span>
+                    </div>
+                    <div style="margin-left: 24px;">
+                        ${files.slice(0, 5).map(file => `
+                            <div style="font-size: 13px; color: #666; margin-bottom: 2px;">
+                                <i class="fa fa-file-o" style="margin-right: 6px;"></i>
+                                ${file.name}
+                                <span style="color: #999;">(${this.formatFileSize(file.size)})</span>
+                            </div>
+                        `).join('')}
+                        ${files.length > 5 ? `<div style="font-size: 12px; color: #999;">... and ${files.length - 5} more files</div>` : ''}
+                    </div>
+                </div>
+            `;
+        });
+
+        selectedFolderDiv.html(`
+            <div style="margin-bottom: 8px; font-weight: 500;">
+                Selected Folder Contents (${this.selectedFolderFiles.length} files total):
+            </div>
+            ${foldersHtml}
+        `);
+    }
+
+    async processFolderUpload() {
+        // Use the same bulk upload logic
+        this.selectedBulkFiles = this.selectedFolderFiles;
+        const progressDiv = this.folderDialog.$wrapper.find('#folderUploadProgress');
+        progressDiv.show();
+        
+        // Update the progress div reference for the bulk upload process
+        const originalProgressDiv = this.bulkDialog?.$wrapper.find('#uploadProgress');
+        if (this.bulkDialog) {
+            this.bulkDialog.$wrapper.find('#uploadProgress').remove();
+            this.bulkDialog.$wrapper.find('.bulk-upload-container').append(progressDiv.clone());
+        }
+        
+        await this.processBulkUpload();
+        
+        // Clean up
+        this.selectedFolderFiles = [];
+        const folderInputs = document.querySelectorAll('input[type="file"][webkitdirectory]');
+        folderInputs.forEach(input => {
+            if (input.parentNode) {
+                input.parentNode.removeChild(input);
+            }
+        });
+    }
+
     async renderForm(mode, fileId = null) {
         const self = this;
         const loader = new Loader(this.wrapper.querySelector('.gallery-wrapper'), 'gallery-form-loader');
@@ -586,8 +1043,16 @@ class GalleryComponent {
     attachEventListeners() {
         const self = this;
 
-        $('#customUploadButton').off('click').on('click', async () => {
+        $('#singleUploadButton').off('click').on('click', async () => {
             await self.renderForm('create');
+        });
+
+        $('#bulkUploadButton').off('click').on('click', async () => {
+            await self.renderBulkUploadForm();
+        });
+
+        $('#folderUploadButton').off('click').on('click', async () => {
+            await self.renderFolderUploadForm();
         });
 
         $('#deleteSelectedButton').off('click').on('click', async () => {
