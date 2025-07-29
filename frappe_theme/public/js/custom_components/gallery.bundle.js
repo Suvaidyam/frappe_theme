@@ -809,7 +809,7 @@ class SVAGalleryComponent {
 
         const fileDialog = new frappe.ui.Dialog({
             title: __("Upload Multiple Files"),
-            size: 'large',
+            size: 'medium',
             fields: [
                 {
                     fieldtype: 'HTML',
