@@ -330,6 +330,29 @@ class SVAGalleryComponent {
                     height: 160px;
                 }
             }
+            
+            /* Upload dropdown styles */
+            .upload-dropdown .dropdown-menu {
+                min-width: 200px;
+            }
+            
+            .upload-dropdown .dropdown-item {
+                padding: 8px 16px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            
+            .upload-dropdown .dropdown-item i {
+                width: 16px;
+                text-align: center;
+            }
+            
+            .upload-dropdown .divider {
+                height: 1px;
+                background-color: #e9ecef;
+                margin: 4px 0;
+            }
         `;
     }
 
@@ -428,9 +451,15 @@ class SVAGalleryComponent {
                         </ul>
                     </div>
                     ${canCreate ? `
-                        <button class="btn btn-primary btn-sm" id="customUploadButton">
-                            <i class="fa fa-upload"></i> Upload
-                        </button>
+                        <div class="btn-group">
+                            <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-toggle="dropdown" id="uploadDropdownButton">
+                                <i class="fa fa-upload"></i> Upload
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-right">
+                                <li><a class="dropdown-item" id="singleUploadBtn"><i class="fa fa-file-o"></i> Single File</a></li>
+                                <li><a class="dropdown-item" id="multipleUploadBtn"><i class="fa fa-files-o"></i> Multiple Files</a></li>
+                            </ul>
+                        </div>
                     ` : ''}
                 </div>
             </div>
@@ -447,7 +476,6 @@ class SVAGalleryComponent {
         `;
     }
     preview_file(frm) {
-        // return console.log(frm)
         let file_extension = frm?.file_url?.split(".").pop();
         let show_file = new frappe.ui.Dialog({
             title: __('Preview File'),
@@ -775,12 +803,272 @@ class SVAGalleryComponent {
         this.dialog = fileDialog;
     }
 
+    async renderMultipleFileUploadForm() {
+        const self = this;
+        const loader = new Loader(this.wrapper.querySelector('.gallery-wrapper'), 'gallery-form-loader');
+
+        const fileDialog = new frappe.ui.Dialog({
+            title: __("Upload Multiple Files"),
+            size: 'large',
+            fields: [
+                {
+                    fieldtype: 'HTML',
+                    fieldname: 'multiple_file_input',
+                    options: `
+                        <div style="padding: 20px; text-align: center;">
+                            <div style="border: 2px dashed #ccc; border-radius: 8px; padding: 40px; background: #f9f9f9; margin-bottom: 20px;">
+                                <i class="fa fa-cloud-upload" style="font-size: 48px; color: #6c757d; margin-bottom: 16px;"></i>
+                                <h4 style="margin-bottom: 8px; color: #495057;">Select Multiple Files</h4>
+                                <p style="color: #6c757d; margin-bottom: 16px;">Choose multiple files to upload</p>
+                                <input type="file" id="multipleFileInput" multiple style="display: none;" />
+                                <button class="btn btn-primary" onclick="document.getElementById('multipleFileInput').click()">
+                                    <i class="fa fa-folder-open"></i> Browse Files
+                                </button>
+                            </div>
+                            <div id="selectedFilesList" style="text-align: left; max-height: 200px; overflow-y: auto;"></div>
+                            <div id="uploadProgressMultiple" style="margin-top: 20px; display: none;">
+                                <div class="progress">
+                                    <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                                </div>
+                                <div id="uploadStatusMultiple" style="margin-top: 8px; font-size: 14px;"></div>
+                            </div>
+                        </div>
+                    `
+                }
+            ],
+            primary_action_label: __("Upload All"),
+            async primary_action(values) {
+                const fileInput = document.getElementById('multipleFileInput');
+                const files = Array.from(fileInput?.files || []);
+                
+                if (files?.length === 0) {
+                    frappe.msgprint(__('Please select files to upload'));
+                    return;
+                }
+
+                const uploadProgress = document.getElementById('uploadProgressMultiple');
+                const progressBar = uploadProgress.querySelector('.progress-bar');
+                const uploadStatus = document.getElementById('uploadStatusMultiple');
+
+                try {
+                    loader.show();
+                    uploadProgress.style.display = 'block';
+                    let uploadedCount = 0;
+                    let failedCount = 0;
+
+                    for (let i = 0; i < files.length; i++) {
+                        const file = files[i];
+                        const progress = ((i + 1) / files.length) * 100;
+                        
+                        progressBar.style.width = progress + '%';
+                        uploadStatus.textContent = `Uploading ${file.name}... (${i + 1}/${files.length})`;
+
+                        try {
+                            // Upload file using Frappe's file upload
+                            const formData = new FormData();
+                            formData.append('file', file);
+                            formData.append('cmd', 'upload_file');
+                            formData.append('doctype', self.frm?.doctype || '');
+                            formData.append('docname', self.frm?.docname || '');
+                            formData.append('fieldname', 'file');
+                            formData.append('is_private', '0');
+                            formData.append('folder', 'Home');
+
+                            const response = await fetch('/api/method/upload_file', {
+                                method: 'POST',
+                                body: formData,
+                                headers: {
+                                    'X-Frappe-CSRF-Token': frappe.csrf_token
+                                }
+                            });
+
+                            const result = await response.json();
+                            
+                            if (result.message) {
+                                uploadedCount++;
+                            } else {
+                                failedCount++;
+                            }
+                        } catch (error) {
+                            console.error('Error uploading file:', error);
+                            failedCount++;
+                        }
+                    }
+
+                    // Update status
+                    uploadStatus.textContent = `Uploaded ${uploadedCount} files successfully${failedCount > 0 ? `, ${failedCount} failed` : ''}`;
+                    progressBar.style.width = '100%';
+
+                    // Refresh gallery
+                    await self.fetchGalleryFiles();
+                    self.render();
+                    self.updateGallery();
+
+                    // Show results
+                    let message = `Successfully uploaded ${uploadedCount} file(s)`;
+                    if (failedCount > 0) {
+                        message += `. Failed to upload ${failedCount} file(s)`;
+                    }
+
+                    frappe.show_alert({
+                        message: __(message),
+                        indicator: failedCount > 0 ? 'orange' : 'green'
+                    });
+
+                    this.hide();
+                } catch (error) {
+                    console.error('Error handling multiple files:', error);
+                    frappe.msgprint(`Error uploading files: ${error.message || error}`);
+                } finally {
+                    loader.hide();
+                }
+            }
+        });
+
+        fileDialog.show();
+
+        // Reset dialog state when opened
+        setTimeout(() => {
+            try {
+                const fileInput = fileDialog.get_field('multiple_file_input').$wrapper.find('#multipleFileInput')[0];
+                const selectedFilesList = fileDialog.get_field('multiple_file_input').$wrapper.find('#selectedFilesList')[0];
+                
+                if (fileInput) {
+                    fileInput.value = ''; // Clear the file input
+                }
+                
+                if (selectedFilesList) {
+                    selectedFilesList.innerHTML = '<div style="padding: 20px; text-align: center; color: #6c757d; font-style: italic;">No files selected</div>';
+                }
+            } catch (error) {
+                console.error('Error resetting dialog state:', error);
+            }
+        }, 50);
+
+        // Add file selection event listener with proper error handling and DOM checks
+        const attachFileListener = () => {
+            try {
+                const fileInput = fileDialog.get_field('multiple_file_input').$wrapper.find('#multipleFileInput')[0];
+                const selectedFilesList = fileDialog.get_field('multiple_file_input').$wrapper.find('#selectedFilesList')[0];
+
+                if (!fileInput || !selectedFilesList) {
+                    setTimeout(attachFileListener, 100);
+                    return;
+                }
+
+                // Remove any existing event listeners by cloning the element
+                const newFileInput = fileInput.cloneNode(true);
+                fileInput.parentNode.replaceChild(newFileInput, fileInput);
+                
+                // Add the event listener to the new element
+                newFileInput.addEventListener('change', handleFileChange);
+                
+                // Also add a click handler to the browse button to ensure it works
+                const browseButton = fileDialog.get_field('multiple_file_input').$wrapper.find('button')[0];
+                if (browseButton) {
+                    browseButton.onclick = () => {
+                        newFileInput.click();
+                    };
+                }
+                
+            } catch (error) {
+                console.error('Error attaching file listener:', error);
+                setTimeout(attachFileListener, 100);
+            }
+        };
+
+        // File change handler function
+        const handleFileChange = (e) => {
+            try {
+                const files = Array.from(e.target.files || []);
+                
+                // Get the selected files list element with better error handling
+                let selectedFilesList;
+                try {
+                    selectedFilesList = fileDialog.get_field('multiple_file_input').$wrapper.find('#selectedFilesList')[0];
+                } catch (error) {
+                    console.error('Error finding selected files list:', error);
+                    selectedFilesList = null;
+                }
+                
+                if (!selectedFilesList) {
+                    // Try alternative method to find the element
+                    selectedFilesList = document.getElementById('selectedFilesList');
+                }
+                
+                if (!selectedFilesList) {
+                    console.error('Still cannot find selected files list element');
+                    return;
+                }
+                
+                // Clear the list
+                selectedFilesList.innerHTML = '';
+                
+                if (files.length > 0) {
+                    const list = document.createElement('ul');
+                    list.style.cssText = 'list-style: none; padding: 0; margin: 0;';
+                    
+                    files.forEach((file, index) => {
+                        const li = document.createElement('li');
+                        li.style.cssText = 'padding: 8px; margin: 4px 0; background: #f8f9fa; border-radius: 4px; border: 1px solid #e9ecef;';
+                        
+                        // Calculate file size in appropriate units
+                        let fileSize = '';
+                        if (file.size < 1024) {
+                            fileSize = file.size + ' B';
+                        } else if (file.size < 1024 * 1024) {
+                            fileSize = (file.size / 1024).toFixed(2) + ' KB';
+                        } else {
+                            fileSize = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+                        }
+                        
+                        li.innerHTML = `
+                            <i class="fa fa-file-o" style="margin-right: 8px; color: #6c757d;"></i>
+                            <span style="font-weight: 500;">${file.name}</span>
+                            <span style="float: right; color: #6c757d; font-size: 12px;">
+                                ${fileSize}
+                            </span>
+                        `;
+                        list.appendChild(li);
+                    });
+                    
+                    selectedFilesList.appendChild(list);
+                    
+                    // Add a summary message
+                    const summary = document.createElement('div');
+                    summary.style.cssText = 'margin-top: 10px; padding: 8px; background: #e3f2fd; border-radius: 4px; border: 1px solid #bbdefb; color: #1976d2; font-size: 14px;';
+                    summary.innerHTML = `<i class="fa fa-info-circle"></i> ${files.length} file(s) selected for upload`;
+                    selectedFilesList.appendChild(summary);
+                } else {
+                    // Show message when no files are selected
+                    selectedFilesList.innerHTML = '<div style="padding: 20px; text-align: center; color: #6c757d; font-style: italic;">No files selected</div>';
+                }
+            } catch (error) {
+                console.error('Error handling file change:', error);
+            }
+        };
+
+        // Attach the listener with a small delay to ensure DOM is ready
+        setTimeout(attachFileListener, 100);
+
+        fileDialog.onhide = function () {
+            loader.hide();
+        }
+        this.dialog = fileDialog;
+    }
+
     attachEventListeners() {
         const self = this;
 
         if (this.permissions.includes('create')) {
-            $('#customUploadButton').off('click').on('click', async () => {
+            // Single file upload
+            $('#singleUploadBtn').off('click').on('click', async () => {
                 await self.renderForm('create');
+            });
+
+            // Multiple files upload
+            $('#multipleUploadBtn').off('click').on('click', async () => {
+                await self.renderMultipleFileUploadForm();
             });
         }
 
@@ -1003,7 +1291,7 @@ class SVAGalleryComponent {
                                     </div>
                                 ` : ''}
                             </div>
-                        `;
+                        `
         }).join('')}
                 </div>
             </div>
