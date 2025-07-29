@@ -125,7 +125,7 @@ const hide_sidebar = async (theme) => {
 }
 
 const makeResponsive = async () => {
-    const theme = await getTheme();
+    const theme = frappe.boot?.my_theme || await getTheme();
     makeListResponsive(theme);
     await hide_sidebar(theme);
 

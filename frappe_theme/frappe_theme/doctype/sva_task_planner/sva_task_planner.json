@@ -9,9 +9,12 @@
   "task_name",
   "is_group",
   "parent_task_name",
+  "reference_doctype",
+  "column_break_pfce",
   "frequency",
   "month",
-  "day"
+  "day",
+  "reference_doc"
  ],
  "fields": [
   {
@@ -56,11 +59,29 @@
    "label": "Month",
    "mandatory_depends_on": "eval:[\"Annually\",\"Biannually\"].includes(doc.frequency)",
    "options": "\nJanuary\nFebruary\nMarch\nApril\nMay\nJune\nJuly\nAugust\nSeptember\nOctober\nNovember\nDecember"
+  },
+  {
+   "fieldname": "reference_doctype",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "reference_doctype",
+   "options": "DocType"
+  },
+  {
+   "fieldname": "reference_doc",
+   "fieldtype": "Dynamic Link",
+   "hidden": 1,
+   "label": "reference_doc",
+   "options": "reference_doctype"
+  },
+  {
+   "fieldname": "column_break_pfce",
+   "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-28 10:20:22.194493",
+ "modified": "2025-07-28 18:51:16.219034",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "SVA Task Planner",

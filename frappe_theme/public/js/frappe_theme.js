@@ -138,7 +138,7 @@ const addCustomLogo = () => {
     }
 }
 const applyTheme = async () => {
-    let theme = await getTheme();
+    let theme = frappe.boot?.my_theme || await getTheme();
     const style = document.createElement('style');
     style.innerHTML = `
         /* Login page */
@@ -221,6 +221,10 @@ const applyTheme = async () => {
         .navbar.container ,.navbar-brand{
             color: ${theme.navbar_text_color && theme.navbar_text_color} !important;
         }
+        .navbar-nav svg{
+            fill: ${theme.navbar_text_color && theme.navbar_text_color} !important;
+            stroke: ${theme.navbar_text_color && theme.navbar_text_color} !important;
+        }
         .navbar-toggler , .navbar-toggler span svg,.navbar svg.es-icon.icon-sm use, .notifications-seen > .es-icon{
             fill:${theme.navbar_text_color && theme.navbar_text_color} !important;
             stroke-width: 0;
@@ -299,6 +303,27 @@ const applyTheme = async () => {
         }
         .btn.btn-secondary.btn-default svg{
             stroke:${theme.secondary_button_text_color && theme.secondary_button_text_color} !important;
+            fill:${theme.secondary_button_text_color && theme.secondary_button_text_color} !important;
+        }
+        .btn.btn-secondary svg{
+            stroke:${theme.secondary_button_text_color && theme.secondary_button_text_color} !important;
+            fill:${theme.secondary_button_text_color && theme.secondary_button_text_color} !important;
+        }
+        .btn.btn-default svg{
+            stroke:${theme.secondary_button_text_color && theme.secondary_button_text_color} !important;
+            fill:${theme.secondary_button_text_color && theme.secondary_button_text_color} !important;
+        }
+        .btn.btn-secondary.btn-default:hover svg{
+            stroke:${theme.secondary_button_hover_text_color && theme.secondary_button_hover_text_color} !important;
+            fill:${theme.secondary_button_hover_text_color && theme.secondary_button_hover_text_color} !important;
+        }
+        .btn.btn-secondary:hover svg{
+            stroke:${theme.secondary_button_hover_text_color && theme.secondary_button_hover_text_color} !important;
+            fill:${theme.secondary_button_hover_text_color && theme.secondary_button_hover_text_color} !important;
+        }
+        .btn.btn-default:hover svg{
+            stroke:${theme.secondary_button_hover_text_color && theme.secondary_button_hover_text_color} !important;
+            fill:${theme.secondary_button_hover_text_color && theme.secondary_button_hover_text_color} !important;
         }
         .btn.btn-default.icon-btn span .menu-btn-group-label svg,.btn.btn-secondary.btn-default:hover svg{
             stroke:${theme.secondary_button_hover_text_color && theme.secondary_button_hover_text_color} !important;
