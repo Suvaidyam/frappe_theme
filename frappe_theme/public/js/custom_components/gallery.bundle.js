@@ -655,34 +655,47 @@ class SVAGalleryComponent {
                     <div class="file-icon text-center">
                         <i class="${iconClass}" style="font-size: 48px; color: #6c757d;"></i>
                         <div style="font-size: 12px; margin-top: 8px; color: #6c757d;">.${extension}</div>
-                    </div>
-                </div>
-            `;
+                        </div>
+                        </div>
+                        `;
         }
     }
 
     async renderForm(mode, fileId = null) {
         const self = this;
-        const loader = new Loader(this.wrapper.querySelector('.gallery-wrapper'), 'gallery-form-loader');
         let fields = [
             {
                 label: 'File',
                 fieldname: 'file',
-                fieldtype: 'Attach',
-                reqd: 1
+                fieldtype: mode === 'create' ? 'Attach' : 'Data',
+                reqd: mode === 'create' ? 1 : 0,
+                read_only: mode === 'edit' ? 1 : 0,
+                options: {
+                    allow_multiple: mode === 'create' ? true : false,
+                    doctype: this.frm?.doctype,
+                    docname: this.frm?.docname,
+                    on_success: function (file_doc) {
+                        if (file_doc) {
+                            fileDialog.hide();
+                            self.gallery_files.unshift(file_doc);
+                            self.render();
+                            self.updateGallery();
+                        }
+                    }
+                }
             },
             {
                 label: 'File Name',
                 fieldname: 'file_name',
                 fieldtype: 'Data',
-                reqd: 1,
+                reqd: mode === 'create' ? 0 : 1,
+                hidden: mode === 'create' ? 1 : 0,
                 description: 'Enter a name for your file'
             }
         ];
 
         if (mode === 'edit' && fileId) {
             try {
-                loader.show();
                 let doc = await frappe.db.get_doc('File', fileId);
                 fields = fields.map(f => {
                     if (f.fieldname === 'file' && doc.file_url) {
@@ -698,11 +711,8 @@ class SVAGalleryComponent {
                 console.error('Error fetching file:', error);
                 frappe.msgprint(__('Error fetching file details. Please try again.'));
                 return;
-            } finally {
-                loader.hide();
             }
         }
-
         const fileDialog = new frappe.ui.Dialog({
             title: mode === "create" ? __("Upload Files") : __("Edit File"),
             fields: fields,
@@ -717,31 +727,7 @@ class SVAGalleryComponent {
                     if (!values.file_name) {
                         values.file_name = values.file.split('/').pop().split('?')[0];
                     }
-
-                    loader.show();
-
-                    if (mode === 'create') {
-                        let file_doc = {
-                            doctype: 'File',
-                            attached_to_doctype: self.frm?.doctype,
-                            attached_to_name: self.frm?.docname,
-                            file_url: values.file,
-                            file_name: values.file_name,
-                            is_private: 0
-                        };
-
-                        let new_file = await frappe.db.insert(file_doc);
-                        if (new_file) {
-                            let complete_file = await frappe.db.get_doc('File', new_file.name);
-                            self.gallery_files.unshift(complete_file);
-                            self.render();
-                            await self.fetchGalleryFiles();
-                            frappe.show_alert({
-                                message: __('File uploaded successfully'),
-                                indicator: 'green'
-                            });
-                        }
-                    } else {
+                    if (mode === 'edit' && fileId) {
                         values['file_url'] = values.file
                         delete values.file
                         let updated_file = await frappe.db.set_value('File', fileId, values);
@@ -762,16 +748,11 @@ class SVAGalleryComponent {
                 } catch (error) {
                     console.error('Error handling file:', error);
                     frappe.msgprint(`Error ${mode === 'create' ? 'uploading' : 'updating'} file: ${error.message || error}`);
-                } finally {
-                    loader.hide();
                 }
             }
         });
 
         fileDialog.show();
-        fileDialog.onhide = function () {
-            loader.hide();
-        }
         this.dialog = fileDialog;
     }
 
@@ -792,9 +773,7 @@ class SVAGalleryComponent {
                 }
 
                 frappe.confirm('Are you sure you want to delete the selected files?', async () => {
-                    const loader = new Loader(self.wrapper.querySelector('.gallery-wrapper'), 'gallery-delete-loader');
                     try {
-                        loader.show();
                         for (const fileId of self.selectedFiles) {
                             await frappe.db.delete_doc('File', fileId);
                         }
