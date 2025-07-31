@@ -2795,4 +2795,6 @@ class SvaDataTable {
     }
 }
 
+frappe.provide('frappe.ui')
+frappe.ui.SvaDataTable = SvaDataTable;
 export default SvaDataTable;

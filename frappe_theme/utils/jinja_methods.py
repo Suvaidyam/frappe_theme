@@ -35,7 +35,6 @@ def bash_url():
         return ""
 
 def approver_details(dt, dn, workflow_state=""):
-    frappe.log_error("approver_details", f"{dt} {dn} {workflow_state}")
     try:
         if not dt or not dn:
             return {"full_name": '', "email": '','role':""}
@@ -45,9 +44,7 @@ def approver_details(dt, dn, workflow_state=""):
             else:
                 wa = frappe.get_list("Workflow Action", filters={"reference_doctype": dt, "reference_name": dn,"status":"Completed"}, fields=["completed_by","completed_by_role"],ignore_permissions=True)
             if len(wa) > 0:
-                frappe.log_error("wa", wa)
                 user_details = frappe.get_list("SVA User", filters={"email": wa[0].completed_by},fields=["name","first_name","last_name","email"],ignore_permissions=True)
-                frappe.log_error("user_details", user_details)
                 details = {}
                 if len(user_details) > 0:
                     if user_details[0].last_name:
@@ -56,7 +53,6 @@ def approver_details(dt, dn, workflow_state=""):
                         details['full_name'] = user_details[0].first_name
                     details['email'] = user_details[0].email
                     details['role'] = wa[0].completed_by_role
-                    frappe.log_error("details", details)
                     return details
                 else:
                     return {"full_name": '', "email": '',"role":""}
@@ -87,9 +83,7 @@ def workflow_allowed_user(dt, state=""):
             return ""
             
         for transition in workflow.transitions:
-            frappe.log_error("transition1", f"{transition.next_state} {state}")
             if transition.next_state == state:
-                frappe.log_error("transition", transition)
                 return transition.allowed
                 
         return ""

@@ -121,21 +121,26 @@ const hide_comments_and_like_from_list = async () => {
         }
     }
 }
-const addCustomLogo = () => {
-    const navbarBreadcrumbs = document.querySelector('#navbar-breadcrumbs');
-    const logoUrl = frappe.boot.my_theme?.custom_logo;
-
-    if (navbarBreadcrumbs && logoUrl) {
-        const customLogo = document.createElement('div');
-        customLogo.className = 'custom-logo';
-
-        const logoHeight = frappe.boot.my_theme?.custom_logo_height || 36;
-
-        customLogo.innerHTML = `
-            <img src="${logoUrl}" alt="Custom Logo" style="height: ${logoHeight}px; margin-right: 15px;">
-        `;
-        navbarBreadcrumbs.parentNode.insertBefore(customLogo, navbarBreadcrumbs);
-    }
+const addCustomLogo = (theme) => {
+    let navbarBreadcrumbs;
+    let attempts = 0;
+    let interval = setInterval(() => {
+        navbarBreadcrumbs = document.querySelector('#navbar-breadcrumbs');
+        if (navbarBreadcrumbs || attempts > 10) {
+            const logoUrl = theme?.custom_logo;
+            if (navbarBreadcrumbs && logoUrl) {
+                const customLogo = document.createElement('div');
+                customLogo.className = 'custom-logo';
+                const logoHeight = theme?.custom_logo_height || 36;
+                customLogo.innerHTML = `
+                    <img src="${logoUrl}" alt="Custom Logo" style="height: ${logoHeight}px; margin-right: 5px;">
+                `;
+                navbarBreadcrumbs.parentNode.insertBefore(customLogo, navbarBreadcrumbs);
+            }
+            clearInterval(interval);
+        }
+        attempts++;
+    }, 500);
 }
 const applyTheme = async () => {
     let theme = frappe.boot?.my_theme || await getTheme();
@@ -373,6 +378,6 @@ const applyTheme = async () => {
     `;
     await observer_function(theme);
     document.head.appendChild(style);
-    addCustomLogo();
+    addCustomLogo(theme);
 }
 applyTheme()
