@@ -31,9 +31,9 @@ const formaDate = (date) => {
 
 function formatCurrency(amount, currencyCode) {
     let country_code = locals?.['Country']?.[frappe.sys_defaults?.country]?.code?.toUpperCase() || 'US';
-    const formatter = new Intl.NumberFormat(`${frappe.sys_defaults?.lang}-${country_code}`, {
+    const formatter = new Intl.NumberFormat(`${frappe.sys_defaults?.lang || 'en'}-${country_code}`, {
         style: 'currency',
-        currency: currencyCode,
+        currency: currencyCode || 'INR',
     });
     return formatter.format(amount);
 }

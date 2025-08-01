@@ -44,7 +44,7 @@
    "fieldtype": "Select",
    "label": "Frequency",
    "mandatory_depends_on": "eval:!doc.is_group",
-   "options": "\nWeekly\nFortnightly\nMonthly\nQuarterly\nBiannually\nAnnually"
+   "options": "\nWeekly\nFortnightly\nMonthly\nQuarterly\nBi-Annually\nAnnually"
   },
   {
    "depends_on": "eval:!doc.is_group",
@@ -53,7 +53,7 @@
    "label": "Day"
   },
   {
-   "depends_on": "eval:[\"Annually\",\"Biannually\"].includes(doc.frequency)",
+   "depends_on": "eval:[\"Annually\",\"Bi-Annually\"].includes(doc.frequency)",
    "fieldname": "month",
    "fieldtype": "Select",
    "label": "Month",
@@ -81,7 +81,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-28 18:51:16.219034",
+ "modified": "2025-07-31 10:12:43.477742",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "SVA Task Planner",

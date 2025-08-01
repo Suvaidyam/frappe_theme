@@ -505,8 +505,6 @@ def apply_common_permissions(target_perm, common_permissions):
 @frappe.whitelist()
 def save_field_comment(doctype_name, docname, field_name, field_label, comment_text, is_external=0,status='Open'):
     try:
-        frappe.log_error(f"Saving comment for: {doctype_name} {docname} {field_name}", "Comment Save Debug")
-        
         # Find or create the parent DocType Field Comment document
         existing_comments = frappe.get_all('DocType Field Comment', filters={
             'doctype_name': doctype_name,
@@ -514,11 +512,8 @@ def save_field_comment(doctype_name, docname, field_name, field_label, comment_t
             'field_name': field_name
         }, fields=['name'])
 
-        frappe.log_error(f"Existing comments found: {existing_comments}", "Comment Save Debug")
-
         if existing_comments and len(existing_comments) > 0:
             comment_doc = frappe.get_doc('DocType Field Comment', existing_comments[0].name)
-            frappe.log_error(f"Using existing comment doc: {comment_doc.name}", "Comment Save Debug")
         else:
             # Create new parent document
             comment_doc = frappe.get_doc({
@@ -530,7 +525,6 @@ def save_field_comment(doctype_name, docname, field_name, field_label, comment_t
                 'status': status  # Set initial status
             })
             comment_doc.insert(ignore_permissions=True)
-            frappe.log_error(f"Created new comment doc: {comment_doc.name}", "Comment Save Debug")
 
         # Create the child DocType Field Comment Log entry
         comment_log_entry = frappe.get_doc({
@@ -546,11 +540,9 @@ def save_field_comment(doctype_name, docname, field_name, field_label, comment_t
 
         # Insert the child document, ignoring permissions
         comment_log_entry.insert(ignore_permissions=True)
-        frappe.log_error(f"Created new comment log: {comment_log_entry.name}", "Comment Save Debug")
 
         # Verify the comment was saved
-        saved_log = frappe.get_doc('DocType Field Comment Log', comment_log_entry.name)
-        frappe.log_error(f"Verified saved comment: {saved_log.name}", "Comment Save Debug")
+        # saved_log = frappe.get_doc('DocType Field Comment Log', comment_log_entry.name)
 
         # Return the newly created comment log entry for UI update
         return {

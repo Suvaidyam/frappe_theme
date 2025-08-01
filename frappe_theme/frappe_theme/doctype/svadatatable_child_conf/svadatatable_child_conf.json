@@ -10,6 +10,7 @@
   "link_doctype",
   "link_fieldname",
   "title",
+  "add_row_button_label",
   "listview_settings",
   "setup_list_settings",
   "crud_permissions",
@@ -106,17 +107,25 @@
    "fieldname": "redirect_to_main_form",
    "fieldtype": "Check",
    "label": "Redirect to main form on any Action"
+  },
+  {
+   "fieldname": "add_row_button_label",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "\"Add Row\" Button Label"
   }
  ],
+ "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-07-05 10:53:05.517128",
+ "modified": "2025-07-31 20:31:06.244376",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "SVADatatable Child Conf",
  "owner": "Administrator",
  "permissions": [],
+ "row_format": "Dynamic",
  "sort_field": "creation",
  "sort_order": "DESC",
  "states": []
