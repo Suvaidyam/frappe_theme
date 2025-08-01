@@ -15,11 +15,14 @@
   "setup_list_settings",
   "crud_permissions",
   "setup_crud_permissions",
+  "list_filters",
+  "setup_list_filters",
   "disable_edit_depends_on",
   "disable_delete_depends_on",
   "redirect_to_main_form",
   "keep_workflow_enabled_form_submission",
-  "full_screen_dialog"
+  "full_screen_dialog",
+  "disable_workflow"
  ],
  "fields": [
   {
@@ -68,6 +71,7 @@
    "fieldname": "listview_settings",
    "fieldtype": "Code",
    "label": "Listview Settings",
+   "max_height": "10rem",
    "read_only": 1
   },
   {
@@ -114,13 +118,31 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "\"Add row\" Button Label"
+  },
+  {
+   "fieldname": "list_filters",
+   "fieldtype": "Code",
+   "label": "List Filters",
+   "max_height": "10rem",
+   "read_only": 1
+  },
+  {
+   "fieldname": "setup_list_filters",
+   "fieldtype": "Button",
+   "label": "Setup List Filters"
+  },
+  {
+   "default": "0",
+   "fieldname": "disable_workflow",
+   "fieldtype": "Check",
+   "label": "Hide workflow (Even If exists)"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-08-01 09:39:50.292636",
+ "modified": "2025-08-01 18:33:49.728140",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "SVADatatable Child Conf",

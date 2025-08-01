@@ -44,8 +44,8 @@ class SvaDataTable {
 		cdtfname,
 		doctype,
 		render_only = false,
-		onFieldClick = () => {},
-		onFieldValueChange = () => {},
+		onFieldClick = () => { },
+		onFieldValueChange = () => { },
 		signal = null,
 	}) {
 		this.signal = signal;
@@ -95,6 +95,7 @@ class SvaDataTable {
 		this.header_element = null;
 		this.footer_element = null;
 		this.skeletonLoader = null;
+		this.standard_filters_fields_dict = {};
 		// Initialize crud permissions before reloadTable so crudHandler can modify them
 		this.crud = {
 			read: true,
@@ -105,6 +106,7 @@ class SvaDataTable {
 			import: true,
 			print: true,
 		};
+		this.filter_area = null;
 		this.reloadTable();
 		// return this.wrapper;
 	}
@@ -131,37 +133,45 @@ class SvaDataTable {
 					}
 				}
 				// ================================ Workflow Logic  ================================
-				let workflow = await this.sva_db.get_value("Workflow", {
-					document_type: this.doctype,
-					is_active: 1,
-				});
-				if (workflow) {
-					this.workflow = await this.sva_db.get_doc("Workflow", workflow);
-					if (this.workflow.states?.length) {
-						this.wf_positive_closure = this.workflow.states.find(
-							(tr) => tr.custom_closure === "Positive"
-						)?.state;
-						this.wf_negative_closure = this.workflow.states.find(
-							(tr) => tr.custom_closure === "Negative"
-						)?.state;
-					}
-					this.workflow_state_bg = await this.sva_db.get_list("Workflow State", {
-						fields: ["name", "style"],
+				if (!this.connection?.disable_workflow) {
+					let workflow = await this.sva_db.get_value("Workflow", {
+						document_type: this.doctype,
+						is_active: 1,
 					});
-					this.wf_editable_allowed = this.workflow?.states?.some((tr) =>
-						frappe.user_roles.includes(tr?.allow_edit)
-					);
-					this.wf_transitions_allowed = this.workflow?.transitions?.some((tr) =>
-						frappe.user_roles.includes(tr?.allowed)
-					);
+					if (workflow) {
+						this.workflow = await this.sva_db.get_doc("Workflow", workflow);
+						if (this.workflow.states?.length) {
+							this.wf_positive_closure = this.workflow.states.find(
+								(tr) => tr.custom_closure === "Positive"
+							)?.state;
+							this.wf_negative_closure = this.workflow.states.find(
+								(tr) => tr.custom_closure === "Negative"
+							)?.state;
+						}
+						this.workflow_state_bg = await this.sva_db.get_list("Workflow State", {
+							fields: ["name", "style"],
+						});
+						this.wf_editable_allowed = this.workflow?.states?.some((tr) =>
+							frappe.user_roles.includes(tr?.allow_edit)
+						);
+						this.wf_transitions_allowed = this.workflow?.transitions?.some((tr) =>
+							frappe.user_roles.includes(tr?.allowed)
+						);
+					}
 				}
 				// ================================ Workflow End ================================
 				if (this.permissions?.length && this.permissions.includes("read")) {
-					let columns = await this.sva_db.call({
+					let { message: response } = await this.sva_db.call({
 						method: "frappe_theme.dt_api.get_meta_fields",
 						doctype: this.doctype || this.link_report,
 						_type: this.connection.connection_type,
+						meta_attached: true,
 					});
+					let columns = response.fields;
+					this.meta = response.meta;
+					if (this.filter_area) {
+						this.filter_area.make_standard_filters();
+					}
 					if (this.header.length) {
 						this.columns = [];
 						let ft = {
@@ -184,16 +194,14 @@ class SvaDataTable {
 								});
 								continue;
 							} else {
-								let field = columns.message.find(
-									(f) => f.fieldname === h.fieldname
-								);
+								let field = columns.find((f) => f.fieldname === h.fieldname);
 								if (field) {
 									this.columns.push(field);
 								}
 							}
 						}
 					} else {
-						this.columns = [...columns.message.filter((f) => f.in_list_view)];
+						this.columns = [...columns.filter((f) => f.in_list_view)];
 					}
 					this.rows = await this.getDocList();
 					this.table_element = this.createTable();
@@ -442,7 +450,6 @@ class SvaDataTable {
 				wfActionTd.appendChild(el);
 			} else {
 				el.disabled =
-					this.connection?.disable_workflow ||
 					(this.connection?.keep_workflow_enabled_form_submission
 						? false
 						: this.frm?.doc?.docstatus !== 0) ||
@@ -585,9 +592,8 @@ class SvaDataTable {
 
 	setTitle(label) {
 		this.label = label;
-		this.header_element.querySelector("p").innerHTML = `<p style="font-weight:bold;">${
-			this.label ? this.label : " "
-		}</p>`;
+		this.header_element.querySelector("span#dt-title").textContent = `${this.label ? this.label : " "
+			}`;
 	}
 	hideSkeletonLoader(reLoad = false) {
 		if (this.skeletonLoader) {
@@ -626,56 +632,104 @@ class SvaDataTable {
 		return res.message;
 	}
 	async setupHeader() {
-		let row = document.createElement("div");
-		this.header_element = row;
-		row.id = "header-element";
-		row.style = `
-            display: flex;
-            justify-content: space-between; /* Ensures left and right alignment */
-            width: 100%;
-        `;
-		let leftColStyle = `
-            display: flex;
-            justify-content: flex-start; /* Aligns items to the left */
-            gap: 10px;
-        `;
-		let rightColStyle = `
-            display: flex;
-            justify-content: flex-end; /* Aligns items to the right */
-            gap: 10px;
-        `;
-		let leftAlignedColumns = [];
-		let rightAlignedColumns = [];
+		let header_element = document.createElement("div");
+		header_element.id = "header-element";
+		header_element.classList.add("sva-header-element");
 
+		header_element.style = `
+			display: flex;
+			flex-direction: column;
+			gap: 5px;
+			margin-bottom: 10px;
+		`;
+		this.header_element = header_element;
+
+		// ===== TITLE ROW =====
+		let title_row = document.createElement("div");
+		title_row.id = "title-row";
+		title_row.style = `
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			width: 100%;
+			padding-bottom: 5px;
+			border-bottom: 1px solid var(--border-color)
+		`;
+
+		// Title/Label (left side)
 		let label_wrapper = document.createElement("div");
 		label_wrapper.id = "label-wrapper";
-		label_wrapper.innerHTML = `<p style="font-weight:bold;">${
-			this.label ? this.label : " "
-		}</p>`;
-		leftAlignedColumns.push(label_wrapper);
+		label_wrapper.innerHTML = `<span id="dt-title" style="font-weight:bold;max-width:200px !important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${this.label ? this.label : " "
+			}</span>`;
 
-		let list_filter = document.createElement("div");
-		list_filter.id = "list_filter";
-		list_filter.style = `
-            padding-bottom: 10px;
-            display:flex;
-            align-items:center;
-            gap:5px;
-        `;
+		// Actions container (right side)
+		let title_actions = document.createElement("div");
+		title_actions.id = "title-actions";
+		title_actions.style = `
+			display: flex;
+			align-items: center;
+			gap: 10px;
+		`;
+
+		// Refresh button
 		let refresh_button = document.createElement("button");
 		refresh_button.id = "refresh_button";
 		refresh_button.classList.add("text-muted", "btn", "btn-default", "icon-btn");
 		refresh_button.innerHTML = `
-            <svg class="es-icon es-line  icon-sm" style="" aria-hidden="true">
-                <use class="" href="#es-line-reload"></use>
-            </svg>
-        `;
+			<svg class="es-icon es-line icon-sm" style="" aria-hidden="true">
+				<use class="" href="#es-line-reload"></use>
+			</svg>
+		`;
 		refresh_button.onclick = () => {
 			this.reloadTable(true);
 		};
-		if (!list_filter.querySelector("button#refresh_button")) {
-			list_filter.appendChild(refresh_button);
-		}
+
+		// Action button with dropdown
+		let action_button = document.createElement("div");
+		action_button.id = "action_button";
+		new DTAction({
+			wrapper: action_button,
+			dt: this,
+		});
+
+		// Add to title actions
+		title_actions.appendChild(action_button);
+		title_actions.appendChild(refresh_button);
+
+		// Add to title row
+		title_row.appendChild(label_wrapper);
+		title_row.appendChild(title_actions);
+
+		// ===== FILTER ROW =====
+		let filter_row = document.createElement("div");
+		filter_row.id = "filter-row";
+		filter_row.style = `
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			width: 100%;
+			gap: 10px;
+		`;
+
+		// Standard filters (left side)
+		let standard_filters_wrapper = document.createElement("div");
+		standard_filters_wrapper.id = "standard_filters_wrapper";
+		standard_filters_wrapper.style = `
+			display: flex;
+			align-items: center;
+			gap: 10px;
+		`;
+
+		// Filter controls container (right side)
+		let filter_controls = document.createElement("div");
+		filter_controls.id = "filter-controls";
+		filter_controls.style = `
+			display: flex;
+			align-items: center;
+			gap: 10px;
+		`;
+
+		// Get report filters if needed
 		let report_filters = [];
 		if (this.connection.connection_type == "Report") {
 			let { message } = await this.sva_db.call({
@@ -684,27 +738,39 @@ class SvaDataTable {
 			});
 			report_filters = message;
 		}
-		new SVAFilterArea({
+
+		// List filter
+		let list_filter = document.createElement("div");
+		list_filter.id = "list_filter";
+		list_filter.style = `
+			display: flex;
+			align-items: center;
+		`;
+
+		this.filter_area = new SVAFilterArea({
 			wrapper: list_filter,
 			doctype: this.doctype || this.link_report,
 			dt_filter_fields: {
 				sva_dt:
 					this.connection.connection_type == "Report"
 						? {
-								...this,
-								columns: this.frm
-									? report_filters.filter(
-											(f) => f.options != this.frm?.doc?.doctype
-									  )
-									: report_filters,
-						  }
+							...this,
+							columns: this.frm
+								? report_filters.filter(
+									(f) => f.options != this.frm?.doc?.doctype
+								)
+								: report_filters,
+						}
 						: this,
 				header:
 					this.connection.connection_type == "Report"
 						? report_filters.map((field) => field.fieldname)
 						: this.header.map((field) => field.fieldname),
 			},
-			on_change: (filters) => {
+			on_change: (filters, is_standard_filters = false) => {
+				// if (is_standard_filters){
+				// 	this.filter_area.set(filters);
+				// }
 				if (filters.length == 0) {
 					if (this.additional_list_filters.length) {
 						this.additional_list_filters = [];
@@ -717,9 +783,12 @@ class SvaDataTable {
 			},
 		});
 
+		// Sort selector
+		let sva_sort_selector = document.createElement("div");
+		sva_sort_selector.id = "sva_sort_selector";
 		if (this.connection.connection_type != "Report") {
 			this.sort_selector = new SVASortSelector({
-				parent: $(list_filter),
+				parent: $(sva_sort_selector),
 				doctype: this.doctype,
 				sorting_fields: this.header,
 				args: {
@@ -736,36 +805,23 @@ class SvaDataTable {
 			});
 		}
 
-		// add action button with dropdown
-		let action_button = document.createElement("div");
-		action_button.id = "action_button";
+		// Add to filter controls
+		filter_controls.appendChild(list_filter);
+		filter_controls.appendChild(sva_sort_selector);
 
-		new DTAction({
-			wrapper: action_button,
-			dt: this,
-		});
-		list_filter.appendChild(action_button);
+		// Add to filter row
+		filter_row.appendChild(standard_filters_wrapper);
+		filter_row.appendChild(filter_controls);
 
-		let options_wrapper = document.createElement("div");
+		// Add both rows to header element
+		header_element.appendChild(title_row);
+		header_element.appendChild(filter_row);
 
-		options_wrapper.id = "options-wrapper";
-		options_wrapper.appendChild(list_filter);
-
-		rightAlignedColumns.push(options_wrapper);
-		for (let e of leftAlignedColumns) {
-			e.style = leftColStyle;
-			row.appendChild(e);
-		}
-		for (let e of rightAlignedColumns) {
-			e.style = rightColStyle;
-			row.appendChild(e);
-		}
-		return row;
+		return header_element;
 	}
 	async setupWrapper(wrapper) {
-		wrapper.style = `max-width:${this.options?.style?.width || "100%"}; width:${
-			this.options?.style?.width || "100%"
-		};margin:0px !important;`;
+		wrapper.style = `max-width:${this.options?.style?.width || "100%"}; width:${this.options?.style?.width || "100%"
+			};margin:0px !important;`;
 		if (!wrapper.querySelector("div#header-element")) {
 			wrapper.appendChild(await this.setupHeader());
 		}
@@ -776,11 +832,10 @@ class SvaDataTable {
 		list_view_settings.id = "list_view_settings";
 		list_view_settings.classList.add("btn", "btn-secondary", "btn-sm");
 		list_view_settings.innerHTML = `
-        <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="color: ${
-			this.user_has_list_settings
+        <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="color: ${this.user_has_list_settings
 				? frappe.boot?.my_theme?.button_background_color || "#2196F3"
 				: "currentColor"
-		}">
+			}">
             <path fill="none" stroke="currentColor" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
             <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/>
         </svg>`;
@@ -1192,7 +1247,7 @@ class SvaDataTable {
 	isAsync = (fn) => fn?.constructor?.name === "AsyncFunction";
 	async createFormDialog(doctype, name = undefined, mode = "create", additional_action = null) {
 		let res = await this.sva_db.call({
-			method: "frappe_theme.api.get_meta_fields",
+			method: "frappe_theme.dt_api.get_meta_fields",
 			doctype: this.doctype,
 		});
 		let fields = res?.message;
@@ -1234,7 +1289,7 @@ class SvaDataTable {
 					}
 					if (f.fieldtype === "Table") {
 						let res = await this.sva_db.call({
-							method: "frappe_theme.api.get_meta_fields",
+							method: "frappe_theme.dt_api.get_meta_fields",
 							doctype: f.options,
 						});
 						let tableFields = res?.message;
@@ -1255,7 +1310,7 @@ class SvaDataTable {
 											filter_key,
 											"=",
 											dialog.fields_dict[parentfield]?.value ||
-												`Please select ${parentfield}`,
+											`Please select ${parentfield}`,
 										]);
 									}
 									return { filters };
@@ -1282,9 +1337,8 @@ class SvaDataTable {
 								f.options = `
                                     <div class="form-group horizontal">
                                         <div class="clearfix">
-                                            <label class="control-label" style="padding-right: 0px;">${
-												f.label
-											}</label>
+                                            <label class="control-label" style="padding-right: 0px;">${f.label
+									}</label>
                                             <span class="help"></span>
                                         </div>
                                         <div class="control-input-wrapper">
@@ -1293,9 +1347,8 @@ class SvaDataTable {
                                             <svg class="es-icon es-line  icon-sm" style="" aria-hidden="true">
                                                 <use class="" href="#es-line-link"></use>
                                             </svg>
-                                                <a href="${doc[f.fieldname]}" target="_blank">${
-									doc[f.fieldname]
-								}</a>
+                                                <a href="${doc[f.fieldname]}" target="_blank">${doc[f.fieldname]
+									}</a>
                                             </div>
                                             <div class="help-box small text-extra-muted hide"></div>
                                         </div>
@@ -1351,7 +1404,7 @@ class SvaDataTable {
 									filter_key,
 									"=",
 									dialog.fields_dict[parentfield]?.value ||
-										`Please select ${parentfield}`,
+									`Please select ${parentfield}`,
 								]);
 							}
 							return { filters };
@@ -1442,7 +1495,7 @@ class SvaDataTable {
 									filter_key,
 									"=",
 									dialog.fields_dict[parentfield]?.value ||
-										`Please select ${parentfield}`,
+									`Please select ${parentfield}`,
 								]);
 							}
 							return { filters };
@@ -1450,7 +1503,7 @@ class SvaDataTable {
 					}
 					if (f.fieldtype === "Table") {
 						let res = await this.sva_db.call({
-							method: "frappe_theme.api.get_meta_fields",
+							method: "frappe_theme.dt_api.get_meta_fields",
 							doctype: f.options,
 						});
 						let tableFields = res?.message;
@@ -1471,7 +1524,7 @@ class SvaDataTable {
 											filter_key,
 											"=",
 											dialog.fields_dict[parentfield]?.value ||
-												`Please select ${parentfield}`,
+											`Please select ${parentfield}`,
 										]);
 									}
 									return { filters };
@@ -1524,7 +1577,7 @@ class SvaDataTable {
 
 				if (f.fieldtype === "Table") {
 					let res = await this.sva_db.call({
-						method: "frappe_theme.api.get_meta_fields",
+						method: "frappe_theme.dt_api.get_meta_fields",
 						doctype: f.options,
 					});
 					let tableFields = res?.message;
@@ -1544,9 +1597,8 @@ class SvaDataTable {
 						f.options = `
                             <div class="form-group horizontal">
                                 <div class="clearfix">
-                                    <label class="control-label" style="padding-right: 0px;">${
-										f.label
-									}</label>
+                                    <label class="control-label" style="padding-right: 0px;">${f.label
+							}</label>
                                     <span class="help"></span>
                                 </div>
                                 <div class="control-input-wrapper">
@@ -1555,9 +1607,8 @@ class SvaDataTable {
                                     <svg class="es-icon es-line  icon-sm" style="" aria-hidden="true">
                                         <use class="" href="#es-line-link"></use>
                                     </svg>
-                                        <a href="${doc[f.fieldname]}" target="_blank">${
-							doc[f.fieldname]
-						}</a>
+                                        <a href="${doc[f.fieldname]}" target="_blank">${doc[f.fieldname]
+							}</a>
                                     </div>
                                     <div class="help-box small text-extra-muted hide"></div>
                                 </div>
@@ -1828,22 +1879,18 @@ class SvaDataTable {
 			const th = document.createElement("th");
 			let col = this.header.find((h) => h.fieldname === column.fieldname);
 			if (col?.width) {
-				th.style = `min-width:${Number(col?.width) * 50}px !important;max-width:${
-					Number(col?.width) * 50
-				}px !important;width:${
-					Number(col?.width) * 50
-				}px !important; white-space: nowrap;overflow: hidden;text-overflow:ellipsis;`;
+				th.style = `min-width:${Number(col?.width) * 50}px !important;max-width:${Number(col?.width) * 50
+					}px !important;width:${Number(col?.width) * 50
+					}px !important; white-space: nowrap;overflow: hidden;text-overflow:ellipsis;`;
 			}
 			th.textContent = __(column.label || column.name);
 
 			if (column.sortable) {
 				this.createSortingIcon(th, column); // Create the sorting dropdown
 				if (col?.width) {
-					th.style = `min-width:${Number(col?.width) * 50}px !important;max-width:${
-						Number(col?.width) * 50
-					}px !important;width:${
-						Number(col?.width) * 50
-					}px !important; white-space: nowrap;overflow: hidden;text-overflow:ellipsis;cursor:pointer;`;
+					th.style = `min-width:${Number(col?.width) * 50}px !important;max-width:${Number(col?.width) * 50
+						}px !important;width:${Number(col?.width) * 50
+						}px !important; white-space: nowrap;overflow: hidden;text-overflow:ellipsis;cursor:pointer;`;
 				} else {
 					th.style = `cursor:pointer;`;
 				}
@@ -1854,17 +1901,13 @@ class SvaDataTable {
 				this.options.freezeColumnsAtLeft >= freezeColumnsAtLeft
 			) {
 				if (col?.width) {
-					th.style = `position:sticky; left:${left}px; z-index:2; background-color:#F3F3F3;cursor:${
-						column.sortable ? "pointer" : "default"
-					};min-width:${Number(col?.width) * 50}px !important;max-width:${
-						Number(col?.width) * 50
-					}px !important;width:${
-						Number(col?.width) * 50
-					}px !important; white-space: nowrap;overflow: hidden;text-overflow:ellipsis;`;
+					th.style = `position:sticky; left:${left}px; z-index:2; background-color:#F3F3F3;cursor:${column.sortable ? "pointer" : "default"
+						};min-width:${Number(col?.width) * 50}px !important;max-width:${Number(col?.width) * 50
+						}px !important;width:${Number(col?.width) * 50
+						}px !important; white-space: nowrap;overflow: hidden;text-overflow:ellipsis;`;
 				} else {
-					th.style = `position:sticky; left:${left}px; z-index:2; background-color:#F3F3F3;cursor:${
-						column.sortable ? "pointer" : "default"
-					}`;
+					th.style = `position:sticky; left:${left}px; z-index:2; background-color:#F3F3F3;cursor:${column.sortable ? "pointer" : "default"
+						}`;
 				}
 				left += column.width;
 				freezeColumnsAtLeft++;
@@ -1873,24 +1916,25 @@ class SvaDataTable {
 			tr.appendChild(th);
 		});
 		// ========================= Workflow Logic ======================
-		if (this.workflow && (this.wf_editable_allowed || this.wf_transitions_allowed)) {
-			const addColumn = document.createElement("th");
-			addColumn.textContent = this.connection.action_label
-				? this.connection.action_label
-				: "Approval";
-			addColumn.style = "text-align:center;";
-			tr.appendChild(addColumn);
+		if (!this.connection?.disable_workflow) {
+			if (this.workflow && (this.wf_editable_allowed || this.wf_transitions_allowed)) {
+				const addColumn = document.createElement("th");
+				addColumn.textContent = this.connection.action_label
+					? this.connection.action_label
+					: "Approval";
+				addColumn.style =
+					"text-align:center;max-width: 120px !important; width: 120px !important;";
+				tr.appendChild(addColumn);
+			}
 		}
 		// ========================= Workflow End ======================
 
 		// ========================= Action Column ======================
-		// if (((this.frm?.doc.docstatus == 0 && this.conf_perms.length && (this.conf_perms.includes('read') || this.conf_perms.includes('delete') || this.conf_perms.includes('write')))) || this.childLinks?.length) {
 		const action_th = document.createElement("th");
 		action_th.style =
 			"width:5px; text-align:center;position:sticky;right:0px;background-color:#F3F3F3;";
 		action_th.appendChild(this.createSettingsButton());
 		tr.appendChild(action_th);
-		// }
 		// ========================= Action Column End ======================
 		thead.appendChild(tr);
 		return thead;
@@ -1908,7 +1952,7 @@ class SvaDataTable {
 		th.addEventListener("click", () => {
 			const direction =
 				this.currentSort?.column === column.fieldname &&
-				this.currentSort?.direction === "asc"
+					this.currentSort?.direction === "asc"
 					? "desc"
 					: "asc";
 			this.sortByColumn(column, direction);
@@ -2080,8 +2124,7 @@ class SvaDataTable {
 		if (this.childLinks?.length) {
 			this.childLinks.forEach(async (link) => {
 				appendDropdownOption(
-					`${frappe.utils.icon("external-link", "sm")} ${
-						link?.title || link.link_doctype
+					`${frappe.utils.icon("external-link", "sm")} ${link?.title || link.link_doctype
 					}`,
 					async () => {
 						await this.childTableDialog(link.link_doctype, primaryKey, row, link);
@@ -2196,118 +2239,121 @@ class SvaDataTable {
 				});
 
 				// ========================= Workflow Logic ===================
-				if (this.workflow && (this.wf_editable_allowed || this.wf_transitions_allowed)) {
-					let workflow_state_field = this.workflow?.workflow_state_field;
-					const bg = this.workflow_state_bg?.find(
-						(bg) => bg.name === row[workflow_state_field] && bg.style
-					);
-					const closureStates = this.workflow?.states
-						?.filter((s) => ["Positive", "Negative"].includes(s.custom_closure))
-						.map((e) => e.state);
-					const isClosed = closureStates.includes(row[workflow_state_field]);
-					const wfActionTd = document.createElement("td");
-					const el = document.createElement("select");
-					el.classList.add("form-select", "rounded");
-					const titleText = this.workflow.transitions
-						.filter(
-							(link) =>
-								frappe.user_roles.includes(link.allowed) &&
-								link.state === row[workflow_state_field]
-						)
-						.map((e) => `${e.action} by ${e.allowed}`)
-						.join("\n");
+				if (!this.connection?.disable_workflow) {
+					if (
+						this.workflow &&
+						(this.wf_editable_allowed || this.wf_transitions_allowed)
+					) {
+						let workflow_state_field = this.workflow?.workflow_state_field;
+						const bg = this.workflow_state_bg?.find(
+							(bg) => bg.name === row[workflow_state_field] && bg.style
+						);
+						const closureStates = this.workflow?.states
+							?.filter((s) => ["Positive", "Negative"].includes(s.custom_closure))
+							.map((e) => e.state);
+						const isClosed = closureStates.includes(row[workflow_state_field]);
+						const wfActionTd = document.createElement("td");
+						const el = document.createElement("select");
+						el.classList.add("form-select", "rounded");
+						const titleText = this.workflow.transitions
+							.filter(
+								(link) =>
+									frappe.user_roles.includes(link.allowed) &&
+									link.state === row[workflow_state_field]
+							)
+							.map((e) => `${e.action} by ${e.allowed}`)
+							.join("\n");
 
-					el.setAttribute("title", titleText);
-					el.style.width = "100px";
-					el.style.minWidth = "100px";
-					el.style.padding = "2px 5px";
-					el.classList.add(
-						bg ? `bg-${bg.style.toLowerCase()}` : "pl-[20px]",
-						...(bg ? ["text-white"] : [])
-					);
-					if (isClosed) {
-						el.disabled = true;
-						el.classList.add("ellipsis");
-						el.setAttribute("title", row[workflow_state_field]);
-						el.innerHTML = `<option value="" style="color:black" selected disabled">${row[workflow_state_field]}</option>`;
-						el.style["-webkit-appearance"] = "none";
-						el.style["-moz-appearance"] = "none";
-						el.style["appearance"] = "none";
-						el.style["background-color"] = "transparent";
-						el.style["text-align"] = "center";
-						wfActionTd.appendChild(el);
-					} else {
-						el.disabled =
-							this.connection?.disable_workflow ||
-							(this.connection?.keep_workflow_enabled_form_submission
-								? false
-								: this.frm?.doc?.docstatus !== 0) ||
-							closureStates.includes(row[workflow_state_field]) ||
-							!this.workflow?.transitions?.some(
-								(tr) =>
-									frappe.user_roles.includes(tr.allowed) &&
-									tr.state === row[workflow_state_field]
-							);
-						let { message: transitions } = await this.sva_db.call({
-							method: "frappe.model.workflow.get_transitions",
-							doc: { ...row, doctype: this.doctype },
-						});
-						el.innerHTML =
-							`<option value="" style="color:black" selected disabled class="ellipsis">${row[workflow_state_field]}</option>` +
-							[...new Set(transitions?.map((e) => e.action))]
-								?.map(
-									(action) =>
-										`<option value="${action}" style="background-color:white; color:black; cursor:pointer;" class="rounded p-1">${action}</option>`
-								)
-								.join("");
-						el.addEventListener("focus", (event) => {
-							const originalState = el?.getAttribute("title");
-							el.value = "";
-							el.title = originalState;
-						});
-						el.addEventListener("change", async (event) => {
-							const action = event.target.value;
-							const link = this.workflow.transitions.find(
-								(l) =>
-									l.state == row[workflow_state_field] &&
-									l.action === action &&
-									frappe.user_roles.includes(l.allowed)
-							);
-							const originalState = el?.getAttribute("title");
-							if (link) {
-								if (window.onWorkflowStateChange) {
-									await window.onWorkflowStateChange(
-										this,
-										link,
-										primaryKey,
-										el,
-										originalState
-									);
-								} else {
-									try {
-										await this.wf_action(
+						el.setAttribute("title", titleText);
+						el.style.width = "100px";
+						el.style.minWidth = "100px";
+						el.style.padding = "2px 5px";
+						el.classList.add(
+							bg ? `bg-${bg.style.toLowerCase()}` : "pl-[20px]",
+							...(bg ? ["text-white"] : [])
+						);
+						if (isClosed) {
+							el.disabled = true;
+							el.classList.add("ellipsis");
+							el.setAttribute("title", row[workflow_state_field]);
+							el.innerHTML = `<option value="" style="color:black" selected disabled">${row[workflow_state_field]}</option>`;
+							el.style["-webkit-appearance"] = "none";
+							el.style["-moz-appearance"] = "none";
+							el.style["appearance"] = "none";
+							el.style["background-color"] = "transparent";
+							el.style["text-align"] = "center";
+							wfActionTd.appendChild(el);
+						} else {
+							el.disabled =
+								(this.connection?.keep_workflow_enabled_form_submission
+									? false
+									: this.frm?.doc?.docstatus !== 0) ||
+								closureStates.includes(row[workflow_state_field]) ||
+								!this.workflow?.transitions?.some(
+									(tr) =>
+										frappe.user_roles.includes(tr.allowed) &&
+										tr.state === row[workflow_state_field]
+								);
+							let { message: transitions } = await this.sva_db.call({
+								method: "frappe.model.workflow.get_transitions",
+								doc: { ...row, doctype: this.doctype },
+							});
+							el.innerHTML =
+								`<option value="" style="color:black" selected disabled class="ellipsis">${row[workflow_state_field]}</option>` +
+								[...new Set(transitions?.map((e) => e.action))]
+									?.map(
+										(action) =>
+											`<option value="${action}" style="background-color:white; color:black; cursor:pointer;" class="rounded p-1">${action}</option>`
+									)
+									.join("");
+							el.addEventListener("focus", (event) => {
+								const originalState = el?.getAttribute("title");
+								el.value = "";
+								el.title = originalState;
+							});
+							el.addEventListener("change", async (event) => {
+								const action = event.target.value;
+								const link = this.workflow.transitions.find(
+									(l) =>
+										l.state == row[workflow_state_field] &&
+										l.action === action &&
+										frappe.user_roles.includes(l.allowed)
+								);
+								const originalState = el?.getAttribute("title");
+								if (link) {
+									if (window.onWorkflowStateChange) {
+										await window.onWorkflowStateChange(
+											this,
 											link,
 											primaryKey,
 											el,
-											originalState,
-											row
+											originalState
 										);
-									} catch (error) {
-										el.value = ""; // Reset dropdown value
-										el.title = originalState;
+									} else {
+										try {
+											await this.wf_action(
+												link,
+												primaryKey,
+												el,
+												originalState,
+												row
+											);
+										} catch (error) {
+											el.value = ""; // Reset dropdown value
+											el.title = originalState;
+										}
 									}
+									el.value = "";
+									el.title = originalState;
 								}
-								el.value = "";
-								el.title = originalState;
-							}
-						});
+							});
 
-						wfActionTd.appendChild(el);
+							wfActionTd.appendChild(el);
+						}
+						wfActionTd.style.textAlign = "center";
+						tr.appendChild(wfActionTd);
 					}
-					wfActionTd.style.textAlign = "center";
-					tr.appendChild(wfActionTd);
 				}
-
 				// ========================= Workflow End ===================
 				if (
 					(this.conf_perms.length &&
@@ -2339,7 +2385,7 @@ class SvaDataTable {
 			if (
 				scrollTop > this.lastScrollTop &&
 				this.table_wrapper.scrollTop + this.table_wrapper.clientHeight >=
-					this.table_wrapper.scrollHeight
+				this.table_wrapper.scrollHeight
 			) {
 				renderBatch();
 			}
@@ -2414,9 +2460,8 @@ class SvaDataTable {
 				label: "Action Test",
 				fieldname: "action_test",
 				fieldtype: "HTML",
-				options: `<p>Action:  <span style="padding: 4px 8px; border-radius: 100px; color:white;  font-size: 12px; font-weight: 400;" class="bg-${
-					bg?.style?.toLowerCase() || "secondary"
-				}">${selected_state_info.action}</span></p>`,
+				options: `<p>Action:  <span style="padding: 4px 8px; border-radius: 100px; color:white;  font-size: 12px; font-weight: 400;" class="bg-${bg?.style?.toLowerCase() || "secondary"
+					}">${selected_state_info.action}</span></p>`,
 			},
 			...(fields ? fields : []),
 		];
@@ -2478,8 +2523,8 @@ class SvaDataTable {
 						...(me.skip_workflow_confirmation
 							? skip_workflow_values
 							: values
-							? values
-							: workflowFormValue && workflowFormValue),
+								? values
+								: workflowFormValue && workflowFormValue),
 					},
 					doctype: me.doctype,
 				};
@@ -2534,11 +2579,10 @@ class SvaDataTable {
 				{
 					fieldname: "table",
 					fieldtype: "HTML",
-					options: `<div id = "${
-						doctype?.split(" ").length > 1
+					options: `<div id = "${doctype?.split(" ").length > 1
 							? doctype?.split(" ")?.join("-")?.toLowerCase()
 							: doctype.toLowerCase()
-					}" ></div > `,
+						}" ></div > `,
 				},
 			],
 		});
@@ -2562,10 +2606,9 @@ class SvaDataTable {
 		dialog.show();
 		new SvaDataTable({
 			wrapper: dialog.body.querySelector(
-				`#${
-					doctype?.split(" ").length > 1
-						? doctype?.split(" ")?.join("-")?.toLowerCase()
-						: doctype.toLowerCase()
+				`#${doctype?.split(" ").length > 1
+					? doctype?.split(" ")?.join("-")?.toLowerCase()
+					: doctype.toLowerCase()
 				}`
 			), // Wrapper element
 			doctype: doctype,
@@ -2624,9 +2667,8 @@ class SvaDataTable {
 	getCellStyle(column, freezeColumnsAtLeft, left) {
 		return this.options.freezeColumnsAtLeft >= freezeColumnsAtLeft
 			? `position: sticky; left:${left} px; z-index: 2; background-color: white; min-width:${column.width} px; max-width:${column.width} px; padding: 0px`
-			: `min-width:${column.width || 150} px; max-width:${
-					column.width || 200
-			  } px; padding: 0px !important;`;
+			: `min-width:${column.width || 150} px; max-width:${column.width || 200
+			} px; padding: 0px !important;`;
 	}
 
 	createEditableField(td, column, row) {
@@ -2833,17 +2875,15 @@ class SvaDataTable {
 									if (response) {
 										me.reloadRow(response);
 										frappe.show_alert({
-											message: `${
-												column?.label || column.fieldname
-											} updated successfully`,
+											message: `${column?.label || column.fieldname
+												} updated successfully`,
 											indicator: "success",
 										});
 									}
 								} catch (error) {
 									frappe.show_alert({
-										message: `Error updating ${
-											column?.label || column.fieldname
-										}`,
+										message: `Error updating ${column?.label || column.fieldname
+											}`,
 										indicator: "danger",
 									});
 								}
@@ -2858,17 +2898,15 @@ class SvaDataTable {
 									if (response) {
 										me.reloadRow(response);
 										frappe.show_alert({
-											message: `${
-												column?.label || column.fieldname
-											} updated successfully`,
+											message: `${column?.label || column.fieldname
+												} updated successfully`,
 											indicator: "success",
 										});
 									}
 								} catch (error) {
 									frappe.show_alert({
-										message: `Error updating ${
-											column?.label || column.fieldname
-										}`,
+										message: `Error updating ${column?.label || column.fieldname
+											}`,
 										indicator: "danger",
 									});
 								}
@@ -3046,9 +3084,8 @@ class SvaDataTable {
 			}
 			if (columnField.fieldtype === "Attach") {
 				if (row[column.fieldname]) {
-					td.innerHTML = `<a href = "${row[column.fieldname]}" target = "_blank" >${
-						row[column.fieldname]
-					}</a> `;
+					td.innerHTML = `<a href = "${row[column.fieldname]}" target = "_blank" >${row[column.fieldname]
+						}</a> `;
 				} else {
 					td.innerHTML = "";
 				}
@@ -3079,9 +3116,8 @@ class SvaDataTable {
 			}
 			if (columnField.fieldtype === "Attach Image") {
 				if (row[column.fieldname]) {
-					td.innerHTML = `<img src = "${
-						row[column.fieldname]
-					}" style = "width:30px;border-radius:50%;height:30px;object-fit:cover;" /> `;
+					td.innerHTML = `<img src = "${row[column.fieldname]
+						}" style = "width:30px;border-radius:50%;height:30px;object-fit:cover;" /> `;
 					return;
 				}
 			}
@@ -3090,12 +3126,11 @@ class SvaDataTable {
 					let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
-					td.innerHTML = `<span>${
-						row[column.fieldname].toLocaleString("en-US", {
-							minimumFractionDigits: 0,
-							maximumFractionDigits: 2,
-						}) || 0
-					}</span>`;
+					td.innerHTML = `<span>${row[column.fieldname].toLocaleString("en-US", {
+						minimumFractionDigits: 0,
+						maximumFractionDigits: 2,
+					}) || 0
+						}</span>`;
 					if (col?.width) {
 						$(td).css({
 							width: `${Number(col?.width) * 50}px`,
@@ -3135,12 +3170,11 @@ class SvaDataTable {
 					let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
-					td.innerHTML = `<span>${
-						row[column.fieldname].toLocaleString("en-US", {
-							minimumFractionDigits: 0,
-							maximumFractionDigits: 2,
-						}) || 0
-					}%</span>`;
+					td.innerHTML = `<span>${row[column.fieldname].toLocaleString("en-US", {
+						minimumFractionDigits: 0,
+						maximumFractionDigits: 2,
+					}) || 0
+						}%</span>`;
 					if (col?.width) {
 						$(td).css({
 							width: `${Number(col?.width) * 50}px`,
@@ -3180,9 +3214,8 @@ class SvaDataTable {
 					let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
-					td.innerHTML = `<span>${
-						row[column.fieldname] ? formaDate(row[column.fieldname]) : ""
-					}</span>`;
+					td.innerHTML = `<span>${row[column.fieldname] ? formaDate(row[column.fieldname]) : ""
+						}</span>`;
 					if (col?.width) {
 						$(td).css({
 							width: `${Number(col?.width) * 50}px`,
@@ -3211,12 +3244,11 @@ class SvaDataTable {
 				return;
 			}
 			if (["name", this.meta?.title_field].includes(columnField.fieldname)) {
-				td.innerHTML = `<p style="cursor: pointer; text-decoration:underline;">${
-					row[column.fieldname]
-				}</p>`;
+				td.innerHTML = `<p style="cursor: pointer; text-decoration:underline;">${row[column.fieldname]
+					}</p>`;
 				td.querySelector("p").addEventListener("click", () => {
 					let route = frappe.get_route();
-					frappe.set_route("Form", this.doctype, row[column.fieldname]).then(() => {
+					frappe.set_route("Form", this.doctype, row["name"]).then(() => {
 						cur_frm.add_custom_button("Back", () => {
 							frappe.set_route(route);
 						});
@@ -3622,6 +3654,54 @@ class SvaDataTable {
 		overlay.appendChild(style);
 
 		return overlay;
+	}
+	// Helper function to get the fields from the meta
+	add_field(df, parent) {
+		if (!df.placeholder) {
+			df.placeholder = df.label;
+		}
+
+		df.input_class = "input-xs";
+
+		var f = frappe.ui.form.make_control({
+			df: df,
+			parent: parent || this.page_form,
+			only_input: df.fieldtype == "Check" ? false : true,
+		});
+		this.standard_filters_fields_dict[df.fieldname] = f;
+		f.refresh();
+		$(f.wrapper)
+			.attr("title", __(df.label, null, df.parent))
+			.tooltip({
+				delay: { show: 600, hide: 100 },
+				trigger: "hover",
+			});
+		this.restyle_field(f);
+		// html fields in toolbar are only for display
+		if (df.fieldtype == "HTML") {
+			return;
+		}
+
+		// hidden fields dont have $input
+		if (!f.$input) f.make_input();
+
+		f.$input.attr("placeholder", __(df.label, null, df.parent));
+
+		if (df.fieldtype === "Check") {
+			$(f.wrapper).find(":first-child").removeClass("col-md-offset-4 col-md-8");
+		}
+
+		if (df.fieldtype == "Button") {
+			$(f.wrapper).find(".page-control-label").html("&nbsp;");
+			f.$input.addClass("btn-xs").css({ width: "100%", "margin-top": "-1px" });
+		}
+		return f;
+	}
+	restyle_field(f) {
+		$(f.wrapper).css("margin", "0px");
+
+		$(f.wrapper).find("select").css("width", "140px");
+		$(f.wrapper).find(".select-icon").css("top", "2px");
 	}
 }
 

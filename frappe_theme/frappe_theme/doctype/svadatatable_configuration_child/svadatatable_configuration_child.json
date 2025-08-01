@@ -17,7 +17,6 @@
   "report_ref_dt",
   "section_break_bsuw",
   "title",
-  "add_row_button_label",
   "local_field",
   "link_doctype",
   "foreign_field",
@@ -28,6 +27,7 @@
   "template",
   "column_break_divo",
   "action_label",
+  "add_row_button_label",
   "hide_table",
   "section_break_atfn",
   "extend_condition",
@@ -38,6 +38,8 @@
   "setup_crud_permissions",
   "action_list",
   "setup_action_list",
+  "list_filters",
+  "setup_list_filters",
   "section_break_nzmt",
   "disable_edit_depends_on",
   "column_break_zjxl",
@@ -143,15 +145,17 @@
    "fieldname": "listview_settings",
    "fieldtype": "Code",
    "label": "Listview Settings",
+   "max_height": "10rem",
    "read_only": 1
   },
   {
-   "default": "{}",
+   "default": "[]",
    "depends_on": "eval:doc.extend_condition == true",
    "description": "Only Double Quote (\") is allowed in the conditions,\ne.g. [[\"dt\",\"fieldname\",\"operator\",\"value\"],[\"dt\",\"fieldname\",\"operator\",\"value\"]]",
    "fieldname": "extended_condition",
    "fieldtype": "Code",
-   "label": "Extended Condition"
+   "label": "Extended Condition",
+   "max_height": "6rem"
   },
   {
    "default": "0",
@@ -290,6 +294,7 @@
    "fieldname": "action_list",
    "fieldtype": "Code",
    "label": "Action List",
+   "max_height": "5rem",
    "read_only": 1
   },
   {
@@ -329,7 +334,7 @@
    "default": "0",
    "fieldname": "disable_workflow",
    "fieldtype": "Check",
-   "label": "Disable workflow (If exists)"
+   "label": "Hide workflow (Even If exists)"
   },
   {
    "default": "0",
@@ -343,13 +348,25 @@
    "fieldname": "add_row_button_label",
    "fieldtype": "Data",
    "label": "\"Add row\" Button Label"
+  },
+  {
+   "fieldname": "setup_list_filters",
+   "fieldtype": "Button",
+   "label": "Setup List Filters"
+  },
+  {
+   "fieldname": "list_filters",
+   "fieldtype": "Code",
+   "label": "List Filters",
+   "max_height": "10rem",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-08-01 09:39:38.578929",
+ "modified": "2025-08-01 18:30:17.763495",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "SVADatatable Configuration Child",
