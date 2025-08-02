@@ -338,17 +338,18 @@
    "label": "Hide Table"
   },
   {
+   "default": "Add row",
    "depends_on": "eval:doc.connection_type !== \"Is Custom Design\"",
    "fieldname": "add_row_button_label",
    "fieldtype": "Data",
-   "label": "\"Add Row\" Button Label"
+   "label": "\"Add row\" Button Label"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-07-31 20:30:31.303771",
+ "modified": "2025-08-01 09:39:38.578929",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "SVADatatable Configuration Child",

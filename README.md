@@ -4,11 +4,16 @@ A custom app to customize color theme of frappe desk and web along with adding c
 
 ### Installation
 
-You can install this app using the [bench](https://github.com/frappe/bench) CLI:
-
+You can install this app using the [bench](https://github.com/frappe/bench) CLI (STABLE):
 ```bash
 cd $PATH_TO_YOUR_BENCH
 bench get-app $URL_OF_THIS_REPO --branch main
+bench install-app frappe_theme
+```
+You can install this app using the [bench](https://github.com/frappe/bench) CLI (LATEST):
+```bash
+cd $PATH_TO_YOUR_BENCH
+bench get-app $URL_OF_THIS_REPO --branch development
 bench install-app frappe_theme
 ```
 
