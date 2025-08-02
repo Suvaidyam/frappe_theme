@@ -98,7 +98,10 @@ class DTConf:
 	def get_meta_fields(doctype, _type, meta_attached=False):
 		if _type == "Report":
 			report = frappe.get_doc("Report", doctype)
-			return report.columns
+			if meta_attached:
+				return {"fields": report.columns, "meta": {}}
+			else:
+				return report.columns
 		else:
 			meta_fields = frappe.get_meta(doctype).fields
 			property_setters = frappe.get_all(
