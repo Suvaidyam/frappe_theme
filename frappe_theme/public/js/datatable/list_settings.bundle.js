@@ -70,7 +70,7 @@ class ListSettings {
 	make() {
 		let me = this;
 		me.dialog = new frappe.ui.Dialog({
-			title: __("{0} List Settings", [__(me.doctype)]),
+			title: __("{0}", [__(me.doctype)]),
 			fields: [
 				{
 					label: __("Fields"),
@@ -82,6 +82,7 @@ class ListSettings {
 					label: "",
 					fieldname: "description_cus",
 					fieldtype: "HTML",
+					hidden: me.only_list_settings,
 					options:
 						"<p><b>Note</b>: The system converts width values using a scale where 1 unit equals 50 pixels.</p>",
 				},
@@ -138,8 +139,9 @@ class ListSettings {
 			fields += `
 				<div class="control-input flex align-center form-control fields_order sortable"
 					style="display: block; margin-bottom: 5px;" data-fieldname="${me.listview_settings[idx].fieldname}"
-					data-label="${me.listview_settings[idx].label}" data-fieldtype="${me.listview_settings[idx].fieldtype
-				}">
+					data-label="${me.listview_settings[idx].label}" data-fieldtype="${
+				me.listview_settings[idx].fieldtype
+			}">
 
 					<div class="row">
 						<div class="col-1">
@@ -151,17 +153,22 @@ class ListSettings {
 									${__(me.listview_settings[idx].label, null, me.doctype)}
 								</div>
 								<div class="col-4 d-flex align-items-center" style="gap:5px;height:100%;">
-									<input type="number" class="form-control control-input bg-white column-width-input" style="margin-top:-5px;height:25px; visibility:${!me.only_list_settings ? "visible" : "hidden"
-				}"  data-fieldname="${me.listview_settings[idx].fieldname
-				}" value="${me.listview_settings[idx]?.width || 2}" />
-									<input style="visibility:${!me.only_list_settings &&
-					["Select"].includes(me.listview_settings[idx].fieldtype) &&
-					frappe.session.user == "Administrator"
-					? "visible"
-					: "hidden"
-				};height:18px;min-width:18px; margin-top:-2px;" type="checkbox" class="form-control bg-white inline-edit-checkbox" data-fieldname="${me.listview_settings[idx].fieldname
-				}" value="${me.listview_settings[idx]?.inline_edit || 0}" ${me.listview_settings[idx]?.inline_edit ? "checked" : ""
-				} />
+									<input type="number" class="form-control control-input bg-white column-width-input" style="margin-top:-5px;height:25px; visibility:${
+										!me.only_list_settings ? "visible" : "hidden"
+									}"  data-fieldname="${
+				me.listview_settings[idx].fieldname
+			}" value="${me.listview_settings[idx]?.width || 2}" />
+									<input style="visibility:${
+										!me.only_list_settings &&
+										["Select"].includes(me.listview_settings[idx].fieldtype) &&
+										frappe.session.user == "Administrator"
+											? "visible"
+											: "hidden"
+									};height:18px;min-width:18px; margin-top:-2px;" type="checkbox" class="form-control bg-white inline-edit-checkbox" data-fieldname="${
+				me.listview_settings[idx].fieldname
+			}" value="${me.listview_settings[idx]?.inline_edit || 0}" ${
+				me.listview_settings[idx]?.inline_edit ? "checked" : ""
+			} />
 								</div>
 							</div>
 						</div>
@@ -350,8 +357,8 @@ class ListSettings {
 			me.listview_settings = me.only_list_settings
 				? JSON.parse(this.settings?.list_filters || "[]")
 				: JSON.parse(this.settings?.listview_settings || []).length &&
-					JSON.parse(this.settings?.listview_settings || [])?.[0]?.fieldtype == "undefined"
-					? JSON.parse(this.settings?.listview_settings || []).map((f) => {
+				  JSON.parse(this.settings?.listview_settings || [])?.[0]?.fieldtype == "undefined"
+				? JSON.parse(this.settings?.listview_settings || []).map((f) => {
 						let field = meta.find((m) => m.fieldname == f.fieldname);
 						if (field) {
 							return {
@@ -361,8 +368,8 @@ class ListSettings {
 						} else {
 							return f;
 						}
-					})
-					: JSON.parse(this.settings?.listview_settings || []);
+				  })
+				: JSON.parse(this.settings?.listview_settings || []);
 		}
 		me.listview_settings.uniqBy((f) => f.fieldname);
 	}
