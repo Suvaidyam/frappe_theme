@@ -166,3 +166,5 @@ class SVASortSelector {
 		}
 	}
 };
+
+export default SVASortSelector;

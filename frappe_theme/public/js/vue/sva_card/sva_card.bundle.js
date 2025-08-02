@@ -55,6 +55,4 @@ class SvaCard {
 	}
 }
 
-frappe.provide("frappe.ui");
-frappe.ui.SvaCard = SvaCard;
 export default SvaCard;

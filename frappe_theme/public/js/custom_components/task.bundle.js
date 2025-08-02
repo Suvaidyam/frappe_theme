@@ -1,4 +1,4 @@
-class mGrantTask {
+class SVAmGrantTask {
     constructor(frm = null, wrapper = null) {
         // debugger
         this.frm = frm;
@@ -792,5 +792,4 @@ class mGrantTask {
     };
 }
 
-frappe.provide("frappe.ui");
-frappe.ui.SVAmGrantTask = mGrantTask;
+export default SVAmGrantTask;

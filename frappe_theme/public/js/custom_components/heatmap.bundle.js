@@ -1,4 +1,4 @@
-class Heatmap {
+class SVAHeatmap {
     constructor(opts) {
         this.reportName = opts.report || '';
         this.wrapper = opts.wrapper;
@@ -781,3 +781,5 @@ class Heatmap {
         }
     }
 }
+
+export default SVAHeatmap;

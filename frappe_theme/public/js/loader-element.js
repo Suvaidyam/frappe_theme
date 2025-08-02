@@ -63,3 +63,5 @@ class Loader {
         return hash.toString(16);
     }
 }
+
+export default Loader;

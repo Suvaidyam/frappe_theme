@@ -1,4 +1,4 @@
-class NotesManager {
+class SVANotesManager {
     constructor(frm, wrapper) {
         this.frm = frm;
         this.wrapper = this.setupWrapper(wrapper);
@@ -820,5 +820,4 @@ class NotesManager {
     }
 }
 
-frappe.provide("frappe.ui");
-frappe.ui.SVANotesManager = NotesManager;
+export default SVANotesManager;

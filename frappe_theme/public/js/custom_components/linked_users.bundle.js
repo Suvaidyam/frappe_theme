@@ -1,4 +1,4 @@
-class LinkedUser {
+class SVALinkedUser {
     constructor(frm, wrapper) {
         this.frm = frm;
         this.wrapper = wrapper;
@@ -552,5 +552,4 @@ class LinkedUser {
     // }
 }
 
-frappe.provide("frappe.ui");
-frappe.ui.SVALinkedUser = LinkedUser;
+export default SVALinkedUser;

@@ -66,20 +66,32 @@ def approver_details(dt, dn, workflow_state=""):
         return {"full_name": '', "email": '','role':""}
 
 
-def workflow_allowed_user(dt,state=""):
+def workflow_allowed_user(dt, state=""):
+    """
+    Get allowed users/roles for a specific workflow state.
+    
+    Args:
+        dt (str): Document type
+        state (str): Workflow state
+        
+    Returns:
+        list/str: Allowed users/roles for the state, empty string if not found
+    """
     try:
         workflow = frappe.get_doc("Workflow", {"document_type": dt, "is_active": 1})
-        if workflow:
-            transition = workflow.transitions
-            for t in transition:
-                if not t.state == state:
-                    continue
-                else:
-                    return t.allowed
-        else:
+        if not workflow:
             return ""
+            
+        for transition in workflow.transitions:
+            if transition.next_state == state:
+                return transition.allowed
+                
+        return ""
+        
+    except frappe.DoesNotExistError:
+        return ""
     except Exception as e:
-        frappe.log_error('error in getting workflow allowed user',frappe.get_traceback())
+        frappe.log_error('Error in getting workflow allowed user', frappe.get_traceback())
         return ""
 
 @frappe.whitelist()

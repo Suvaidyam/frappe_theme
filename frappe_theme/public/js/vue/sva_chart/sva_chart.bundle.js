@@ -38,6 +38,4 @@ class SvaChart {
 	
 }
 
-frappe.provide("frappe.ui");
-frappe.ui.SvaChart = SvaChart;
 export default SvaChart;

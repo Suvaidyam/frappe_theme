@@ -1,4 +1,4 @@
-class TimelineGenerator {
+class SVATimelineGenerator {
     constructor(frm, wrapper) {
         this.frm = frm;
         this.wrapper = this.setupWrapper(wrapper);
@@ -917,5 +917,4 @@ class TimelineGenerator {
     }
 }
 
-frappe.provide("frappe.ui");
-frappe.ui.SVATimelineGenerator = TimelineGenerator;
+export default SVATimelineGenerator;

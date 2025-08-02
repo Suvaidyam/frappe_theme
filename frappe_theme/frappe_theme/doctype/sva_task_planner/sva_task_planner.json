@@ -1,0 +1,99 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:{frequency}{####}",
+ "creation": "2025-07-27 10:24:25.364949",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "task_name",
+  "is_group",
+  "parent_task_name",
+  "reference_doctype",
+  "column_break_pfce",
+  "frequency",
+  "day",
+  "reference_doc"
+ ],
+ "fields": [
+  {
+   "fieldname": "task_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Task Name",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "is_group",
+   "fieldtype": "Check",
+   "label": "Is Group?"
+  },
+  {
+   "depends_on": "eval:!doc.is_group",
+   "fieldname": "parent_task_name",
+   "fieldtype": "Link",
+   "label": "Parent Task Name",
+   "mandatory_depends_on": "eval:!doc.is_group",
+   "options": "SVA Task Planner"
+  },
+  {
+   "depends_on": "eval:!doc.is_group",
+   "fieldname": "frequency",
+   "fieldtype": "Select",
+   "label": "Frequency",
+   "mandatory_depends_on": "eval:!doc.is_group",
+   "options": "\nWeekly\nFortnightly\nMonthly\nQuarterly\nBi-Annually\nAnnually"
+  },
+  {
+   "depends_on": "eval:!doc.is_group",
+   "fieldname": "day",
+   "fieldtype": "Select",
+   "label": "Day"
+  },
+  {
+   "fieldname": "reference_doctype",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "reference_doctype",
+   "options": "DocType"
+  },
+  {
+   "fieldname": "reference_doc",
+   "fieldtype": "Dynamic Link",
+   "hidden": 1,
+   "label": "reference_doc",
+   "options": "reference_doctype"
+  },
+  {
+   "fieldname": "column_break_pfce",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-08-01 12:08:52.280191",
+ "modified_by": "Administrator",
+ "module": "Frappe Theme",
+ "name": "SVA Task Planner",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "task_name"
+}

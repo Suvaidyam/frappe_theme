@@ -1,4 +1,4 @@
-class EmailComponent {
+class SVAEmailComponent {
     constructor(frm, wrapper) {
         this.frm = frm;
         this.wrapper = wrapper;
@@ -758,5 +758,4 @@ class EmailComponent {
 
 }
 
-frappe.provide("frappe.ui");
-frappe.ui.SVAEmailComponent = EmailComponent;
+export default SVAEmailComponent;

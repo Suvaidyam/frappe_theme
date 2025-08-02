@@ -1,4 +1,6 @@
-class CustomFilterGroup {
+import SVAFilter from './filter.bundle.js';
+
+class SVAFilterGroup {
 	constructor(opts) {
 		$.extend(this, opts);
 		this.filters = this.filters || [];
@@ -241,7 +243,7 @@ class CustomFilterGroup {
 			filter_list: this.base_list || this,
 		};
 
-		let filter = new CustomFilter(args);
+		let filter = new SVAFilter(args);
 		this.filters.push(filter);
 		return filter;
 	}
@@ -367,3 +369,5 @@ class CustomFilterGroup {
 			});
 	}
 };
+
+export default SVAFilterGroup;

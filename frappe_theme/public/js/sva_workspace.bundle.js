@@ -16,6 +16,10 @@ const get_wrapper = (block_name)=>{
         }, 1000);
     });
 }
+
+import SVAHeatmap from './custom_components/heatmap.bundle.js';
+import SvaDataTable from './datatable/sva_datatable.bundle.js';
+
 if (frappe?.workspace_block.blocks?.custom_block) {
     frappe.workspace_block.blocks.custom_block = class SVACustomBlock extends frappe.workspace_block.blocks.custom_block {
         constructor(...args) {
@@ -39,7 +43,7 @@ if (frappe?.workspace_block.blocks?.custom_block) {
 
                     if(block && wrapper){
                         if(block.type == "Heatmap"){
-                            new Heatmap({
+                            new SVAHeatmap({
                                 wrapper: $(wrapper),
                                 ...block,
                             })

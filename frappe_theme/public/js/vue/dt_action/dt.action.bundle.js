@@ -49,6 +49,4 @@ class DTAction {
 
 }
 
-frappe.provide("frappe.ui");
-frappe.ui.DTAction = DTAction;
 export default DTAction;

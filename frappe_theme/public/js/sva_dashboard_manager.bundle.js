@@ -1,3 +1,6 @@
+import SvaCard from './vue/sva_card/sva_card.bundle.js';
+import SvaChart from './vue/sva_chart/sva_chart.bundle.js';
+
 class SVADashboardManager {
     static DEFAULT_OPTIONS = {
         numberCards: [],
@@ -44,7 +47,7 @@ class SVADashboardManager {
         if (this.numberCards.length || this.charts.length) {
             this.initializeComponents().catch(this.handleError.bind(this));
         }
-        return {wrapper: this.wrapper, ref: this};
+        return { wrapper: this.wrapper, ref: this };
     }
 
     // Utility method for debouncing
@@ -84,18 +87,15 @@ class SVADashboardManager {
 
             // Initialize number cards
             if (this.numberCards?.length && !this.frm.is_new()) {
-                initializationPromises.push(
-                    frappe.require("sva_card.bundle.js").then(() => {
-                        let cardInstance = new frappe.ui.SvaCard({
-                            wrapper: this.containers.cards,
-                            frm: this.frm,
-                            numberCards: this.numberCards,
-                            signal: this.signal
-                        });
-                        this.refresh = cardInstance.refresh.bind(cardInstance);
-                    })
-                );
-            }else if(this.numberCards?.length){
+                let cardInstance = new SvaCard({
+                    wrapper: this.containers.cards,
+                    frm: this.frm,
+                    numberCards: this.numberCards,
+                    signal: this.signal
+                });
+                this.refresh = cardInstance.refresh.bind(cardInstance);
+                initializationPromises.push(cardInstance);
+            } else if (this.numberCards?.length) {
                 this.containers.cards.innerHTML = `
                 <div style="height: 66px; gap: 10px;" id="form-not-saved" class="d-flex flex-column justify-content-center align-items-center p-3 card rounded mb-2">
                     <svg class="icon icon-xl" style="stroke: var(--text-light);">
@@ -106,17 +106,14 @@ class SVADashboardManager {
             }
             // Initialize charts
             if (this.charts?.length && !this.frm.is_new()) {
-                initializationPromises.push(
-                    frappe.require("sva_chart.bundle.js").then(() => {
-                        frappe.sva_chart = new frappe.ui.SvaChart({
-                            wrapper: this.containers.charts,
-                            frm: this.frm,
-                            charts: this.charts,
-                            signal: this.signal
-                        });
-                    })
-                );
-            }else if(this.charts?.length){
+                let chartInstance = new SvaChart({
+                    wrapper: this.containers.charts,
+                    frm: this.frm,
+                    charts: this.charts,
+                    signal: this.signal
+                });
+                initializationPromises.push(chartInstance);
+            } else if (this.charts?.length) {
                 this.containers.charts.innerHTML = `
                 <div style="height: 344px; gap: 10px;" id="form-not-saved" class="d-flex flex-column justify-content-center align-items-center p-3 card rounded mb-2">
                     <svg class="icon icon-xl" style="stroke: var(--text-light);">
@@ -144,7 +141,7 @@ class SVADashboardManager {
     }
 
     // async initializeNumberCards() {
-        
+
     //     const cardInstance = new SVANumberCard({
     //         wrapper: this.containers.cards,
     //         frm: this.frm,
@@ -180,7 +177,7 @@ class SVADashboardManager {
     //         }
     //     }
     //     this.componentInstances.set('charts', chartInstance);
-       
+
     // }
 
     // async makeRequest(requestFn) {
@@ -333,3 +330,5 @@ class SVADashboardManager {
         this.containers = null;
     }
 }
+
+export default SVADashboardManager;

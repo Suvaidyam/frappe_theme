@@ -101,3 +101,5 @@ class SVAHTTP {
         return res.message;
     }
 }
+
+// export default SVAHTTP;

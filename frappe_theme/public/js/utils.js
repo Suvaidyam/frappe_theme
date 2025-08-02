@@ -31,9 +31,9 @@ const formaDate = (date) => {
 
 function formatCurrency(amount, currencyCode) {
     let country_code = locals?.['Country']?.[frappe.sys_defaults?.country]?.code?.toUpperCase() || 'US';
-    const formatter = new Intl.NumberFormat(`${frappe.sys_defaults?.lang}-${country_code}`, {
+    const formatter = new Intl.NumberFormat(`${frappe.sys_defaults?.lang || 'en'}-${country_code}`, {
         style: 'currency',
-        currency: currencyCode,
+        currency: currencyCode || 'INR',
     });
     return formatter.format(amount);
 }
@@ -149,3 +149,12 @@ function makeDialogFullScreen(dialog) {
     });
 }
 frappe.utils.make_dialog_fullscreen = makeDialogFullScreen;
+
+function getUserAvatar(fullName) {
+    if (!fullName) return "";
+    const parts = fullName.trim().split(" ");
+    const firstInitial = parts[0]?.[0]?.toUpperCase() || "";
+    const lastInitial = parts[1]?.[0]?.toUpperCase() || "";
+    return firstInitial + lastInitial;
+}
+frappe.utils.get_user_avatar = getUserAvatar;

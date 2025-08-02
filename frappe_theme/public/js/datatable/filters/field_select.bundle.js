@@ -1,5 +1,5 @@
 // <select> widget with all fields of a doctype as options
-class CustomFieldSelect{
+class SVAFieldSelect{
 	// opts parent, doctype, filter_fields, with_blank, select
 	constructor(opts) {
 		var me = this;
@@ -188,3 +188,5 @@ class CustomFieldSelect{
 		}
 	}
 };
+
+export default SVAFieldSelect;

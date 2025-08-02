@@ -1,4 +1,6 @@
-class CustomFilter {
+import SVAFieldSelect from './field_select.bundle.js';
+
+class SVAFilter {
 	constructor(opts) {
 		$.extend(this, opts);
 		if (this.value === null || this.value === undefined) {
@@ -117,7 +119,7 @@ class CustomFilter {
 	}
 
 	async make_select() {
-		this.fieldselect = new CustomFieldSelect({
+		this.fieldselect = new SVAFieldSelect({
 			parent: this.filter_edit_area.find(".fieldname-select-area"),
 			doctype: this.parent_doctype,
 			dt_filter_fields: this.dt_filter_fields,
@@ -445,3 +447,5 @@ class CustomFilter {
 		});
 	}
 };
+
+export default SVAFilter;

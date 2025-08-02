@@ -78,7 +78,7 @@ function get_comment_html(comment, commentMap) {
         <div class="comment-item" style="margin-bottom: 28px; position: relative; display: flex; ${isCurrentUser ? 'justify-content: flex-end;' : 'justify-content: flex-start;'}">
             ${!isCurrentUser ? `
                 <div style="background: ${userColor}; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px; font-weight: 600; font-size: 13px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                    ${frappe.user.full_name(comment.user).charAt(0).toUpperCase()}
+                    ${getUserAvatar(frappe.user.full_name(comment.user))}
                 </div>
             ` : ''}
             <div style="width: fit-content; max-width: 80%;">
@@ -114,7 +114,7 @@ function get_comment_html(comment, commentMap) {
             <div style="display: flex; justify-content: space-between; margin-top: 4px; align-items: center; gap: 8px; flex-direction: column; margin-left: 10px;">
                 ${isCurrentUser ? `
                     <div style="background: ${userColor}; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-left: 10px; font-weight: 600; font-size: 13px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                        ${frappe.user.full_name(comment.user).charAt(0).toUpperCase()}
+                        ${frappe.user.full_name(comment.user)}
                     </div>
                
                     ${comment.is_external && frappe.boot.user_team !== 'NGO' ? `

@@ -22,6 +22,7 @@
    "fieldname": "parent_doctype",
    "fieldtype": "Link",
    "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Parent DocType",
    "options": "DocType",
    "reqd": 1,
@@ -87,9 +88,10 @@
    "options": "SVADatatable Action Conf"
   }
  ],
+ "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-02 12:22:50.235740",
+ "modified": "2025-08-01 13:45:39.687962",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "SVADatatable Configuration",
@@ -119,6 +121,7 @@
    "share": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "creation",
  "sort_order": "DESC",
  "states": []
