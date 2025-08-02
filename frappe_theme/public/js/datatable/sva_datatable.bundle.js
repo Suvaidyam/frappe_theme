@@ -44,8 +44,8 @@ class SvaDataTable {
 		cdtfname,
 		doctype,
 		render_only = false,
-		onFieldClick = () => {},
-		onFieldValueChange = () => {},
+		onFieldClick = () => { },
+		onFieldValueChange = () => { },
 		signal = null,
 	}) {
 		this.signal = signal;
@@ -592,9 +592,8 @@ class SvaDataTable {
 
 	setTitle(label) {
 		this.label = label;
-		this.header_element.querySelector("span#dt-title").textContent = `${
-			this.label ? this.label : " "
-		}`;
+		this.header_element.querySelector("span#dt-title").textContent = `${this.label ? this.label : " "
+			}`;
 	}
 	hideSkeletonLoader(reLoad = false) {
 		if (this.skeletonLoader) {
@@ -660,9 +659,8 @@ class SvaDataTable {
 		// Title/Label (left side)
 		let label_wrapper = document.createElement("div");
 		label_wrapper.id = "label-wrapper";
-		label_wrapper.innerHTML = `<span id="dt-title" style="font-weight:bold;max-width:200px !important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${
-			this.label ? this.label : " "
-		}</span>`;
+		label_wrapper.innerHTML = `<span id="dt-title" style="font-weight:bold;max-width:200px !important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${this.label ? this.label : " "
+			}</span>`;
 
 		// Actions container (right side)
 		let title_actions = document.createElement("div");
@@ -756,13 +754,13 @@ class SvaDataTable {
 				sva_dt:
 					this.connection.connection_type == "Report"
 						? {
-								...this,
-								columns: this.frm
-									? report_filters.filter(
-											(f) => f.options != this.frm?.doc?.doctype
-									  )
-									: report_filters,
-						  }
+							...this,
+							columns: this.frm
+								? report_filters.filter(
+									(f) => f.options != this.frm?.doc?.doctype
+								)
+								: report_filters,
+						}
 						: this,
 				header:
 					this.connection.connection_type == "Report"
@@ -819,9 +817,8 @@ class SvaDataTable {
 		return header_element;
 	}
 	async setupWrapper(wrapper) {
-		wrapper.style = `max-width:${this.options?.style?.width || "100%"}; width:${
-			this.options?.style?.width || "100%"
-		};margin:0px !important;`;
+		wrapper.style = `max-width:${this.options?.style?.width || "100%"}; width:${this.options?.style?.width || "100%"
+			};margin:0px !important;`;
 		if (!wrapper.querySelector("div#header-element")) {
 			wrapper.appendChild(await this.setupHeader());
 		}
@@ -832,11 +829,10 @@ class SvaDataTable {
 		list_view_settings.id = "list_view_settings";
 		list_view_settings.classList.add("btn", "btn-secondary", "btn-sm");
 		list_view_settings.innerHTML = `
-        <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="color: ${
-			this.user_has_list_settings
+        <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="color: ${this.user_has_list_settings
 				? frappe.boot?.my_theme?.button_background_color || "#2196F3"
 				: "currentColor"
-		}">
+			}">
             <path fill="none" stroke="currentColor" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
             <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/>
         </svg>`;
@@ -1311,7 +1307,7 @@ class SvaDataTable {
 											filter_key,
 											"=",
 											dialog.fields_dict[parentfield]?.value ||
-												`Please select ${parentfield}`,
+											`Please select ${parentfield}`,
 										]);
 									}
 									return { filters };
@@ -1338,9 +1334,8 @@ class SvaDataTable {
 								f.options = `
                                     <div class="form-group horizontal">
                                         <div class="clearfix">
-                                            <label class="control-label" style="padding-right: 0px;">${
-												f.label
-											}</label>
+                                            <label class="control-label" style="padding-right: 0px;">${f.label
+									}</label>
                                             <span class="help"></span>
                                         </div>
                                         <div class="control-input-wrapper">
@@ -1349,9 +1344,8 @@ class SvaDataTable {
                                             <svg class="es-icon es-line  icon-sm" style="" aria-hidden="true">
                                                 <use class="" href="#es-line-link"></use>
                                             </svg>
-                                                <a href="${doc[f.fieldname]}" target="_blank">${
-									doc[f.fieldname]
-								}</a>
+                                                <a href="${doc[f.fieldname]}" target="_blank">${doc[f.fieldname]
+									}</a>
                                             </div>
                                             <div class="help-box small text-extra-muted hide"></div>
                                         </div>
@@ -1407,7 +1401,7 @@ class SvaDataTable {
 									filter_key,
 									"=",
 									dialog.fields_dict[parentfield]?.value ||
-										`Please select ${parentfield}`,
+									`Please select ${parentfield}`,
 								]);
 							}
 							return { filters };
@@ -1498,7 +1492,7 @@ class SvaDataTable {
 									filter_key,
 									"=",
 									dialog.fields_dict[parentfield]?.value ||
-										`Please select ${parentfield}`,
+									`Please select ${parentfield}`,
 								]);
 							}
 							return { filters };
@@ -1527,7 +1521,7 @@ class SvaDataTable {
 											filter_key,
 											"=",
 											dialog.fields_dict[parentfield]?.value ||
-												`Please select ${parentfield}`,
+											`Please select ${parentfield}`,
 										]);
 									}
 									return { filters };
@@ -1600,9 +1594,8 @@ class SvaDataTable {
 						f.options = `
                             <div class="form-group horizontal">
                                 <div class="clearfix">
-                                    <label class="control-label" style="padding-right: 0px;">${
-										f.label
-									}</label>
+                                    <label class="control-label" style="padding-right: 0px;">${f.label
+							}</label>
                                     <span class="help"></span>
                                 </div>
                                 <div class="control-input-wrapper">
@@ -1611,9 +1604,8 @@ class SvaDataTable {
                                     <svg class="es-icon es-line  icon-sm" style="" aria-hidden="true">
                                         <use class="" href="#es-line-link"></use>
                                     </svg>
-                                        <a href="${doc[f.fieldname]}" target="_blank">${
-							doc[f.fieldname]
-						}</a>
+                                        <a href="${doc[f.fieldname]}" target="_blank">${doc[f.fieldname]
+							}</a>
                                     </div>
                                     <div class="help-box small text-extra-muted hide"></div>
                                 </div>
@@ -1884,22 +1876,18 @@ class SvaDataTable {
 			const th = document.createElement("th");
 			let col = this.header.find((h) => h.fieldname === column.fieldname);
 			if (col?.width) {
-				th.style = `min-width:${Number(col?.width) * 50}px !important;max-width:${
-					Number(col?.width) * 50
-				}px !important;width:${
-					Number(col?.width) * 50
-				}px !important; white-space: nowrap;overflow: hidden;text-overflow:ellipsis;`;
+				th.style = `min-width:${Number(col?.width) * 50}px !important;max-width:${Number(col?.width) * 50
+					}px !important;width:${Number(col?.width) * 50
+					}px !important; white-space: nowrap;overflow: hidden;text-overflow:ellipsis;`;
 			}
 			th.textContent = __(column.label || column.name);
 
 			if (column.sortable) {
 				this.createSortingIcon(th, column); // Create the sorting dropdown
 				if (col?.width) {
-					th.style = `min-width:${Number(col?.width) * 50}px !important;max-width:${
-						Number(col?.width) * 50
-					}px !important;width:${
-						Number(col?.width) * 50
-					}px !important; white-space: nowrap;overflow: hidden;text-overflow:ellipsis;cursor:pointer;`;
+					th.style = `min-width:${Number(col?.width) * 50}px !important;max-width:${Number(col?.width) * 50
+						}px !important;width:${Number(col?.width) * 50
+						}px !important; white-space: nowrap;overflow: hidden;text-overflow:ellipsis;cursor:pointer;`;
 				} else {
 					th.style = `cursor:pointer;`;
 				}
@@ -1910,17 +1898,13 @@ class SvaDataTable {
 				this.options.freezeColumnsAtLeft >= freezeColumnsAtLeft
 			) {
 				if (col?.width) {
-					th.style = `position:sticky; left:${left}px; z-index:2; background-color:#F3F3F3;cursor:${
-						column.sortable ? "pointer" : "default"
-					};min-width:${Number(col?.width) * 50}px !important;max-width:${
-						Number(col?.width) * 50
-					}px !important;width:${
-						Number(col?.width) * 50
-					}px !important; white-space: nowrap;overflow: hidden;text-overflow:ellipsis;`;
+					th.style = `position:sticky; left:${left}px; z-index:2; background-color:#F3F3F3;cursor:${column.sortable ? "pointer" : "default"
+						};min-width:${Number(col?.width) * 50}px !important;max-width:${Number(col?.width) * 50
+						}px !important;width:${Number(col?.width) * 50
+						}px !important; white-space: nowrap;overflow: hidden;text-overflow:ellipsis;`;
 				} else {
-					th.style = `position:sticky; left:${left}px; z-index:2; background-color:#F3F3F3;cursor:${
-						column.sortable ? "pointer" : "default"
-					}`;
+					th.style = `position:sticky; left:${left}px; z-index:2; background-color:#F3F3F3;cursor:${column.sortable ? "pointer" : "default"
+						}`;
 				}
 				left += column.width;
 				freezeColumnsAtLeft++;
@@ -1965,7 +1949,7 @@ class SvaDataTable {
 		th.addEventListener("click", () => {
 			const direction =
 				this.currentSort?.column === column.fieldname &&
-				this.currentSort?.direction === "asc"
+					this.currentSort?.direction === "asc"
 					? "desc"
 					: "asc";
 			this.sortByColumn(column, direction);
@@ -2137,8 +2121,7 @@ class SvaDataTable {
 		if (this.childLinks?.length) {
 			this.childLinks.forEach(async (link) => {
 				appendDropdownOption(
-					`${frappe.utils.icon("external-link", "sm")} ${
-						link?.title || link.link_doctype
+					`${frappe.utils.icon("external-link", "sm")} ${link?.title || link.link_doctype
 					}`,
 					async () => {
 						await this.childTableDialog(link.link_doctype, primaryKey, row, link);
@@ -2399,7 +2382,7 @@ class SvaDataTable {
 			if (
 				scrollTop > this.lastScrollTop &&
 				this.table_wrapper.scrollTop + this.table_wrapper.clientHeight >=
-					this.table_wrapper.scrollHeight
+				this.table_wrapper.scrollHeight
 			) {
 				renderBatch();
 			}
@@ -2474,9 +2457,8 @@ class SvaDataTable {
 				label: "Action Test",
 				fieldname: "action_test",
 				fieldtype: "HTML",
-				options: `<p>Action:  <span style="padding: 4px 8px; border-radius: 100px; color:white;  font-size: 12px; font-weight: 400;" class="bg-${
-					bg?.style?.toLowerCase() || "secondary"
-				}">${selected_state_info.action}</span></p>`,
+				options: `<p>Action:  <span style="padding: 4px 8px; border-radius: 100px; color:white;  font-size: 12px; font-weight: 400;" class="bg-${bg?.style?.toLowerCase() || "secondary"
+					}">${selected_state_info.action}</span></p>`,
 			},
 			...(fields ? fields : []),
 		];
@@ -2538,8 +2520,8 @@ class SvaDataTable {
 						...(me.skip_workflow_confirmation
 							? skip_workflow_values
 							: values
-							? values
-							: workflowFormValue && workflowFormValue),
+								? values
+								: workflowFormValue && workflowFormValue),
 					},
 					doctype: me.doctype,
 				};
@@ -2594,11 +2576,10 @@ class SvaDataTable {
 				{
 					fieldname: "table",
 					fieldtype: "HTML",
-					options: `<div id = "${
-						doctype?.split(" ").length > 1
-							? doctype?.split(" ")?.join("-")?.toLowerCase()
-							: doctype.toLowerCase()
-					}" ></div > `,
+					options: `<div id = "${doctype?.split(" ").length > 1
+						? doctype?.split(" ")?.join("-")?.toLowerCase()
+						: doctype.toLowerCase()
+						}" ></div > `,
 				},
 			],
 		});
@@ -2622,10 +2603,9 @@ class SvaDataTable {
 		dialog.show();
 		new SvaDataTable({
 			wrapper: dialog.body.querySelector(
-				`#${
-					doctype?.split(" ").length > 1
-						? doctype?.split(" ")?.join("-")?.toLowerCase()
-						: doctype.toLowerCase()
+				`#${doctype?.split(" ").length > 1
+					? doctype?.split(" ")?.join("-")?.toLowerCase()
+					: doctype.toLowerCase()
 				}`
 			), // Wrapper element
 			doctype: doctype,
@@ -2684,9 +2664,8 @@ class SvaDataTable {
 	getCellStyle(column, freezeColumnsAtLeft, left) {
 		return this.options.freezeColumnsAtLeft >= freezeColumnsAtLeft
 			? `position: sticky; left:${left} px; z-index: 2; background-color: white; min-width:${column.width} px; max-width:${column.width} px; padding: 0px`
-			: `min-width:${column.width || 150} px; max-width:${
-					column.width || 200
-			  } px; padding: 0px !important;`;
+			: `min-width:${column.width || 150} px; max-width:${column.width || 200
+			} px; padding: 0px !important;`;
 	}
 
 	createEditableField(td, column, row) {
@@ -2893,17 +2872,15 @@ class SvaDataTable {
 									if (response) {
 										me.reloadRow(response);
 										frappe.show_alert({
-											message: `${
-												column?.label || column.fieldname
-											} updated successfully`,
+											message: `${column?.label || column.fieldname
+												} updated successfully`,
 											indicator: "success",
 										});
 									}
 								} catch (error) {
 									frappe.show_alert({
-										message: `Error updating ${
-											column?.label || column.fieldname
-										}`,
+										message: `Error updating ${column?.label || column.fieldname
+											}`,
 										indicator: "danger",
 									});
 								}
@@ -2918,17 +2895,15 @@ class SvaDataTable {
 									if (response) {
 										me.reloadRow(response);
 										frappe.show_alert({
-											message: `${
-												column?.label || column.fieldname
-											} updated successfully`,
+											message: `${column?.label || column.fieldname
+												} updated successfully`,
 											indicator: "success",
 										});
 									}
 								} catch (error) {
 									frappe.show_alert({
-										message: `Error updating ${
-											column?.label || column.fieldname
-										}`,
+										message: `Error updating ${column?.label || column.fieldname
+											}`,
 										indicator: "danger",
 									});
 								}
@@ -3106,9 +3081,8 @@ class SvaDataTable {
 			}
 			if (columnField.fieldtype === "Attach") {
 				if (row[column.fieldname]) {
-					td.innerHTML = `<a href = "${row[column.fieldname]}" target = "_blank" >${
-						row[column.fieldname]
-					}</a> `;
+					td.innerHTML = `<a href = "${row[column.fieldname]}" target = "_blank" >${row[column.fieldname]
+						}</a> `;
 				} else {
 					td.innerHTML = "";
 				}
@@ -3139,9 +3113,8 @@ class SvaDataTable {
 			}
 			if (columnField.fieldtype === "Attach Image") {
 				if (row[column.fieldname]) {
-					td.innerHTML = `<img src = "${
-						row[column.fieldname]
-					}" style = "width:30px;border-radius:50%;height:30px;object-fit:cover;" /> `;
+					td.innerHTML = `<img src = "${row[column.fieldname]
+						}" style = "width:30px;border-radius:50%;height:30px;object-fit:cover;" /> `;
 					return;
 				}
 			}
@@ -3150,12 +3123,11 @@ class SvaDataTable {
 					let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
-					td.innerHTML = `<span>${
-						row[column.fieldname].toLocaleString("en-US", {
-							minimumFractionDigits: 0,
-							maximumFractionDigits: 2,
-						}) || 0
-					}</span>`;
+					td.innerHTML = `<span>${row[column.fieldname].toLocaleString("en-US", {
+						minimumFractionDigits: 0,
+						maximumFractionDigits: 2,
+					}) || 0
+						}</span>`;
 					if (col?.width) {
 						$(td).css({
 							width: `${Number(col?.width) * 50}px`,
@@ -3195,12 +3167,11 @@ class SvaDataTable {
 					let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
-					td.innerHTML = `<span>${
-						row[column.fieldname].toLocaleString("en-US", {
-							minimumFractionDigits: 0,
-							maximumFractionDigits: 2,
-						}) || 0
-					}%</span>`;
+					td.innerHTML = `<span>${row[column.fieldname].toLocaleString("en-US", {
+						minimumFractionDigits: 0,
+						maximumFractionDigits: 2,
+					}) || 0
+						}%</span>`;
 					if (col?.width) {
 						$(td).css({
 							width: `${Number(col?.width) * 50}px`,
@@ -3240,9 +3211,8 @@ class SvaDataTable {
 					let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
-					td.innerHTML = `<span>${
-						row[column.fieldname] ? formaDate(row[column.fieldname]) : ""
-					}</span>`;
+					td.innerHTML = `<span>${row[column.fieldname] ? formaDate(row[column.fieldname]) : ""
+						}</span>`;
 					if (col?.width) {
 						$(td).css({
 							width: `${Number(col?.width) * 50}px`,
@@ -3271,9 +3241,8 @@ class SvaDataTable {
 				return;
 			}
 			if (["name", this.meta?.title_field].includes(columnField.fieldname)) {
-				td.innerHTML = `<p style="cursor: pointer; text-decoration:underline;">${
-					row[column.fieldname]
-				}</p>`;
+				td.innerHTML = `<p style="cursor: pointer; text-decoration:underline;">${row[column.fieldname]
+					}</p>`;
 				td.querySelector("p").addEventListener("click", () => {
 					let route = frappe.get_route();
 					frappe.set_route("Form", this.doctype, row["name"]).then(() => {
