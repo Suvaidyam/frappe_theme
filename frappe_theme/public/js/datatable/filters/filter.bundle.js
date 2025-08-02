@@ -111,8 +111,12 @@ class SVAFilter {
 		// 	},
 		// });
 		let {sva_dt,header} = this.dt_filter_fields;
-		if (sva_dt?.columns?.length && header?.length){
-			this.fields = {[this.parent_doctype]: sva_dt?.columns?.filter(column => header?.includes(column.fieldname) && !["name","creation","modified",'modified_by','owner'].includes(column.fieldname))};
+		if (sva_dt?.columns?.length){
+			if (header?.length){
+				this.fields = {[this.parent_doctype]: sva_dt?.columns?.filter(column => header?.includes(column.fieldname) && !["name","creation","modified",'modified_by','owner'].includes(column.fieldname))};
+			}else{
+				this.fields = {[this.parent_doctype]: sva_dt?.columns?.filter(column => !["name","creation","modified",'modified_by','owner'].includes(column.fieldname))};
+			}
 		}else{
 			this.fields = {[this.parent_doctype]:[]};
 		}

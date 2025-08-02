@@ -767,9 +767,7 @@ class SvaDataTable {
 				header:
 					this.connection.connection_type == "Report"
 						? report_filters.map((field) => field.fieldname)
-						: this.header?.length
-						? this.header.map((field) => field.fieldname)
-						: this.columns.filter((df) => df.in_list_view).map((df) => df.fieldname),
+						: this.header.map((field) => field.fieldname)
 			},
 			on_change: (filters) => {
 				if (filters.length == 0) {
