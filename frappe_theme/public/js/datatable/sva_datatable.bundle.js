@@ -753,14 +753,13 @@ class SvaDataTable {
 			dt_filter_fields: {
 				sva_dt:
 					this.connection.connection_type == "Report"
-						? {
-							...this,
+						? Object.assign(this, {
 							columns: this.frm
 								? report_filters.filter(
 									(f) => f.options != this.frm?.doc?.doctype
 								)
 								: report_filters,
-						}
+						})
 						: this,
 				header:
 					this.connection.connection_type == "Report"
