@@ -1749,7 +1749,11 @@ class SvaDataTable {
 				if (additional_action) {
 					additional_action(true);
 				}
-				dialog.clear();
+				try {
+					dialog.clear();
+				} catch (error) {
+					console.error("error in dialog.clear", error);
+				}
 				dialog.hide();
 			},
 			secondary_action_label: ["create", "write"].includes(mode) ? "Cancel" : "Close",
