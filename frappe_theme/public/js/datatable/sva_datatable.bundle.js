@@ -2551,7 +2551,7 @@ class SvaDataTable {
                         if (dialog) {
                             dialog?.hide();
                         }
-                        if (me.frm?.["dt_events"]?.[me.doctype]?.["after_workflow_action"]) {
+                        if (me?.frm?.["dt_events"]?.[me.doctype]?.["after_workflow_action"]) {
                             let change = me.frm["dt_events"][me.doctype]["after_workflow_action"];
                             if (me.isAsync(change)) {
                                 await change(me, selected_state_info, docname, prevState, doc);
