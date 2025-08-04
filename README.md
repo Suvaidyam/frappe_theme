@@ -4,11 +4,16 @@ A custom app to customize color theme of frappe desk and web along with adding c
 
 ### Installation
 
-You can install this app using the [bench](https://github.com/frappe/bench) CLI:
-
+You can install this app using the [bench](https://github.com/frappe/bench) CLI (STABLE):
 ```bash
 cd $PATH_TO_YOUR_BENCH
 bench get-app $URL_OF_THIS_REPO --branch main
+bench install-app frappe_theme
+```
+You can install this app using the [bench](https://github.com/frappe/bench) CLI (LATEST):
+```bash
+cd $PATH_TO_YOUR_BENCH
+bench get-app $URL_OF_THIS_REPO --branch development
 bench install-app frappe_theme
 ```
 
@@ -28,9 +33,6 @@ Pre-commit is configured to use the following tools for checking and formatting 
 - prettier
 - pyupgrade
 
-### License
-
-mit
 # frappe_theme (All the below features can be achieved through the configurations only):
 ## Heatmaps in the workspace
 ![image](https://github.com/user-attachments/assets/ac26b819-3df2-4697-a74d-3dfae57e6f90)
