@@ -693,8 +693,8 @@ class SvaDataTable {
 		});
 
 		// Add to title actions
-		title_actions.appendChild(action_button);
 		title_actions.appendChild(refresh_button);
+		title_actions.appendChild(action_button);
 
 		// Add to title row
 		title_row.appendChild(label_wrapper);
@@ -718,6 +718,7 @@ class SvaDataTable {
 			display: flex;
 			align-items: center;
 			gap: 10px;
+			max-width: 70%;
 		`;
 
 		// Filter controls container (right side)
@@ -746,31 +747,26 @@ class SvaDataTable {
 			display: flex;
 			align-items: center;
 		`;
-
 		this.filter_area = new SVAFilterArea({
 			wrapper: list_filter,
 			doctype: this.doctype || this.link_report,
 			dt_filter_fields: {
 				sva_dt:
 					this.connection.connection_type == "Report"
-						? {
-							...this,
+						? Object.assign(this, {
 							columns: this.frm
 								? report_filters.filter(
 									(f) => f.options != this.frm?.doc?.doctype
 								)
 								: report_filters,
-						}
+						})
 						: this,
 				header:
 					this.connection.connection_type == "Report"
 						? report_filters.map((field) => field.fieldname)
-						: this.header.map((field) => field.fieldname),
+						: this.header.map((field) => field.fieldname)
 			},
-			on_change: (filters, is_standard_filters = false) => {
-				// if (is_standard_filters){
-				// 	this.filter_area.set(filters);
-				// }
+			on_change: (filters) => {
 				if (filters.length == 0) {
 					if (this.additional_list_filters.length) {
 						this.additional_list_filters = [];
@@ -2580,8 +2576,8 @@ class SvaDataTable {
 					fieldname: "table",
 					fieldtype: "HTML",
 					options: `<div id = "${doctype?.split(" ").length > 1
-							? doctype?.split(" ")?.join("-")?.toLowerCase()
-							: doctype.toLowerCase()
+						? doctype?.split(" ")?.join("-")?.toLowerCase()
+						: doctype.toLowerCase()
 						}" ></div > `,
 				},
 			],

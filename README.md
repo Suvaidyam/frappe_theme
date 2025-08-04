@@ -33,9 +33,6 @@ Pre-commit is configured to use the following tools for checking and formatting 
 - prettier
 - pyupgrade
 
-### License
-
-mit
 # frappe_theme (All the below features can be achieved through the configurations only):
 ## Heatmaps in the workspace
 ![image](https://github.com/user-attachments/assets/ac26b819-3df2-4697-a74d-3dfae57e6f90)
