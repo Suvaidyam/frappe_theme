@@ -4,7 +4,10 @@ from hashlib import sha256
 from frappe.utils import now_datetime
 
 def format_currency(value):
-    value = float(value) if value else 0
+    try:
+        value = float(value) if value else 0
+    except (ValueError, TypeError):
+        value = 0
     currency_type = frappe.get_doc("System Settings").currency
 
     if currency_type == "USD":
