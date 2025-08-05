@@ -927,9 +927,9 @@ def get_workflow_count(doctype):
         LEFT JOIN `tabWorkflow Document State` AS wfs ON wfs.parent = w.name 
         LEFT JOIN `tabWorkflow State` AS ws ON ws.name = wfs.state 
         LEFT JOIN `tab{doctype}` AS tab ON tab.{wf_field} = wfs.state
-        WHERE w.document_type = '{doctype}' AND w.is_active = 1
+        WHERE w.document_type = %s AND w.is_active = 1
         GROUP BY wfs.state
         ORDER BY wfs.state
     """
 
-    return frappe.db.sql(sql, as_dict=True)
+    return frappe.db.sql(sql, (doctype,), as_dict=True)
