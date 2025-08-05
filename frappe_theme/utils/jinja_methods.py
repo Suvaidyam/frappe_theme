@@ -4,27 +4,48 @@ from hashlib import sha256
 from frappe.utils import now_datetime
 
 def format_currency(value):
-    value = float(value)
+    try:
+        value = float(value) if value else 0
+    except (ValueError, TypeError):
+        value = 0
     currency_type = frappe.get_doc("System Settings").currency
 
     if currency_type == "USD":
-        formatted_value = "{:,.2f}".format(value)
+        if value == int(value):
+            formatted_value = "{:,.0f}".format(value)
+        else:
+            formatted_value = "{:,.2f}".format(value)
     elif currency_type == "INR":
-        s = "{:.2f}".format(value)
-        x = s.split(".")[0]
-        d = s.split(".")[1]
+        if value == int(value):
+            s = "{:.0f}".format(value)
+            d = ""
+        else:
+            s = "{:.2f}".format(value)
+            parts = s.split(".")
+            s = parts[0]
+            d = parts[1]
 
+        x = s
+        
         if len(x) > 3:
             last3 = x[-3:]
             rest = x[:-3]
             
             rest = ",".join([rest[max(i-2,0):i] for i in range(len(rest), 0, -2)][::-1])
-            formatted_value = rest + ',' + last3 + "." + d
+            if d:
+                formatted_value = rest + ',' + last3 + "." + d
+            else:
+                formatted_value = rest + ',' + last3
         else:
-            formatted_value = x + "." + d
+            if d:
+                formatted_value = x + "." + d
+            else:
+                formatted_value = x
     else:
-        formatted_value = str(value)
-
+        if value == int(value):
+            formatted_value = str(int(value))
+        else:
+            formatted_value = str(value)
     return formatted_value
 
 def bash_url():
