@@ -23,6 +23,7 @@ frappe.ui.form.on("Workflow Transition", {
 					fieldname: df.fieldname,
 				}));
 
+                
 			if (fields.length === 0) {
 				frappe.msgprint("No fields found to select.");
 				return;
