@@ -17,12 +17,13 @@ frappe.ui.form.on("Workflow Transition", {
 			const meta = frappe.get_meta(doctype);
 
 			const fields = meta.fields
-				.filter((df) => frappe.model.is_value_type(df.fieldtype))
+				.filter((df) => frappe.model.is_value_type(df.fieldtype) || df.fieldtype === 'Table')
 				.map((df) => ({
 					label: df.label || df.fieldname,
-					fieldname: df.fieldname,
+					fieldname: df.fieldname
 				}));
 
+                
 			if (fields.length === 0) {
 				frappe.msgprint("No fields found to select.");
 				return;
