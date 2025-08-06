@@ -103,18 +103,22 @@ class SVAFilter {
 		this.setup();
 	}
 
-	get_filter_fields(){
+	get_filter_fields() {
 		// let res = await frappe.call({
 		// 	method: "frappe_theme.dt_api.doc_filters",
 		// 	args: {
 		// 		doctype:this.parent_doctype
 		// 	},
 		// });
-		let {sva_dt,header} = this.dt_filter_fields;
-		if (sva_dt?.columns?.length && header?.length){
-			this.fields = {[this.parent_doctype]: sva_dt?.columns?.filter(column => header?.includes(column.fieldname) && !["name","creation","modified",'modified_by','owner'].includes(column.fieldname))};
-		}else{
-			this.fields = {[this.parent_doctype]:[]};
+		let { sva_dt, header } = this.dt_filter_fields;
+		if (sva_dt?.columns?.length) {
+			if (header?.length) {
+				this.fields = { [this.parent_doctype]: sva_dt?.columns?.filter(column => header?.includes(column.fieldname) && !["name", "creation", "modified", 'modified_by', 'owner'].includes(column.fieldname)) };
+			} else {
+				this.fields = { [this.parent_doctype]: sva_dt?.columns?.filter(column => !["name", "creation", "modified", 'modified_by', 'owner'].includes(column.fieldname)) };
+			}
+		} else {
+			this.fields = { [this.parent_doctype]: [] };
 		}
 	}
 
@@ -162,7 +166,7 @@ class SVAFilter {
 			) {
 				fieldtype = "MultiSelect";
 			}
-			console.log(this.field,'this.field')
+			console.log(this.field, 'this.field')
 			this.set_field(this.field.df.parent, this.field.df.fieldname, fieldtype, condition);
 		});
 	}

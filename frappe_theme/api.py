@@ -911,3 +911,25 @@ def get_eligible_users_for_task(doctype, txt, searchfield, start, page_length, f
     except Exception as e:
         frappe.log_error(f"Error in get_eligible_users_for_task: {str(e)}")
         return []
+
+@frappe.whitelist()
+def get_workflow_count(doctype):
+    wf_field = frappe.get_cached_value('Workflow',{'document_type':doctype,"is_active":1},'workflow_state_field')
+    if not wf_field:
+        return []
+
+    sql = f"""
+        SELECT 
+            wfs.state AS state,
+            COALESCE(COUNT(tab.name), 0) AS count,
+            ws.style
+        FROM `tabWorkflow` AS w
+        LEFT JOIN `tabWorkflow Document State` AS wfs ON wfs.parent = w.name 
+        LEFT JOIN `tabWorkflow State` AS ws ON ws.name = wfs.state 
+        LEFT JOIN `tab{doctype}` AS tab ON tab.{wf_field} = wfs.state
+        WHERE w.document_type = %s AND w.is_active = 1
+        GROUP BY wfs.state
+        ORDER BY wfs.state
+    """
+
+    return frappe.db.sql(sql, (doctype,), as_dict=True)
