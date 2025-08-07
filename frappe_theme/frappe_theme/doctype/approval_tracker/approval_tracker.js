@@ -92,16 +92,11 @@ const show_table = async (frm, document_type) => {
         }
     });
 
-    // ✅ Add the filter trigger from Vue here
     window.addEventListener('message', async function (event) {
         if (event.data?.type === 'FILTER_BY_STATE') {
             const selectedState = event.data.state;
-            console.log("Received FILTER_BY_STATE:", selectedState);
-
-            // Set the state filter for your custom datatable
             frm._custom_state_filter = selectedState;
 
-            // Reload the SvaDataTable with new filter
             if (frm.sva_dt_instance) {
                 await frm.sva_dt_instance.reloadTable();
             }

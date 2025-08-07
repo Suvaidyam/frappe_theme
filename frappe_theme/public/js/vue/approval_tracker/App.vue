@@ -54,7 +54,6 @@ const selectedState = ref('')
 
 const onStateClick = (state) => {
   selectedState.value = state
-  // sessionStorage.setItem('selectedState', state) 
   window.parent.postMessage({ type: 'FILTER_BY_STATE', state }, '*')  // Send event to Frappe
 }
 
