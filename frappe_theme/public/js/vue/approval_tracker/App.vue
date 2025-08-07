@@ -13,8 +13,8 @@
           <tr v-for="item in data" :key="item.state" class="border mb-2"
             :style="{ cursor: 'pointer', userSelect: 'none' }"
             :class="{ 'bg-light fw-bold': item.state === selectedState }" @click="onStateClick(item.state)">
-            <td :class="`text-${item.style?.toLowerCase()}`">{{ item.state }}</td>
-            <td :class="`text-${item.style?.toLowerCase()} fw-semibold`">{{ item.count }}</td>
+            <td :class="`text-${item.style?.toLowerCase()}`" style="padding: 4px !important;">{{ item.state }}</td>
+            <td :class="`text-${item.style?.toLowerCase()} fw-semibold`" style="padding: 4px !important;">{{ item.count }}</td>
           </tr>
         </tbody>
       </table>
@@ -32,11 +32,11 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in half" :key="item.state" class="border mb-2"
+            <tr v-for="item in half" :key="item.state" class="border mb-2 py-2"
               :style="{ cursor: 'pointer', userSelect: 'none' }"
               :class="{ 'bg-light fw-bold': item.state === selectedState }" @click="onStateClick(item.state)">
-              <td :class="`text-${item.style?.toLowerCase()}`">{{ item.state }}</td>
-              <td :class="`text-${item.style?.toLowerCase()} fw-semibold`">{{ item.count }}</td>
+              <td :class="`text-${item.style?.toLowerCase()}`" style="padding: 4px !important;">{{ item.state }}</td>
+              <td :class="`text-${item.style?.toLowerCase()} fw-semibold`" style="padding: 4px !important;">{{ item.count }}</td>
             </tr>
           </tbody>
         </table>
@@ -52,10 +52,17 @@ import { ref, computed } from 'vue'
 
 const selectedState = ref('')
 
+// Update onStateClick to support toggle (deselect)
 const onStateClick = (state) => {
-  selectedState.value = state
-  window.parent.postMessage({ type: 'FILTER_BY_STATE', state }, '*')  // Send event to Frappe
+  if (selectedState.value === state) {
+    selectedState.value = ''
+    window.parent.postMessage({ type: 'RESET_FILTER' }, '*') // Or use a specific default
+  } else {
+    selectedState.value = state
+    window.parent.postMessage({ type: 'FILTER_BY_STATE', state }, '*')
+  }
 }
+
 
 const data = ref([])
 const props = defineProps({ doctype: { required: true } })

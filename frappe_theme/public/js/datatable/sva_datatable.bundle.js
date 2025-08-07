@@ -150,13 +150,6 @@ class SvaDataTable {
 						}
 						this.workflow_state_bg = await this.sva_db.get_list("Workflow State", {
 							fields: ["name", "style"],
-							filters: {
-								workflow_state_name: [
-									"IN",
-									this.workflow?.states?.map((e) => e.state),
-								],
-							},
-							limit_page_length: 1000,
 						});
 						this.wf_editable_allowed = this.workflow?.states?.some((tr) =>
 							frappe.user_roles.includes(tr?.allow_edit)
@@ -1820,9 +1813,9 @@ class SvaDataTable {
 			let change = this.frm["dt_events"][this.doctype]["after_render"];
 			let has_aditional_action = additional_action ? true : false;
 			if (this.isAsync(change)) {
-				await change(this, mode, has_aditional_action, name);
+				await change(this, mode, has_aditional_action);
 			} else {
-				change(this, mode, has_aditional_action, name);
+				change(this, mode, has_aditional_action);
 			}
 		}
 	}

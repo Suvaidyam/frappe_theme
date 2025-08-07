@@ -63,7 +63,7 @@ const show_table = async (frm, document_type) => {
                         if (!frm._custom_state_filter) {
                             // Default behavior if no custom filter is set
                             dt.additional_list_filters = [
-                                [document_type, wf_field, 'NOT IN', [wf_positive_closure, wf_negative_closure]]
+                                [document_type, wf_field, 'not in', [wf_positive_closure, wf_negative_closure]]
                             ];
                         } else {
                             // Remove default filtering when a specific filter is applied
@@ -96,6 +96,14 @@ const show_table = async (frm, document_type) => {
         if (event.data?.type === 'FILTER_BY_STATE') {
             const selectedState = event.data.state;
             frm._custom_state_filter = selectedState;
+
+            if (frm.sva_dt_instance) {
+                await frm.sva_dt_instance.reloadTable();
+            }
+        }
+
+        if (event.data?.type === 'RESET_FILTER') {
+            frm._custom_state_filter = null;
 
             if (frm.sva_dt_instance) {
                 await frm.sva_dt_instance.reloadTable();
