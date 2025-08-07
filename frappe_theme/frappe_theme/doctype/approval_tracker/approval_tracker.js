@@ -101,5 +101,13 @@ const show_table = async (frm, document_type) => {
                 await frm.sva_dt_instance.reloadTable();
             }
         }
+
+        if (event.data?.type === 'RESET_FILTER') {
+            frm._custom_state_filter = null;
+
+            if (frm.sva_dt_instance) {
+                await frm.sva_dt_instance.reloadTable();
+            }
+        }
     });
 }
