@@ -23,7 +23,7 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 
 		frappe.workflow.get_transitions(this.frm.doc).then((transitions) => {
 			this.frm.page.clear_actions_menu();
-			transitions.forEach((d) => {
+			transitions?.forEach((d) => {
 				if (frappe.user_roles.includes(d.allowed) && has_approval_access(d)) {
 					added = true;
 					me.frm.page.add_action_item(__(d.action), async function () {
@@ -32,16 +32,23 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 						let fields = [];
 						let action = d.action;
 						if (wf_dialog_fields?.length) {
-							fields = me.frm.meta?.fields
+							fields = await me.frm.meta?.fields
 								.filter((field) => {
 									return wf_dialog_fields.some(
 										(f) => f.fieldname == field.fieldname
 									);
 								})
-								.map((field) => {
+								.map(async (field) => {
 									let field_obj = wf_dialog_fields.find(
 										(f) => f.fieldname == field.fieldname
 									);
+									if (field.fieldtype === "Table") {
+										let fields = await frappe.xcall('frappe_theme.dt_api.get_meta_fields', {
+											doctype: field.options,
+											_type: "Direct",
+										});
+										field_obj['fields'] = fields;
+									}
 									let field_data = me.frm.doc[field.fieldname];
 									let _field = {
 										label: field.label,
@@ -54,6 +61,9 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 										reqd: field_obj?.read_only ? 0 : field_obj?.reqd,
 										options: field.options,
 									};
+									if (_field.fieldtype === "Table") {
+										_field["fields"] = field_obj.fields;
+									}
 									if (
 										!field_obj?.reqd &&
 										["Attach", "Attach Image", "Attach File"].includes(
@@ -66,9 +76,8 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 										) {
 											_field.label = "";
 											_field.fieldtype = "HTML";
-											_field.options = `${field.label} :  <a href="${
-												window.location.origin + field_data
-											}" target="_blank"><i>${field_data}</i></a>`;
+											_field.options = `${field.label} :  <a href="${window.location.origin + field_data
+												}" target="_blank"><i>${field_data}</i></a>`;
 											_field.default = "";
 											_field.read_only = true;
 											_field.reqd = 0;
@@ -95,6 +104,9 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 						}
 						if (fields?.length) {
 							try {
+								// Resolve all field promises before proceeding
+								const resolvedFields = await Promise.all(fields);
+								
 								let workflow_state_bg = await frappe.db.get_list(
 									"Workflow State",
 									{
@@ -110,11 +122,10 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 										label: "Action Test",
 										fieldname: "action_test",
 										fieldtype: "HTML",
-										options: `<p>Action:  <span style="padding: 4px 8px; border-radius: 100px; color:white;  font-size: 12px; font-weight: 400;" class="bg-${
-											bg?.style?.toLowerCase() || "secondary"
-										}">${action}</span></p>`,
+										options: `<p>Action:  <span style="padding: 4px 8px; border-radius: 100px; color:white;  font-size: 12px; font-weight: 400;" class="bg-${bg?.style?.toLowerCase() || "secondary"
+											}">${action}</span></p>`,
 									},
-									...(fields ? fields : []),
+									...(resolvedFields ? resolvedFields : []),
 								];
 								let title = __(me.frm.doctype);
 								let dailog = new frappe.ui.Dialog({
