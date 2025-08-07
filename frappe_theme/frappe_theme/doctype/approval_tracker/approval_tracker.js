@@ -63,7 +63,7 @@ const show_table = async (frm, document_type) => {
                         if (!frm._custom_state_filter) {
                             // Default behavior if no custom filter is set
                             dt.additional_list_filters = [
-                                [document_type, wf_field, 'NOT IN', [wf_positive_closure, wf_negative_closure]]
+                                [document_type, wf_field, 'not in', [wf_positive_closure, wf_negative_closure]]
                             ];
                         } else {
                             // Remove default filtering when a specific filter is applied
