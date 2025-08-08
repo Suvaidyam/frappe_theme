@@ -156,7 +156,7 @@ class SvaDataTable {
 									this.workflow?.states?.map((e) => e.state),
 								],
 							},
-							limit_page_length: 1000,
+							limit_page_length: 100,
 						});
 						this.wf_editable_allowed = this.workflow?.states?.some((tr) =>
 							frappe.user_roles.includes(tr?.allow_edit)
