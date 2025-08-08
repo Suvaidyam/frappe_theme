@@ -10,17 +10,17 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="item in data" :key="item.state" class="border mb-2"
-            :style="{ cursor: 'pointer', userSelect: 'none' }"
-            :class="{ 'bg-light fw-bold': item.state === selectedState }" @click="onStateClick(item.state)">
+          <tr v-for="item in data" :key="item.state" :style="{ cursor: 'pointer', userSelect: 'none' }"
+            :class="{ 'bg-light fw-bold': selectedStates.includes(item.state) }" @click="onStateClick(item.state)">
             <td :class="`text-${item.style?.toLowerCase()}`" style="padding: 4px !important;">{{ item.state }}</td>
-            <td :class="`text-${item.style?.toLowerCase()} fw-semibold`" style="padding: 4px !important;">{{ item.count }}</td>
+            <td :class="`text-${item.style?.toLowerCase()} fw-semibold`" style="padding: 4px !important;">{{ item.count
+            }}</td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <!-- ✅ Split tables on medium and larger screens -->
+    <!-- ✅ Split tables on larger screens -->
     <template v-if="data.length > 1">
       <div class="d-none d-md-block" v-for="(half, i) in [firstHalf, secondHalf]" :key="i"
         style="max-height: 550px; overflow: auto;" v-if="i === 0 || secondHalf.length">
@@ -32,11 +32,11 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in half" :key="item.state" class="border mb-2 py-2"
-              :style="{ cursor: 'pointer', userSelect: 'none' }"
-              :class="{ 'bg-light fw-bold': item.state === selectedState }" @click="onStateClick(item.state)">
+            <tr v-for="item in half" :key="item.state" :style="{ cursor: 'pointer', userSelect: 'none' }"
+              :class="{ 'bg-light fw-bold': selectedStates.includes(item.state) }" @click="onStateClick(item.state)">
               <td :class="`text-${item.style?.toLowerCase()}`" style="padding: 4px !important;">{{ item.state }}</td>
-              <td :class="`text-${item.style?.toLowerCase()} fw-semibold`" style="padding: 4px !important;">{{ item.count }}</td>
+              <td :class="`text-${item.style?.toLowerCase()} fw-semibold`" style="padding: 4px !important;">{{
+                item.count }}</td>
             </tr>
           </tbody>
         </table>
@@ -44,25 +44,25 @@
     </template>
   </div>
 </template>
-
-
 <script setup>
 import { ref, computed } from 'vue'
 
+const selectedStates = ref([]) // ✅ multiple selection
 
-const selectedState = ref('')
-
-// Update onStateClick to support toggle (deselect)
 const onStateClick = (state) => {
-  if (selectedState.value === state) {
-    selectedState.value = ''
-    window.parent.postMessage({ type: 'RESET_FILTER' }, '*') // Or use a specific default
+  const index = selectedStates.value.indexOf(state)
+  if (index > -1) {
+    selectedStates.value.splice(index, 1)
   } else {
-    selectedState.value = state
-    window.parent.postMessage({ type: 'FILTER_BY_STATE', state }, '*')
+    selectedStates.value.push(state)
+  }
+
+  if (selectedStates.value.length === 0) {
+    window.parent.postMessage({ type: 'RESET_FILTER' }, '*')
+  } else {
+    window.parent.postMessage({ type: 'FILTER_BY_STATE', states: [...selectedStates.value] }, '*')
   }
 }
-
 
 const data = ref([])
 const props = defineProps({ doctype: { required: true } })
