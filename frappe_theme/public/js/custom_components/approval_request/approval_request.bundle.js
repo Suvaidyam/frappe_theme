@@ -3,7 +3,7 @@ import { createPinia } from "pinia";
 import App from "./App.vue";
 
 class CustomApprovalRequest {
-    constructor({ wrapper, frm,}) {
+    constructor(frm, wrapper) {
         this.$wrapper = $(wrapper);
         this.app = null;
         this.frm = frm;
