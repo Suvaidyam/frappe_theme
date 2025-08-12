@@ -68,7 +68,7 @@ const show_table = async (frm, document_type) => {
                         } else {
                             // Remove default filtering when a specific filter is applied
                             dt.additional_list_filters = [
-                                [document_type, wf_field, '=', frm._custom_state_filter]
+                                [document_type, wf_field, 'in', frm._custom_state_filter]
                             ];
                         }
 
@@ -94,8 +94,8 @@ const show_table = async (frm, document_type) => {
 
     window.addEventListener('message', async function (event) {
         if (event.data?.type === 'FILTER_BY_STATE') {
-            const selectedState = event.data.state;
-            frm._custom_state_filter = selectedState;
+            const selectedStates = event.data.states;
+            frm._custom_state_filter = selectedStates;
 
             if (frm.sva_dt_instance) {
                 await frm.sva_dt_instance.reloadTable();
@@ -110,4 +110,5 @@ const show_table = async (frm, document_type) => {
             }
         }
     });
+
 }
