@@ -933,3 +933,37 @@ def get_workflow_count(doctype):
     """
 
     return frappe.db.sql(sql, (doctype,), as_dict=True)
+
+@frappe.whitelist()
+@frappe.validate_and_sanitize_search_inputs
+def workflow_doctype_query(doctype, txt, searchfield, start, page_len, filters):
+    current_doctype = filters.get("current_doctype")
+    if not current_doctype:
+        return []
+
+    if not frappe.db.exists("SVADatatable Configuration", current_doctype):
+        return []
+
+    conf_doc = frappe.get_doc("SVADatatable Configuration", current_doctype)
+
+    doctypes_to_check = set()
+    for key, value in conf_doc.as_dict().items():
+        if isinstance(value, list) and value and isinstance(value[0], dict) and "link_doctype" in value[0]:
+            for row in value:
+                if row.get("link_doctype"):
+                    doctypes_to_check.add(row["link_doctype"])
+
+    if not doctypes_to_check:
+        return []
+
+    results = frappe.db.sql(f"""
+        SELECT name, document_type
+        FROM `tabWorkflow`
+        WHERE is_active = 1
+        AND document_type IN ({", ".join(["%s"] * len(doctypes_to_check))})
+        AND ({searchfield} LIKE %s OR document_type LIKE %s)
+        ORDER BY document_type
+        LIMIT %s, %s
+    """, tuple(doctypes_to_check) + (f"%{txt}%", f"%{txt}%", start, page_len))
+
+    return results
