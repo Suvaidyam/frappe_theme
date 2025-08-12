@@ -27,6 +27,7 @@ import SVALinkedUser from './custom_components/linked_users.bundle.js';
 import SVANotesManager from './custom_components/note.bundle.js';
 import SVAmGrantTask from './custom_components/task.bundle.js';
 import SVATimelineGenerator from './custom_components/timeline.bundle.js';
+import CustomApprovalRequest from './custom_components/approval_request/approval_request.bundle.js';
 
 frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
     constructor(...args) {
@@ -687,7 +688,8 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
             "Tasks": SVAmGrantTask,
             "Timeline": SVATimelineGenerator,
             "Notes": SVANotesManager,
-            "Linked Users": SVALinkedUser
+            "Linked Users": SVALinkedUser,
+            "Approval Request": CustomApprovalRequest
         };
         return componentMap[template];
     }
