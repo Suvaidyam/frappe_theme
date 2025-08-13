@@ -18,15 +18,15 @@ const props = defineProps({
     }
 });
 
-const allowedDocTypes = ref([]); // store DocTypes from SVADatatable config
+const allowedDocTypes = ref([]);
+
+let moduleValue;
 
 onMounted(async () => {
-    // Step 1: Get allowed doctypes from SVADatatable Configuration
     if (await frappe.db.exists("SVADatatable Configuration", props.frm.doctype)) {
         let conf_doc = await frappe.db.get_doc("SVADatatable Configuration", props.frm.doctype);
         let found = [];
 
-        // find all child tables with link_doctype
         for (let key in conf_doc) {
             if (Array.isArray(conf_doc[key]) && conf_doc[key].length && conf_doc[key][0].link_doctype) {
                 found.push(...conf_doc[key].map(row => row.link_doctype).filter(Boolean));
@@ -35,24 +35,14 @@ onMounted(async () => {
         allowedDocTypes.value = [...new Set(found)];
     }
 
-    // Step 2: Create your Frappe control as before
-    let moduleValue = frappe.ui.form.make_control({
+    moduleValue = frappe.ui.form.make_control({
         parent: $(frappeContainer.value),
+
         df: {
-            label: 'Module',
-            fieldname: 'module',
-            fieldtype: 'Link',
-            options: 'Workflow',
-            get_query: () => {
-                // ✅ Filter workflows to only those whose document_type
-                // is in the allowedDocTypes list for this page
-                return {
-                    filters: {
-                        document_type: ["in", allowedDocTypes.value],
-                        is_active: 1
-                    }
-                };
-            },
+            label: 'Workflow',
+            fieldname: 'workflow',
+            fieldtype: 'Autocomplete',
+            options: [],
             onchange: async function () {
                 const newValue = moduleValue.get_value();
                 if (newValue) {
@@ -74,12 +64,24 @@ onMounted(async () => {
         render_input: true
     });
 
+    frappe.call({
+        method: "frappe_theme.api.workflow_doctype_query",
+        args: { current_doctype: props.frm.doctype },
+        callback: function (r) {
+            if (Array.isArray(r.message) && r.message.length) {
+                const workflowNames = r.message.map(row => row.name);
+                moduleValue.set_data(workflowNames);
+            } else {
+                moduleValue.set_data([]); // Clear options if no workflows
+            }
+        }
+    });
 
-    // ✅ Default table load for the DocType where this component is used
     if (allowedDocTypes.value.includes(props.frm.doctype)) {
         await showTable(props.frm.doctype);
     }
 });
+
 
 const showTable = async (document_type) => {
     await frappe.require('sva_datatable.bundle.js');

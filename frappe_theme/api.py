@@ -935,9 +935,10 @@ def get_workflow_count(doctype):
     return frappe.db.sql(sql, (doctype,), as_dict=True)
 
 @frappe.whitelist()
-@frappe.validate_and_sanitize_search_inputs
-def workflow_doctype_query(doctype, txt, searchfield, start, page_len, filters):
-    current_doctype = filters.get("current_doctype")
+def workflow_doctype_query(current_doctype):
+    """Return workflows allowed by SVADatatable Configuration for given doctype,
+    including either link_fieldname or dn_reference_field depending on type."""
+    
     if not current_doctype:
         return []
 
@@ -946,24 +947,34 @@ def workflow_doctype_query(doctype, txt, searchfield, start, page_len, filters):
 
     conf_doc = frappe.get_doc("SVADatatable Configuration", current_doctype)
 
-    doctypes_to_check = set()
+    doctypes_info = {}
     for key, value in conf_doc.as_dict().items():
-        if isinstance(value, list) and value and isinstance(value[0], dict) and "link_doctype" in value[0]:
+        if isinstance(value, list) and value and isinstance(value[0], dict):
             for row in value:
-                if row.get("link_doctype"):
-                    doctypes_to_check.add(row["link_doctype"])
+                link_doctype = row.get("link_doctype") or row.get("referenced_link_doctype")
+                if link_doctype and link_doctype not in doctypes_info:
+                    if row.get("referenced_link_doctype"):
+                        doctypes_info[link_doctype] = {"dn_reference_field": key}
+                    else:
+                        doctypes_info[link_doctype] = {"link_fieldname": key}
 
-    if not doctypes_to_check:
+    if not doctypes_info:
         return []
 
-    results = frappe.db.sql(f"""
+    doctypes_to_check = list(doctypes_info.keys())
+
+    workflows = frappe.db.sql(f"""
         SELECT name, document_type
         FROM `tabWorkflow`
         WHERE is_active = 1
         AND document_type IN ({", ".join(["%s"] * len(doctypes_to_check))})
-        AND ({searchfield} LIKE %s OR document_type LIKE %s)
         ORDER BY document_type
-        LIMIT %s, %s
-    """, tuple(doctypes_to_check) + (f"%{txt}%", f"%{txt}%", start, page_len))
+    """, tuple(doctypes_to_check), as_dict=1)
 
-    return results
+    for wf in workflows:
+        wf.update(doctypes_info.get(wf["document_type"], {}))
+
+    return workflows
+
+
+
