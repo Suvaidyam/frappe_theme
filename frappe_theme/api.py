@@ -935,35 +935,54 @@ def get_workflow_count(doctype):
     return frappe.db.sql(sql, (doctype,), as_dict=True)
 
 @frappe.whitelist()
-@frappe.validate_and_sanitize_search_inputs
-def workflow_doctype_query(doctype, txt, searchfield, start, page_len, filters):
-    current_doctype = filters.get("current_doctype")
+def workflow_doctype_query(current_doctype):
+    """Return workflows allowed by SVADatatable Configuration for given doctype,
+    including either link_fieldname or dn_reference_field depending on type."""
+    
     if not current_doctype:
-        return []
+        return {"options": [], "option_map": {}}
 
     if not frappe.db.exists("SVADatatable Configuration", current_doctype):
-        return []
+        return {"options": [], "option_map": {}}
 
-    conf_doc = frappe.get_doc("SVADatatable Configuration", current_doctype)
+    conf_doc = frappe.get_doc("SVADatatable Configuration", current_doctype).as_dict()
 
-    doctypes_to_check = set()
-    for key, value in conf_doc.as_dict().items():
-        if isinstance(value, list) and value and isinstance(value[0], dict) and "link_doctype" in value[0]:
-            for row in value:
-                if row.get("link_doctype"):
-                    doctypes_to_check.add(row["link_doctype"])
+    doctypes_info = {}
 
-    if not doctypes_to_check:
-        return []
+    if not len(conf_doc.get('child_doctypes',[])):
+        return {"options":[], "option_map": {}}
+    for row in conf_doc.get('child_doctypes',[]):
+        if row.get("connection_type") not in ["Direct","Referenced","Unfiltered"]:
+            continue
+        else:
+            link_doctype = row.get("link_doctype") or row.get("referenced_link_doctype")
+            if link_doctype and link_doctype not in doctypes_info:
+                    doctypes_info[link_doctype] = row
 
-    results = frappe.db.sql(f"""
-        SELECT name, document_type
+    if not doctypes_info:
+        return {"options":[], "option_map": {}}
+
+    doctypes_to_check = list(doctypes_info.keys())
+
+    workflows = frappe.db.sql(f"""
+        SELECT name,document_type
         FROM `tabWorkflow`
         WHERE is_active = 1
         AND document_type IN ({", ".join(["%s"] * len(doctypes_to_check))})
-        AND ({searchfield} LIKE %s OR document_type LIKE %s)
         ORDER BY document_type
-        LIMIT %s, %s
-    """, tuple(doctypes_to_check) + (f"%{txt}%", f"%{txt}%", start, page_len))
+    """, tuple(doctypes_to_check),as_dict=True)
 
-    return results
+    if not len(workflows):
+        return {"options": [], "option_map": {}}
+
+    options = []
+    option_map = {}
+    for workflow in workflows:
+        if workflow.document_type in doctypes_info:
+            options.append(workflow.document_type)
+            option_map[workflow.document_type] = doctypes_info[workflow.document_type]
+
+    return {"options" : options,'option_map': option_map}
+
+
+
