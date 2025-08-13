@@ -24,9 +24,9 @@ def update_site_config(key, value):
     """
     if frappe.session.user != "Administrator":
         frappe.throw("You are not authorized to perform this action.", frappe.PermissionError)
-        
+
     try:
         _update_site_config(key, value)
+        return frappe.get_site_config().get(key, None)
     except Exception as e:
         frappe.throw(f"Failed to update site config: {str(e)}", frappe.ValidationError)
-    return frappe.get_site_config().get(key, None)
