@@ -22,5 +22,8 @@ def update_site_config(key, value):
     """
     Update a key in the site config with the given value.
     """
+    if frappe.session.user != "Administrator":
+        frappe.throw("You are not authorized to perform this action.", frappe.PermissionError)
+        
     _update_site_config(key, value)
     return frappe.get_site_config().get(key, None)
