@@ -24,21 +24,8 @@ const optionsMap = ref({});
 let moduleValue;
 
 onMounted(async () => {
-    // if (await frappe.db.exists("SVADatatable Configuration", props.frm.doctype)) {
-    //     let conf_doc = await frappe.db.get_doc("SVADatatable Configuration", props.frm.doctype);
-    //     let found = [];
-
-    //     for (let key in conf_doc) {
-    //         if (Array.isArray(conf_doc[key]) && conf_doc[key].length && conf_doc[key][0].link_doctype) {
-    //             found.push(...conf_doc[key].map(row => row.link_doctype).filter(Boolean));
-    //         }
-    //     }
-    //     allowedDocTypes.value = [...new Set(found)];
-    // }
-
     moduleValue = frappe.ui.form.make_control({
         parent: $(frappeContainer.value),
-
         df: {
             label: 'Workflow',
             fieldname: 'workflow',
@@ -54,11 +41,7 @@ onMounted(async () => {
                     );
                     doc_type = doc_type?.message?.document_type;
 
-                    // if (allowedDocTypes.value.includes(doc_type)) {
                         await showTable(doc_type);
-                    // } else {
-                    //     console.warn(`❌ ${doc_type} is not in SVADatatable Configuration list`);
-                    // }
                 }
             }
         },
@@ -77,10 +60,6 @@ onMounted(async () => {
             }
         }
     });
-
-    // if (allowedDocTypes.value.includes(props.frm.doctype)) {
-        // await showTable(props.frm.doctype);
-    // }
 });
 
 
