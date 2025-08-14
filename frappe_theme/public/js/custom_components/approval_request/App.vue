@@ -52,6 +52,8 @@ onMounted(async () => {
                 if (firstOption) {
                     await showTable(firstOption);
                 }
+            }else {
+                frappe.msgprint(__('No workflows found for this doctype.'));
             }
         }
     });
