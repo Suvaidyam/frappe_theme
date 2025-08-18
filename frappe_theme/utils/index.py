@@ -1,4 +1,5 @@
 import frappe
+from frappe.installer import update_site_config as _update_site_config
 
 @frappe.whitelist()
 def get_wf_state_by_closure(doctype, closure_type="Positive"):
@@ -15,3 +16,17 @@ def get_wf_state_by_closure(doctype, closure_type="Positive"):
     if len(list) > 0:
         return list[0].state
     return None
+
+@frappe.whitelist()
+def update_site_config(key, value):
+    """
+    Update a key in the site config with the given value.
+    """
+    if frappe.session.user != "Administrator":
+        frappe.throw("You are not authorized to perform this action.", frappe.PermissionError)
+
+    try:
+        _update_site_config(key, value)
+        return frappe.get_site_config().get(key, None)
+    except Exception as e:
+        frappe.throw(f"Failed to update site config: {str(e)}", frappe.ValidationError)
