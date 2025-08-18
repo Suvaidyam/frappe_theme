@@ -997,9 +997,9 @@ def get_files(doctype, docname):
                 all_doctype.append(child.link_doctype)
                 docname_list = frappe.get_list(child.link_doctype, filters={child.link_fieldname: docname}, fields=["name"])
                 all_docname.extend([doc.name for doc in docname_list])
-            elif child.connection_type == "Referenced" and child.referenced_link_doctype and child.reference_doc:
+            elif child.connection_type == "Referenced" and child.referenced_link_doctype and child.dn_reference_field:
                 all_doctype.append(child.referenced_link_doctype)
-                docname_list = frappe.get_list(child.referenced_link_doctype, filters={child.reference_fieldname: docname}, fields=["name"])
+                docname_list = frappe.get_list(child.referenced_link_doctype, filters={child.dn_reference_field: docname}, fields=["name"])
                 all_docname.extend([doc.name for doc in docname_list])
             elif child.connection_type == "Indirect" and child.link_doctype:
                 pass
