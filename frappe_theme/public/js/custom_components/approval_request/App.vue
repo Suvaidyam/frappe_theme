@@ -34,7 +34,6 @@ onMounted(async () => {
                 const newValue = moduleValue.get_value();
                 if (newValue) {
                     await showTable(newValue);
-
                 }
             }
         },
