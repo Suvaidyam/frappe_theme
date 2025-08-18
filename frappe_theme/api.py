@@ -1006,9 +1006,9 @@ def get_files(doctype, docname):
                 # skiping this parts for the future inhasment
             elif child.connection_type == "Is Custom Design":
                 pass
-        # return all_docname , all_doctype
+
     except Exception as e:
-        frappe.log_error(f"Error in get_files: {str(e)}")
+        frappe.log_error(title=f"Error in get_files config from svadatatable configuration", message=str(e))
 
     """Get files attached to a document"""
     try:
@@ -1023,25 +1023,5 @@ def get_files(doctype, docname):
         )
         return file_list
     except Exception as e:
-        frappe.log_error(f"Error in get_files: {str(e)}")
+        frappe.log_error(title=f"Error in get_files:", message=str(e))
         return "error"
-
-# def get_direct_connection_link(doctype, docname):
-#     try:
-#         all_doctype =[doctype]
-#         all_docname = [docname]
-#         file_list = frappe.get_all(
-#             "File",
-#             filters={
-#                 "attached_to_name": ["in", all_docname],
-#                 "attached_to_doctype": ["in", all_doctype],
-#             },
-#             fields=["name", "file_url", "attached_to_doctype", "attached_to_name"],  # specify fields if needed
-#             as_list=False  # or as_dict=True (default is dict)
-#         )
-#     except Exception as e:
-#         frappe.log_error(
-#             title=f"Error in get_direct_connection_link: {doctype}",
-#             message=str(e)
-#             )
-#         return []
