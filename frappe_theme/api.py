@@ -985,4 +985,63 @@ def workflow_doctype_query(current_doctype):
     return {"options" : options,'option_map': option_map}
 
 
+@frappe.whitelist(allow_guest=True)
+def get_files(doctype, docname):
+    all_doctype =[doctype]
+    all_docname = [docname]
 
+    get_config = frappe.get_doc("SVADatatable Configuration", doctype)
+    try:
+        for child in get_config.child_doctypes:
+            if child.connection_type == "Direct" and child.link_doctype:
+                all_doctype.append(child.link_doctype)
+                docname_list = frappe.get_list(child.link_doctype, filters={child.link_fieldname: docname}, fields=["name"])
+                all_docname.extend([doc.name for doc in docname_list])
+            elif child.connection_type == "Referenced" and child.referenced_link_doctype and child.reference_doc:
+                all_doctype.append(child.referenced_link_doctype)
+                docname_list = frappe.get_list(child.referenced_link_doctype, filters={child.reference_fieldname: docname}, fields=["name"])
+                all_docname.extend([doc.name for doc in docname_list])
+            elif child.connection_type == "Indirect" and child.link_doctype:
+                pass
+                # skiping this parts for the future inhasment
+            elif child.connection_type == "Is Custom Design":
+                pass
+        # return all_docname , all_doctype
+    except Exception as e:
+        frappe.log_error(f"Error in get_files: {str(e)}")
+
+    """Get files attached to a document"""
+    try:
+        file_list = frappe.get_all(
+            "File",
+            filters={
+                "attached_to_name": ["in", all_docname],
+                "attached_to_doctype": ["in", all_doctype],
+            },
+            fields=["name", "file_url", "attached_to_doctype", "attached_to_name"],
+            as_list=False
+        )
+        return file_list
+    except Exception as e:
+        frappe.log_error(f"Error in get_files: {str(e)}")
+        return "error"
+
+# def get_direct_connection_link(doctype, docname):
+#     try:
+#         all_doctype =[doctype]
+#         all_docname = [docname]
+#         file_list = frappe.get_all(
+#             "File",
+#             filters={
+#                 "attached_to_name": ["in", all_docname],
+#                 "attached_to_doctype": ["in", all_doctype],
+#             },
+#             fields=["name", "file_url", "attached_to_doctype", "attached_to_name"],  # specify fields if needed
+#             as_list=False  # or as_dict=True (default is dict)
+#         )
+#     except Exception as e:
+#         frappe.log_error(
+#             title=f"Error in get_direct_connection_link: {doctype}",
+#             message=str(e)
+#             )
+#         return []
