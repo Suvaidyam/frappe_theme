@@ -992,6 +992,16 @@ def get_files(doctype, docname):
 
     get_config = frappe.get_doc("SVADatatable Configuration", doctype)
     try:
+        get_config = frappe.get_doc("SVADatatable Configuration", doctype)
+    except DoesNotExistError:
+        frappe.log_error(title="SVADatatable Configuration missing", message=f"No SVADatatable Configuration found for doctype: {doctype}")
+        # Optionally, return empty list or a specific error message
+        return []
+    except Exception as e:
+        frappe.log_error(title="Error fetching SVADatatable Configuration", message=str(e))
+        return []
+
+    try:
         for child in get_config.child_doctypes:
             if child.connection_type == "Direct" and child.link_doctype:
                 all_doctype.append(child.link_doctype)
