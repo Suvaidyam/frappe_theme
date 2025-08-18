@@ -987,7 +987,7 @@ def workflow_doctype_query(current_doctype):
 
 @frappe.whitelist(allow_guest=True)
 def get_files(doctype, docname):
-    all_doctype =[doctype]
+    all_doctype = [doctype]
     all_docname = [docname]
 
     get_config = frappe.get_doc("SVADatatable Configuration", doctype)
@@ -1003,7 +1003,7 @@ def get_files(doctype, docname):
                 all_docname.extend([doc.name for doc in docname_list])
             elif child.connection_type == "Indirect" and child.link_doctype:
                 pass
-                # skiping this parts for the future inhasment
+                # skipping this part for future enhancement
             elif child.connection_type == "Is Custom Design":
                 pass
 
