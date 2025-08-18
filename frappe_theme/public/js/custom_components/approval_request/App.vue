@@ -34,12 +34,13 @@ onMounted(async () => {
                 const newValue = moduleValue.get_value();
                 if (newValue) {
                     await showTable(newValue);
+
                 }
             }
         },
         render_input: true
     });
-
+    
     frappe.call({
         method: "frappe_theme.api.workflow_doctype_query",
         args: { current_doctype: props.frm.doctype },
@@ -75,7 +76,6 @@ const showTable = async (document_type) => {
     const frmCopy = Object.assign({}, props.frm);
     let wf_field = await frappe.db.get_value('Workflow', { document_type, is_active: 1 }, 'workflow_state_field');
     wf_field = wf_field?.message?.workflow_state_field;
-
 
     frmCopy.sva_dt_instance = new frappe.ui.SvaDataTable({
         wrapper: sva_datatable.value,
