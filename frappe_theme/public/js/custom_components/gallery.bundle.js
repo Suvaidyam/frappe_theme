@@ -333,29 +333,31 @@ class SVAGalleryComponent {
         `;
     }
 
-    async fetchGalleryFiles() {
-        const loader = new Loader(this.wrapper.querySelector('.gallery-wrapper'), 'gallery-fetch-loader');
-        try {
-            loader.show();
-            if (!this.frm || !this.frm.doc) {
-                console.error('Form or document not initialized');
-                return;
+async fetchGalleryFiles() {
+    const loader = new Loader(this.wrapper.querySelector('.gallery-wrapper'), 'gallery-fetch-loader');
+    try {
+        loader.show();
+        if (!this.frm || !this.frm.doc) {
+            console.error('Form or document not initialized');
+            return;
+        }
+
+        // Call your custom API instead of frappe.db.get_list
+        const { message: files } = await frappe.call({
+            method: 'frappe_theme.api.get_files',
+            type: 'GET',
+            args: {
+                doctype: this.frm.doc.doctype,
+                docname: this.frm.doc.name
             }
+        });
 
-            const filters = {
-                'attached_to_name': ['=', this.frm.doc.name],
-                'attached_to_doctype': ['=', this.frm.doc.doctype],
-                'is_folder': 0
-            };
+        this.gallery_files = files || [];
 
-            this.gallery_files = await frappe.db.get_list('File', {
-                fields: ['*'],  // Get all fields
-                filters: filters,
-                order_by: 'creation desc',
-                limit: 1000,
-            }) || [];
-            const uniqueOwners = [...new Set(this.gallery_files.map(file => file.owner))];
+        // Extract unique owners
+        const uniqueOwners = [...new Set(this.gallery_files.map(file => file.owner))];
 
+        if (uniqueOwners.length > 0) {
             const { message: ownerNames } = await frappe.call({
                 method: 'frappe.client.get_list',
                 args: {
@@ -374,18 +376,20 @@ class SVAGalleryComponent {
                 ...file,
                 owner_full_name: ownerFullNames[file.owner]
             }));
-            this.updateGallery();
-        } catch (error) {
-            console.error('Error fetching files:', error);
-            frappe.msgprint({
-                title: __('Error'),
-                indicator: 'red',
-                message: __('Error fetching files: ') + (error.message || error)
-            });
-        } finally {
-            loader.hide();
         }
+
+        this.updateGallery();
+    } catch (error) {
+        console.error('Error fetching files:', error);
+        frappe.msgprint({
+            title: __('Error'),
+            indicator: 'red',
+            message: __('Error fetching files: ') + (error.message || error)
+        });
+    } finally {
+        loader.hide();
     }
+}
 
     render() {
         this.wrapper.innerHTML = ''; // Clear existing content

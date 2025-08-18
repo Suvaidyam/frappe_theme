@@ -1776,8 +1776,10 @@ class SvaDataTable {
 				if (additional_action) {
 					additional_action(false);
 				}
-				if (mode != "view") {
+				try {
 					dialog.clear();
+				} catch (error) {
+					console.error("error in dialog.clear", error);
 				}
 				dialog.hide();
 			},
