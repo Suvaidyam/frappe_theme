@@ -21,6 +21,7 @@ app_include_js = [
     "sva_workspace.bundle.js",
     "overwrite_form.bundle.js",
     "overwrite_workflow.bundle.js",
+    "override_date_field.bundle.js",
     f"/assets/frappe_theme/js/svadb.js?ver={time.time()}",
     f"/assets/frappe_theme/js/fields_comment.js?ver={time.time()}",
     f"/assets/frappe_theme/js/extended_chart.js?ver={time.time()}",
