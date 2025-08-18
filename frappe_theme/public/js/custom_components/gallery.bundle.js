@@ -372,7 +372,6 @@ async fetchGalleryFiles() {
             ownerNames.forEach(user => {
                 ownerFullNames[user.name] = user.full_name;
             });
-
             this.gallery_files = this.gallery_files.map(file => ({
                 ...file,
                 owner_full_name: ownerFullNames[file.owner]
