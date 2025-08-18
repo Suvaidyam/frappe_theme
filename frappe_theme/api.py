@@ -993,7 +993,7 @@ def get_files(doctype, docname):
     get_config = frappe.get_doc("SVADatatable Configuration", doctype)
     try:
         get_config = frappe.get_doc("SVADatatable Configuration", doctype)
-    except DoesNotExistError:
+    except frappe.DoesNotExistError:
         frappe.log_error(title="SVADatatable Configuration missing", message=f"No SVADatatable Configuration found for doctype: {doctype}")
         # Optionally, return empty list or a specific error message
         return []
