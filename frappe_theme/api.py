@@ -1032,5 +1032,5 @@ def get_files(doctype, docname):
         )
         return file_list
     except Exception as e:
-        frappe.log_error(title=f"Error in get_files:", message=str(e))
+        frappe.log_error(title="Error fetching files", message=str(e))
         return []
