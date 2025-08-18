@@ -1014,6 +1014,7 @@ def get_files(doctype, docname):
                 pass
                 # skipping this part for future enhancement
             elif child.connection_type == "Is Custom Design":
+                # skipping this part for future enhancement
                 pass
 
     except Exception as e:
