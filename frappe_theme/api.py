@@ -990,7 +990,6 @@ def get_files(doctype, docname):
     all_doctype = [doctype]
     all_docname = [docname]
 
-    get_config = frappe.get_doc("SVADatatable Configuration", doctype)
     try:
         get_config = frappe.get_doc("SVADatatable Configuration", doctype)
     except frappe.DoesNotExistError:
