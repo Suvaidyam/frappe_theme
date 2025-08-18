@@ -987,7 +987,7 @@ def workflow_doctype_query(current_doctype):
 
 @frappe.whitelist(allow_guest=True)
 def get_files(doctype, docname):
-    all_doctype =[doctype]
+    all_doctype = [doctype]
     all_docname = [docname]
 
     get_config = frappe.get_doc("SVADatatable Configuration", doctype)
