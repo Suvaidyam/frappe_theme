@@ -1020,26 +1020,6 @@ def get_files(doctype, docname):
     except Exception as e:
         frappe.log_error(title=f"Error in get_files config from svadatatable configuration", message=str(e))
 
-    """
-    Retrieve files attached to a document and its related doctypes as defined in the SVADatatable Configuration.
-
-    This function collects all relevant doctypes and document names based on the configuration for the given `doctype`.
-    It then fetches all files attached to any of these documents.
-
-    Parameters:
-        doctype (str): The name of the primary doctype to retrieve files for.
-        docname (str): The name of the document within the primary doctype.
-
-    Returns:
-        list[dict]: A list of dictionaries, each representing a file attached to the document(s), with fields such as
-            'name', 'file_url', 'attached_to_doctype', 'attached_to_name', 'owner', 'file_name', 'file_size', 'creation'.
-        str: Returns "error" if an exception occurs during file retrieval.
-
-    Enhanced Functionality:
-        - Includes files attached to related doctypes as specified in the SVADatatable Configuration.
-        - Handles different connection types (Direct, Referenced, etc.) for child doctypes.
-        - Logs errors using frappe.log_error in case of exceptions.
-    """
     try:
         file_list = frappe.get_all(
             "File",
