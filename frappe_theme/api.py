@@ -1018,7 +1018,7 @@ def get_files(doctype, docname):
                 "attached_to_name": ["in", all_docname],
                 "attached_to_doctype": ["in", all_doctype],
             },
-            fields=["name", "file_url", "attached_to_doctype", "attached_to_name"],
+            fields=["name", "file_url", "attached_to_doctype", "attached_to_name", "owner"],
             as_list=False
         )
         return file_list
