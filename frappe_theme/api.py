@@ -1008,7 +1008,7 @@ def get_files(doctype, docname):
                     docname_list = frappe.get_all(child.link_doctype, filters={child.link_fieldname: docname}, fields=["name"])
                     all_docname.extend([doc.name for doc in docname_list])
             elif child.connection_type == "Referenced" and child.referenced_link_doctype and child.dn_reference_field:
-                if frappe.has_permission(child.link_doctype, "read"):
+                if frappe.has_permission(child.referenced_link_doctype, "read"):
                     all_doctype.append(child.referenced_link_doctype)
                     docname_list = frappe.get_all(child.referenced_link_doctype, filters={child.dn_reference_field: docname}, fields=["name"])
                     all_docname.extend([doc.name for doc in docname_list])
