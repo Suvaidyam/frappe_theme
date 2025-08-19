@@ -1003,13 +1003,15 @@ def get_files(doctype, docname):
     try:
         for child in get_config.child_doctypes:
             if child.connection_type == "Direct" and child.link_doctype:
-                all_doctype.append(child.link_doctype)
-                docname_list = frappe.get_all(child.link_doctype, filters={child.link_fieldname: docname}, fields=["name"])
-                all_docname.extend([doc.name for doc in docname_list])
+                if frappe.has_permission(child.link_doctype, "read"):
+                    all_doctype.append(child.link_doctype)
+                    docname_list = frappe.get_all(child.link_doctype, filters={child.link_fieldname: docname}, fields=["name"])
+                    all_docname.extend([doc.name for doc in docname_list])
             elif child.connection_type == "Referenced" and child.referenced_link_doctype and child.dn_reference_field:
-                all_doctype.append(child.referenced_link_doctype)
-                docname_list = frappe.get_all(child.referenced_link_doctype, filters={child.dn_reference_field: docname}, fields=["name"])
-                all_docname.extend([doc.name for doc in docname_list])
+                if frappe.has_permission(child.link_doctype, "read"):
+                    all_doctype.append(child.referenced_link_doctype)
+                    docname_list = frappe.get_all(child.referenced_link_doctype, filters={child.dn_reference_field: docname}, fields=["name"])
+                    all_docname.extend([doc.name for doc in docname_list])
             elif child.connection_type == "Indirect" and child.link_doctype:
                 pass
                 # skipping this part for future enhancement
