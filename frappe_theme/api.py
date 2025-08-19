@@ -985,11 +985,7 @@ def workflow_doctype_query(current_doctype):
     return {"options" : options,'option_map': option_map}
 
 
-<<<<<<< HEAD
-@frappe.whitelist(allow_guest=True)
-=======
 @frappe.whitelist()
->>>>>>> 23daf48f949f2f6eef50bcb6a0ca6891679a3e46
 def get_files(doctype, docname):
     all_doctype = [doctype]
     all_docname = [docname]
