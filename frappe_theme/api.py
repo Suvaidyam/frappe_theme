@@ -985,7 +985,11 @@ def workflow_doctype_query(current_doctype):
     return {"options" : options,'option_map': option_map}
 
 
+<<<<<<< HEAD
 @frappe.whitelist(allow_guest=True)
+=======
+@frappe.whitelist()
+>>>>>>> 23daf48f949f2f6eef50bcb6a0ca6891679a3e46
 def get_files(doctype, docname):
     all_doctype = [doctype]
     all_docname = [docname]
@@ -1004,11 +1008,11 @@ def get_files(doctype, docname):
         for child in get_config.child_doctypes:
             if child.connection_type == "Direct" and child.link_doctype:
                 all_doctype.append(child.link_doctype)
-                docname_list = frappe.get_list(child.link_doctype, filters={child.link_fieldname: docname}, fields=["name"])
+                docname_list = frappe.get_all(child.link_doctype, filters={child.link_fieldname: docname}, fields=["name"])
                 all_docname.extend([doc.name for doc in docname_list])
             elif child.connection_type == "Referenced" and child.referenced_link_doctype and child.dn_reference_field:
                 all_doctype.append(child.referenced_link_doctype)
-                docname_list = frappe.get_list(child.referenced_link_doctype, filters={child.dn_reference_field: docname}, fields=["name"])
+                docname_list = frappe.get_all(child.referenced_link_doctype, filters={child.dn_reference_field: docname}, fields=["name"])
                 all_docname.extend([doc.name for doc in docname_list])
             elif child.connection_type == "Indirect" and child.link_doctype:
                 pass
