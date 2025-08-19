@@ -2568,7 +2568,7 @@ class SvaDataTable {
 							selected_state_info.next_state;
 						if (row) {
 							Object.assign(row, updateFields);
-							me.rows[row.rowIndex] = row;
+							me.rows[row.rowIndex] = doc;
 						}
 						me.updateTableBody();
 						if (!me.skip_workflow_confirmation) {
