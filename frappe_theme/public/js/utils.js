@@ -158,3 +158,36 @@ function getUserAvatar(fullName) {
     return firstInitial + lastInitial;
 }
 frappe.utils.get_user_avatar = getUserAvatar;
+
+function makePopover(el, title, content, placement = "left", trigger = "hover") {
+    // Handle case where only title is available
+    let popoverContent = content;
+    let popoverTitle = title;
+    
+    if (!content && title) {
+        // If only title is provided, use it as content and create a styled title
+        popoverContent = title;
+        popoverTitle = "Info : ";
+    } else if (!title && content) {
+        // If only content is provided, create a default title
+        popoverTitle = "Information : ";
+    } else if (!title && !content) {
+        // If neither is provided, don't create popover
+        return;
+    }
+
+    // Set popover attributes
+    el.setAttribute("data-toggle", "popover");
+    el.setAttribute("data-content", popoverContent);
+    el.setAttribute("data-placement", placement);
+    el.setAttribute("data-trigger", trigger);
+    el.setAttribute("data-html", "true");
+    el.setAttribute("data-container", "body");
+    el.setAttribute("data-delay", "100");
+    el.setAttribute("data-offset", "10,10");
+    el.setAttribute("title", popoverTitle);
+    // Initialize Bootstrap popover
+    $(el).popover();
+}
+
+frappe.utils.make_popover = makePopover;
