@@ -2182,7 +2182,6 @@ class SvaDataTable {
 
 		return dropdown;
 	}
-
 	createTableBody() {
 		if (this.rows?.length === 0) {
 			return this.createNoDataFoundPage();
@@ -2281,18 +2280,8 @@ class SvaDataTable {
 						const wfActionTd = document.createElement("td");
 						const el = document.createElement("select");
 						el.classList.add("form-select", "rounded");
-						const titleText = this.workflow.transitions
-							.filter(
-								(link) =>
-									frappe.user_roles.includes(link.allowed) &&
-									link.state === row[workflow_state_field]
-							)
-							.map((e) => `${e.action} by ${e.allowed}`)
-							.join("\n");
-
-						el.setAttribute("title", titleText);
 						el.style.width = "100px";
-						el.style.minWidth = "100px";
+						el.style.maxWidth = "100px";
 						el.style.padding = "2px 5px";
 						el.classList.add(
 							bg ? `bg-${bg.style.toLowerCase()}` : "pl-[20px]",
@@ -2301,7 +2290,7 @@ class SvaDataTable {
 						if (isClosed) {
 							el.disabled = true;
 							el.classList.add("ellipsis");
-							el.setAttribute("title", row[workflow_state_field]);
+							frappe.utils.make_popover(el, "Closed : ", row[workflow_state_field]);
 							el.innerHTML = `<option value="" style="color:black" selected disabled">${row[workflow_state_field]}</option>`;
 							el.style["-webkit-appearance"] = "none";
 							el.style["-moz-appearance"] = "none";
@@ -2324,6 +2313,10 @@ class SvaDataTable {
 								method: "frappe.model.workflow.get_transitions",
 								doc: { ...row, doctype: this.doctype },
 							});
+							const titleText = transitions
+								.map((e) => `&#x2022; ${e.action} by ${e.allowed}`)
+								.join("<br>");
+							frappe.utils.make_popover(el, `CS : ${row[workflow_state_field]}`, titleText);
 							el.innerHTML =
 								`<option value="" style="color:black" selected disabled class="ellipsis">${row[workflow_state_field]}</option>` +
 								[...new Set(transitions?.map((e) => e.action))]
