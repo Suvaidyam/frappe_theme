@@ -985,4 +985,54 @@ def workflow_doctype_query(current_doctype):
     return {"options" : options,'option_map': option_map}
 
 
+@frappe.whitelist()
+def get_files(doctype, docname):
+    all_doctype = [doctype]
+    all_docname = [docname]
 
+    try:
+        get_config = frappe.get_doc("SVADatatable Configuration", doctype)
+    except frappe.DoesNotExistError:
+        frappe.log_error(title="SVADatatable Configuration missing", message=f"No SVADatatable Configuration found for doctype: {doctype}")
+        # Optionally, return empty list or a specific error message
+        return []
+    except Exception as e:
+        frappe.log_error(title="Error fetching SVADatatable Configuration", message=str(e))
+        return []
+
+    try:
+        for child in get_config.child_doctypes:
+            if child.connection_type == "Direct" and child.link_doctype:
+                if frappe.has_permission(child.link_doctype, "read"):
+                    all_doctype.append(child.link_doctype)
+                    docname_list = frappe.get_all(child.link_doctype, filters={child.link_fieldname: docname}, fields=["name"])
+                    all_docname.extend([doc.name for doc in docname_list])
+            elif child.connection_type == "Referenced" and child.referenced_link_doctype and child.dn_reference_field:
+                if frappe.has_permission(child.referenced_link_doctype, "read"):
+                    all_doctype.append(child.referenced_link_doctype)
+                    docname_list = frappe.get_all(child.referenced_link_doctype, filters={child.dn_reference_field: docname}, fields=["name"])
+                    all_docname.extend([doc.name for doc in docname_list])
+            elif child.connection_type == "Indirect" and child.link_doctype:
+                pass
+                # skipping this part for future enhancement
+            elif child.connection_type == "Is Custom Design":
+                # skipping this part for future enhancement
+                pass
+
+    except Exception as e:
+        frappe.log_error(title=f"Error in get_files config from svadatatable configuration", message=str(e))
+
+    try:
+        file_list = frappe.get_all(
+            "File",
+            filters={
+                "attached_to_name": ["in", all_docname],
+                "attached_to_doctype": ["in", all_doctype],
+            },
+            fields=["name", "file_url", "attached_to_doctype", "attached_to_name", "owner", "file_name","file_size","creation"],
+            as_list=False
+        )
+        return file_list
+    except Exception as e:
+        frappe.log_error(title="Error fetching files", message=str(e))
+        return []
