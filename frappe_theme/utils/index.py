@@ -1,9 +1,6 @@
 import frappe
-<<<<<<< HEAD
 from frappe.utils.pdf import get_pdf
 from datetime import datetime
-=======
->>>>>>> 223127b0cbab38a28976ca3336fd81ee553e2206
 from frappe.installer import update_site_config as _update_site_config
 
 @frappe.whitelist()
