@@ -933,3 +933,106 @@ def get_workflow_count(doctype):
     """
 
     return frappe.db.sql(sql, (doctype,), as_dict=True)
+
+@frappe.whitelist()
+def workflow_doctype_query(current_doctype):
+    """Return workflows allowed by SVADatatable Configuration for given doctype,
+    including either link_fieldname or dn_reference_field depending on type."""
+    
+    if not current_doctype:
+        return {"options": [], "option_map": {}}
+
+    if not frappe.db.exists("SVADatatable Configuration", current_doctype):
+        return {"options": [], "option_map": {}}
+
+    conf_doc = frappe.get_doc("SVADatatable Configuration", current_doctype).as_dict()
+
+    doctypes_info = {}
+
+    if not len(conf_doc.get('child_doctypes',[])):
+        return {"options":[], "option_map": {}}
+    for row in conf_doc.get('child_doctypes',[]):
+        if row.get("connection_type") not in ["Direct","Referenced","Unfiltered"]:
+            continue
+        else:
+            link_doctype = row.get("link_doctype") or row.get("referenced_link_doctype")
+            if link_doctype and link_doctype not in doctypes_info:
+                    doctypes_info[link_doctype] = row
+
+    if not doctypes_info:
+        return {"options":[], "option_map": {}}
+
+    doctypes_to_check = list(doctypes_info.keys())
+
+    workflows = frappe.db.sql(f"""
+        SELECT name,document_type
+        FROM `tabWorkflow`
+        WHERE is_active = 1
+        AND document_type IN ({", ".join(["%s"] * len(doctypes_to_check))})
+        ORDER BY document_type
+    """, tuple(doctypes_to_check),as_dict=True)
+
+    if not len(workflows):
+        return {"options": [], "option_map": {}}
+
+    options = []
+    option_map = {}
+    for workflow in workflows:
+        if workflow.document_type in doctypes_info:
+            options.append(workflow.document_type)
+            option_map[workflow.document_type] = doctypes_info[workflow.document_type]
+
+    return {"options" : options,'option_map': option_map}
+
+
+@frappe.whitelist()
+def get_files(doctype, docname):
+    all_doctype = [doctype]
+    all_docname = [docname]
+
+    try:
+        get_config = frappe.get_doc("SVADatatable Configuration", doctype)
+    except frappe.DoesNotExistError:
+        frappe.log_error(title="SVADatatable Configuration missing", message=f"No SVADatatable Configuration found for doctype: {doctype}")
+        # Optionally, return empty list or a specific error message
+        return []
+    except Exception as e:
+        frappe.log_error(title="Error fetching SVADatatable Configuration", message=str(e))
+        return []
+
+    try:
+        for child in get_config.child_doctypes:
+            if child.connection_type == "Direct" and child.link_doctype:
+                if frappe.has_permission(child.link_doctype, "read"):
+                    all_doctype.append(child.link_doctype)
+                    docname_list = frappe.get_all(child.link_doctype, filters={child.link_fieldname: docname}, fields=["name"])
+                    all_docname.extend([doc.name for doc in docname_list])
+            elif child.connection_type == "Referenced" and child.referenced_link_doctype and child.dn_reference_field:
+                if frappe.has_permission(child.referenced_link_doctype, "read"):
+                    all_doctype.append(child.referenced_link_doctype)
+                    docname_list = frappe.get_all(child.referenced_link_doctype, filters={child.dn_reference_field: docname}, fields=["name"])
+                    all_docname.extend([doc.name for doc in docname_list])
+            elif child.connection_type == "Indirect" and child.link_doctype:
+                pass
+                # skipping this part for future enhancement
+            elif child.connection_type == "Is Custom Design":
+                # skipping this part for future enhancement
+                pass
+
+    except Exception as e:
+        frappe.log_error(title=f"Error in get_files config from svadatatable configuration", message=str(e))
+
+    try:
+        file_list = frappe.get_all(
+            "File",
+            filters={
+                "attached_to_name": ["in", all_docname],
+                "attached_to_doctype": ["in", all_doctype],
+            },
+            fields=["name", "file_url", "attached_to_doctype", "attached_to_name", "owner", "file_name","file_size","creation"],
+            as_list=False
+        )
+        return file_list
+    except Exception as e:
+        frappe.log_error(title="Error fetching files", message=str(e))
+        return []
