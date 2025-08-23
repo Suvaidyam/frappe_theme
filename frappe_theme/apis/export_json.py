@@ -38,6 +38,7 @@ def get_related_tables(doctype, docname):
                 fields=["*"]
             )
         except Exception as e:
+            frappe.log_error(f"Error fetching data for {table_doctype}: {str(e)}")
             table_data = []
 
         meta = frappe.get_meta(table_doctype)
