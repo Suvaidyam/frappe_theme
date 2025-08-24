@@ -28,8 +28,8 @@ def get_related_tables(doctype, docname):
         elif child.connection_type == "Unfiltered":
             table_doctype = child.link_doctype
             filters = {}
-        else:
-            continue  # Skip unused types
+        elif child.connection_type == "Is Custom Design":
+            continue  # Skip custom design tables
 
         try:
             table_data = frappe.get_all(
@@ -53,12 +53,12 @@ def get_related_tables(doctype, docname):
             for f in meta.fields
             if f.fieldtype not in excluded_fieldtypes and f.fieldname  # Only include fields with a fieldname
         ]
-
-        related_tables.append({
-            "table_doctype": table_doctype,
-            "html_field": html_field,
-            "data": table_data,
-            "meta": fields_meta if table_data else {}
+        if table_data:
+            related_tables.append({
+                "table_doctype": table_doctype,
+                "html_field": html_field,
+                "data": table_data,
+                "meta": fields_meta if table_data else {}
         })
 
     return main_data, related_tables
@@ -75,30 +75,42 @@ def export_json(doctype, docname):
         return {"error": str(e)}
 
 @frappe.whitelist()
-def export_excel(doctype, docname):
+def export_excel(doctype="Grant", docname="Grant-2391"):
     try:
         main_data, related_tables = get_related_tables(doctype, docname)
 
-        # Create Excel workbook
         wb = openpyxl.Workbook()
-        wb.remove(wb.active)  # Remove default sheet
+        wb.remove(wb.active)
 
+        # Export main form data
+        ws_main = wb.create_sheet(title=doctype[:31])
+        main_fields = [k for k in main_data.keys() if not isinstance(main_data[k], list)]
+        ws_main.append(main_fields)
+        ws_main.append([main_data[k] for k in main_fields])
+
+        # Export child tables from main form
+        for key, value in main_data.items():
+            if isinstance(value, list) and value and isinstance(value[0], dict):
+                ws_child = wb.create_sheet(title=key[:31])
+                child_fields = list(value[0].keys())
+                ws_child.append(child_fields)
+                for row in value:
+                    ws_child.append([row.get(f, "") for f in child_fields])
+
+        # Export related tables
         for table in related_tables:
-            ws = wb.create_sheet(title=table["table_doctype"][:31])  # Excel sheet name max 31 chars
+            ws = wb.create_sheet(title=table["table_doctype"][:31])
             data = table["data"]
             meta = table["meta"]
 
-            # Write headers
             if isinstance(meta, list) and meta:
                 headers = [f["label"] or f["fieldname"] for f in meta]
                 ws.append(headers)
-                # Write data rows
                 for row in data:
                     ws.append([row.get(f["fieldname"], "") for f in meta])
             else:
                 ws.append(["No Data"])
 
-        # Save to bytes
         from io import BytesIO
         output = BytesIO()
         wb.save(output)
@@ -113,3 +125,4 @@ def export_excel(doctype, docname):
         return {"error": str(e)}
 
 
+# def get_
