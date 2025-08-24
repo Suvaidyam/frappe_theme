@@ -2,6 +2,41 @@ import frappe
 import json
 from frappe import _
 import re
+from frappe.utils import cint
+
+@frappe.whitelist()
+def download_customizations(doctype: str, with_permissions: bool = False):
+    """
+    Export custom fields, property setters, permissions for a DocType (and child tables)
+    and return as downloadable JSON.
+    """
+    with_permissions = cint(with_permissions)
+
+    def get_customizations(dt):
+        custom = {
+            "custom_fields": frappe.get_all("Custom Field", fields="*", filters={"dt": dt}, order_by="name"),
+            "property_setters": frappe.get_all("Property Setter", fields="*", filters={"doc_type": dt}, order_by="name"),
+            "custom_perms": [],
+            "links": frappe.get_all("DocType Link", fields="*", filters={"parent": dt}, order_by="name"),
+            "doctype": dt,
+        }
+        if with_permissions:
+            custom["custom_perms"] = frappe.get_all("Custom DocPerm", fields="*", filters={"parent": dt}, order_by="name")
+        return custom
+
+    # Main DocType customizations
+    data = get_customizations(doctype)
+
+    # Child table customizations
+    for d in frappe.get_meta(doctype).get_table_fields():
+        data[f"child_{d.options}"] = get_customizations(d.options)
+
+    # Return file as downloadable JSON
+    frappe.response["filename"] = f"{doctype}_custom.json"
+    frappe.response["filecontent"] = json.dumps(data, indent=4, default=str)
+    frappe.response["type"] = "download"
+
+
 
 @frappe.whitelist(allow_guest=True)
 def get_my_theme():
