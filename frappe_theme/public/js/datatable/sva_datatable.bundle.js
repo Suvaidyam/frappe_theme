@@ -1376,21 +1376,21 @@ class SvaDataTable {
 					if (doc[f.fieldname]) {
 						f.default = doc[f.fieldname];
 					}
-					if (f?.fetch_from) {
-						if (!f.default) {
-							let fetch_from = f.fetch_from.split(".");
-							let [parentfield, fieldname] = fetch_from;
-							let parentf = fields.find((f) => f.fieldname === parentfield);
-							if (parentf?.options && parentf?.default) {
-								let doc = await this.sva_db.get_doc(
-									parentf?.options,
-									parentf?.default
-								);
-								f.default = doc[fieldname];
-								f.read_only = 1;
-							}
-						}
-					}
+					// if (f?.fetch_from) {
+					// 	if (!f.default) {
+					// 		let fetch_from = f.fetch_from.split(".");
+					// 		let [parentfield, fieldname] = fetch_from;
+					// 		let parentf = fields.find((f) => f.fieldname === parentfield);
+					// 		if (parentf?.options && parentf?.default) {
+					// 			let doc = await this.sva_db.get_doc(
+					// 				parentf?.options,
+					// 				parentf?.default
+					// 			);
+					// 			f.default = doc[fieldname];
+					// 			f.read_only = 1;
+					// 		}
+					// 	}
+					// }
 					if (f.fieldtype === "Link") {
 						f.get_query = () => {
 							const filters = [];
@@ -1546,19 +1546,19 @@ class SvaDataTable {
 						f.fields = tableFields;
 						continue;
 					}
-					if (f?.fetch_from) {
-						let fetch_from = f.fetch_from.split(".");
-						let [parentfield, fieldname] = fetch_from;
-						let parentf = fields.find((f) => f.fieldname === parentfield);
-						if (parentf?.options && parentf?.default) {
-							let doc = await this.sva_db.get_doc(
-								parentf?.options,
-								parentf?.default
-							);
-							f.default = doc[fieldname];
-							f.read_only = 1;
-						}
-					}
+					// if (f?.fetch_from) {
+					// 	let fetch_from = f.fetch_from.split(".");
+					// 	let [parentfield, fieldname] = fetch_from;
+					// 	let parentf = fields.find((f) => f.fieldname === parentfield);
+					// 	if (parentf?.options && parentf?.default) {
+					// 		let doc = await this.sva_db.get_doc(
+					// 			parentf?.options,
+					// 			parentf?.default
+					// 		);
+					// 		f.default = doc[fieldname];
+					// 		f.read_only = 1;
+					// 	}
+					// }
 					if (
 						!["Check", "Button", "Table", "Table MultiSelect"].includes(f.fieldtype) &&
 						f.read_only &&
