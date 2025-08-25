@@ -1201,7 +1201,6 @@ class SvaDataTable {
 		pagesToShow.forEach((pageNum) => {
 			let pageItem = document.createElement("li");
 			pageItem.classList.add("page-item");
-
 			if (pageNum === "...") {
 				pageItem.classList.add("disabled");
 				let ellipsis = document.createElement("span");
@@ -1255,11 +1254,11 @@ class SvaDataTable {
 	async createFormDialog(doctype, name = undefined, mode = "create", additional_action = null) {
 		let res = await this.sva_db.call({
 			method: "frappe_theme.dt_api.get_meta_fields",
-			doctype: this.doctype,
+			doctype: doctype,
 		});
 		let fields = res?.message;
-		if (window?.SVADialog?.[this.doctype]) {
-			window?.SVADialog?.[this.doctype](mode, fields);
+		if (window?.SVADialog?.[doctype]) {
+			window?.SVADialog?.[doctype](mode, fields);
 			return;
 		}
 		if (window?.SVAHandleParentFieldProps) {
@@ -1277,8 +1276,8 @@ class SvaDataTable {
 						f.hidden = 0;
 					}
 					f.onchange = this.onFieldValueChange?.bind(this);
-					if (this.frm?.["dt_events"]?.[this.doctype]?.[f.fieldname]) {
-						let change = this.frm["dt_events"][this.doctype][f.fieldname];
+					if (this.frm?.["dt_events"]?.[doctype]?.[f.fieldname]) {
+						let change = this.frm["dt_events"][doctype][f.fieldname];
 						if (f.fieldtype === "Button") {
 							f.click = change.bind(this, this, mode, f);
 						} else {
@@ -1377,21 +1376,21 @@ class SvaDataTable {
 					if (doc[f.fieldname]) {
 						f.default = doc[f.fieldname];
 					}
-					if (f?.fetch_from) {
-						if (!f.default) {
-							let fetch_from = f.fetch_from.split(".");
-							let [parentfield, fieldname] = fetch_from;
-							let parentf = fields.find((f) => f.fieldname === parentfield);
-							if (parentf?.options && parentf?.default) {
-								let doc = await this.sva_db.get_doc(
-									parentf?.options,
-									parentf?.default
-								);
-								f.default = doc[fieldname];
-							}
-						}
-						f.read_only = 1;
-					}
+					// if (f?.fetch_from) {
+					// 	if (!f.default) {
+					// 		let fetch_from = f.fetch_from.split(".");
+					// 		let [parentfield, fieldname] = fetch_from;
+					// 		let parentf = fields.find((f) => f.fieldname === parentfield);
+					// 		if (parentf?.options && parentf?.default) {
+					// 			let doc = await this.sva_db.get_doc(
+					// 				parentf?.options,
+					// 				parentf?.default
+					// 			);
+					// 			f.default = doc[fieldname];
+					// 			f.read_only = 1;
+					// 		}
+					// 	}
+					// }
 					if (f.fieldtype === "Link") {
 						f.get_query = () => {
 							const filters = [];
@@ -1445,8 +1444,8 @@ class SvaDataTable {
 							continue;
 						}
 					}
-					if (this.frm?.["dt_events"]?.[this.doctype]?.[f.fieldname]) {
-						let change = this.frm["dt_events"][this.doctype][f.fieldname];
+					if (this.frm?.["dt_events"]?.[doctype]?.[f.fieldname]) {
+						let change = this.frm["dt_events"][doctype][f.fieldname];
 						if (f.fieldtype === "Button") {
 							f.click = change.bind(this, this, mode, f);
 						} else {
@@ -1547,19 +1546,19 @@ class SvaDataTable {
 						f.fields = tableFields;
 						continue;
 					}
-					if (f?.fetch_from) {
-						let fetch_from = f.fetch_from.split(".");
-						let [parentfield, fieldname] = fetch_from;
-						let parentf = fields.find((f) => f.fieldname === parentfield);
-						if (parentf?.options && parentf?.default) {
-							let doc = await this.sva_db.get_doc(
-								parentf?.options,
-								parentf?.default
-							);
-							f.default = doc[fieldname];
-						}
-						f.read_only = 1;
-					}
+					// if (f?.fetch_from) {
+					// 	let fetch_from = f.fetch_from.split(".");
+					// 	let [parentfield, fieldname] = fetch_from;
+					// 	let parentf = fields.find((f) => f.fieldname === parentfield);
+					// 	if (parentf?.options && parentf?.default) {
+					// 		let doc = await this.sva_db.get_doc(
+					// 			parentf?.options,
+					// 			parentf?.default
+					// 		);
+					// 		f.default = doc[fieldname];
+					// 		f.read_only = 1;
+					// 	}
+					// }
 					if (
 						!["Check", "Button", "Table", "Table MultiSelect"].includes(f.fieldtype) &&
 						f.read_only &&
@@ -1661,115 +1660,124 @@ class SvaDataTable {
 			fields: fields || [],
 			primary_action_label: name ? "Update" : "Create",
 			primary_action: async (values) => {
-				if (["create", "write"].includes(mode)) {
-					if (this.frm?.["dt_events"]?.[this.doctype]?.["validate"]) {
-						let change = this.frm["dt_events"][this.doctype]["validate"];
-						let has_aditional_action = additional_action ? true : false;
-						if (this.isAsync(change)) {
-							await change(this, mode, values, has_aditional_action);
-							values = dialog.get_values(true, false);
-						} else {
-							change(this, mode, values, has_aditional_action);
-							values = dialog.get_values(true, false);
-						}
-					}
-					if (!name) {
-						let response = await frappe.xcall("frappe.client.insert", {
-							doc: {
-								doctype: doctype,
-								...values,
-							},
-						});
-						if (response) {
-							if (this.rows.length == this.limit) {
-								this.rows.pop();
-							}
-							this.rows = [response, ...this.rows];
-							// this.rows.push(response);
-							this.updateTableBody();
-							frappe.show_alert({
-								message: `Successfully created ${__(
-									this.connection?.title || doctype
-								)}`,
-								indicator: "success",
-							});
-							if (this.frm?.["dt_events"]?.[this.doctype]?.["after_insert"]) {
-								let change = this.frm["dt_events"][this.doctype]["after_insert"];
-								if (this.isAsync(change)) {
-									await change(this, response);
-								} else {
-									change(this, response);
-								}
-							}
-						}
-					} else {
-						let value_fields = fields.filter(
-							(f) =>
-								![
-									"Section Break",
-									"Column Break",
-									"HTML",
-									"Button",
-									"Tab Break",
-								].includes(f.fieldtype)
-						);
-						let updated_values = {};
-						for (let field of value_fields) {
-							let key = field.fieldname;
-							if (Array.isArray(values[key])) {
-								updated_values[key] = values[key].map((item) => {
-									if (item.old_name) {
-										return { ...item, name: item.old_name };
-									}
-									return item;
-								});
-							} else {
-								updated_values[key] = values[key] || "";
-							}
-						}
-						let response = await frappe.xcall("frappe.client.set_value", {
-							doctype: doctype,
-							name,
-							fieldname: updated_values,
-						});
-						if (response) {
-							let rowIndex = this.rows.findIndex((r) => r.name === name);
-							this.rows[rowIndex] = response;
-							this.updateTableBody();
-							frappe.show_alert({
-								message: `Successfully updated ${__(
-									this.connection?.title || doctype
-								)}`,
-								indicator: "success",
-							});
-							if (this.frm?.["dt_events"]?.[this.doctype]?.["after_update"]) {
-								let change = this.frm["dt_events"][this.doctype]["after_update"];
-								if (this.isAsync(change)) {
-									await change(this, response);
-								} else {
-									change(this, response);
-								}
-							}
-						}
-					}
-					if (this.frm?.["dt_events"]?.[this.doctype]?.["after_save"]) {
-						let change = this.frm["dt_events"][this.doctype]["after_save"];
-						if (this.isAsync(change)) {
-							await change(this, mode, values);
-						} else {
-							change(this, mode, values);
-						}
-					}
-				}
-				if (additional_action) {
-					additional_action(true);
-				}
 				try {
-					dialog.clear();
+					$(dialog.get_primary_btn()).prop('disabled',true);
+					$(dialog.get_primary_btn()).html('<span style="width: 0.75rem !important; height: 0.75rem !important;" class="spinner-border spinner-border-sm "></span> '+ (dialog.primary_action_label || "Save"));
+					if (["create", "write"].includes(mode)) {
+						if (this.frm?.["dt_events"]?.[doctype]?.["validate"]) {
+							let change = this.frm["dt_events"][doctype]["validate"];
+							let has_aditional_action = additional_action ? true : false;
+							if (this.isAsync(change)) {
+								await change(this, mode, values, has_aditional_action);
+								values = dialog.get_values(true, false);
+							} else {
+								change(this, mode, values, has_aditional_action);
+								values = dialog.get_values(true, false);
+							}
+						}
+						if (!name) {
+							let response = await frappe.xcall("frappe.client.insert", {
+								doc: {
+									doctype: doctype,
+									...values,
+								},
+							});
+							if (response) {
+								if (this.rows.length == this.limit) {
+									this.rows.pop();
+								}
+								this.rows = [response, ...this.rows];
+								// this.rows.push(response);
+								this.updateTableBody();
+								frappe.show_alert({
+									message: `Successfully created ${__(
+										this.connection?.title || doctype
+									)}`,
+									indicator: "success",
+								});
+								if (this.frm?.["dt_events"]?.[doctype]?.["after_insert"]) {
+									let change = this.frm["dt_events"][doctype]["after_insert"];
+									if (this.isAsync(change)) {
+										await change(this, response);
+									} else {
+										change(this, response);
+									}
+								}
+							}
+						} else {
+							let value_fields = fields.filter(
+								(f) =>
+									![
+										"Section Break",
+										"Column Break",
+										"HTML",
+										"Button",
+										"Tab Break",
+									].includes(f.fieldtype)
+							);
+							let updated_values = {};
+							for (let field of value_fields) {
+								let key = field.fieldname;
+								if (Array.isArray(values[key])) {
+									updated_values[key] = values[key].map((item) => {
+										if (item.old_name) {
+											return { ...item, name: item.old_name };
+										}
+										return item;
+									});
+								} else {
+									updated_values[key] = values[key] || "";
+								}
+							}
+							let response = await frappe.xcall("frappe.client.set_value", {
+								doctype: doctype,
+								name,
+								fieldname: updated_values,
+							});
+							if (response) {
+								let rowIndex = this.rows.findIndex((r) => r.name === name);
+								this.rows[rowIndex] = response;
+								this.updateTableBody();
+								frappe.show_alert({
+									message: `Successfully updated ${__(
+										this.connection?.title || doctype
+									)}`,
+									indicator: "success",
+								});
+								if (this.frm?.["dt_events"]?.[doctype]?.["after_update"]) {
+									let change = this.frm["dt_events"][doctype]["after_update"];
+									if (this.isAsync(change)) {
+										await change(this, response);
+									} else {
+										change(this, response);
+									}
+								}
+							}
+						}
+						if (this.frm?.["dt_events"]?.[doctype]?.["after_save"]) {
+							let change = this.frm["dt_events"][doctype]["after_save"];
+							if (this.isAsync(change)) {
+								await change(this, mode, values);
+							} else {
+								change(this, mode, values);
+							}
+						}
+					}
+					if (additional_action) {
+						additional_action(true);
+					}
+					try {
+						dialog.clear();
+					} catch (error) {
+						console.error("error in dialog.clear", error);
+					}
+					dialog.hide();
 				} catch (error) {
-					console.error("error in dialog.clear", error);
+					console.error("error in primary action", error);
+				}finally{
+					$(dialog.get_primary_btn()).prop('disabled',false);
+					$(dialog.get_primary_btn()).html(dialog?.primary_action_label || "Save");
 				}
-				dialog.hide();
 			},
 			secondary_action_label: ["create", "write"].includes(mode) ? "Cancel" : "Close",
 			secondary_action: () => {
@@ -1818,8 +1826,8 @@ class SvaDataTable {
 				}
 			}
 		}
-		if (this.frm?.["dt_events"]?.[this.doctype]?.["after_render"]) {
-			let change = this.frm["dt_events"][this.doctype]["after_render"];
+		if (this.frm?.["dt_events"]?.[doctype]?.["after_render"]) {
+			let change = this.frm["dt_events"][doctype]["after_render"];
 			let has_aditional_action = additional_action ? true : false;
 			if (this.isAsync(change)) {
 				await change(this, mode, has_aditional_action, name);
@@ -1840,8 +1848,8 @@ class SvaDataTable {
 					message: `Successfully deleted ${__(this.connection?.title || doctype)}`,
 					indicator: "success",
 				});
-				if (this.frm?.["dt_events"]?.[this.doctype]?.["after_delete"]) {
-					let change = this.frm["dt_events"][this.doctype]["after_delete"];
+				if (this.frm?.["dt_events"]?.[doctype]?.["after_delete"]) {
+					let change = this.frm["dt_events"][doctype]["after_delete"];
 					if (this.isAsync(change)) {
 						await change(this, name);
 					} else {
