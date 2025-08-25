@@ -71,8 +71,8 @@ def get_related_tables(doctype, docname, exclude_meta_fields=None):
             }
         try:
             meta = frappe.get_meta(table_doctype)
-            table_data = frappe.get_all(table_doctype, filters=filters, fields=["name"])
-            all_docs = [get_title(table_doctype, row.name, True) for row in table_data]
+            docnames = [row.name for row in table_data]
+            all_docs = get_titles_batch(table_doctype, docnames, True)
             fields_meta = get_field_meta(meta.fields, exclude_meta_fields)
             if all_docs:
                 related_tables.append({
