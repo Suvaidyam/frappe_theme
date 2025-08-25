@@ -61,7 +61,7 @@ def get_title(doctype, docname, as_title_field=True):
     }
 
 def get_related_tables(doctype, docname , exclude_meta_fields=[]):
-    main_data = get_title(doctype, docname, True)
+    main_data = get_title(doctype, docname, False)
 
     sva_dt_config = frappe.get_doc("SVADatatable Configuration", doctype)
     related_tables = []
@@ -73,16 +73,21 @@ def get_related_tables(doctype, docname , exclude_meta_fields=[]):
 
         if child.connection_type == "Direct":
             table_doctype = child.link_doctype
-            filters = {child.link_fieldname: main_data.get('name')}
+            filters = {
+                child.link_fieldname: main_data['data'].get('name')
+            }
         elif child.connection_type == "Indirect":
             table_doctype = child.link_doctype
-            filters = {child.foreign_field: main_data.get(child.local_field)}
+            filters = {
+                child.foreign_field: main_data['data'].get(child.local_field)
+            }
         elif child.connection_type == "Referenced":
             table_doctype = child.referenced_link_doctype
             filters = {
-                child.dn_reference_field: main_data.get('name'),
-                child.dt_reference_field: main_data.get('doctype')
+                child.dn_reference_field: main_data['data'].get('name'),
+                child.dt_reference_field: doctype
             }
+            print("@"*40, filters, table_doctype , main_data['data'].get('name'))
         elif child.connection_type == "Unfiltered":
             table_doctype = child.link_doctype
             filters = {}
@@ -91,7 +96,7 @@ def get_related_tables(doctype, docname , exclude_meta_fields=[]):
 
         try:
             meta = frappe.get_meta(table_doctype)
-            table_data = frappe.get_all(
+            table_data = frappe.db.get_list(
                 table_doctype,
                 filters=filters,
                 fields=["name"]
