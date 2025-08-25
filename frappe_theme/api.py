@@ -1136,10 +1136,8 @@ def download_customizations(doctype: str, with_permissions: bool = False):
     for d in frappe.get_meta(doctype).get_table_fields():
         data[f"child_{d.options}"] = get_customizations(d.options)
 
-    # Return file as downloadable JSON
-    frappe.response["filename"] = f"{doctype}_custom.json"
-    frappe.response["filecontent"] = json.dumps(data, indent=4, default=str)
-    frappe.response["type"] = "download"
+    return frappe.as_json(data)
+
 
 from frappe.modules.utils import sync_customizations_for_doctype
 
@@ -1155,16 +1153,11 @@ def import_customizations(file_url: str, target_doctype: str):
         file_doc = frappe.get_doc("File", {"file_url": file_url})
         content = file_doc.get_content()
         data = json.loads(content)
-        print("/"*30, data)
-        for index, d in enumerate(data["custom_fields"]):
-            if d["dt"] != target_doctype:
-                frappe.msgprint(
-                    msg=f"You are importing customizations of a different Doctype: <b>{d['dt']}</b>",
-                    title="Invalid Doctype",
-                    indicator="red"
-                )
-                return
-                
+        if not data["doctype"]:
+            raise frappe.ValidationError("Doctype attribute not found in data.")
+        if data["doctype"] != target_doctype:
+            raise frappe.ValidationError(f"Importing customizations for wrong doctype: <b>{data['doctype']}</b>")
+
         main_doctype = data.get("doctype")
         if not main_doctype:
             frappe.throw("Invalid JSON: 'doctype' missing.")

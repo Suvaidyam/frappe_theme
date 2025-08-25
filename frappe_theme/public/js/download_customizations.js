@@ -4,19 +4,18 @@ frappe.ui.form.on('Customize Form', {
     },
     refresh(frm) {
         add_customization_buttons(frm);
+    },
+    doc_type(frm) {
+        add_customization_buttons(frm);
     }
 });
 
 function add_customization_buttons(frm) {
-    if (frm.custom_buttons_added) return;
-
-    // ---- DOWNLOAD BUTTON ----
     frm.add_custom_button(__('Download Customizations'), function () {
         if (!frm.doc.doc_type) {
             frappe.msgprint(__('Please select a DocType first before exporting customizations.'));
             return;
         }
-
         frappe.prompt(
             [
                 {
@@ -27,8 +26,28 @@ function add_customization_buttons(frm) {
                 }
             ],
             function (data) {
-                const doctype = frm.doc.doc_type;
-                window.location.href = `/api/method/frappe_theme.api.download_customizations?doctype=${encodeURIComponent(doctype)}&with_permissions=${data.with_permissions ? 1 : 0}`;
+                frappe.call({
+                    method: "frappe_theme.api.download_customizations",
+                    args: {
+                        doctype: frm.doc.doc_type,
+                        with_permissions: data.with_permissions ? 1 : 0
+                    },
+                    callback: function (r) {
+                        if (r.message) {
+                            const filename = `${frm.doc.doc_type}_custom.json`;
+                            const blob = new Blob([r.message], { type: "application/json" });
+                            const link = document.createElement("a");
+                            link.href = URL.createObjectURL(blob);
+                            link.download = filename;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            frappe.msgprint(__('Customizations downloaded successfully!'));
+                        } else {
+                            frappe.msgprint(__('No data found to download.'));
+                        }
+                    }
+                });
             },
             __("Download Options"),
             __("Download")
@@ -47,6 +66,11 @@ function add_customization_buttons(frm) {
                 {
                     fieldtype: "Attach",
                     fieldname: "import_file",
+                    options:{
+                        restrictions :{
+                            allowed_file_types:['application/json']
+                        }
+                    },
                     label: __("Select Customization JSON File"),
                     reqd: 1
                 }
@@ -62,8 +86,8 @@ function add_customization_buttons(frm) {
                     freeze_message: __("Importing customizations..."),
                     callback: function (r) {
                         if (!r.exc) {
-                            frappe.msgprint(__('Customizations imported successfully! Reloading...'));
-                            location.reload();
+                            frappe.msgprint(__('Customizations imported successfully!'));
+                            frm.reload_doc(); // Refreshes the form safely without "Reload site?" popup
                         } else {
                             frappe.msgprint(__('Failed to import customizations. Check error logs.'));
                         }
@@ -74,6 +98,4 @@ function add_customization_buttons(frm) {
             __("Import")
         );
     }, __("Customizations"));
-
-    frm.custom_buttons_added = true;
 }
