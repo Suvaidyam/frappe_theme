@@ -2,9 +2,39 @@ import frappe
 import openpyxl
 from frappe.utils.response import build_response
 
-def get_related_tables(doctype, docname):
-    doc = frappe.get_doc(doctype, docname)
-    main_data = doc.as_dict()
+import frappe
+
+def get_title(doctype, docname, as_title_field = True):
+    doc = frappe.db.get_value(doctype, docname, "*", as_dict=True)
+    main_doc_meta = frappe.get_meta(doctype)
+    if as_title_field:
+        for field in main_doc_meta.fields:
+            # Handle Link fields in main doc
+            if field.fieldtype == "Link":
+                link_val = doc.get(field.fieldname)
+                if link_val:
+                    related_doc_meta = frappe.get_meta(field.options)
+                    title_field = related_doc_meta.title_field or "name"
+                    doc[field.fieldname] = frappe.db.get_value(field.options, link_val, title_field) or link_val
+            # Handle Table fields (child tables)
+            if field.fieldtype == "Table":
+                child_doctype = field.options
+                child_meta = frappe.get_meta(child_doctype)
+                child_rows = doc.get(field.fieldname)
+                if isinstance(child_rows, list):
+                    for row in child_rows:
+                        for child_field in child_meta.fields:
+                            if child_field.fieldtype == "Link":
+                                link_val = row.get(child_field.fieldname)
+                                if link_val:
+                                    related_child_meta = frappe.get_meta(child_field.options)
+                                    title_field = related_child_meta.title_field or "name"
+                                    row[child_field.fieldname] = frappe.db.get_value(child_field.options, link_val, title_field) or link_val
+    return doc
+
+def get_related_tables(doctype, docname , exclude_meta_fields=[]):
+    main_data = get_title(doctype, docname, True)
+
     sva_dt_config = frappe.get_doc("SVADatatable Configuration", doctype)
     related_tables = []
 
@@ -32,18 +62,24 @@ def get_related_tables(doctype, docname):
             continue  # Skip custom design tables
 
         try:
+            meta = frappe.get_meta(table_doctype)
             table_data = frappe.get_all(
                 table_doctype,
                 filters=filters,
-                fields=["*"]
+                fields=["name"]
             )
+            all_docs = []
+            for row in table_data:
+                doc = get_title(table_doctype, row.name, True)
+                all_docs.append(doc)
+
+
         except Exception as e:
             frappe.log_error(f"Error fetching data for {table_doctype}: {str(e)}")
             table_data = []
 
-        meta = frappe.get_meta(table_doctype)
         # Exclude non-relevant fieldtypes
-        excluded_fieldtypes = {"Column Break", "Section Break", "Tab Break", "Fold", "HTML", "Button"}
+        excluded_fieldtypes = exclude_meta_fields
         fields_meta = [
             {
                 "fieldname": f.fieldname,
@@ -53,11 +89,11 @@ def get_related_tables(doctype, docname):
             for f in meta.fields
             if f.fieldtype not in excluded_fieldtypes and f.fieldname  # Only include fields with a fieldname
         ]
-        if table_data:
+        if len(all_docs):
             related_tables.append({
                 "table_doctype": table_doctype,
                 "html_field": html_field,
-                "data": table_data,
+                "data": all_docs,
                 "meta": fields_meta if table_data else {}
         })
 
@@ -66,7 +102,8 @@ def get_related_tables(doctype, docname):
 @frappe.whitelist()
 def export_json(doctype, docname):
     try:
-        main_data, related_tables = get_related_tables(doctype, docname)
+        excluded_fieldtypes = ["Column Break", "Section Break", "Tab Break", "Fold", "HTML", "Button"]
+        main_data, related_tables = get_related_tables(doctype, docname, excluded_fieldtypes)
         return {
             "main_data": main_data,
             "related_tables": related_tables
