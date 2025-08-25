@@ -4,33 +4,61 @@ from frappe.utils.response import build_response
 
 import frappe
 
-def get_title(doctype, docname, as_title_field = True):
+def get_title(doctype, docname, as_title_field=True):
     doc = frappe.db.get_value(doctype, docname, "*", as_dict=True)
     main_doc_meta = frappe.get_meta(doctype)
+    # Prepare meta info for main doc
+    fields_meta = [
+        {
+            "fieldname": f.fieldname,
+            "label": f.label,
+            "fieldtype": f.fieldtype
+        }
+        for f in main_doc_meta.fields
+        if f.fieldname
+    ]
     if as_title_field:
         for field in main_doc_meta.fields:
-            # Handle Link fields in main doc
             if field.fieldtype == "Link":
                 link_val = doc.get(field.fieldname)
                 if link_val:
                     related_doc_meta = frappe.get_meta(field.options)
                     title_field = related_doc_meta.title_field or "name"
                     doc[field.fieldname] = frappe.db.get_value(field.options, link_val, title_field) or link_val
-            # Handle Table fields (child tables)
-            if field.fieldtype == "Table":
+            elif field.fieldtype in ["Table", "Table MultiSelect"]:
                 child_doctype = field.options
                 child_meta = frappe.get_meta(child_doctype)
-                child_rows = doc.get(field.fieldname)
-                if isinstance(child_rows, list):
-                    for row in child_rows:
-                        for child_field in child_meta.fields:
-                            if child_field.fieldtype == "Link":
-                                link_val = row.get(child_field.fieldname)
-                                if link_val:
-                                    related_child_meta = frappe.get_meta(child_field.options)
-                                    title_field = related_child_meta.title_field or "name"
-                                    row[child_field.fieldname] = frappe.db.get_value(child_field.options, link_val, title_field) or link_val
-    return doc
+                child_rows = frappe.get_all(
+                    child_doctype,
+                    filters={"parent": docname, "parenttype": doctype, "parentfield": field.fieldname},
+                    fields="*"
+                )
+                for row in child_rows:
+                    for child_field in child_meta.fields:
+                        if child_field.fieldtype == "Link":
+                            link_val = row.get(child_field.fieldname)
+                            if link_val:
+                                related_child_meta = frappe.get_meta(child_field.options)
+                                title_field = related_child_meta.title_field or "name"
+                                row[child_field.fieldname] = frappe.db.get_value(child_field.options, link_val, title_field) or link_val
+                child_fields_meta = [
+                    {
+                        "fieldname": f.fieldname,
+                        "label": f.label,
+                        "fieldtype": f.fieldtype
+                    }
+                    for f in child_meta.fields
+                    if f.fieldname
+                ]
+                if child_rows:
+                    doc[field.fieldname] = {
+                        "data": child_rows,
+                        "meta": child_fields_meta
+                    }
+    return {
+        "data": doc,
+        "meta": fields_meta
+    }
 
 def get_related_tables(doctype, docname , exclude_meta_fields=[]):
     main_data = get_title(doctype, docname, True)
@@ -105,7 +133,7 @@ def export_json(doctype, docname):
         excluded_fieldtypes = ["Column Break", "Section Break", "Tab Break", "Fold", "HTML", "Button"]
         main_data, related_tables = get_related_tables(doctype, docname, excluded_fieldtypes)
         return {
-            "main_data": main_data,
+            "main_table": main_data,
             "related_tables": related_tables
         }
     except Exception as e:
