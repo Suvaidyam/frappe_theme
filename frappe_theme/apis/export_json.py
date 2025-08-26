@@ -34,15 +34,7 @@ def get_title(doctype, docname, as_title_field=True):
                                 related_child_meta = frappe.get_meta(child_field.options)
                                 title_field = related_child_meta.title_field or "name"
                                 row[child_field.fieldname] = frappe.db.get_value(child_field.options, link_val, title_field) or link_val
-                child_fields_meta = [
-                    {
-                        "fieldname": f.fieldname,
-                        "label": f.label,
-                        "fieldtype": f.fieldtype
-                    }
-                    for f in child_meta.fields
-                    if f.fieldname
-                ]
+                child_fields_meta = [f for f in child_meta.fields if f.fieldname]
                 if child_rows:
                     doc[field.fieldname] = {
                         "data": child_rows,
@@ -114,13 +106,12 @@ def get_related_tables(doctype, docname , exclude_meta_fields=[] , as_title_fiel
                 }
             elif child.template == "Linked Users":
                 continue
-                # table_doctype = "Version"
-                # filters = {
-                #     "reference_doctype": doctype,
-                #     "reference_name": main_data['data'].get('name')
-                # }
             else:
-                continue  # Skip custom design tables
+                table_doctype = "Geography Details"
+                filters = {
+                    "document_type": doctype,
+                    "docname": main_data['data'].get('name')
+                }
 
         try:
             meta = frappe.get_meta(table_doctype)
@@ -185,89 +176,4 @@ def export_json(doctype, docname):
 
 @frappe.whitelist()
 def export_excel(doctype="Grant", docname="Grant-2391"):
-    try:
-        excluded_fieldtypes = ["Column Break", "Section Break", "Tab Break", "Fold", "HTML", "Button"]
-        main_data, related_tables = get_related_tables(doctype, docname, excluded_fieldtypes, True)
-
-        wb = openpyxl.Workbook()
-        wb.remove(wb.active)
-
-        ws_main = wb.create_sheet(title=doctype[:31])
-        main_meta = main_data.get("meta", [])
-        main_row = main_data.get("data", {})
-        main_form_meta = [f for f in main_meta if f["fieldtype"] not in excluded_fieldtypes]
-        
-        headers = [f["label"] or f["fieldname"] for f in main_form_meta]
-        ws_main.append(headers)
-        
-        main_form_values = []
-        for field in main_form_meta:
-            fieldname = field["fieldname"]
-            value = main_row.get(fieldname, "")
-            if hasattr(value, 'strftime'):
-                value = value.strftime('%Y-%m-%d %H:%M:%S')
-            main_form_values.append(str(value) if value is not None else "")
-        ws_main.append(main_form_values)
-
-        for field in main_meta:
-            fieldname = field["fieldname"]
-            if field["fieldtype"] in ["Table", "Table MultiSelect"]:
-                value = main_row.get(fieldname)
-                if isinstance(value, dict) and "data" in value and "meta" in value:
-                    ws_child = wb.create_sheet(title=fieldname[:31])
-                    child_meta = [
-                        f for f in value["meta"]
-                        if f["fieldtype"] not in excluded_fieldtypes
-                    ]
-                    child_data = value["data"]
-                    
-                    child_headers = [f["label"] or f["fieldname"] for f in child_meta]
-                    ws_child.append(child_headers)
-                    
-                    # Write child table data
-                    for row in child_data:
-                        child_row_values = []
-                        for child_field in child_meta:
-                            child_value = row.get(child_field["fieldname"], "")
-                            # Convert datetime objects to strings for Excel compatibility
-                            if hasattr(child_value, 'strftime'):
-                                child_value = child_value.strftime('%Y-%m-%d %H:%M:%S')
-                            child_row_values.append(str(child_value) if child_value is not None else "")
-                        ws_child.append(child_row_values)
-
-        # Related tables: each in its own sheet
-        for table in related_tables:
-            ws = wb.create_sheet(title=table["table_doctype"][:31])
-            meta = [
-                f for f in table.get("meta", [])
-                if f["fieldtype"] not in excluded_fieldtypes
-            ]
-            data = table.get("data", [])
-            
-            # Write headers
-            headers = [f["label"] or f["fieldname"] for f in meta]
-            ws.append(headers)
-
-            for doc in data:
-                row_data = doc.get("data", {})
-                row_values = []
-                for field in meta:
-                    value = row_data.get(field["fieldname"], "")
-                    if hasattr(value, 'strftime'):
-                        value = value.strftime('%Y-%m-%d %H:%M:%S')
-                    row_values.append(str(value) if value is not None else "")
-                ws.append(row_values)
-
-        from io import BytesIO
-        output = BytesIO()
-        wb.save(output)
-        output.seek(0)
-
-        frappe.response['filename'] = f"{doctype}_{docname}_export.xlsx"
-        frappe.response['filecontent'] = output.read()
-        frappe.response['type'] = 'binary'
-        frappe.response['doctype'] = None
-        return build_response("download")
-    except Exception as e:
-        frappe.log_error(f"Export Excel Error: {str(e)}")
-        return {"error": str(e)}
+    pass
