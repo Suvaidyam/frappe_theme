@@ -1,7 +1,8 @@
 import frappe
 import openpyxl
-from frappe.utils.response import build_response
 import json
+from frappe.utils.response import build_response
+from frappe_theme.api import get_files
 
 
 def get_title(doctype, docname, as_title_field=True):
@@ -100,7 +101,24 @@ def get_related_tables(doctype, docname , exclude_meta_fields=[] , as_title_fiel
                     "reference_type": doctype,
                     "reference_name": main_data['data'].get('name')
                 }
-                # print("@"*40, filters, table_doctype , main_data['data'].get('name'))
+            elif child.template == "Gallery":
+                # This will return file related to doctype and docname
+                continue
+                data = get_files(doctype, main_data['data'].get('name'))
+
+            elif child.template == "Email":
+                table_doctype = "Communication"
+                filters = {
+                    "reference_doctype": doctype,
+                    "reference_name": main_data['data'].get('name')
+                }
+            elif child.template == "Linked Users":
+                continue
+                # table_doctype = "Version"
+                # filters = {
+                #     "reference_doctype": doctype,
+                #     "reference_name": main_data['data'].get('name')
+                # }
             else:
                 continue  # Skip custom design tables
 
