@@ -3455,7 +3455,7 @@ class SvaDataTable {
 					"=",
 					this.frm?.doc?.[this.connection.local_field],
 				]);
-			} else if (this.connection.link_fieldname) {
+			}else if (this.connection?.connection_type != "Unfiltered" && this.connection.link_fieldname) {
 				filters.push([
 					this.doctype,
 					this.connection.link_fieldname,
