@@ -87,20 +87,35 @@ def get_related_tables(doctype, docname , exclude_meta_fields=[]):
                 child.dn_reference_field: main_data['data'].get('name'),
                 child.dt_reference_field: doctype
             }
-            print("@"*40, filters, table_doctype , main_data['data'].get('name'))
         elif child.connection_type == "Unfiltered":
             table_doctype = child.link_doctype
             filters = {}
         elif child.connection_type == "Is Custom Design":
-            continue  # Skip custom design tables
+            if child.template == "Notes":
+                table_doctype = "Notes"
+                filters = {
+                    "reference_doctype": doctype,
+                    "related_to": main_data['data'].get('name')
+                }
+            elif child.template == "Tasks":
+                table_doctype = "ToDO"
+                filters = {
+                    "reference_type": doctype,
+                    "reference_name": main_data['data'].get('name')
+                }
+                # print("@"*40, filters, table_doctype , main_data['data'].get('name'))
+            else:
+                continue  # Skip custom design tables
 
         try:
             meta = frappe.get_meta(table_doctype)
+            # print("///////////"*30, filters)
             table_data = frappe.db.get_list(
                 table_doctype,
                 filters=filters,
                 fields=["name"]
             )
+            # print(table_data , "\n"*5)
             all_docs = []
             for row in table_data:
                 doc = get_title(table_doctype, row.name, True)
