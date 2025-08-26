@@ -2,12 +2,11 @@ import frappe
 import openpyxl
 from frappe.utils.response import build_response
 
-import frappe
 
 def get_title(doctype, docname, as_title_field=True):
     doc = frappe.db.get_value(doctype, docname, "*", as_dict=True)
     main_doc_meta = frappe.get_meta(doctype)
-    # Prepare meta info for main doc
+
     fields_meta = [
         {
             "fieldname": f.fieldname,
@@ -55,9 +54,15 @@ def get_title(doctype, docname, as_title_field=True):
                         "data": child_rows,
                         "meta": child_fields_meta
                     }
+    for field in main_doc_meta.fields:
+        if field.fieldtype in ["Attach", "Attach Image"]:
+            attach_val = doc.get(field.fieldname)
+            if attach_val and not attach_val.startswith("http"):
+                base_url = frappe.utils.get_url()
+                doc[field.fieldname] = f"{base_url}{attach_val}"
     return {
         "data": doc,
-        "meta": fields_meta
+        "meta": fields_meta,
     }
 
 def get_related_tables(doctype, docname , exclude_meta_fields=[]):
@@ -120,6 +125,7 @@ def get_related_tables(doctype, docname , exclude_meta_fields=[]):
             for row in table_data:
                 doc = get_title(table_doctype, row.name, True)
                 all_docs.append(doc)
+            # sva_dt_meta = frappe.get_meta("SVADatatable Configuration Child")
 
 
         except Exception as e:
