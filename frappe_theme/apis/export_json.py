@@ -174,6 +174,68 @@ def export_json(doctype, docname):
     except Exception as e:
         return {"error": str(e)}
 
+
 @frappe.whitelist()
 def export_excel(doctype="Grant", docname="Grant-2391"):
-    pass
+    from io import BytesIO
+    """
+    Export main and related tables to an Excel file.
+    Returns the file content directly (bytes), without saving to disk.
+    """
+    try:
+        excluded_fieldtypes = ["Column Break", "Section Break", "Tab Break", "Fold", "HTML", "Button"]
+        main_data, related_tables = get_related_tables(doctype, docname, excluded_fieldtypes, True)
+
+        wb = openpyxl.Workbook()
+        ws_main = wb.active
+        ws_main.title = f"{doctype}"
+
+        # Write main table headers
+        main_headers = [field.get("label", field.get("fieldname", "")) for field in main_data.get("meta", [])]
+        ws_main.append(main_headers)
+        
+        # Write main table data
+        main_row = [
+            str(main_data["data"].get(field.get("fieldname", ""))) if main_data["data"].get(field.get("fieldname", "")) is not None else ""
+            for field in main_data.get("meta", [])
+        ]
+        ws_main.append(main_row)
+
+        # Write related tables
+        for table in related_tables:
+            ws = wb.create_sheet(title=table.get("table_doctype", "Related"))
+            meta = table.get("meta", [])
+            headers = [field.get("label", field.get("fieldname", "")) for field in meta]
+            ws.append(headers)
+            
+            for doc in table.get("data", []):
+                row = [
+                    str(doc["data"].get(field.get("fieldname", ""))) if doc["data"].get(field.get("fieldname", "")) is not None else ""
+                    for field in meta
+                ]
+                ws.append(row)
+
+        # Create file in memory
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+        filedata = output.read()
+        filename = f"{doctype}_{docname}.xlsx"
+        
+        # Set response for file download
+        frappe.local.response.filename = filename
+        frappe.local.response.filecontent = filedata
+        frappe.local.response.content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        frappe.local.response.type = "download"
+        
+        return {
+            "success": True,
+            "message": f"Excel file generated successfully: {filename}"
+        }
+        
+    except Exception as e:
+        frappe.log_error(f"Error in export_excel: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
