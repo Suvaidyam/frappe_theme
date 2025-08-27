@@ -84,7 +84,6 @@ def generate_pdf_template(template_path_or_print_format,filename=None,**kwargs):
         except Exception:
             frappe.log_error(f"Template path or print format not found: {template_path_or_print_format}")
             frappe.throw(f"Template path or print format not found: {template_path_or_print_format}")
-        frappe.log_error(f"mou_template: {mou_template}")
         pdf = get_pdf(mou_template)
         today = frappe.utils.nowdate()
         formated_today = datetime.strptime(today, "%Y-%m-%d").strftime("%d-%m-%Y")
