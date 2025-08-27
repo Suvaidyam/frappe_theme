@@ -128,8 +128,8 @@ def decode_url(token):
     decoded = jwt.decode(token, secret, algorithms=["HS256"])
     path = decoded.get('url')
 
-    bash_url = base_url()
-    redirect_url = f"{bash_url}/{path}"
+    base_url_value = base_url()
+    redirect_url = f"{base_url_value}/{path}"
     frappe.local.response["type"] = "redirect"
     frappe.local.response["location"] = redirect_url
 
