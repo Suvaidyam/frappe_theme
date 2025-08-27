@@ -15,30 +15,30 @@
    "fieldname": "ref_doctype",
    "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "ref_doctype",
+   "label": "Doctype",
    "options": "DocType",
    "reqd": 1
   },
   {
    "fieldname": "filters",
    "fieldtype": "JSON",
-   "label": "Filters"
+   "label": "filters"
   },
   {
    "fieldname": "import",
    "fieldtype": "Button",
-   "label": "import_fixtures"
+   "label": "Import"
   },
   {
    "fieldname": "export",
    "fieldtype": "Button",
-   "label": "export_fixtures"
+   "label": "Export"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-08-26 15:18:03.908892",
+ "modified": "2025-08-27 11:41:39.143826",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "SVAFixture",

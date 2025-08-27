@@ -1178,3 +1178,106 @@ def import_customizations(file_url: str, target_doctype: str):
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "Import Customizations Error")
         frappe.throw(f"Failed to import customizations: {str(e)}")
+
+
+from frappe.utils.response import build_response
+
+@frappe.whitelist()
+def export_fixture_single_doctype(docname):
+    """
+    Export data for a single SVAFixture record as downloadable JSON.
+    Returns just the array of records (like fixtures), not wrapped in a dict.
+    """
+    import json
+
+    fx = frappe.get_doc("SVAFixture", docname)
+    filters_data = json.loads(fx.filters) if fx.filters else {}
+
+    def get_records(doctype, filters_data):
+        filters = filters_data.get("filters", {})
+        or_filters = filters_data.get("or_filters", [])
+        meta = frappe.get_meta(doctype)
+
+        if meta.issingle:
+            return []
+
+        return frappe.get_all(
+            doctype,
+            fields="*",
+            filters=filters,
+            or_filters=or_filters,
+            order_by="creation asc"
+        )
+
+    # Just return the array, no wrapping object
+    records = get_records(fx.ref_doctype, filters_data)
+    
+    return frappe.as_json(records)
+
+@frappe.whitelist()
+def export_fixtures_runtime():
+    """
+    Export fixtures (with filters & or_filters) as downloadable JSON.
+    """
+    export_data = {}
+    for fx in frappe.get_all("SVAFixture", fields=["ref_doctype", "name"]):
+        data = export_fixture_single_doctype(fx.name)
+        if isinstance(data,str):
+            export_data[fx.ref_doctype] = json.loads(data)
+        else:
+            export_data[fx.ref_doctype] = data
+
+    return frappe.as_json(export_data)
+
+import base64
+import os
+from frappe.core.doctype.data_import.data_import import import_doc
+
+@frappe.whitelist()
+def import_single_fixture_from_file(file_url, fixture_name):
+    """
+    Import single-doctype fixture from a JSON file uploaded via Attach field.
+    Uses the 'ref_doctype' from SVAFixture for setting 'doctype'.
+    """
+    try:
+        # Get the File doc
+        file_docs = frappe.get_all("File", filters={"file_url": file_url}, fields=["name"])
+        if not file_docs:
+            return {"status": "error", "message": "File not found."}
+
+        file_doc = frappe.get_doc("File", file_docs[0].name)
+        file_path = file_doc.get_full_path()
+
+        if not os.path.exists(file_path):
+            return {"status": "error", "message": "File not found on disk."}
+
+        # Get the fixture document to read ref_doctype
+        fixture_doc = frappe.get_doc("SVAFixture", fixture_name)
+        target_doctype = fixture_doc.ref_doctype
+        if not target_doctype:
+            return {"status": "error", "message": "ref_doctype not set in SVAFixture."}
+
+        # Read JSON file
+        with open(file_path, "r", encoding="utf-8") as f:
+            records = json.load(f)
+
+        # Add 'doctype' to each record
+        for record in records:
+            record["doctype"] = target_doctype
+
+        # Save modified JSON to a temp file
+        tmp_path = os.path.join(frappe.get_site_path("private", "files"), f"tmp_{target_doctype}.json")
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump(records, f, indent=2)
+
+        # Import using Frappe import_doc
+        import_doc(tmp_path, sort=True)
+
+        # Remove temp file
+        os.remove(tmp_path)
+
+        return {"status": "success", "message": f"Fixtures imported successfully into {target_doctype}"}
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Fixture Import Error")
+        return {"status": "error", "message": str(e)}
