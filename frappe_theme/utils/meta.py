@@ -1,7 +1,7 @@
 import frappe
 
 @frappe.whitelist()
-def get_meta(doctype, filters=None):
+def get_meta(doctype, filters=None, cached=True):
     """
     Get filtered meta fields for a given doctype.
 
@@ -19,7 +19,7 @@ def get_meta(doctype, filters=None):
         list: Filtered list of fields (DocField objects)
     """
 
-    meta = frappe.get_meta(doctype)
+    meta = frappe.get_meta(doctype , cached)
     fields = []
 
     for f in meta.fields:
