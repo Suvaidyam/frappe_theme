@@ -2,6 +2,8 @@ import frappe
 import json
 from frappe import _
 import re
+from frappe.utils import cint
+from frappe.custom.doctype.custom_field.custom_field import create_custom_field
 
 @frappe.whitelist(allow_guest=True)
 def get_my_theme():
@@ -1106,3 +1108,73 @@ def get_files(doctype, docname):
     except Exception as e:
         frappe.log_error(title="Error fetching files", message=str(e))
         return []
+
+@frappe.whitelist()
+def download_customizations(doctype: str, with_permissions: bool = False):
+    """
+    Export custom fields, property setters, permissions for a DocType (and child tables)
+    and return as downloadable JSON.
+    """
+    with_permissions = cint(with_permissions)
+
+    def get_customizations(dt):
+        custom = {
+            "custom_fields": frappe.get_all("Custom Field", fields="*", filters={"dt": dt}, order_by="name"),
+            "property_setters": frappe.get_all("Property Setter", fields="*", filters={"doc_type": dt}, order_by="name"),
+            "custom_perms": [],
+            "links": frappe.get_all("DocType Link", fields="*", filters={"parent": dt}, order_by="name"),
+            "doctype": dt,
+        }
+        if with_permissions:
+            custom["custom_perms"] = frappe.get_all("Custom DocPerm", fields="*", filters={"parent": dt}, order_by="name")
+        return custom
+
+    # Main DocType customizations
+    data = get_customizations(doctype)
+
+    # Child table customizations
+    for d in frappe.get_meta(doctype).get_table_fields():
+        data[f"child_{d.options}"] = get_customizations(d.options)
+
+    return frappe.as_json(data)
+
+
+from frappe.modules.utils import sync_customizations_for_doctype
+
+@frappe.whitelist()
+def import_customizations(file_url: str, target_doctype: str):
+    """
+    Import custom fields, property setters, permissions, and links
+    from uploaded JSON (matches your download_customizations output).
+    Applies to the main DocType and all its child tables.
+    """
+    try:
+        # Load file content
+        file_doc = frappe.get_doc("File", {"file_url": file_url})
+        content = file_doc.get_content()
+        data = json.loads(content)
+        if not data["doctype"]:
+            raise frappe.ValidationError("Doctype attribute not found in data.")
+        if data["doctype"] != target_doctype:
+            raise frappe.ValidationError(f"Importing customizations for wrong doctype: <b>{data['doctype']}</b>")
+
+        main_doctype = data.get("doctype")
+        if not main_doctype:
+            frappe.throw("Invalid JSON: 'doctype' missing.")
+
+        # Apply customizations to main DocType
+        sync_customizations_for_doctype(data, folder="", filename=f"{main_doctype}.json")
+
+        # Apply customizations for each child table
+        for key, value in data.items():
+            if key.startswith("child_") and isinstance(value, dict):
+                child_dt = value.get("doctype")
+                if child_dt:
+                    sync_customizations_for_doctype(value, folder="", filename=f"{child_dt}.json")
+
+        frappe.clear_cache(doctype=main_doctype)
+        return {"status": "success", "message": f"Customizations imported for {main_doctype} and child tables"}
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Import Customizations Error")
+        frappe.throw(f"Failed to import customizations: {str(e)}")
