@@ -1,7 +1,6 @@
 import frappe
 import openpyxl
 import json
-from frappe.utils.response import build_response
 from frappe_theme.api import get_files
 
 
@@ -150,9 +149,8 @@ def get_related_tables(doctype, docname , exclude_meta_fields=[] , as_title_fiel
     return main_data, related_tables
 
 @frappe.whitelist()
-def export_json(doctype, docname):
+def export_json(doctype, docname , excluded_fieldtypes=["Column Break", "Section Break", "Tab Break", "Fold", "HTML", "Button"]):
     try:
-        excluded_fieldtypes = ["Column Break", "Section Break", "Tab Break", "Fold", "HTML", "Button"]
         main_data, related_tables = get_related_tables(doctype, docname, excluded_fieldtypes, True)
         # Structure output as per latest format
         result = {
@@ -174,6 +172,27 @@ def export_json(doctype, docname):
     except Exception as e:
         return {"error": str(e)}
 
+@frappe.whitelist()
+def export_json_without_meta(doctype, docname , excluded_fieldtypes=["Column Break", "Section Break", "Tab Break", "Fold", "HTML", "Button"]):
+    try:
+        main_data, related_tables = get_related_tables(doctype, docname, excluded_fieldtypes, True)
+        # Structure output as per latest format
+        result = {
+            "main_table": {
+                "data": main_data.get("data", {}),
+                # "meta": main_data.get("meta", [])
+            },
+            "related_tables": []
+        }
+        for table in related_tables:
+            result["related_tables"].append({
+                "table_doctype": table.get("table_doctype"),
+                "html_field": table.get("html_field"),
+                "data": [doc.get("data", {}) for doc in table.get("data", [])],
+            })
+        return result
+    except Exception as e:
+        return {"error": str(e)}
 
 @frappe.whitelist()
 def export_excel(doctype="Grant", docname="Grant-2391"):
