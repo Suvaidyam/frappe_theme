@@ -5,7 +5,6 @@ from frappe_theme.apis.export_json import export_json_without_meta
 import frappe
 
 api_key = frappe.get_conf().get("openai_key")
-print("*" * 100, api_key)
 client = OpenAI(api_key=api_key)
 
 
@@ -93,7 +92,7 @@ def extract_relevant_data(raw_data):
     
     return relevant_fields
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def generate_executive_report(doctype, docname):
     """
     Takes grant JSON, extracts only relevant fields,
