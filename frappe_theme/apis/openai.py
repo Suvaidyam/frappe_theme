@@ -92,7 +92,7 @@ def extract_relevant_data(raw_data):
     
     return relevant_fields
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def generate_executive_report(doctype, docname):
     """
     Takes grant JSON, extracts only relevant fields,
