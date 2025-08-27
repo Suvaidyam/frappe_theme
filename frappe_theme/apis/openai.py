@@ -5,7 +5,6 @@ from frappe_theme.apis.export_json import export_json_without_meta
 import frappe
 
 api_key = frappe.get_conf().get("openai_key")
-print("*" * 100, api_key)
 client = OpenAI(api_key=api_key)
 
 
