@@ -2168,8 +2168,8 @@ class SvaDataTable {
 		}
 
 		// ========================= Integration Button ======================
-		if (this.frm?.['dt_events']?.[this.doctype]?.['aditional_row_actions']) {
-			let actions = this.frm['dt_events'][this.doctype]['aditional_row_actions'];
+		if (this.frm?.['dt_events']?.[this.doctype]?.['additional_row_actions']) {
+			let actions = this.frm['dt_events'][this.doctype]['additional_row_actions'];
 			for (let action of Object.keys(actions)) {
 				let action_obj = actions[action];
 				if (action_obj.condition) {
