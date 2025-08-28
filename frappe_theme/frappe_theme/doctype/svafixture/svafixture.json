@@ -7,7 +7,9 @@
  "field_order": [
   "ref_doctype",
   "filters",
+  "section_break_zsey",
   "export",
+  "column_break_zyar",
   "import"
  ],
  "fields": [
@@ -20,25 +22,36 @@
    "reqd": 1
   },
   {
+   "description": "{\n    \"filters\":[[\"dt\",\"fn\",\"condition\",\"value\"]],\n    \"or_filters\":[[\"dt\",\"fn\",\"condition\",\"value\"]]\n}",
    "fieldname": "filters",
    "fieldtype": "JSON",
-   "label": "filters"
+   "label": "Filters"
   },
   {
+   "depends_on": "eval:!doc.__islocal",
    "fieldname": "import",
    "fieldtype": "Button",
    "label": "Import"
   },
   {
+   "depends_on": "eval:!doc.__islocal",
    "fieldname": "export",
    "fieldtype": "Button",
    "label": "Export"
+  },
+  {
+   "fieldname": "section_break_zsey",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_zyar",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-08-27 11:41:39.143826",
+ "modified": "2025-08-28 12:19:40.525094",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "SVAFixture",

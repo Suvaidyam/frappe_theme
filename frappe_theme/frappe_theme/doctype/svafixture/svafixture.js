@@ -4,13 +4,13 @@
 frappe.ui.form.on('SVAFixture', {
 
     // -------------------- Export Button --------------------
-    export: function(frm) {
+    export: function (frm) {
         frappe.call({
             method: "frappe_theme.api.export_fixture_single_doctype",
             args: {
                 docname: frm.doc.name
             },
-            callback: function(r) {
+            callback: function (r) {
                 if (r.message) {
                     const filename = `${frm.doc.ref_doctype || 'fixture'}_data.json`;
                     const blob = new Blob([r.message], { type: "application/json" });
@@ -29,7 +29,7 @@ frappe.ui.form.on('SVAFixture', {
     },
 
     // -------------------- Import Button --------------------
-    import: function(frm) {
+    import: function (frm) {
         frappe.prompt(
             [
                 {
@@ -44,26 +44,24 @@ frappe.ui.form.on('SVAFixture', {
                     }
                 }
             ],
-            function(data) {
+            function (data) {
                 const file_url = data.import_file;
                 if (!file_url) {
                     frappe.msgprint(__('No file selected.'));
                     return;
                 }
-
-                // Call server-side API to read the file and import
                 frappe.call({
-                    method: "frappe_theme.api.import_single_fixture_from_file",
+                    method: "frappe_theme.api.import_fixture_single_doctype",
                     args: {
                         file_url: file_url,
                         fixture_name: frm.doc.name
                     },
                     freeze: true,
                     freeze_message: __("Importing fixtures..."),
-                    callback: function(res) {
+                    callback: function (res) {
                         if (res.message.status === "success") {
                             frappe.msgprint(res.message.message);
-                            frm.reload_doc(); // refresh the form safely
+                            frm.reload_doc(); 
                         } else {
                             frappe.msgprint(__('Failed to import fixtures: ') + res.message.message);
                         }

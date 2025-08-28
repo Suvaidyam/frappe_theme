@@ -1,6 +1,6 @@
 frappe.listview_settings['SVAFixture'] = {
     onload(listview) {
-        listview.page.add_menu_item(__('Fixtures'), function () {}, false, '', 'btn-customizations');
+        listview.page.add_menu_item(__('Fixtures'), function () { }, false, '', 'btn-customizations');
 
         // ---- Export fixtures ----
         listview.page.add_inner_button(__('Export fixtures'), function () {
@@ -36,25 +36,22 @@ frappe.listview_settings['SVAFixture'] = {
                         fieldname: "import_file",
                         label: __("Select JSON File"),
                         reqd: 1,
-                        options: {
-                            restrictions: {
-                                allowed_file_types: ['application/json']
-                            }
-                        }
+                        options: 'application/json'
                     }
                 ],
                 function (data) {
                     frappe.call({
                         method: 'frappe_theme.api.import_fixtures_runtime',
-                        args: {
-                            doctype: listview.doctype,
-                            import_file: data.import_file
-                        },
+                        args: { file_url: data.import_file }, // Directly send file_url
                         freeze: true,
                         freeze_message: __("Importing fixtures..."),
                         callback: function (r) {
-                            frappe.show_alert({ message: __('fixtures imported successfully!'), indicator: 'green' });
-                            listview.refresh();
+                            if (r.message && r.message.status === "success") {
+                                frappe.show_alert({ message: r.message.message, indicator: 'green' });
+                                listview.refresh();
+                            } else {
+                                frappe.msgprint(__('Error importing fixtures: ') + (r.message?.message || 'Unknown error'));
+                            }
                         }
                     });
                 },
@@ -62,5 +59,6 @@ frappe.listview_settings['SVAFixture'] = {
                 __('Import')
             );
         }, 'Fixtures');
+
     }
 };

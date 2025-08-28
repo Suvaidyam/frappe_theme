@@ -1229,12 +1229,30 @@ def export_fixtures_runtime():
 
     return frappe.as_json(export_data)
 
-import base64
 import os
 from frappe.core.doctype.data_import.data_import import import_doc
 
+def import_records_to_doctype(doctype, records):
+    """
+    Add 'doctype' to each record, save modified JSON to a temp file,
+    import the data using import_doc, and then remove the temp file.
+    """
+    # Add 'doctype' to each record
+    for record in records:
+        record["doctype"] = doctype
+
+    # Save modified JSON to a temporary file
+    tmp_path = os.path.join(frappe.get_site_path("private", "files"), f"tmp_{doctype}.json")
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        json.dump(records, f, indent=2)
+
+    # Import records from temp JSON
+    import_doc(tmp_path, sort=True)
+    os.remove(tmp_path)
+
+
 @frappe.whitelist()
-def import_single_fixture_from_file(file_url, fixture_name):
+def import_fixture_single_doctype(file_url, fixture_name):
     """
     Import single-doctype fixture from a JSON file uploaded via Attach field.
     Uses the 'ref_doctype' from SVAFixture for setting 'doctype'.
@@ -1248,6 +1266,7 @@ def import_single_fixture_from_file(file_url, fixture_name):
         file_doc = frappe.get_doc("File", file_docs[0].name)
         file_path = file_doc.get_full_path()
 
+        # Check if file exists on disk
         if not os.path.exists(file_path):
             return {"status": "error", "message": "File not found on disk."}
 
@@ -1257,26 +1276,56 @@ def import_single_fixture_from_file(file_url, fixture_name):
         if not target_doctype:
             return {"status": "error", "message": "ref_doctype not set in SVAFixture."}
 
-        # Read JSON file
+        # Load records from JSON file
         with open(file_path, "r", encoding="utf-8") as f:
             records = json.load(f)
 
-        # Add 'doctype' to each record
-        for record in records:
-            record["doctype"] = target_doctype
-
-        # Save modified JSON to a temp file
-        tmp_path = os.path.join(frappe.get_site_path("private", "files"), f"tmp_{target_doctype}.json")
-        with open(tmp_path, "w", encoding="utf-8") as f:
-            json.dump(records, f, indent=2)
-
-        # Import using Frappe import_doc
-        import_doc(tmp_path, sort=True)
-
-        # Remove temp file
-        os.remove(tmp_path)
+        # Import records into the target_doctype
+        import_records_to_doctype(target_doctype, records)
 
         return {"status": "success", "message": f"Fixtures imported successfully into {target_doctype}"}
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Fixture Import Error")
+        return {"status": "error", "message": str(e)}
+
+
+@frappe.whitelist()
+def import_fixtures_runtime(file_url):
+    """
+    Import a runtime-exported JSON file.
+    The JSON must be like:
+    {
+        "District": [...],
+        "State": [...],
+        ...
+    }
+    Each key is a DocType, value is a list of records.
+    """
+    try:
+        # Get File doc
+        file_docs = frappe.get_all("File", filters={"file_url": file_url}, fields=["name"])
+        if not file_docs:
+            return {"status": "error", "message": "File not found."}
+
+        file_doc = frappe.get_doc("File", file_docs[0].name)
+        file_path = file_doc.get_full_path()
+
+        # Check if file exists on disk
+        if not os.path.exists(file_path):
+            return {"status": "error", "message": "File not found on disk."}
+
+        # Read JSON data (multiple doctypes)
+        with open(file_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        # Loop through each DocType in JSON and import
+        for doctype, records in data.items():
+            if not records:
+                continue  # Skip empty arrays
+            import_records_to_doctype(doctype, records)
+
+        return {"status": "success", "message": "All fixtures imported successfully!"}
 
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "Fixture Import Error")
