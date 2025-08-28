@@ -51,7 +51,8 @@ webform_include_js = {
 # include js in doctype views
 doctype_js = {
     "Workflow" : "public/js/doctype/workflow.js",
-    "Web Form" : "public/js/doctype/web_form.js"
+    "Web Form" : "public/js/doctype/web_form.js",
+    "Customize Form": "public/js/download_customizations.js"
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}

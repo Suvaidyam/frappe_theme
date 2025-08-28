@@ -66,26 +66,34 @@ def update_site_config(key, value):
 
 
 @frappe.whitelist()
-def generate_pdf_template(print_format,filename=None,**kwargs):
+def generate_pdf_template(template_path_or_print_format,filename=None,**kwargs):
     """
-    Generate a PDF template from a print format.
+    Generate a PDF template from a Template page or print format.
     """
     try:
-        if frappe.db.exists("Print Format", print_format):
-            print_format_template = frappe.get_doc("Print Format", print_format).html
-            mou_template = frappe.render_template(print_format_template, kwargs)
-            pdf = get_pdf(mou_template)
-            today = frappe.utils.nowdate()
-            formated_today = datetime.strptime(today, "%Y-%m-%d").strftime("%d-%m-%Y")
-            if filename:
-                _filename = f"{filename}_{formated_today}.pdf"
+        try:
+            if isinstance(template_path_or_print_format, str) and "templates/pages" in template_path_or_print_format:
+                mou_template = frappe.get_template(template_path_or_print_format).render(kwargs)
             else:
-                _filename = f"{print_format}_{formated_today}.pdf"
-            frappe.local.response.filename = _filename
-            frappe.local.response.filecontent = pdf
-            frappe.local.response.type = "download"
+                if frappe.db.exists("Print Format", template_path_or_print_format):
+                    print_format_template = frappe.get_doc("Print Format", template_path_or_print_format).html
+                    mou_template = frappe.render_template(print_format_template, kwargs)
+                else:
+                    frappe.log_error(f"Print Format not found: {template_path_or_print_format}")
+                    frappe.throw(f"Print Format not found: {template_path_or_print_format}")
+        except Exception:
+            frappe.log_error(f"Template path or print format not found: {template_path_or_print_format}")
+            frappe.throw(f"Template path or print format not found: {template_path_or_print_format}")
+        pdf = get_pdf(mou_template)
+        today = frappe.utils.nowdate()
+        formated_today = datetime.strptime(today, "%Y-%m-%d").strftime("%d-%m-%Y")
+        if filename:
+            _filename = f"{filename}_{formated_today}.pdf"
         else:
-            frappe.throw(f"Print Format '{print_format}' does not exist")
+            _filename = f"{template_path_or_print_format}_{formated_today}.pdf"
+        frappe.local.response.filename = _filename
+        frappe.local.response.filecontent = pdf
+        frappe.local.response.type = "download"
     except Exception as e:
         frappe.log_error(f"Error generating PDF template: {str(e)}")
         frappe.throw(f"Error generating PDF template: {str(e)}")
