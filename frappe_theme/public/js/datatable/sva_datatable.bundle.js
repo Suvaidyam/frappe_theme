@@ -2167,6 +2167,28 @@ class SvaDataTable {
 			});
 		}
 
+		// ========================= Integration Button ======================
+		if (this.frm?.['dt_events']?.[this.doctype]?.['aditional_row_actions']) {
+			let actions = this.frm['dt_events'][this.doctype]['aditional_row_actions'];
+			for (let action of Object.keys(actions)) {
+				let action_obj = actions[action];
+				if (action_obj.condition) {
+					if (!this.checkCondition(action_obj.condition, row, primaryKey)) {
+						continue;
+					}
+				}
+				appendDropdownOption(`${action_obj.icon} ${action_obj.label}`, async () => {
+					let fn = action_obj.action;
+					if (this.isAsync(fn)) {
+						await fn(this, row, primaryKey);
+					} else {
+						fn(this, row, primaryKey);
+					}
+				});
+			}
+		}
+		// ========================= Integration Button End ======================
+
 		dropdown.appendChild(dropdownBtn);
 		if (this.connection.connection_type != "Report") {
 			document.body.appendChild(dropdownMenu);
@@ -2189,6 +2211,12 @@ class SvaDataTable {
 		});
 
 		return dropdown;
+	}
+	checkCondition(condition, row, primaryKey) {
+		if (typeof condition === "function") {
+			return condition(this, row, primaryKey);
+		}
+		return condition;
 	}
 	createTableBody() {
 		if (this.rows?.length === 0) {
