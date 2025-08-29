@@ -40,7 +40,9 @@ web_include_js = f"/assets/frappe_theme/js/frappe_theme.js?ver={time.time()}"
 # website_theme_scss = "frappe_theme/public/scss/website"
 
 # include js, css files in header of web form
-# webform_include_js = {"doctype": "public/js/doctype.js"}
+webform_include_js = {
+    "*": ["public/js/web_form/common_web_form.bundle.js"],
+}
 # webform_include_css = {"doctype": "public/css/doctype.css"}
 
 # include js in page
@@ -48,7 +50,9 @@ web_include_js = f"/assets/frappe_theme/js/frappe_theme.js?ver={time.time()}"
 
 # include js in doctype views
 doctype_js = {
-    "Workflow" : "public/js/doctype/workflow.js"
+    "Workflow" : "public/js/doctype/workflow.js",
+    "Web Form" : "public/js/doctype/web_form.js",
+    "Customize Form": "public/js/download_customizations.js"
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}

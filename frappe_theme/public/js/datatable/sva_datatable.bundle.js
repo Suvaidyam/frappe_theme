@@ -1376,21 +1376,21 @@ class SvaDataTable {
 					if (doc[f.fieldname]) {
 						f.default = doc[f.fieldname];
 					}
-					if (f?.fetch_from) {
-						if (!f.default) {
-							let fetch_from = f.fetch_from.split(".");
-							let [parentfield, fieldname] = fetch_from;
-							let parentf = fields.find((f) => f.fieldname === parentfield);
-							if (parentf?.options && parentf?.default) {
-								let doc = await this.sva_db.get_doc(
-									parentf?.options,
-									parentf?.default
-								);
-								f.default = doc[fieldname];
-								f.read_only = 1;
-							}
-						}
-					}
+					// if (f?.fetch_from) {
+					// 	if (!f.default) {
+					// 		let fetch_from = f.fetch_from.split(".");
+					// 		let [parentfield, fieldname] = fetch_from;
+					// 		let parentf = fields.find((f) => f.fieldname === parentfield);
+					// 		if (parentf?.options && parentf?.default) {
+					// 			let doc = await this.sva_db.get_doc(
+					// 				parentf?.options,
+					// 				parentf?.default
+					// 			);
+					// 			f.default = doc[fieldname];
+					// 			f.read_only = 1;
+					// 		}
+					// 	}
+					// }
 					if (f.fieldtype === "Link") {
 						f.get_query = () => {
 							const filters = [];
@@ -1546,19 +1546,19 @@ class SvaDataTable {
 						f.fields = tableFields;
 						continue;
 					}
-					if (f?.fetch_from) {
-						let fetch_from = f.fetch_from.split(".");
-						let [parentfield, fieldname] = fetch_from;
-						let parentf = fields.find((f) => f.fieldname === parentfield);
-						if (parentf?.options && parentf?.default) {
-							let doc = await this.sva_db.get_doc(
-								parentf?.options,
-								parentf?.default
-							);
-							f.default = doc[fieldname];
-							f.read_only = 1;
-						}
-					}
+					// if (f?.fetch_from) {
+					// 	let fetch_from = f.fetch_from.split(".");
+					// 	let [parentfield, fieldname] = fetch_from;
+					// 	let parentf = fields.find((f) => f.fieldname === parentfield);
+					// 	if (parentf?.options && parentf?.default) {
+					// 		let doc = await this.sva_db.get_doc(
+					// 			parentf?.options,
+					// 			parentf?.default
+					// 		);
+					// 		f.default = doc[fieldname];
+					// 		f.read_only = 1;
+					// 	}
+					// }
 					if (
 						!["Check", "Button", "Table", "Table MultiSelect"].includes(f.fieldtype) &&
 						f.read_only &&
@@ -2167,6 +2167,28 @@ class SvaDataTable {
 			});
 		}
 
+		// ========================= Integration Button ======================
+		if (this.frm?.['dt_events']?.[this.doctype]?.['additional_row_actions']) {
+			let actions = this.frm['dt_events'][this.doctype]['additional_row_actions'];
+			for (let action of Object.keys(actions)) {
+				let action_obj = actions[action];
+				if (action_obj.condition) {
+					if (!this.checkCondition(action_obj.condition, row, primaryKey)) {
+						continue;
+					}
+				}
+				appendDropdownOption(`${action_obj.icon} ${action_obj.label}`, async () => {
+					let fn = action_obj.action;
+					if (this.isAsync(fn)) {
+						await fn(this, row, primaryKey);
+					} else {
+						fn(this, row, primaryKey);
+					}
+				});
+			}
+		}
+		// ========================= Integration Button End ======================
+
 		dropdown.appendChild(dropdownBtn);
 		if (this.connection.connection_type != "Report") {
 			document.body.appendChild(dropdownMenu);
@@ -2189,6 +2211,12 @@ class SvaDataTable {
 		});
 
 		return dropdown;
+	}
+	checkCondition(condition, row, primaryKey) {
+		if (typeof condition === "function") {
+			return condition(this, row, primaryKey);
+		}
+		return condition;
 	}
 	createTableBody() {
 		if (this.rows?.length === 0) {
@@ -3455,7 +3483,7 @@ class SvaDataTable {
 					"=",
 					this.frm?.doc?.[this.connection.local_field],
 				]);
-			} else if (this.connection.link_fieldname) {
+			}else if (this.connection?.connection_type != "Unfiltered" && this.connection.link_fieldname) {
 				filters.push([
 					this.doctype,
 					this.connection.link_fieldname,
