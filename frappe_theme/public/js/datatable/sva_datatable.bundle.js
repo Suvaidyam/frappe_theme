@@ -678,6 +678,15 @@ class SvaDataTable {
 			gap: 10px;
 		`;
 
+		// Custom Button Section
+		let custom_button_section = document.createElement("div");
+		custom_button_section.id = "custom-button-section";
+		custom_button_section.style = `
+			display: flex;
+			align-items: center;
+			gap: 10px;
+		`;
+
 		// Refresh button
 		let refresh_button = document.createElement("button");
 		refresh_button.id = "refresh_button";
@@ -700,6 +709,7 @@ class SvaDataTable {
 		});
 
 		// Add to title actions
+		title_actions.appendChild(custom_button_section);
 		title_actions.appendChild(refresh_button);
 		title_actions.appendChild(action_button);
 
@@ -821,6 +831,20 @@ class SvaDataTable {
 		header_element.appendChild(filter_row);
 
 		return header_element;
+	}
+	add_custom_button(label, click, style="secondary") {
+		let button = document.createElement("button");
+		button.classList.add("btn", `btn-${style}`, "btn-sm");
+		button.innerHTML = label;
+		button.onclick = click.bind(this);
+		let wrapper = this.header_element.querySelector("div#custom-button-section");
+		let existingButton = Array.from(wrapper.children).find(btn => 
+			btn.tagName === 'BUTTON' && btn.textContent === button.textContent
+		);
+		if(existingButton){
+			return;
+		}
+		wrapper.appendChild(button);
 	}
 	async setupWrapper(wrapper) {
 		wrapper.style = `max-width:${this.options?.style?.width || "100%"}; width:${this.options?.style?.width || "100%"
