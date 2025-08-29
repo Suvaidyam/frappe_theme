@@ -1266,7 +1266,7 @@ class SvaDataTable {
 		if (this.frm?.['dt_events']?.[doctype]?.['customize_form_fields']) {
 			let customize = this.frm?.['dt_events']?.[doctype]?.['customize_form_fields'];
 			if (this.isAsync(customize)) {
-				customized_fields = await customize(this, fields, mode);
+				let customized_fields = await customize(this, fields, mode);
 				if (customized_fields) {
 					fields = customized_fields;
 				} else {
@@ -1316,14 +1316,14 @@ class SvaDataTable {
 						if (this.frm?.['dt_events']?.[f.options]?.['customize_form_fields']) {
 							let customize = this.frm?.['dt_events']?.[f.options]?.['customize_form_fields'];
 							if (this.isAsync(customize)) {
-								customizedTableFields = await customize(this, tableFields, mode);
+								let customizedTableFields = await customize(this, tableFields, mode);
 								if (customizedTableFields) {
 									tableFields = customizedTableFields;
 								} else {
 									tableFields = tableFields;
 								}
 							} else {
-								customizedTableFields = customize(this, tableFields, mode);
+								let customizedTableFields = customize(this, tableFields, mode);
 								if (customizedTableFields) {
 									tableFields = customizedTableFields;
 								} else {
@@ -1533,14 +1533,14 @@ class SvaDataTable {
 						if (this.frm?.['dt_events']?.[f.options]?.['customize_form_fields']) {
 							let customize = this.frm?.['dt_events']?.[f.options]?.['customize_form_fields'];
 							if (this.isAsync(customize)) {
-								customizedTableFields = await customize(this, tableFields, mode);
+								let customizedTableFields = await customize(this, tableFields, mode);
 								if (customizedTableFields) {
 									tableFields = customizedTableFields;
 								} else {
 									tableFields = tableFields;
 								}
 							} else {
-								customizedTableFields = customize(this, tableFields, mode);
+								let customizedTableFields = customize(this, tableFields, mode);
 								if (customizedTableFields) {
 									tableFields = customizedTableFields;
 								} else {
@@ -1625,14 +1625,14 @@ class SvaDataTable {
 					if (this.frm?.['dt_events']?.[f.options]?.['customize_form_fields']) {
 						let customize = this.frm?.['dt_events']?.[f.options]?.['customize_form_fields'];
 						if (this.isAsync(customize)) {
-							customizedTableFields = await customize(this, tableFields, mode);
+							let customizedTableFields = await customize(this, tableFields, mode);
 							if (customizedTableFields) {
 								tableFields = customizedTableFields;
 							} else {
 								tableFields = tableFields;
 							}
 						} else {
-							customizedTableFields = customize(this, tableFields, mode);
+							let customizedTableFields = customize(this, tableFields, mode);
 							if (customizedTableFields) {
 								tableFields = customizedTableFields;
 							} else {
