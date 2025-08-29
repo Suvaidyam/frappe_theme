@@ -1139,45 +1139,126 @@ def download_customizations(doctype: str, with_permissions: bool = False):
     return frappe.as_json(data)
 
 
+@frappe.whitelist()
+def download_multiple_customizations(doctypes: list[str] | str, with_permissions: bool = False):
+    """
+    Export customizations for multiple doctypes at once.
+    Accepts a list of doctypes (from dialog table) and returns a JSON blob.
+    """
+    if isinstance(doctypes, str):
+        import json
+        doctypes = json.loads(doctypes)
+
+    all_data = {}
+
+    for dt in doctypes:
+        doctype_name = dt.get("doctype_name") if isinstance(dt, dict) else dt
+        # Directly call function in same file
+        data = download_customizations(doctype_name, with_permissions)
+        import json
+        all_data[doctype_name] = json.loads(data)
+
+    return frappe.as_json(all_data)
+
+
 from frappe.modules.utils import sync_customizations_for_doctype
+import json
+import frappe
+
+def _apply_customizations(custom_data: dict):
+    """
+    Core logic for applying customizations for a single doctype
+    and its child tables. Used by both single and multiple import.
+    """
+    # Ensure JSON contains main doctype key
+    if not custom_data.get("doctype"):
+        frappe.throw("Invalid JSON: 'doctype' missing.")
+
+    main_doctype = custom_data["doctype"]
+
+    # ---------------- Apply main doctype customizations ----------------
+    sync_customizations_for_doctype(custom_data, folder="", filename=f"{main_doctype}.json")
+
+    # ---------------- Apply customizations for child tables (if any) ----------------
+    for key, value in custom_data.items():
+        if key.startswith("child_") and isinstance(value, dict):
+            child_dt = value.get("doctype")
+            if child_dt:
+                sync_customizations_for_doctype(value, folder="", filename=f"{child_dt}.json")
+
+    frappe.clear_cache(doctype=main_doctype)
+    return main_doctype
+
 
 @frappe.whitelist()
 def import_customizations(file_url: str, target_doctype: str):
     """
-    Import custom fields, property setters, permissions, and links
-    from uploaded JSON (matches your download_customizations output).
-    Applies to the main DocType and all its child tables.
+    Import customizations for a single doctype (and its child tables).
+    - Validates file content
+    - Ensures correct doctype match
+    - Applies customizations via _apply_customizations
     """
     try:
-        # Load file content
+        # ---------------- Read uploaded file from File doctype ----------------
         file_doc = frappe.get_doc("File", {"file_url": file_url})
         content = file_doc.get_content()
         data = json.loads(content)
-        if not data["doctype"]:
+
+        if not data.get("doctype"):
             raise frappe.ValidationError("Doctype attribute not found in data.")
         if data["doctype"] != target_doctype:
-            raise frappe.ValidationError(f"Importing customizations for wrong doctype: <b>{data['doctype']}</b>")
+            raise frappe.ValidationError(
+                f"Importing customizations for wrong doctype: <b>{data['doctype']}</b>"
+            )
 
-        main_doctype = data.get("doctype")
-        if not main_doctype:
-            frappe.throw("Invalid JSON: 'doctype' missing.")
-
-        # Apply customizations to main DocType
-        sync_customizations_for_doctype(data, folder="", filename=f"{main_doctype}.json")
-
-        # Apply customizations for each child table
-        for key, value in data.items():
-            if key.startswith("child_") and isinstance(value, dict):
-                child_dt = value.get("doctype")
-                if child_dt:
-                    sync_customizations_for_doctype(value, folder="", filename=f"{child_dt}.json")
-
-        frappe.clear_cache(doctype=main_doctype)
-        return {"status": "success", "message": f"Customizations imported for {main_doctype} and child tables"}
+        applied_dt = _apply_customizations(data)
+        return {
+            "status": "success",
+            "message": f"Customizations imported for {applied_dt} and child tables"
+        }
 
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "Import Customizations Error")
         frappe.throw(f"Failed to import customizations: {str(e)}")
+
+
+@frappe.whitelist()
+def import_multiple_customizations(file_url: str):
+    """
+    Import customizations for multiple doctypes (and child tables).
+    JSON must match output of download_multiple_customizations.
+    - Iterates over each doctype
+    - Applies customizations individually
+    """
+    try:
+        file_doc = frappe.get_doc("File", {"file_url": file_url})
+        content = file_doc.get_content()
+        data = json.loads(content)
+
+        if not isinstance(data, dict):
+            frappe.throw("Invalid JSON format. Expected dict of doctypes.")
+
+        imported, errors = [], []
+
+        # ---------------- Iterate and apply each doctype ----------------
+        for doctype_name, custom_data in data.items():
+            try:
+                applied_dt = _apply_customizations(custom_data)
+                imported.append(applied_dt)
+            except Exception as inner_e:
+                frappe.log_error(frappe.get_traceback(), f"Import Error for {doctype_name}")
+                errors.append(f"{doctype_name}: {str(inner_e)}")
+
+        return {
+            "status": "completed",
+            "imported": imported,
+            "errors": errors,
+            "message": f"Imported {len(imported)} doctypes, {len(errors)} failed."
+        }
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Import Multiple Customizations Error")
+        frappe.throw(f"Failed to import multiple customizations: {str(e)}")
 
 
 from frappe.utils.response import build_response
