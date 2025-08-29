@@ -48,12 +48,13 @@ def format_currency(value):
             formatted_value = str(value)
     return formatted_value
 
-def bash_url():
+@frappe.whitelist(allow_guest=True)
+def base_url():
     base_url = frappe.get_conf().get("hostname")
     if base_url:
         return base_url
     else:
-        return ""
+        return frappe.utils.get_url()
 
 def approver_details(dt, dn, workflow_state=""):
     try:
@@ -127,17 +128,15 @@ def decode_url(token):
     decoded = jwt.decode(token, secret, algorithms=["HS256"])
     path = decoded.get('url')
 
-    base_url = frappe.get_conf().get('hostname')
-    redirect_url = f"{base_url}/{path}"
+    base_url_value = base_url()
+    redirect_url = f"{base_url_value}/{path}"
     frappe.local.response["type"] = "redirect"
     frappe.local.response["location"] = redirect_url
 
 def get_loging_url(email):
     is_signup = frappe.db.get_single_value('My Theme','disable_usr_pass_login')
-    frappe.log_error("is_signuphhh", is_signup)
     if is_signup:
-        conf = frappe.get_conf()
-        baseurl = conf.get("hostname")
+        baseurl = base_url()
         url = f"{baseurl}/login?email={email}"
         frappe.log_error("url1", url)
         return url
@@ -149,7 +148,6 @@ def get_loging_url(email):
         frappe.db.set_value("User", email, "last_reset_password_key_generated_on", now_datetime())
         
         url = f"/update-password?key={key}"
-        frappe.log_error("url2", url)
         return url
 
 def get_primary_donor_name():
