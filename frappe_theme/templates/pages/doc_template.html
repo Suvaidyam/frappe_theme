@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{ doc.get('proposal_name', doc.get('name', 'Document')) }} - Print Format</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #333;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 15px;
+        }
+        
+        .header h1 {
+            margin: 0;
+            color: #333;
+            font-size: 24px;
+            text-transform: uppercase;
+        }
+        
+        .header h2 {
+            margin: 5px 0;
+            color: #666;
+            font-size: 16px;
+            font-weight: normal;
+        }
+        
+        .main-info {
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+            text-transform: uppercase;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .info-item {
+            display: flex;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-left: 4px solid #007bff;
+            border-radius: 4px;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            width: 45%;
+            color: #495057;
+            text-transform: capitalize;
+        }
+        
+        .info-value {
+            width: 55%;
+            color: #333;
+            word-break: break-word;
+        }
+        
+        .table-section {
+            margin-bottom: 35px;
+            page-break-inside: avoid;
+        }
+        
+        .table-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .table-wrapper {
+            overflow-x: auto;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 6px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 11px;
+            background-color: white;
+        }
+        
+        th, td {
+            border: 1px solid #dee2e6;
+            padding: 10px 8px;
+            text-align: left;
+            vertical-align: top;
+        }
+        
+        th {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            font-weight: bold;
+            color: #495057;
+            text-transform: capitalize;
+            font-size: 10px;
+            position: sticky;
+            top: 0;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        tr:hover {
+            background-color: #e8f4f8;
+        }
+        
+        .currency {
+            text-align: right;
+            font-weight: bold;
+            color: #28a745;
+        }
+        
+        .number {
+            text-align: right;
+        }
+        
+        .date {
+            white-space: nowrap;
+        }
+        
+        .status {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .no-data {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            padding: 40px 20px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            border: 2px dashed #dee2e6;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            color: #6c757d;
+            font-size: 10px;
+            border-top: 1px solid #dee2e6;
+            padding-top: 20px;
+        }
+        
+        .record-count {
+            font-size: 12px;
+            color: #6c757d;
+            margin-bottom: 10px;
+            text-align: right;
+        }
+        
+        .field-name {
+            text-transform: capitalize;
+        }
+        
+        @media print {
+            body {
+                margin: 0;
+                font-size: 11px;
+            }
+            
+            .table-section {
+                page-break-inside: avoid;
+            }
+            
+            .header {
+                page-break-after: avoid;
+            }
+        }
+        
+        /* Handle long text in cells */
+        .text-wrap {
+            word-wrap: break-word;
+            max-width: 200px;
+        }
+        
+        /* Status indicators */
+        .status-draft { background-color: #ffeaa7; color: #2d3436; }
+        .status-approved { background-color: #00b894; color: white; }
+        .status-pending { background-color: #fdcb6e; color: #2d3436; }
+        .status-rejected { background-color: #e17055; color: white; }
+    </style>
+</head>
+<body>
+    {% set _incoming_message = message if message is defined else None %}
+    {% set _doc_wrapper = doc if doc is defined else {} %}
+    {% if _incoming_message %}
+        {% set _main = _incoming_message.get('main_table', {}) %}
+        {% set _main_meta = _main.get('meta', []) %}
+        {% set _main_doc = _main.get('data', {}) %}
+        {% set related_tables = _incoming_message.get('related_tables', related_tables if related_tables is defined else []) %}
+    {% elif _doc_wrapper and _doc_wrapper.get('data') is not none and _doc_wrapper.get('meta') is not none %}
+        {% set _main_doc = _doc_wrapper.get('data', {}) %}
+        {% set _main_meta = _doc_wrapper.get('meta', []) %}
+    {% else %}
+        {% set _main_doc = _doc_wrapper %}
+        {% set _main_meta = [] %}
+    {% endif %}
+
+    <!-- Header Section -->
+    <div class="header">
+        <h1>{{ _main_doc.get('proposal_name', _main_doc.get('name', 'Document')) }}</h1>
+        {% if _main_doc.get('name') %}
+        <h2>Document ID: {{ _main_doc.name }}</h2>
+        {% endif %}
+        {% if _main_doc.get('project_name') %}
+        <p><strong>Project:</strong> {{ _main_doc.project_name }}</p>
+        {% endif %}
+    </div>
+
+    <!-- Main Document Information -->
+    <div class="main-info">
+        <div class="section-title">Document Information</div>
+        
+        <div class="info-grid">
+            {% set _layout_types = ['Section Break','Column Break','Tab Break','HTML'] %}
+            {% set _table_types = ['Table','Table MultiSelect'] %}
+            {% set _ignore_keys = ['name','owner','creation','modified','modified_by','docstatus','idx','_user_tags','_comments','_assign','_liked_by'] %}
+
+            {% set _meta_fields = _main_meta %}
+
+            {% if _meta_fields and _meta_fields|length > 0 %}
+                {% for f in _meta_fields %}
+                    {% set fname = f.get('fieldname') %}
+                    {% set ftype = f.get('fieldtype') %}
+                    {% if fname and ftype not in _layout_types and ftype not in _table_types and not f.get('hidden') and not f.get('print_hide') and fname not in _ignore_keys %}
+                        {% set value = _main_doc.get(fname) %}
+                        {# show only scalar-ish values; skip mappings and sequences #}
+                        {% if value is not none and value != '' and value is not mapping and value is not sequence %}
+                            <div class="info-item">
+                                <div class="info-label field-name">
+                                    {{ f.get('label', fname.replace('_', ' ').title()) }}:
+                                </div>
+                                <div class="info-value">
+                                    {% if ftype == 'Currency' and value is number %}
+                                        ₹{{ "{:,.2f}".format(value) }}
+                                    {% elif ftype in ['Int','Check'] and value is number %}
+                                        {{ value }}
+                                    {% elif ftype in ['Date','Datetime'] %}
+                                        {{ (value|string).split(' ')[0] }}
+                                    {% else %}
+                                        {{ (value|string)|striptags|trim }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+            {% else %}
+                {# Fallback: iterate over doc keys, but skip system, layout and child-table like objects #}
+                {% for key, value in _main_doc.items() %}
+                    {% if key not in _ignore_keys and value is not mapping and value is not sequence and value is not none and value != '' %}
+                        <div class="info-item">
+                            <div class="info-label field-name">{{ key.replace('_',' ').replace('-',' ').title() }}:</div>
+                            <div class="info-value">
+                                {% if value is number %}
+                                    {% if 'budget' in key.lower() or 'cost' in key.lower() or 'amount' in key.lower() %}
+                                        ₹{{ "{:,.2f}".format(value) }}
+                                    {% else %}
+                                        {{ value }}
+                                    {% endif %}
+                                {% else %}
+                                    {{ (value|string)|striptags|trim }}
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Related Tables Section -->
+    {% if related_tables is defined and related_tables|length > 0 %}
+        {% for table in related_tables %}
+            <div class="table-section">
+                <!-- Table Title -->
+                <div class="table-title">
+                    {{ table.get('table_doctype', 'Unknown Table').replace('Proposal ', '').strip() }}
+                    {% if table.get('html_field') %}
+                    ({{ table.html_field.title() }})
+                    {% endif %}
+                </div>
+                
+                <!-- Check if table has data -->
+                {% if table.get('data') and table.data|length > 0 %}
+                    <div class="record-count">
+                        Total Records: {{ table.data|length }}
+                    </div>
+                    
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px;">#</th>
+                                    {% set _lt = ['Section Break','Column Break','Tab Break','HTML'] %}
+                                    {% set _skip_keys = ['name','creation','modified','modified_by','owner','docstatus','idx','_user_tags','_comments','_assign','_liked_by','workflow_state','proposal','parent','parentfield','parenttype'] %}
+
+                                    {% set lvs = (table.get('sva_dt_meta', {}) or {}).get('listview_settings') %}
+                                    {% if lvs and lvs|length > 0 %}
+                                        {% for col in lvs %}
+                                            {% if col.get('fieldname') and col.fieldname not in _skip_keys %}
+                                                <th class="field-name">{{ col.get('label', col.fieldname.replace('_',' ').title()) }}</th>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% elif table.get('meta') and table.meta|length > 0 %}
+                                        {% for field_meta in table.meta %}
+                                            {% if field_meta.get('fieldname') and field_meta.fieldname not in _skip_keys and field_meta.get('fieldtype') not in _lt %}
+                                                <th class="field-name">
+                                                    {{ field_meta.get('label', field_meta.fieldname.replace('_', ' ').title()) }}
+                                                </th>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        {% set first_record = table.data[0] %}
+                                        {% for key in first_record.keys() %}
+                                            {% if key not in _skip_keys %}
+                                                <th class="field-name">{{ key.replace('_', ' ').title() }}</th>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in table.data %}
+                                <tr>
+                                    <td style="font-weight: bold; color: #6c757d;">{{ loop.index }}</td>
+                                    {% if lvs and lvs|length > 0 %}
+                                        {% for col in lvs %}
+                                            {% if col.get('fieldname') and col.fieldname not in _skip_keys %}
+                                                {% set field_name = col.fieldname %}
+                                                {% set field_value = record.get(field_name) %}
+                                                <td class="text-wrap">
+                                                    {% if field_value is none or field_value == '' %}
+                                                        <span style="color: #6c757d; font-style: italic;">-</span>
+                                                    {% else %}
+                                                        {{ (field_value|string)|striptags|trim }}
+                                                    {% endif %}
+                                                </td>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% elif table.get('meta') and table.meta|length > 0 %}
+                                        {% for field_meta in table.meta %}
+                                            {% if field_meta.get('fieldname') and field_meta.fieldname not in _skip_keys and field_meta.get('fieldtype') not in _lt %}
+                                                {% set field_name = field_meta.fieldname %}
+                                                {% set field_type = field_meta.get('fieldtype', 'Data') %}
+                                                {% set field_value = record.get(field_name) %}
+                                                <td class="
+                                                    {% if field_type in ['Currency', 'Float'] %}currency{% elif field_type in ['Int'] %}number{% elif field_type in ['Date', 'Datetime'] %}date{% elif 'status' in field_name.lower() %}status{% else %}text-wrap{% endif %}
+                                                ">
+                                                    {% if field_value is none or field_value == '' %}
+                                                        <span style="color: #6c757d; font-style: italic;">-</span>
+                                                    {% elif field_type == 'Currency' %}
+                                                        ₹{{ "{:,.2f}".format(field_value) if field_value is number else field_value }}
+                                                    {% elif field_type == 'Float' and field_value is number %}
+                                                        {{ "{:.2f}".format(field_value) }}
+                                                    {% elif field_type == 'Int' and field_value is number %}
+                                                        {{ "{:,}".format(field_value) }}
+                                                    {% elif field_type in ['Date', 'Datetime'] %}
+                                                        {{ (field_value|string).split(' ')[0] }}
+                                                    {% elif 'status' in field_name.lower() %}
+                                                        <span class="status status-{{ field_value|lower|replace(' ', '-') if field_value else 'unknown' }}">{{ field_value or 'Unknown' }}</span>
+                                                    {% else %}
+                                                        {% set str_value = field_value|string %}
+                                                        {% if str_value|length > 100 %}
+                                                            {{ str_value[:100] }}...
+                                                        {% else %}
+                                                            {{ str_value|striptags|trim }}
+                                                        {% endif %}
+                                                    {% endif %}
+                                                </td>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        {% for key, value in record.items() %}
+                                            {% if key not in _skip_keys %}
+                                                <td class="text-wrap">
+                                                    {% if value is none or value == '' %}
+                                                        <span style="color: #6c757d; font-style: italic;">-</span>
+                                                    {% elif value is number %}
+                                                        {% if 'budget' in key.lower() or 'cost' in key.lower() or 'amount' in key.lower() %}
+                                                            <span class="currency">₹{{ "{:,.2f}".format(value) }}</span>
+                                                        {% else %}
+                                                            <span class="number">{{ "{:,}".format(value) if value > 999 else value }}</span>
+                                                        {% endif %}
+                                                    {% else %}
+                                                        {% set str_value = value|string %}
+                                                        {% if str_value|length > 100 %}
+                                                            {{ str_value[:100] }}...
+                                                        {% else %}
+                                                            {{ str_value|striptags|trim }}
+                                                        {% endif %}
+                                                    {% endif %}
+                                                </td>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="no-data">
+                        <p><strong>No data available for {{ table.get('table_doctype', 'this table').replace('Proposal ', '') }}</strong></p>
+                        <p>This section will be populated when records are added.</p>
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="no-data">
+            <p><strong>No related tables found</strong></p>
+            <p>Related table data will appear here when available.</p>
+        </div>
+    {% endif %}
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>
+            <strong>Generated:</strong> {{ frappe.utils.now_datetime().strftime('%d %B %Y at %I:%M %p') if frappe is defined else 'N/A' }} | 
+            <strong>Document:</strong> {{ _main_doc.get('name', 'N/A') }} | 
+            <strong>Status:</strong> {{ _main_doc.get('application_status', _main_doc.get('wf_state', 'Unknown')) }}
+        </p>
+        <p style="margin-top: 10px; font-size: 9px; color: #adb5bd;">
+            This is a system-generated document. All data is automatically formatted and validated.
+        </p>
+    </div>
+</body>
+</html>
