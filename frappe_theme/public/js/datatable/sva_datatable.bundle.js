@@ -1265,20 +1265,9 @@ class SvaDataTable {
 		}
 		if (this.frm?.['dt_events']?.[doctype]?.['customize_form_fields']) {
 			let customize = this.frm?.['dt_events']?.[doctype]?.['customize_form_fields'];
-			if (this.isAsync(customize)) {
-				let customized_fields = await customize(this, fields, mode);
-				if (customized_fields) {
-					fields = customized_fields;
-				} else {
-					fields = fields;
-				}
-			} else {
-				customized_fields = customize(this, fields, mode);
-				if (customized_fields) {
-					fields = customized_fields;
-				} else {
-					fields = fields;
-				}
+			let customized_fields = this.isAsync(customize) ? await customize(this, fields, mode) : customize(this, fields, mode);
+			if (customized_fields) {
+				fields = customized_fields;
 			}
 		}
 		if (mode === "create" || mode === "write") {
@@ -1315,20 +1304,9 @@ class SvaDataTable {
 						let tableFields = res?.message;
 						if (this.frm?.['dt_events']?.[f.options]?.['customize_form_fields']) {
 							let customize = this.frm?.['dt_events']?.[f.options]?.['customize_form_fields'];
-							if (this.isAsync(customize)) {
-								let customizedTableFields = await customize(this, tableFields, mode);
-								if (customizedTableFields) {
-									tableFields = customizedTableFields;
-								} else {
-									tableFields = tableFields;
-								}
-							} else {
-								let customizedTableFields = customize(this, tableFields, mode);
-								if (customizedTableFields) {
-									tableFields = customizedTableFields;
-								} else {
-									tableFields = tableFields;
-								}
+							let customizedTableFields = this.isAsync(customize) ? await customize(this, tableFields, mode) : customize(this, tableFields, mode);
+							if (customizedTableFields) {
+								tableFields = customizedTableFields;
 							}
 						}
 						for (let tf of tableFields) {
@@ -1532,20 +1510,9 @@ class SvaDataTable {
 						let tableFields = res?.message;
 						if (this.frm?.['dt_events']?.[f.options]?.['customize_form_fields']) {
 							let customize = this.frm?.['dt_events']?.[f.options]?.['customize_form_fields'];
-							if (this.isAsync(customize)) {
-								let customizedTableFields = await customize(this, tableFields, mode);
-								if (customizedTableFields) {
-									tableFields = customizedTableFields;
-								} else {
-									tableFields = tableFields;
-								}
-							} else {
-								let customizedTableFields = customize(this, tableFields, mode);
-								if (customizedTableFields) {
-									tableFields = customizedTableFields;
-								} else {
-									tableFields = tableFields;
-								}
+							let customizedTableFields = this.isAsync(customize) ? await customize(this, tableFields, mode) : customize(this, tableFields, mode);
+							if (customizedTableFields) {
+								tableFields = customizedTableFields;
 							}
 						}
 						for (let tf of tableFields) {
@@ -1579,19 +1546,6 @@ class SvaDataTable {
 						f.fields = tableFields;
 						continue;
 					}
-					// if (f?.fetch_from) {
-					// 	let fetch_from = f.fetch_from.split(".");
-					// 	let [parentfield, fieldname] = fetch_from;
-					// 	let parentf = fields.find((f) => f.fieldname === parentfield);
-					// 	if (parentf?.options && parentf?.default) {
-					// 		let doc = await this.sva_db.get_doc(
-					// 			parentf?.options,
-					// 			parentf?.default
-					// 		);
-					// 		f.default = doc[fieldname];
-					// 		f.read_only = 1;
-					// 	}
-					// }
 					if (
 						!["Check", "Button", "Table", "Table MultiSelect"].includes(f.fieldtype) &&
 						f.read_only &&
@@ -1624,20 +1578,9 @@ class SvaDataTable {
 					let tableFields = res?.message;
 					if (this.frm?.['dt_events']?.[f.options]?.['customize_form_fields']) {
 						let customize = this.frm?.['dt_events']?.[f.options]?.['customize_form_fields'];
-						if (this.isAsync(customize)) {
-							let customizedTableFields = await customize(this, tableFields, mode);
-							if (customizedTableFields) {
-								tableFields = customizedTableFields;
-							} else {
-								tableFields = tableFields;
-							}
-						} else {
-							let customizedTableFields = customize(this, tableFields, mode);
-							if (customizedTableFields) {
-								tableFields = customizedTableFields;
-							} else {
-								tableFields = tableFields;
-							}
+						let customizedTableFields = this.isAsync(customize) ? await customize(this, tableFields, mode) : customize(this, tableFields, mode);
+						if (customizedTableFields) {
+							tableFields = customizedTableFields;
 						}
 					}
 					f.fields = tableFields.map((f) => {
