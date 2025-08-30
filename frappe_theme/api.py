@@ -1110,7 +1110,7 @@ def get_files(doctype, docname):
         return []
 
 @frappe.whitelist()
-def download_customizations(doctype: str, with_permissions: bool = False):
+def export_customizations(doctype: str, with_permissions: bool = False):
     """
     Export custom fields, property setters, permissions for a DocType (and child tables)
     and return as downloadable JSON.
@@ -1140,7 +1140,7 @@ def download_customizations(doctype: str, with_permissions: bool = False):
 
 
 @frappe.whitelist()
-def download_multiple_customizations(doctypes: list[str] | str, with_permissions: bool = False):
+def export_multiple_customizations(doctypes: list[str] | str, with_permissions: bool = False):
     """
     Export customizations for multiple doctypes at once.
     Accepts a list of doctypes (from dialog table) and returns a JSON blob.
@@ -1154,7 +1154,7 @@ def download_multiple_customizations(doctypes: list[str] | str, with_permissions
     for dt in doctypes:
         doctype_name = dt.get("doctype_name") if isinstance(dt, dict) else dt
         # Directly call function in same file
-        data = download_customizations(doctype_name, with_permissions)
+        data = export_customizations(doctype_name, with_permissions)
         import json
         all_data[doctype_name] = json.loads(data)
 

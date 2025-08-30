@@ -11,8 +11,8 @@ frappe.ui.form.on('Customize Form', {
 });
 
 function add_customization_buttons(frm) {
-    frm.add_custom_button(__('Download Customizations'), function () {
-        frappe.confirm('Are you sure you want to download customizations?', () => {
+    frm.add_custom_button(__('Export Customizations'), function () {
+        frappe.confirm('Are you sure you want to export customizations?', () => {
             if (!frm.doc.doc_type) {
                 frappe.msgprint(__('Please select a DocType first before exporting customizations.'));
                 return;
@@ -28,7 +28,7 @@ function add_customization_buttons(frm) {
                 ],
                 function (data) {
                     frappe.call({
-                        method: "frappe_theme.api.download_customizations",
+                        method: "frappe_theme.api.export_customizations",
                         args: {
                             doctype: frm.doc.doc_type,
                             with_permissions: data.with_permissions ? 1 : 0
@@ -54,58 +54,56 @@ function add_customization_buttons(frm) {
                     });
                 },
                 __("Download Options"),
-                __("Download")
+                __("Export")
             );
         })
     }, __("Customizations"));
 
     // ---- IMPORT BUTTON ----
     frm.add_custom_button(__('Import Customizations'), function () {
-        frappe.confirm('Are you sure you want to import customizations?', () => {
-            if (!frm.doc.doc_type) {
-                frappe.msgprint(__('Please select a DocType first before importing customizations.'));
-                return;
-            }
+        if (!frm.doc.doc_type) {
+            frappe.msgprint(__('Please select a DocType first before importing customizations.'));
+            return;
+        }
 
-            frappe.prompt(
-                [
-                    {
-                        fieldtype: "Attach",
-                        fieldname: "import_file",
-                        options: {
-                            restrictions: {
-                                allowed_file_types: ['application/json']
-                            }
-                        },
-                        label: __("Select Customization JSON File"),
-                        reqd: 1
-                    }
-                ],
-                function (data) {
-                    frappe.call({
-                        method: "frappe_theme.api.import_customizations",
-                        args: {
-                            file_url: data.import_file,
-                            target_doctype: frm.doc.doc_type
-                        },
-                        freeze: true,
-                        freeze_message: __("Importing customizations..."),
-                        callback: function (r) {
-                            if (!r.exc) {
-                                frappe.show_alert({
-                                    message: __('Customizations imported successfully'),
-                                    indicator: 'green'
-                                });
-                                frm.reload_doc(); // Refreshes the form safely without "Reload site?" popup
-                            } else {
-                                frappe.msgprint(__('Failed to import customizations. Check error logs.'));
-                            }
+        frappe.prompt(
+            [
+                {
+                    fieldtype: "Attach",
+                    fieldname: "import_file",
+                    options: {
+                        restrictions: {
+                            allowed_file_types: ['application/json']
                         }
-                    });
-                },
-                __("Import Options"),
-                __("Import")
-            );
-        })
+                    },
+                    label: __("Select Customization JSON File"),
+                    reqd: 1
+                }
+            ],
+            function (data) {
+                frappe.call({
+                    method: "frappe_theme.api.import_customizations",
+                    args: {
+                        file_url: data.import_file,
+                        target_doctype: frm.doc.doc_type
+                    },
+                    freeze: true,
+                    freeze_message: __("Importing customizations..."),
+                    callback: function (r) {
+                        if (!r.exc) {
+                            frappe.show_alert({
+                                message: __('Customizations imported successfully'),
+                                indicator: 'green'
+                            });
+                            frm.reload_doc(); // Refreshes the form safely without "Reload site?" popup
+                        } else {
+                            frappe.msgprint(__('Failed to import customizations. Check error logs.'));
+                        }
+                    }
+                });
+            },
+            __("Import Options"),
+            __("Import")
+        );
     }, __("Customizations"));
 }

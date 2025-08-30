@@ -37,7 +37,7 @@ async function add_customization_buttons(frm) {
                 }
 
                 frappe.call({
-                    method: "frappe_theme.api.download_multiple_customizations",
+                    method: "frappe_theme.api.export_multiple_customizations",
                     args: {
                         doctypes: values.export_table,
                         with_permissions: values.with_permissions ? 1 : 0
