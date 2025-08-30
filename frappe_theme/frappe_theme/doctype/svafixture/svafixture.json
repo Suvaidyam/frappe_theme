@@ -6,10 +6,10 @@
  "engine": "InnoDB",
  "field_order": [
   "ref_doctype",
-  "column_break_cihm",
-  "import",
-  "column_break_pvkn",
+  "section_break_pmyd",
   "export",
+  "column_break_uyea",
+  "import",
   "section_break_zsey",
   "filters"
  ],
@@ -46,18 +46,18 @@
    "fieldtype": "Section Break"
   },
   {
-   "fieldname": "column_break_cihm",
-   "fieldtype": "Column Break"
+   "fieldname": "section_break_pmyd",
+   "fieldtype": "Section Break"
   },
   {
-   "fieldname": "column_break_pvkn",
+   "fieldname": "column_break_uyea",
    "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-08-30 11:32:09.167258",
+ "modified": "2025-08-30 14:26:05.528386",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "SVAFixture",
