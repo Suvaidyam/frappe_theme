@@ -6,6 +6,8 @@ import openpyxl
 from frappe_theme.api import get_files
 from frappe_theme.utils.meta import get_meta
 
+# @frappe.whitelist()
+
 
 def get_title(doctype, docname, as_title_field=True):
 	doc = frappe.db.get_value(doctype, docname, "*", as_dict=True)
@@ -209,7 +211,11 @@ def export_excel(doctype, docname):
 		ws_main.title = f"{doctype}"
 
 		# Write main table headers
-		main_headers = [field.get("label", field.get("fieldname", "")) for field in main_data.get("meta", [])]
+		main_headers = [
+			field.get("label", field.get("fieldname", ""))
+			for field in main_data.get("meta", [])
+			if field.label and field.fieldname
+		]
 		ws_main.append(main_headers)
 
 		# Write main table data
