@@ -23,69 +23,63 @@ frappe.ui.form.on('SVAFixture', {
                             document.body.appendChild(link);
                             link.click();
                             document.body.removeChild(link);
-                            frappe.msgprint(__('Data exported successfully!'));
+                            frappe.show_alert({
+                                message: __('Fixtures exported successfully'),
+                                indicator: 'green'
+                            });
                         } else {
                             frappe.msgprint(__('No data found.'));
                         }
                     }
                 });
-            },
-            () => {
-                frappe.msgprint("Fixtures export cancelled.");
-            }
-        );
+            });
     },
 
     // -------------------- Import Button --------------------
     import: function (frm) {
-        frappe.confirm(
-            'Are you sure you want to import fixtures?',
-            () => {
-                frappe.prompt(
-                    [
-                        {
-                            fieldtype: "Attach",
-                            fieldname: "import_file",
-                            label: __("Select Fixture JSON File"),
-                            reqd: 1,
-                            options: {
-                                restrictions: {
-                                    allowed_file_types: ['application/json']
-                                }
-                            }
+        frappe.prompt(
+            [
+                {
+                    fieldtype: "Attach",
+                    fieldname: "import_file",
+                    label: __("Select Fixture JSON File"),
+                    reqd: 1,
+                    options: {
+                        restrictions: {
+                            allowed_file_types: ['application/json']
                         }
-                    ],
-                    function (data) {
-                        const file_url = data.import_file;
-                        if (!file_url) {
-                            frappe.msgprint(__('No file selected.'));
-                            return;
-                        }
-                        frappe.call({
-                            method: "frappe_theme.api.import_fixture_single_doctype",
-                            args: {
-                                file_url: file_url,
-                                fixture_name: frm.doc.name
-                            },
-                            freeze: true,
-                            freeze_message: __("Importing fixtures..."),
-                            callback: function (res) {
-                                if (res.message.status === "success") {
-                                    frappe.msgprint(res.message.message);
-                                    frm.reload_doc();
-                                } else {
-                                    frappe.msgprint(__('Failed to import fixtures: ') + res.message.message);
-                                }
-                            }
-                        });
+                    }
+                }
+            ],
+            function (data) {
+                const file_url = data.import_file;
+                if (!file_url) {
+                    frappe.msgprint(__('No file selected.'));
+                    return;
+                }
+                frappe.call({
+                    method: "frappe_theme.api.import_fixture_single_doctype",
+                    args: {
+                        file_url: file_url,
+                        fixture_name: frm.doc.name
                     },
-                    __("Import Options"),
-                    __("Import")
-                );
+                    freeze: true,
+                    freeze_message: __("Importing fixtures..."),
+                    callback: function (res) {
+                        if (res.message.status === "success") {
+                            frappe.show_alert({
+                                message: __('Fixtures imported successfully'),
+                                indicator: 'green'
+                            });
+                            frm.reload_doc();
+                        } else {
+                            frappe.msgprint(__('Failed to import fixtures: ') + res.message.message);
+                        }
+                    }
+                });
             },
-            () => {
-                frappe.msgprint("Fixtures import cancelled.");
-            }
+            __("Import Options"),
+            __("Import")
         );
     }
 

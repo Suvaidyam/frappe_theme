@@ -1,5 +1,6 @@
 async function add_customization_buttons(frm) {
     // ---------------- Export Button ----------------
+    // ---------------- Export Button ----------------
     frm.add_custom_button(__('Export Customizations'), function () {
         let d = new frappe.ui.Dialog({
             title: __('Export Customizations'),
@@ -62,8 +63,19 @@ async function add_customization_buttons(frm) {
             }
         });
 
+        // 🚀 Restrict duplicate selection of doctypes
+        d.fields_dict.export_table.grid.get_field("doctype_name").get_query = function (doc, cdt, cdn) {
+            let selected = (d.get_value("export_table") || []).map(row => row.doctype_name).filter(Boolean);
+            return {
+                filters: [
+                    ["DocType", "name", "not in", selected]
+                ]
+            };
+        };
+
         d.show();
     }, __("Customizations"));
+
 
 
     // ---------------- Import Button ----------------

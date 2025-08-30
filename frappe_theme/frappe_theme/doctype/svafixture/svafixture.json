@@ -6,11 +6,12 @@
  "engine": "InnoDB",
  "field_order": [
   "ref_doctype",
-  "filters",
-  "section_break_zsey",
+  "column_break_cihm",
+  "import",
+  "column_break_pvkn",
   "export",
-  "column_break_zyar",
-  "import"
+  "section_break_zsey",
+  "filters"
  ],
  "fields": [
   {
@@ -31,7 +32,8 @@
    "depends_on": "eval:!doc.__islocal",
    "fieldname": "import",
    "fieldtype": "Button",
-   "label": "Import"
+   "label": "Import",
+   "max_height": "10px"
   },
   {
    "depends_on": "eval:!doc.__islocal",
@@ -44,14 +46,18 @@
    "fieldtype": "Section Break"
   },
   {
-   "fieldname": "column_break_zyar",
+   "fieldname": "column_break_cihm",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_pvkn",
    "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-08-28 12:19:40.525094",
+ "modified": "2025-08-30 11:32:09.167258",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "SVAFixture",

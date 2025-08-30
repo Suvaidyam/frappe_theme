@@ -43,7 +43,10 @@ function add_customization_buttons(frm) {
                                 document.body.appendChild(link);
                                 link.click();
                                 document.body.removeChild(link);
-                                frappe.msgprint(__('Customizations downloaded successfully!'));
+                                frappe.show_alert({
+                                    message: __('Customizations exported successfully'),
+                                    indicator: 'green'
+                                });
                             } else {
                                 frappe.msgprint(__('No data found to download.'));
                             }
@@ -53,7 +56,7 @@ function add_customization_buttons(frm) {
                 __("Download Options"),
                 __("Download")
             );
-        }, () => { frappe.msgprint("Customizations download cancelled") })
+        })
     }, __("Customizations"));
 
     // ---- IMPORT BUTTON ----
@@ -89,7 +92,10 @@ function add_customization_buttons(frm) {
                         freeze_message: __("Importing customizations..."),
                         callback: function (r) {
                             if (!r.exc) {
-                                frappe.msgprint(__('Customizations imported successfully!'));
+                                frappe.show_alert({
+                                    message: __('Customizations imported successfully'),
+                                    indicator: 'green'
+                                });
                                 frm.reload_doc(); // Refreshes the form safely without "Reload site?" popup
                             } else {
                                 frappe.msgprint(__('Failed to import customizations. Check error logs.'));
@@ -100,6 +106,6 @@ function add_customization_buttons(frm) {
                 __("Import Options"),
                 __("Import")
             );
-        }, () => { frappe.msgprint("Customizations import cancelled") })
+        })
     }, __("Customizations"));
 }
