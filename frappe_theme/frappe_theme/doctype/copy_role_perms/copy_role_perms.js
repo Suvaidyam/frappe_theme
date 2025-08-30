@@ -10,17 +10,32 @@ frappe.ui.form.on("Copy Role Perms", {
 				args: {
 					doc: frm.doc,
 				},
+				callback: function (r) {
+					if (r.message) {
+						frappe.show_alert({
+							message: __(
+								`Permissions copied. Created: ${r.message.message.Created}, Updated: ${r.message.message.Updated}`
+							),
+							indicator: "green",
+						});
+					}
+				},
 				freeze: true,
 				freeze_message: __("Copying Permissions..."),
 			});
-        });
-        
-        frm.add_custom_button(__("Get Permissions"), function () {
+		});
+
+		frm.add_custom_button(__("Get Permissions"), function () {
+			if (!frm.doc.role_from) {
+				frm.clear_table("permissions");
+				frm.refresh_field("permissions");
+				frappe.msgprint(__("Please select a Role to get permissions."));
+				return; // stop execution
+			}
 			frappe.call({
 				method: "frappe_theme.controllers.copy_role_perms.copy_role_perms.get_all_permissions",
 				args: {
 					role_from: frm.doc.role_from,
-					
 				},
 				freeze: true,
 				freeze_message: __("Getting Permissions..."),
@@ -60,4 +75,16 @@ frappe.ui.form.on("Copy Role Perms", {
 	},
 
 	
+});
+
+frappe.ui.form.on("Copy Role Perms Child", {
+	// Replace with your child table DocType
+	permlevel: function (frm, cdt, cdn) {
+		let row = frappe.get_doc(cdt, cdn);
+
+		if (row.permlevel > 9) {
+			frappe.msgprint(__(`Value of Level cannot exceed 9 in  row ${row.idx}` ));
+			row.permlevel = null;	
+		}
+	},
 });
