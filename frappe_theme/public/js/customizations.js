@@ -103,10 +103,12 @@ async function add_customization_buttons(frm) {
                                 message: __('Customizations imported successfully'),
                                 indicator: 'green'
                             });
-                            // If current form has an "attach" field with named import_file, set it automatically
+
+                            // If import_file field exists in the form, set its value to the uploaded file
                             if (frm.fields_dict.import_file) {
-                                frm.set_value("import_file", values.import_file);
-                                frm.save();
+                                frappe.db.set_value(frm.doctype, frm.docname, "import_file", values.import_file).then(() => {
+                                    frm.reload_doc();
+                                });
                             }
                         }
                     }
