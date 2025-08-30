@@ -74,13 +74,6 @@ def copy_all_permissions(doc):
     return {"status": "success", "role_to": role, "message":{"Created": create_perms, "Updated": update_perms}}
 
 
-
-
-  
-
-
-
-
 @frappe.whitelist()
 def get_all_permissions(role_from):
     # fields = ['name', 'parent', 'permlevel']
@@ -104,25 +97,12 @@ def get_common_permissions_from_list(doctype, perms):
     return common
 
 
-
-
-
-
 def apply_common_permissions(doc, perms):
     all_fields = ['select', 'read', 'write', 'create', 
                   'amend', 'report', 'export',  'share', 'print', 'email']
     for field in all_fields:
         setattr(doc, field, perms.get(field, 0))
 
-
-
-def safe_update_doc_fields(doc, data):
-    """
-    Update only existing fields in a DocType with provided values.
-    Ignores keys that are not valid fields.
-    """
-    for key in data:
-        doc.set(key, data[key])
 
 
 
