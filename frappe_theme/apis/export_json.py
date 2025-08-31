@@ -202,7 +202,7 @@ def export_json(doctype, docname, excluded_fieldtypes=None):
 				if field.get("fieldtype") in ["Table", "Table MultiSelect"]:
 					child_doctype = field.get("options")
 					# Use label instead of doctype name
-					key = field.get("label") or child_doctype
+					key = child_doctype
 					all_child_rows = []
 					child_meta = None
 					for doc in table_data:
@@ -225,59 +225,49 @@ def export_json(doctype, docname, excluded_fieldtypes=None):
 def export_excel(doctype, docname):
 	from io import BytesIO
 
-	"""
-    Export main and related tables to an Excel file.
-    Returns the file content directly (bytes), without saving to disk.
-    """
 	try:
 		excluded_fieldtypes = ["Column Break", "Section Break", "Tab Break", "Fold", "HTML", "Button"]
-		main_data, related_tables = get_related_tables(doctype, docname, excluded_fieldtypes, True)
+		exported = export_json(doctype, docname, excluded_fieldtypes)
+		if "error" in exported:
+			return {"success": False, "error": exported["error"]}
 
 		wb = openpyxl.Workbook()
-		ws_main = wb.active
-		ws_main.title = f"{doctype}"
+		first_sheet = True
 
-		# Write main table headers
-		main_headers = [
-			field.get("label", field.get("fieldname", ""))
-			for field in main_data.get("meta", [])
-			if field.label and field.fieldname
-		]
-		ws_main.append(main_headers)
-
-		# Write main table data
-		main_row = [
-			str(main_data["data"].get(field.get("fieldname", "")))
-			if main_data["data"].get(field.get("fieldname", "")) is not None
-			else ""
-			for field in main_data.get("meta", [])
-		]
-		ws_main.append(main_row)
-
-		# Write related tables
-		for table in related_tables:
-			ws = wb.create_sheet(title=table.get("table_doctype", "Related"))
-			meta = table.get("meta", [])
-			headers = [field.get("label", field.get("fieldname", "")) for field in meta]
+		for key, value in exported.items():
+			data = value.get("data", [])
+			meta = value.get("meta", [])
+			if not isinstance(data, list):
+				data = [data]
+			headers = [
+				f.get("label", f.get("fieldname", ""))
+				for f in meta
+				if f.get("fieldtype") not in excluded_fieldtypes
+			]
+			if first_sheet:
+				ws = wb.active
+				ws.title = str(key)
+				first_sheet = False
+			else:
+				ws = wb.create_sheet(title=str(key))
 			ws.append(headers)
+			for row in data:
+				ws.append(
+					[
+						str(row.get(f.get("fieldname", "")))
+						if row.get(f.get("fieldname", "")) is not None
+						else ""
+						for f in meta
+						if f.get("fieldtype") not in excluded_fieldtypes
+					]
+				)
 
-			for doc in table.get("data", []):
-				row = [
-					str(doc["data"].get(field.get("fieldname", "")))
-					if doc["data"].get(field.get("fieldname", "")) is not None
-					else ""
-					for field in meta
-				]
-				ws.append(row)
-
-		# Create file in memory
 		output = BytesIO()
 		wb.save(output)
 		output.seek(0)
 		filedata = output.read()
 		filename = f"{doctype}_{docname}.xlsx"
 
-		# Set response for file download
 		frappe.local.response.filename = filename
 		frappe.local.response.filecontent = filedata
 		frappe.local.response.content_type = (
