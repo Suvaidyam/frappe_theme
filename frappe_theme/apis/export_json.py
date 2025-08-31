@@ -199,7 +199,6 @@ def export_json(doctype, docname, excluded_fieldtypes=None):
 			for field in table_meta:
 				if field.get("fieldtype") in ["Table", "Table MultiSelect"]:
 					child_doctype = field.get("options")
-					# Use label instead of doctype name
 					key = child_doctype
 					all_child_rows = []
 					child_meta = None
