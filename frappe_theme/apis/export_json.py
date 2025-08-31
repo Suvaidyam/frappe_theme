@@ -4,14 +4,17 @@ import frappe
 import openpyxl
 
 from frappe_theme.api import get_files
-from frappe_theme.utils.meta import get_meta
 
 
 def get_title(doctype, docname, as_title_field=True):
 	doc = frappe.db.get_value(doctype, docname, "*", as_dict=True)
 	main_doc_meta = frappe.get_meta(doctype)
 
-	fields_meta = [f for f in main_doc_meta.fields if f.fieldname]
+	fields_meta = [
+		{"fieldname": f.fieldname, "fieldtype": f.fieldtype, "options": f.options, "label": f.label}
+		for f in main_doc_meta.fields
+		if f.fieldtype
+	]
 	if as_title_field:
 		for field in main_doc_meta.fields:
 			if field.fieldtype == "Link":
@@ -22,6 +25,10 @@ def get_title(doctype, docname, as_title_field=True):
 					doc[field.fieldname] = (
 						frappe.db.get_value(field.options, link_val, title_field) or link_val
 					)
+			elif field.fieldtype == "JSON":
+				json_data = doc.get(field.fieldname)
+				if json_data:
+					doc[field.fieldname] = json.loads(json_data)
 			elif field.fieldtype in ["Table", "Table MultiSelect"]:
 				child_doctype = field.options
 				child_meta = frappe.get_meta(child_doctype)
@@ -41,7 +48,16 @@ def get_title(doctype, docname, as_title_field=True):
 									frappe.db.get_value(child_field.options, link_val, title_field)
 									or link_val
 								)
-				child_fields_meta = [f for f in child_meta.fields if f.fieldname]
+				child_fields_meta = [
+					{
+						"fieldname": f.fieldname,
+						"fieldtype": f.fieldtype,
+						"options": f.options,
+						"label": f.label,
+					}
+					for f in child_meta.fields
+					if f.fieldname
+				]
 				if child_rows:
 					doc[field.fieldname] = {"data": child_rows, "meta": child_fields_meta}
 	for field in main_doc_meta.fields:
@@ -89,7 +105,6 @@ def get_related_tables(doctype, docname, exclude_meta_fields=None, as_title_fiel
 				table_doctype = "ToDo"
 				filters = {"reference_type": doctype, "reference_name": main_data["data"].get("name")}
 			elif child.template == "Gallery":
-				# This will return file related to doctype and docname
 				continue
 				# data = get_files(doctype, main_data["data"].get("name"))
 
@@ -103,6 +118,9 @@ def get_related_tables(doctype, docname, exclude_meta_fields=None, as_title_fiel
 				filters = {"document_type": doctype, "docname": main_data["data"].get("name")}
 
 		try:
+			if not table_doctype:
+				continue
+
 			meta = frappe.get_meta(table_doctype)
 			table_data = frappe.db.get_list(table_doctype, filters=filters, fields=["name"])
 			all_docs = []
@@ -110,7 +128,11 @@ def get_related_tables(doctype, docname, exclude_meta_fields=None, as_title_fiel
 				doc = get_title(table_doctype, row.name, as_title_field)
 				all_docs.append(doc)
 
-			fields_meta = [f for f in meta.fields if f.fieldtype not in exclude_meta_fields and f.fieldname]
+			fields_meta = [
+				{"fieldname": f.fieldname, "fieldtype": f.fieldtype, "options": f.options, "label": f.label}
+				for f in meta.fields
+				if f.fieldtype not in exclude_meta_fields and f.fieldname
+			]
 			# convert string to JSON in child table
 			if child:
 				_child = child.as_dict()
@@ -145,48 +167,52 @@ def export_json(doctype, docname, excluded_fieldtypes=None):
 		excluded_fieldtypes = ["Column Break", "Section Break", "Tab Break", "Fold", "HTML", "Button"]
 	try:
 		main_data, related_tables = get_related_tables(doctype, docname, excluded_fieldtypes, True)
-		# Structure output as per latest format
 		result = {
-			"main_table": {"data": main_data.get("data", {}), "meta": main_data.get("meta", [])},
-			"related_tables": [],
+			doctype: {"data": main_data.get("data", {}), "meta": main_data.get("meta", [])},
 		}
-		for table in related_tables:
-			result["related_tables"].append(
-				{
-					"table_doctype": table.get("table_doctype"),
-					"html_field": table.get("html_field"),
-					"data": [doc.get("data", {}) for doc in table.get("data", [])],
-					"meta": table.get("meta", []),
-					"sva_dt_meta": table.get("sva_dt_meta", {}),
-				}
-			)
-		return result
-	except Exception as e:
-		return {"error": str(e)}
 
+		# Extract child tables from main_data and add as separate entries
+		for field in main_data.get("meta", []):
+			if field.get("fieldtype") in ["Table", "Table MultiSelect"]:
+				child_table = main_data["data"].get(field["fieldname"])
+				if child_table and isinstance(child_table, dict):
+					# Use label instead of doctype name
+					key = field.get("label") or field["options"]
+					result[key] = {
+						"data": child_table.get("data", []),
+						"meta": child_table.get("meta", []),
+					}
+					# Remove child table from main doc data
+					result[doctype]["data"].pop(field["fieldname"], None)
 
-@frappe.whitelist()
-def export_json_without_meta(doctype, docname, excluded_fieldtypes=None):
-	if excluded_fieldtypes is None:
-		excluded_fieldtypes = ["Column Break", "Section Break", "Tab Break", "Fold", "HTML", "Button"]
-	try:
-		main_data, related_tables = get_related_tables(doctype, docname, excluded_fieldtypes, True)
-		# Structure output as per latest format
-		result = {
-			"main_table": {
-				"data": main_data.get("data", {}),
-				# "meta": main_data.get("meta", [])
-			},
-			"related_tables": [],
-		}
+		# Extract child tables from related tables and add as separate entries
 		for table in related_tables:
-			result["related_tables"].append(
-				{
-					"table_doctype": table.get("table_doctype"),
-					"html_field": table.get("html_field"),
-					"data": [doc.get("data", {}) for doc in table.get("data", [])],
-				}
-			)
+			table_doctype = table.get("table_doctype")
+			table_meta = table.get("meta", [])
+			table_data = [doc.get("data", {}) for doc in table.get("data", [])]
+			result[table_doctype] = {
+				"data": table_data,
+				"meta": table_meta,
+				"sva_dt_meta": table.get("sva_dt_meta", {}),
+			}
+			# For each doc in related table, check for child tables
+			for field in table_meta:
+				if field.get("fieldtype") in ["Table", "Table MultiSelect"]:
+					child_doctype = field.get("options")
+					key = child_doctype
+					all_child_rows = []
+					child_meta = None
+					for doc in table_data:
+						child_table = doc.get(field["fieldname"])
+						if child_table and isinstance(child_table, dict):
+							all_child_rows.extend(child_table.get("data", []))
+							child_meta = child_table.get("meta", [])
+							doc.pop(field["fieldname"], None)
+					if all_child_rows:
+						result[key] = {
+							"data": all_child_rows,
+							"meta": child_meta or [],
+						}
 		return result
 	except Exception as e:
 		return {"error": str(e)}
@@ -196,55 +222,49 @@ def export_json_without_meta(doctype, docname, excluded_fieldtypes=None):
 def export_excel(doctype, docname):
 	from io import BytesIO
 
-	"""
-    Export main and related tables to an Excel file.
-    Returns the file content directly (bytes), without saving to disk.
-    """
 	try:
 		excluded_fieldtypes = ["Column Break", "Section Break", "Tab Break", "Fold", "HTML", "Button"]
-		main_data, related_tables = get_related_tables(doctype, docname, excluded_fieldtypes, True)
+		exported = export_json(doctype, docname, excluded_fieldtypes)
+		if "error" in exported:
+			return {"success": False, "error": exported["error"]}
 
 		wb = openpyxl.Workbook()
-		ws_main = wb.active
-		ws_main.title = f"{doctype}"
+		first_sheet = True
 
-		# Write main table headers
-		main_headers = [field.get("label", field.get("fieldname", "")) for field in main_data.get("meta", [])]
-		ws_main.append(main_headers)
-
-		# Write main table data
-		main_row = [
-			str(main_data["data"].get(field.get("fieldname", "")))
-			if main_data["data"].get(field.get("fieldname", "")) is not None
-			else ""
-			for field in main_data.get("meta", [])
-		]
-		ws_main.append(main_row)
-
-		# Write related tables
-		for table in related_tables:
-			ws = wb.create_sheet(title=table.get("table_doctype", "Related"))
-			meta = table.get("meta", [])
-			headers = [field.get("label", field.get("fieldname", "")) for field in meta]
+		for key, value in exported.items():
+			data = value.get("data", [])
+			meta = value.get("meta", [])
+			if not isinstance(data, list):
+				data = [data]
+			headers = [
+				f.get("label", f.get("fieldname", ""))
+				for f in meta
+				if f.get("fieldtype") not in excluded_fieldtypes
+			]
+			if first_sheet:
+				ws = wb.active
+				ws.title = str(key)
+				first_sheet = False
+			else:
+				ws = wb.create_sheet(title=str(key))
 			ws.append(headers)
+			for row in data:
+				ws.append(
+					[
+						str(row.get(f.get("fieldname", "")))
+						if row.get(f.get("fieldname", "")) is not None
+						else ""
+						for f in meta
+						if f.get("fieldtype") not in excluded_fieldtypes
+					]
+				)
 
-			for doc in table.get("data", []):
-				row = [
-					str(doc["data"].get(field.get("fieldname", "")))
-					if doc["data"].get(field.get("fieldname", "")) is not None
-					else ""
-					for field in meta
-				]
-				ws.append(row)
-
-		# Create file in memory
 		output = BytesIO()
 		wb.save(output)
 		output.seek(0)
 		filedata = output.read()
 		filename = f"{doctype}_{docname}.xlsx"
 
-		# Set response for file download
 		frappe.local.response.filename = filename
 		frappe.local.response.filecontent = filedata
 		frappe.local.response.content_type = (
