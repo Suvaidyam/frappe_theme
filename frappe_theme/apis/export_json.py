@@ -7,7 +7,6 @@ from frappe_theme.api import get_files
 
 
 def get_title(doctype, docname, as_title_field=True):
-	# print("???????????", doctype)
 	doc = frappe.db.get_value(doctype, docname, "*", as_dict=True)
 	main_doc_meta = frappe.get_meta(doctype)
 
@@ -74,7 +73,6 @@ def get_title(doctype, docname, as_title_field=True):
 
 
 def get_related_tables(doctype, docname, exclude_meta_fields=None, as_title_field=True):
-	# print("???????????", doctype, docname)
 	main_data = get_title(doctype, docname, as_title_field)
 
 	sva_dt_config = frappe.get_doc("SVADatatable Configuration", doctype)
