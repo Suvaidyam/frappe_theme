@@ -80,7 +80,10 @@
   "hide_print_icon",
   "hide_fields_comment",
   "hide_side_bar",
-  "hide_form_comment"
+  "hide_form_comment",
+  "import_file",
+  "change_logs_tab",
+  "change_logs"
  ],
  "fields": [
   {
@@ -470,13 +473,27 @@
    "fieldname": "hide_form_comment",
    "fieldtype": "Check",
    "label": "Hide Form Comment"
+  },
+  {
+   "fieldname": "change_logs_tab",
+   "fieldtype": "Tab Break",
+   "label": "Change logs"
+  },
+  {
+   "fieldname": "change_logs",
+   "fieldtype": "HTML"
+  },
+  {
+   "fieldname": "import_file",
+   "fieldtype": "Attach",
+   "label": "Last Imported File"
   }
  ],
  "hide_toolbar": 1,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-07-01 15:28:37.557258",
+ "modified": "2025-08-29 18:14:43.008245",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "My Theme",
@@ -502,7 +519,9 @@
    "share": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "creation",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }
