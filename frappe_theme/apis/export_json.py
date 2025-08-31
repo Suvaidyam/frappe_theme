@@ -172,12 +172,50 @@ def export_json(doctype, docname, excluded_fieldtypes=None):
 		result = {
 			doctype: {"data": main_data.get("data", {}), "meta": main_data.get("meta", [])},
 		}
+
+		# Extract child tables from main_data and add as separate entries
+		for field in main_data.get("meta", []):
+			if field.get("fieldtype") in ["Table", "Table MultiSelect"]:
+				child_table = main_data["data"].get(field["fieldname"])
+				if child_table and isinstance(child_table, dict):
+					# Use label instead of doctype name
+					key = field.get("label") or field["options"]
+					result[key] = {
+						"data": child_table.get("data", []),
+						"meta": child_table.get("meta", []),
+					}
+					# Remove child table from main doc data
+					result[doctype]["data"].pop(field["fieldname"], None)
+
+		# Extract child tables from related tables and add as separate entries
 		for table in related_tables:
-			result[table.get("table_doctype")] = {
-				"data": [doc.get("data", {}) for doc in table.get("data", [])],
-				"meta": table.get("meta", []),
+			table_doctype = table.get("table_doctype")
+			table_meta = table.get("meta", [])
+			table_data = [doc.get("data", {}) for doc in table.get("data", [])]
+			result[table_doctype] = {
+				"data": table_data,
+				"meta": table_meta,
 				"sva_dt_meta": table.get("sva_dt_meta", {}),
 			}
+			# For each doc in related table, check for child tables
+			for field in table_meta:
+				if field.get("fieldtype") in ["Table", "Table MultiSelect"]:
+					child_doctype = field.get("options")
+					# Use label instead of doctype name
+					key = field.get("label") or child_doctype
+					all_child_rows = []
+					child_meta = None
+					for doc in table_data:
+						child_table = doc.get(field["fieldname"])
+						if child_table and isinstance(child_table, dict):
+							all_child_rows.extend(child_table.get("data", []))
+							child_meta = child_table.get("meta", [])
+							doc.pop(field["fieldname"], None)
+					if all_child_rows:
+						result[key] = {
+							"data": all_child_rows,
+							"meta": child_meta or [],
+						}
 		return result
 	except Exception as e:
 		return {"error": str(e)}
