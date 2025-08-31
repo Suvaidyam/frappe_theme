@@ -4,16 +4,18 @@ import frappe
 import openpyxl
 
 from frappe_theme.api import get_files
-from frappe_theme.utils.meta import get_meta
-
-# @frappe.whitelist()
 
 
 def get_title(doctype, docname, as_title_field=True):
 	doc = frappe.db.get_value(doctype, docname, "*", as_dict=True)
 	main_doc_meta = frappe.get_meta(doctype)
 
-	fields_meta = [f for f in main_doc_meta.fields if f.fieldname]
+	fields_meta = [
+		{"fieldname": f.fieldname, "fieldtype": f.fieldtype, "options": f.options, "label": f.label}
+		for f in main_doc_meta.fields
+		if f.fieldtype
+	]
+	# start specific field logic heare limited meta
 	if as_title_field:
 		for field in main_doc_meta.fields:
 			if field.fieldtype == "Link":
