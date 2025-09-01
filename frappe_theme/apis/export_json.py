@@ -58,7 +58,6 @@ def get_title(doctype, docname, as_title_field=True):
 	if as_title_field:
 		for field in fields_meta:
 			if field["fieldtype"] == "Link":
-				# return print("hhhh")
 				link_val = doc.get(field["fieldname"])
 				if link_val:
 					related_doc_meta = frappe.get_meta(field["options"])
@@ -72,32 +71,37 @@ def get_title(doctype, docname, as_title_field=True):
 					doc[field["fieldname"]] = json.loads(json_data)
 			elif field["fieldtype"] in ["Table", "Table MultiSelect"]:
 				child_doctype = field["options"]
-				child_meta = frappe.get_meta(child_doctype)
+				child_meta = frappe.get_meta(child_doctype).as_dict()
+				child_fields = get_visible_fields(child_meta["fields"])
 				child_rows = frappe.get_all(
 					child_doctype,
 					filters={"parent": docname, "parenttype": doctype, "parentfield": field["fieldname"]},
 					fields="*",
 				)
 				for row in child_rows:
-					for child_field in child_meta.fields:
-						if child_field.fieldtype == "Link":
-							link_val = row.get(child_field.fieldname)
+					for child_field in child_fields:
+						if child_field["fieldtype"] == "Link":
+							link_val = row.get(child_field["fieldname"])
 							if link_val:
-								related_child_meta = frappe.get_meta(child_field.options)
+								related_child_meta = frappe.get_meta(child_field["options"])
 								title_field = related_child_meta.title_field or "name"
-								row[child_field.fieldname] = (
-									frappe.db.get_value(child_field.options, link_val, title_field)
+								row[child_field["fieldname"]] = (
+									frappe.db.get_value(child_field["options"], link_val, title_field)
 									or link_val
 								)
 				child_fields_meta = [
 					{
-						"fieldname": f.fieldname,
-						"fieldtype": f.fieldtype,
-						"options": f.options,
-						"label": f.label,
+						"fieldname": f["fieldname"],
+						"fieldtype": f["fieldtype"],
+						"options": f["fieldtype"],
+						"label": f["label"],
 					}
-					for f in child_meta.fields
-					if f.fieldname
+					for f in child_fields
+					if not (
+						f["fieldtype"]
+						in ["Column Break", "Section Break", "Tab Break", "Fold", "HTML", "Button"]
+						or f["hidden"]
+					)
 				]
 				if child_rows:
 					doc[field["fieldname"]] = {"data": child_rows, "meta": child_fields_meta}
