@@ -1,0 +1,189 @@
+{
+ "actions": [],
+ "creation": "2025-08-29 12:07:25.891629",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "reference_doctype",
+  "column_break_comy",
+  "permlevel",
+  "section_break_wgoj",
+  "select",
+  "read",
+  "write",
+  "create",
+  "delete_to",
+  "column_break_vcpw",
+  "submit_to",
+  "cancel_to",
+  "amend",
+  "additional_permissions_section",
+  "report",
+  "export",
+  "import_to",
+  "column_break_qphp",
+  "share",
+  "print",
+  "email"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_wgoj",
+   "fieldtype": "Section Break",
+   "label": "Permissions"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.permlevel == 0",
+   "fieldname": "select",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Select"
+  },
+  {
+   "default": "0",
+   "fieldname": "read",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Read"
+  },
+  {
+   "default": "0",
+   "fieldname": "write",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Write"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.permlevel == 0",
+   "fieldname": "create",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Create"
+  },
+  {
+   "fieldname": "column_break_vcpw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.permlevel == 0",
+   "fieldname": "submit_to",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Submit"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.permlevel == 0",
+   "fieldname": "cancel_to",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Cancel"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.permlevel == 0",
+   "fieldname": "amend",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Amend"
+  },
+  {
+   "fieldname": "additional_permissions_section",
+   "fieldtype": "Section Break",
+   "label": "Additional Permissions"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.permlevel == 0",
+   "fieldname": "report",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Report"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.permlevel == 0",
+   "fieldname": "export",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Export"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.permlevel == 0",
+   "fieldname": "import_to",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Import"
+  },
+  {
+   "fieldname": "column_break_qphp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.permlevel == 0",
+   "fieldname": "share",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Share"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.permlevel == 0",
+   "fieldname": "print",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Print"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.permlevel == 0",
+   "fieldname": "email",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Email"
+  },
+  {
+   "fieldname": "reference_doctype",
+   "fieldtype": "Link",
+   "label": "Reference Doctype",
+   "options": "DocType"
+  },
+  {
+   "fieldname": "column_break_comy",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "permlevel",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Level",
+   "length": 1
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.permlevel == 0",
+   "fieldname": "delete_to",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Delete"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-09-01 14:41:54.511417",
+ "modified_by": "Administrator",
+ "module": "Frappe Theme",
+ "name": "Copy Role Perms Child",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
