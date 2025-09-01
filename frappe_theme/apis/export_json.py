@@ -6,35 +6,76 @@ import openpyxl
 from frappe_theme.api import get_files
 
 
+def get_visible_fields(fields):
+	"""Return all visible fields from a DocType meta object"""
+	# print(fields)
+	visible = []
+	section_hidden = False
+	column_hidden = False
+	for df in fields:
+		# Track hidden Section Breaks
+		if df["fieldtype"] == "Section Break":
+			section_hidden = bool(df["hidden"])
+			column_hidden = False  # reset when new section starts
+			continue
+
+			# Track hidden Column Breaks
+		if df["fieldtype"] == "Column Break":
+			column_hidden = bool(df["hidden"])
+			continue
+
+			# Skip hidden field
+		if df["hidden"]:
+			continue
+
+			# Skip fields inside hidden section/column
+		if section_hidden or column_hidden:
+			continue
+
+		visible.append(df)
+
+	return visible
+
+
 def get_title(doctype, docname, as_title_field=True):
 	doc = frappe.db.get_value(doctype, docname, "*", as_dict=True)
-	main_doc_meta = frappe.get_meta(doctype)
+	main_doc_meta = frappe.get_meta(doctype).as_dict()
+	fields = get_visible_fields(main_doc_meta["fields"])
 
 	fields_meta = [
-		{"fieldname": f.fieldname, "fieldtype": f.fieldtype, "options": f.options, "label": f.label}
-		for f in main_doc_meta.fields
-		if f.fieldtype
+		{
+			"fieldname": f["fieldname"],
+			"fieldtype": f["fieldtype"],
+			"options": f["options"],
+			"label": f["label"],
+		}
+		for f in fields
+		if not (
+			f["fieldtype"] in ["Column Break", "Section Break", "Tab Break", "Fold", "HTML", "Button"]
+			or f["hidden"]
+		)
 	]
 	if as_title_field:
-		for field in main_doc_meta.fields:
-			if field.fieldtype == "Link":
-				link_val = doc.get(field.fieldname)
+		for field in fields_meta:
+			if field["fieldtype"] == "Link":
+				# return print("hhhh")
+				link_val = doc.get(field["fieldname"])
 				if link_val:
-					related_doc_meta = frappe.get_meta(field.options)
+					related_doc_meta = frappe.get_meta(field["options"])
 					title_field = related_doc_meta.title_field or "name"
-					doc[field.fieldname] = (
-						frappe.db.get_value(field.options, link_val, title_field) or link_val
+					doc[field["fieldname"]] = (
+						frappe.db.get_value(field["options"], link_val, title_field) or link_val
 					)
-			elif field.fieldtype == "JSON":
-				json_data = doc.get(field.fieldname)
+			elif field["fieldtype"] == "JSON":
+				json_data = doc.get(field["fieldname"])
 				if json_data:
-					doc[field.fieldname] = json.loads(json_data)
-			elif field.fieldtype in ["Table", "Table MultiSelect"]:
-				child_doctype = field.options
+					doc[field["fieldname"]] = json.loads(json_data)
+			elif field["fieldtype"] in ["Table", "Table MultiSelect"]:
+				child_doctype = field["options"]
 				child_meta = frappe.get_meta(child_doctype)
 				child_rows = frappe.get_all(
 					child_doctype,
-					filters={"parent": docname, "parenttype": doctype, "parentfield": field.fieldname},
+					filters={"parent": docname, "parenttype": doctype, "parentfield": field["fieldname"]},
 					fields="*",
 				)
 				for row in child_rows:
@@ -59,15 +100,18 @@ def get_title(doctype, docname, as_title_field=True):
 					if f.fieldname
 				]
 				if child_rows:
-					doc[field.fieldname] = {"data": child_rows, "meta": child_fields_meta}
-	for field in main_doc_meta.fields:
-		if field.fieldtype in ["Attach", "Attach Image"]:
-			attach_val = doc.get(field.fieldname)
+					doc[field["fieldname"]] = {"data": child_rows, "meta": child_fields_meta}
+	for field in fields_meta:
+		if field["fieldtype"] in ["Attach", "Attach Image"]:
+			attach_val = doc.get(field["fieldname"])
 			if attach_val and not attach_val.startswith("http"):
 				base_url = frappe.utils.get_url()
-				doc[field.fieldname] = f"{base_url}{attach_val}"
+				doc[field["fieldname"]] = f"{base_url}{attach_val}"
+	_doc = {}
+	for f in fields_meta:
+		_doc[f["fieldname"]] = doc.get(f["fieldname"])
 	return {
-		"data": doc,
+		"data": _doc,
 		"meta": fields_meta,
 	}
 
