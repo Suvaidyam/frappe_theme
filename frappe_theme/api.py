@@ -2,6 +2,8 @@ import frappe
 import json
 from frappe import _
 import re
+from frappe.utils import cint
+from frappe.custom.doctype.custom_field.custom_field import create_custom_field
 
 @frappe.whitelist(allow_guest=True)
 def get_my_theme():
@@ -1106,3 +1108,306 @@ def get_files(doctype, docname):
     except Exception as e:
         frappe.log_error(title="Error fetching files", message=str(e))
         return []
+
+@frappe.whitelist()
+def export_customizations(doctype: str, with_permissions: bool = False):
+    """
+    Export custom fields, property setters, permissions for a DocType (and child tables)
+    and return as downloadable JSON.
+    """
+    with_permissions = cint(with_permissions)
+
+    def get_customizations(dt):
+        custom = {
+            "custom_fields": frappe.get_all("Custom Field", fields="*", filters={"dt": dt}, order_by="name"),
+            "property_setters": frappe.get_all("Property Setter", fields="*", filters={"doc_type": dt}, order_by="name"),
+            "custom_perms": [],
+            "links": frappe.get_all("DocType Link", fields="*", filters={"parent": dt}, order_by="name"),
+            "doctype": dt,
+        }
+        if with_permissions:
+            custom["custom_perms"] = frappe.get_all("Custom DocPerm", fields="*", filters={"parent": dt}, order_by="name")
+        return custom
+
+    # Main DocType customizations
+    data = get_customizations(doctype)
+
+    # Child table customizations
+    for d in frappe.get_meta(doctype).get_table_fields():
+        data[f"child_{d.options}"] = get_customizations(d.options)
+
+    return frappe.as_json(data)
+
+
+@frappe.whitelist()
+def export_multiple_customizations(doctypes: list[str] | str, with_permissions: bool = False):
+    """
+    Export customizations for multiple doctypes at once.
+    Accepts a list of doctypes (from dialog table) and returns a JSON blob.
+    """
+    if isinstance(doctypes, str):
+        import json
+        doctypes = json.loads(doctypes)
+
+    all_data = {}
+
+    for dt in doctypes:
+        doctype_name = dt.get("doctype_name") if isinstance(dt, dict) else dt
+        # Directly call function in same file
+        data = export_customizations(doctype_name, with_permissions)
+        import json
+        all_data[doctype_name] = json.loads(data)
+
+    return frappe.as_json(all_data)
+
+
+from frappe.modules.utils import sync_customizations_for_doctype
+import json
+import frappe
+
+def _apply_customizations(custom_data: dict):
+    """
+    Core logic for applying customizations for a single doctype
+    and its child tables. Used by both single and multiple import.
+    """
+    # Ensure JSON contains main doctype key
+    if not custom_data.get("doctype"):
+        frappe.throw("Invalid JSON: 'doctype' missing.")
+
+    main_doctype = custom_data["doctype"]
+
+    # ---------------- Apply main doctype customizations ----------------
+    sync_customizations_for_doctype(custom_data, folder="", filename=f"{main_doctype}.json")
+
+    # ---------------- Apply customizations for child tables (if any) ----------------
+    for key, value in custom_data.items():
+        if key.startswith("child_") and isinstance(value, dict):
+            child_dt = value.get("doctype")
+            if child_dt:
+                sync_customizations_for_doctype(value, folder="", filename=f"{child_dt}.json")
+
+    frappe.clear_cache(doctype=main_doctype)
+    return main_doctype
+
+
+@frappe.whitelist()
+def import_customizations(file_url: str, target_doctype: str):
+    """
+    Import customizations for a single doctype (and its child tables).
+    - Validates file content
+    - Ensures correct doctype match
+    - Applies customizations via _apply_customizations
+    """
+    try:
+        # ---------------- Read uploaded file from File doctype ----------------
+        file_doc = frappe.get_doc("File", {"file_url": file_url})
+        content = file_doc.get_content()
+        data = json.loads(content)
+
+        if not data.get("doctype"):
+            raise frappe.ValidationError("Doctype attribute not found in data.")
+        if data["doctype"] != target_doctype:
+            raise frappe.ValidationError(
+                f"Importing customizations for wrong doctype: <b>{data['doctype']}</b>"
+            )
+
+        applied_dt = _apply_customizations(data)
+        return {
+            "status": "success",
+            "message": f"Customizations imported for {applied_dt} and child tables"
+        }
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Import Customizations Error")
+        frappe.throw(f"Failed to import customizations: {str(e)}")
+
+
+@frappe.whitelist()
+def import_multiple_customizations(file_url: str):
+    """
+    Import customizations for multiple doctypes (and child tables).
+    JSON must match output of download_multiple_customizations.
+    - Iterates over each doctype
+    - Applies customizations individually
+    """
+    try:
+        file_doc = frappe.get_doc("File", {"file_url": file_url})
+        content = file_doc.get_content()
+        data = json.loads(content)
+
+        if not isinstance(data, dict):
+            frappe.throw("Invalid JSON format. Expected dict of doctypes.")
+
+        imported, errors = [], []
+
+        # ---------------- Iterate and apply each doctype ----------------
+        for doctype_name, custom_data in data.items():
+            try:
+                applied_dt = _apply_customizations(custom_data)
+                imported.append(applied_dt)
+            except Exception as inner_e:
+                frappe.log_error(frappe.get_traceback(), f"Import Error for {doctype_name}")
+                errors.append(f"{doctype_name}: {str(inner_e)}")
+
+        return {
+            "status": "completed",
+            "imported": imported,
+            "errors": errors,
+            "message": f"Imported {len(imported)} doctypes, {len(errors)} failed."
+        }
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Import Multiple Customizations Error")
+        frappe.throw(f"Failed to import multiple customizations: {str(e)}")
+
+
+from frappe.utils.response import build_response
+
+@frappe.whitelist()
+def export_fixture_single_doctype(docname):
+    """
+    Export data for a single SVAFixture record as downloadable JSON.
+    Returns just the array of records (like fixtures), not wrapped in a dict.
+    """
+    import json
+
+    fx = frappe.get_doc("SVAFixture", docname)
+    filters_data = json.loads(fx.filters) if fx.filters else {}
+
+    def get_records(doctype, filters_data):
+        filters = filters_data.get("filters", {})
+        or_filters = filters_data.get("or_filters", [])
+        meta = frappe.get_meta(doctype)
+
+        if meta.issingle:
+            return []
+
+        return frappe.get_all(
+            doctype,
+            fields="*",
+            filters=filters,
+            or_filters=or_filters,
+            order_by="creation asc"
+        )
+
+    # Just return the array, no wrapping object
+    records = get_records(fx.ref_doctype, filters_data)
+    
+    return frappe.as_json(records)
+
+@frappe.whitelist()
+def export_fixtures_runtime():
+    """
+    Export fixtures (with filters & or_filters) as downloadable JSON.
+    """
+    export_data = {}
+    for fx in frappe.get_all("SVAFixture", fields=["ref_doctype", "name"]):
+        data = export_fixture_single_doctype(fx.name)
+        if isinstance(data,str):
+            export_data[fx.ref_doctype] = json.loads(data)
+        else:
+            export_data[fx.ref_doctype] = data
+
+    return frappe.as_json(export_data)
+
+import os
+from frappe.core.doctype.data_import.data_import import import_doc
+
+def import_records_to_doctype(doctype, records):
+    """
+    Add 'doctype' to each record, save modified JSON to a temp file,
+    import the data using import_doc, and then remove the temp file.
+    """
+    # Add 'doctype' to each record
+    for record in records:
+        record["doctype"] = doctype
+
+    # Save modified JSON to a temporary file
+    tmp_path = os.path.join(frappe.get_site_path("private", "files"), f"tmp_{doctype}.json")
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        json.dump(records, f, indent=2)
+
+    # Import records from temp JSON
+    import_doc(tmp_path, sort=True)
+    os.remove(tmp_path)
+
+
+@frappe.whitelist()
+def import_fixture_single_doctype(file_url, fixture_name):
+    """
+    Import single-doctype fixture from a JSON file uploaded via Attach field.
+    Uses the 'ref_doctype' from SVAFixture for setting 'doctype'.
+    """
+    try:
+        # Get the File doc
+        file_docs = frappe.get_all("File", filters={"file_url": file_url}, fields=["name"])
+        if not file_docs:
+            return {"status": "error", "message": "File not found."}
+
+        file_doc = frappe.get_doc("File", file_docs[0].name)
+        file_path = file_doc.get_full_path()
+
+        # Check if file exists on disk
+        if not os.path.exists(file_path):
+            return {"status": "error", "message": "File not found on disk."}
+
+        # Get the fixture document to read ref_doctype
+        fixture_doc = frappe.get_doc("SVAFixture", fixture_name)
+        target_doctype = fixture_doc.ref_doctype
+        if not target_doctype:
+            return {"status": "error", "message": "ref_doctype not set in SVAFixture."}
+
+        # Load records from JSON file
+        with open(file_path, "r", encoding="utf-8") as f:
+            records = json.load(f)
+
+        # Import records into the target_doctype
+        import_records_to_doctype(target_doctype, records)
+
+        return {"status": "success", "message": f"Fixtures imported successfully into {target_doctype}"}
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Fixture Import Error")
+        return {"status": "error", "message": str(e)}
+
+
+@frappe.whitelist()
+def import_fixtures_runtime(file_url):
+    """
+    Import a runtime-exported JSON file.
+    The JSON must be like:
+    {
+        "District": [...],
+        "State": [...],
+        ...
+    }
+    Each key is a DocType, value is a list of records.
+    """
+    try:
+        # Get File doc
+        file_docs = frappe.get_all("File", filters={"file_url": file_url}, fields=["name"])
+        if not file_docs:
+            return {"status": "error", "message": "File not found."}
+
+        file_doc = frappe.get_doc("File", file_docs[0].name)
+        file_path = file_doc.get_full_path()
+
+        # Check if file exists on disk
+        if not os.path.exists(file_path):
+            return {"status": "error", "message": "File not found on disk."}
+
+        # Read JSON data (multiple doctypes)
+        with open(file_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        # Loop through each DocType in JSON and import
+        for doctype, records in data.items():
+            if not records:
+                continue  # Skip empty arrays
+            import_records_to_doctype(doctype, records)
+
+        return {"status": "success", "message": "All fixtures imported successfully!"}
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Fixture Import Error")
+        return {"status": "error", "message": str(e)}
