@@ -7,12 +7,11 @@ frappe.ui.form.on("Copy Role Perms", {
 		if (!frm.custom_btn) {
 			frm.custom_btn = frm.add_custom_button(__("Create Permissions"), function () {
 				if (frm.doc.permissions.length === 0 || !frm.doc.role_to) {
-					frappe.msgprint(__("Select 'Role To' and add permissions first."));
-					return;
+					frappe.throw(__("Select 'Role To' and add permissions first."));	
 				}
-				if (check_duplicate_perms(frm)) {
-					return;
-				}
+				check_duplicate_perms(frm);
+				let btn_label = frm.custom_btn.text().trim();
+				let freeze_msg = btn_label === "Create Permissions" ? "Creating Permissions..." : "Updating Permissions...";
 				frappe.call({
 					method: "frappe_theme.controllers.copy_role_perms.copy_role_perms.copy_all_permissions",
 					args: {
@@ -29,7 +28,7 @@ frappe.ui.form.on("Copy Role Perms", {
 						}
 					},
 					freeze: true,
-					freeze_message: __("Updating Permissions..."),
+					freeze_message: freeze_msg,
 				});
 			});
 		}
@@ -88,38 +87,35 @@ frappe.ui.form.on("Copy Role Perms", {
 });
 
 function check_duplicate_perms(frm) {
-	if (!frm.doc.permissions || frm.doc.permissions.length === 0) return;
-
-	let seen = new Set();
-	let duplicates = [];
-
-	frm.doc.permissions.forEach((row) => {
-		let key = `${row.reference_doctype}::${row.permlevel}`;
-		if (seen.has(key)) {
-			duplicates.push(`Row ${row.idx}: ${row.reference_doctype} (Level ${row.permlevel})`);
-		} else {
+	if (!frm.doc.permissions?.length) return false;
+	const seen = new Set();
+	const duplicates = frm.doc.permissions
+		.map((row) => {
+			const key = `${row.reference_doctype}::${row.permlevel}`;
+			if (seen.has(key)) {
+				return `Row ${row.idx}: ${row.reference_doctype} (Level ${row.permlevel})`;
+			}
 			seen.add(key);
-		}
-	});
+		})
+		.filter(Boolean);
 
-	if (duplicates.length > 0) {
-		frappe.msgprint({
+	if (duplicates.length) {
+		frappe.throw({
 			title: __("Duplicate Permissions Found"),
 			indicator: "red",
 			message:
 				__("The following permissions are duplicated:") + "<br>" + duplicates.join("<br>"),
 		});
-		return true;
 	}
-	return false;
 }
+
 
 frappe.ui.form.on("Copy Role Perms Child", {
 	permlevel: function (frm, cdt, cdn) {
 		let row = frappe.get_doc(cdt, cdn);
 		if (row.permlevel > 9) {
-			frappe.msgprint(__(`Value of Level cannot exceed 9 in  row ${row.idx}` ));
 			row.permlevel = null;	
+			frappe.throw(__(`Value of Level cannot exceed 9 in  row ${row.idx}` ));
 		}
 	},
 });
