@@ -6,39 +6,58 @@
  "engine": "InnoDB",
  "field_order": [
   "ref_doctype",
-  "filters",
+  "section_break_pmyd",
   "export",
-  "import"
+  "column_break_uyea",
+  "import",
+  "section_break_zsey",
+  "filters"
  ],
  "fields": [
   {
    "fieldname": "ref_doctype",
    "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "ref_doctype",
+   "label": "Doctype",
    "options": "DocType",
    "reqd": 1
   },
   {
+   "description": "{\n    \"filters\":[[\"dt\",\"fn\",\"condition\",\"value\"]],\n    \"or_filters\":[[\"dt\",\"fn\",\"condition\",\"value\"]]\n}",
    "fieldname": "filters",
    "fieldtype": "JSON",
    "label": "Filters"
   },
   {
+   "depends_on": "eval:!doc.__islocal",
    "fieldname": "import",
    "fieldtype": "Button",
-   "label": "import_fixtures"
+   "label": "Import",
+   "max_height": "10px"
   },
   {
+   "depends_on": "eval:!doc.__islocal",
    "fieldname": "export",
    "fieldtype": "Button",
-   "label": "export_fixtures"
+   "label": "Export"
+  },
+  {
+   "fieldname": "section_break_zsey",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "section_break_pmyd",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_uyea",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-08-26 15:18:03.908892",
+ "modified": "2025-08-30 14:26:05.528386",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "SVAFixture",
