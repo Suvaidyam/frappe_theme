@@ -1,19 +1,24 @@
 <template>
   <div class="w-full h-full">
-     <div>
-    <button type="button" class="save-btn" @click="saveRecord">
-      Save Record
-    </button>
-  </div>
     <div
-      ref="container"
-      style="width: 100%; height: 60vh; border: 1px solid #ccc"
+    ref="container"
+    style="width: 100%; height: 60vh; border: 1px solid #ccc"
     ></div>
+   <div class="py-2 d-flex justify-content-end">
+  <button 
+    type="button" 
+    class="btn btn-primary btn-sm"
+    @click="saveRecord"
+  >
+    Save Record
+  </button>
+</div>
+
   </div>
 </template>
  
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { ref, onMounted } from "vue";
 import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import { UniverSheetsAdvancedPreset } from '@univerjs/preset-sheets-advanced'
@@ -72,20 +77,18 @@ const { univerAPI} = initUniver(container.value);
 
   //  workbook create
   const workbook = await univerAPI.createWorkbook(response.message);
-
   console.log("Workbook created successfully:", response.message);
-} catch (error) {
-  console.error("Error creating workbook:", error);
-}
 
+  workbookRef = univerAPI.getActiveWorkbook();
+
+  // ============ edit permissions disabled ============
 // const permission = workbook.getPermission();
 // const workbookEditablePerm = permission.permissionPointsDefinition.WorkbookEditablePermission;
 // const unitId = workbook.getId();
 // permission.setWorkbookPermissionPoint(unitId, workbookEditablePerm, false);
-  // workbookRef = workbook;
-   workbookRef = univerAPI.getActiveWorkbook();
-
-// console.log('workbook',workbook)
+} catch (error) {
+  console.error("Error creating workbook:", error);
+}
 });
  
  // 🔹 Save button handler
@@ -97,30 +100,7 @@ function saveRecord() {
   } else {
     console.error("univerAPI not initialized")
   }
-  // if (!workbookRef) return;
 
-  // const snapshot = workbookRef.getSnapshot();
-  // const sheets = snapshot.sheets;
-
-  // let filledCells = [];
-
-  // Object.values(sheets).forEach((sheet) => {
-  //   const cellData = sheet.cellData || {};
-  //   Object.entries(cellData).forEach(([rowIndex, row]) => {
-  //     Object.entries(row).forEach(([colIndex, cell]) => {
-  //       if (cell.v !== undefined && cell.v !== null && cell.v !== "") {
-  //         filledCells.push({
-  //           sheet: sheet.name,
-  //           row: parseInt(rowIndex),
-  //           col: parseInt(colIndex),
-  //           value: cell.v,
-  //         });
-  //       }
-  //     });
-  //   });
-  // });
-
-  // console.log(" Filled cells:", filledCells);
 }
 
 </script>
@@ -138,7 +118,7 @@ function saveRecord() {
   transition: 0.3s;
   margin-bottom: 10px;
 }
-
+ 
 .save-btn:hover {
   background-color: #45a049;
 }
