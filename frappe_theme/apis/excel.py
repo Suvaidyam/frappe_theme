@@ -393,13 +393,11 @@ def excel():
         for row_idx in range(1, sheet.max_row + 1):
             if is_row_hidden(sheet, row_idx):
                 hidden_rows_set.add(row_idx - 1) 
-                print(f"Row {row_idx} is hidden")
                 
         for col_idx in range(1, sheet.max_column + 1):
             if is_column_hidden(sheet, col_idx):
                 hidden_cols_set.add(col_idx - 1) 
                 col_letter = get_column_letter(col_idx)
-                print(f"Column {col_letter} (index {col_idx}) is hidden")
         
         # print(f"Hidden rows (0-based): {sorted(hidden_rows_set)}")
         # print(f"Hidden columns (0-based): {sorted(hidden_cols_set)}")
