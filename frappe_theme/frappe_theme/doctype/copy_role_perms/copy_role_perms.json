@@ -4,6 +4,7 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "perms_type",
   "role_from",
   "column_break_hcbw",
   "role_to",
@@ -12,12 +13,12 @@
  ],
  "fields": [
   {
+   "depends_on": "eval: doc.perms_type==\"Get & Update Perms\"",
    "fieldname": "role_from",
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Role From",
-   "options": "Role",
-   "reqd": 1
+   "options": "Role"
   },
   {
    "fieldname": "column_break_hcbw",
@@ -40,12 +41,20 @@
    "fieldtype": "Table",
    "label": "Permissions",
    "options": "Copy Role Perms Child"
+  },
+  {
+   "default": "Get & Update Perms",
+   "fieldname": "perms_type",
+   "fieldtype": "Select",
+   "label": "Perms Type",
+   "options": "Get & Update Perms\nCreate Perms",
+   "reqd": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-08-29 12:30:48.154062",
+ "modified": "2025-09-01 13:06:15.022116",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Copy Role Perms",

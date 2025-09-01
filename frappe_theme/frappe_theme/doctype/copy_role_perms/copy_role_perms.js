@@ -3,85 +3,120 @@
 
 frappe.ui.form.on("Copy Role Perms", {
 	refresh(frm) {
-		frm.add_custom_button(__("Copy Permissions"), function () {
-			frappe.call({
-				// method: "frappe_theme.api.copy_role_perms",
-				method: "frappe_theme.controllers.copy_role_perms.copy_role_perms.copy_all_permissions",
-				args: {
-					doc: frm.doc,
-				},
-				callback: function (r) {
-					if (r.message) {
-						frappe.show_alert({
-							message: __(
-								`Permissions copied. Created: ${r.message.message.Created}, Updated: ${r.message.message.Updated}`
-							),
-							indicator: "green",
-						});
-					}
-				},
-				freeze: true,
-				freeze_message: __("Copying Permissions..."),
+		frm.set_value("perms_type", "Get & Update Perms");
+		if (!frm.custom_btn) {
+			frm.custom_btn = frm.add_custom_button(__("Create Permissions"), function () {
+				if (frm.doc.permissions.length === 0 || !frm.doc.role_to) {
+					frappe.msgprint(__("Select 'Role To' and add permissions first."));
+					return;
+				}
+				if (check_duplicate_perms(frm)) {
+					return;
+				}
+				frappe.call({
+					method: "frappe_theme.controllers.copy_role_perms.copy_role_perms.copy_all_permissions",
+					args: {
+						doc: frm.doc,
+					},
+					callback: function (r) {
+						if (r.message) {
+							frappe.show_alert({
+								message: __(
+									`Permissions  Created: ${r.message.message.Created}, Updated: ${r.message.message.Updated}`
+								),
+								indicator: "green",
+							});
+						}
+					},
+					freeze: true,
+					freeze_message: __("Updating Permissions..."),
+				});
 			});
-		});
+		}
+		frm.trigger("set_button_label");
+		
+	},
+	perms_type: function (frm) {
+		frm.set_value("role_from", null);
+		frm.trigger("set_button_label");
+	},
+	role_from: function (frm) {
+		frappe.call({
+			method: "frappe_theme.controllers.copy_role_perms.copy_role_perms.get_all_permissions",
+			args: {
+				role_from: frm.doc.role_from,
+			},
+			freeze: true,
+			freeze_message: __("Getting Permissions..."),
+			callback: function (r) {
+				if (r.message && r.message.permissions) {
+					frm.clear_table("permissions");
 
-		frm.add_custom_button(__("Get Permissions"), function () {
-			if (!frm.doc.role_from) {
-				frm.clear_table("permissions");
-				frm.refresh_field("permissions");
-				frappe.msgprint(__("Please select a Role to get permissions."));
-				return; // stop execution
-			}
-			frappe.call({
-				method: "frappe_theme.controllers.copy_role_perms.copy_role_perms.get_all_permissions",
-				args: {
-					role_from: frm.doc.role_from,
-				},
-				freeze: true,
-				freeze_message: __("Getting Permissions..."),
-				callback: function (r) {
-					if (r.message && r.message.permissions) {
-						// clear existing child table
-						frm.clear_table("permissions");
-
-						// add new rows
-						r.message.permissions.forEach((perm) => {
-							let row = frm.add_child("permissions");
-							row.reference_doctype = perm.parent;
-							row.permlevel = perm.permlevel;
-							row.select = perm.select;
-							row.read = perm.read;
-							row.write = perm.write;
-							row.create = perm.create;
-							row.delete_to = perm.delete;
-							row.submit_to = perm.submit;
-							row.cancel_to = perm.cancel;
-							row.amend = perm.amend;
-							row.report = perm.report;
-							row.export = perm.export;
-							row.import_to = perm.import;
-							row.share = perm.share;
-							row.print = perm.print;
-							row.email = perm.email;
-						});
-
-						// refresh UI
-						frm.refresh_field("permissions");
-						// frappe.msgprint(__("Permissions updated from Role: " + frm.doc.role_from));
-					}
-				},
-			});
+					r.message.permissions.forEach((perm) => {
+						let row = frm.add_child("permissions");
+						row.reference_doctype = perm.parent;
+						row.permlevel = perm.permlevel;
+						row.select = perm.select;
+						row.read = perm.read;
+						row.write = perm.write;
+						row.create = perm.create;
+						row.delete_to = perm.delete;
+						row.submit_to = perm.submit;
+						row.cancel_to = perm.cancel;
+						row.amend = perm.amend;
+						row.report = perm.report;
+						row.export = perm.export;
+						row.import_to = perm.import;
+						row.share = perm.share;
+						row.print = perm.print;
+						row.email = perm.email;
+					});
+					frm.refresh_field("permissions");
+				}
+			},
 		});
 	},
-
-	
+	set_button_label(frm) {
+		if (frm.custom_btn) {
+			let label =
+				frm.doc.perms_type === "Get & Update Perms"
+					? __("Update Permissions")
+					: __("Create Permissions");
+			frm.custom_btn.html(label);
+		}
+	},
 });
 
+function check_duplicate_perms(frm) {
+	if (!frm.doc.permissions || frm.doc.permissions.length === 0) return;
+
+	let seen = new Set();
+	let duplicates = [];
+
+	frm.doc.permissions.forEach((row) => {
+		let key = `${row.reference_doctype}::${row.permlevel}`;
+		if (seen.has(key)) {
+			duplicates.push(`Row ${row.idx}: ${row.reference_doctype} (Level ${row.permlevel})`);
+		} else {
+			seen.add(key);
+		}
+	});
+
+	if (duplicates.length > 0) {
+		frappe.msgprint({
+			title: __("Duplicate Permissions Found"),
+			indicator: "red",
+			message:
+				__("The following permissions are duplicated:") + "<br>" + duplicates.join("<br>"),
+		});
+		return true;
+	}
+	return false;
+}
+
 frappe.ui.form.on("Copy Role Perms Child", {
-	// Replace with your child table DocType
 	permlevel: function (frm, cdt, cdn) {
 		let row = frappe.get_doc(cdt, cdn);
-
 		if (row.permlevel > 9) {
 			frappe.msgprint(__(`Value of Level cannot exceed 9 in  row ${row.idx}` ));
 			row.permlevel = null;	

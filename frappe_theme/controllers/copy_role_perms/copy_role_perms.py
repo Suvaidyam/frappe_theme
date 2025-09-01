@@ -22,9 +22,6 @@ def copy_all_permissions(doc):
             "parent": target_doctype
         })
 
-        # Check if record exists
-        
-
         if existing_perms:
             update_perms += 1
             existing_name = frappe.db.get_value(
@@ -32,10 +29,8 @@ def copy_all_permissions(doc):
             {"role": role, "parent": target_doctype, "permlevel": permlevel},
             "name"
             )
-            # ✅ Update existing record
             src = frappe.get_doc("Custom DocPerm", existing_name)
 
-            
             perm["cancel"] = cint(perm.get("cancel_to", 0))
             perm["submit"] = cint(perm.get("submit_to", 0))
             perm["delete"] = cint(perm.get("delete_to", 0))
@@ -46,19 +41,14 @@ def copy_all_permissions(doc):
 
             for key in common:
                 src.set(key, perm[key])
-
             src.save(ignore_permissions=True)
 
         else:
-            #  Create new record
             create_perms += 1
             src = frappe.new_doc("Custom DocPerm")
             src.role = role
             src.parent = target_doctype
             src.permlevel = permlevel
-
-           
-            # Explicit special fields
             src.set("delete", cint(perm.get("delete_to", 0)))
             src.set("cancel", cint(perm.get("cancel_to", 0)))
             src.set("submit", cint(perm.get("submit_to", 0)))
@@ -70,13 +60,11 @@ def copy_all_permissions(doc):
 
     frappe.db.commit()
     
-    # frappe.msgprint(f"Permissions copied. Created: {create_perms}, Updated: {update_perms}")
     return {"status": "success", "role_to": role, "message":{"Created": create_perms, "Updated": update_perms}}
 
 
 @frappe.whitelist()
 def get_all_permissions(role_from):
-    # fields = ['name', 'parent', 'permlevel']
     all_fields = ['name', 'parent', 'permlevel','select', 'read', 'write', 'create', 'delete', 'submit', 'cancel',
                   'amend', 'report', 'export', 'import', 'share', 'print', 'email']
     perms_from = frappe.get_all('Custom DocPerm', {'role': role_from}, all_fields, ignore_permissions=True)
@@ -104,10 +92,7 @@ def apply_common_permissions(doc, perms):
         setattr(doc, field, perms.get(field, 0))
 
 
-
-
-
 class CopyRolePerms(Document):
     
     def before_save(self):
-        print("Before save method called====================================================================================================================")
+        pass
