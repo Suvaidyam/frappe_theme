@@ -492,7 +492,7 @@ def excel():
             "name": sheet.title,
             "tabColor": "",
             "hidden": 0,
-            "rowCount": sheet.max_row,
+            "rowCount": max(sheet.max_row, 30),
             "columnCount": sheet.max_column,
             "zoomRatio": 1,
             "freeze": freeze,
@@ -520,10 +520,10 @@ def excel():
     
     return {
         "id": str(uuid.uuid4()),
-        "name": "Excel Import",
+        "name":sheet.title,
         "appVersion": "0.10.2",
         "locale": "enUS",
-        "styles": {},
+        "styles": cell_style,
         "sheetOrder": sheet_order,
         "sheets": sheets,
         "resources": [],
