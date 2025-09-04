@@ -375,7 +375,7 @@ def get_freeze_info(sheet):
 @frappe.whitelist(allow_guest=True)
 def excel():
     """Version optimized for UniverJS with proper column hiding/collapsing"""
-    wb = load_excel_from_private("/private/files/Quarterly_FU_Reporting_10ebf560ebf56.xlsx")
+    wb = load_excel_from_private("/private/files/data.xlsx")
     
     sheets = {}
     sheet_order = []
@@ -492,7 +492,7 @@ def excel():
             "name": sheet.title,
             "tabColor": "",
             "hidden": 0,
-            "rowCount": max(sheet.max_row, 30),
+            "rowCount": max(sheet.max_row, 100),
             "columnCount": sheet.max_column,
             "zoomRatio": 1,
             "freeze": freeze,
