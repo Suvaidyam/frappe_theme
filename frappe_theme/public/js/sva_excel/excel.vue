@@ -58,93 +58,77 @@ function initUniver(container) {
   return { univer, univerAPI };
 }
 let workbookRef = null; 
-// onMounted(async () => {
-//   const { univerAPI } = initUniver(container.value);
 
-//   try {
-//     const testDoc = await frappe.call({
-//       method: "frappe.client.get_list",
-//       args: {
-//         doctype: "Excel Workbook",
-//         fields: ["name", "json"],
-//         order_by: "creation desc",
-//         limit_page_length: 1
-//       }
-//     });
 
-//     let workbookData = null;
+onMounted(async () => {
+  const { univerAPI } = initUniver(container.value);
 
-//     if (testDoc.message && testDoc.message.length > 0) {
-//       const savedSheets = JSON.parse(testDoc.message[0].json);
-//       console.log(savedSheets,'savedSheets');
-//       // WorkbookData structure 
-//       workbookData = {
-//         id: crypto.randomUUID(),
-//         locale: "enUS",
-//         name: savedSheets.name || "",
-//         appVersion: "0.10.2",
-//         sheetOrder: Object.keys(savedSheets),
-//         sheets: savedSheets
-//       };
-//       console.log("Loaded workbook data from Test:", workbookData);
-//     } else {
-//       const response = await frappe.call({
-//         method: "frappe_theme.apis.excel.excel",
-//         args: {},
-//         freeze: true,
-//       });
+  try {
+    const testDoc = await frappe.call({
+      method: "frappe.client.get_list",
+      args: {
+        doctype: "Excel JSON Wb",
+        fields: ["name","first_name", "last_name", "gender", "age"],
+        order_by: "creation asc",
+        limit_page_length: 100
+      }
+    });
 
-//       if (!response.message) {
-//         throw new Error("Workbook data not found in API response");
-//       }
+    console.log(testDoc, "testDoc");
 
-//       workbookData = response.message;
-//     }
+    let workbookData = null;
 
-//     // 🔹 Workbook create
-//     const workbook = await univerAPI.createWorkbook(workbookData);
-//     console.log("Workbook created successfully",workbookData);
+    // 🔹 Load default workbook first
+    const response = await frappe.call({
+      method: "frappe_theme.apis.excel.excel",
+      args: {},
+      freeze: true,
+    });
 
-//     workbookRef = univerAPI.getActiveWorkbook();
+    if (!response.message) {
+      throw new Error("Workbook data not found in API response");
+    }
 
-//   } catch (error) {
-//     console.error("Error creating workbook:", error);
-//   }
-// });
+    workbookData = response.message;
 
-onMounted( async () => {
-  
-const { univerAPI} = initUniver(container.value);
-  
- try {
-  const response = await frappe.call({
-    method: "frappe_theme.apis.excel.excel",
-    args: {},
-    freeze: true,
-  });
+    // 🔹 Now append DB records
+    if (testDoc.message && testDoc.message.length > 0) {
+      const records = testDoc.message; 
+      const headers = Object.keys(records[0]);
 
-  console.log("API Response:", response);
+      const sheetId = workbookData.sheetOrder[0];
+      const sheet = workbookData.sheets[sheetId];
 
-  if (!response.message) {
-    throw new Error("Workbook data not found in API response");
+      let cellData = sheet.cellData || {};
+
+      // 🔹 Find last row index in existing cellData
+      const existingRows = Object.keys(cellData).map(r => parseInt(r));
+      const lastRow = existingRows.length > 0 ? Math.max(...existingRows) : 0;
+
+      // 🔹 Append new rows after lastRow
+      records.forEach((rowObj, idx) => {
+        const excelRow = lastRow + 1 + idx; // next available row
+        headers.forEach((header, colIdx) => {
+          if (!cellData[excelRow]) cellData[excelRow] = {};
+          cellData[excelRow][colIdx] = { v: rowObj[header] };
+        });
+      });
+
+      // Update back
+      sheet.cellData = cellData;
+    }
+
+    // 🔹 Create workbook in Univer
+    const workbook = await univerAPI.createWorkbook(workbookData);
+    console.log("Workbook created successfully with appended rows", workbookData);
+
+    workbookRef = univerAPI.getActiveWorkbook();
+
+  } catch (error) {
+    console.error("Error creating workbook:", error);
   }
-
-  //  workbook create
-  const workbook = await univerAPI.createWorkbook(response.message);
-  console.log("Workbook created successfully:", response.message);
-
-  workbookRef = univerAPI.getActiveWorkbook();
-
-  // ============ edit permissions disabled ============
-// const permission = workbook.getPermission();
-// const workbookEditablePerm = permission.permissionPointsDefinition.WorkbookEditablePermission;
-// const unitId = workbook.getId();
-// permission.setWorkbookPermissionPoint(unitId, workbookEditablePerm, false);
-} catch (error) {
-  console.error("Error creating workbook:", error);
-}
 });
- 
+
 async function saveRecord() {
   if (!workbookRef) {
     console.error("univerAPI not initialized");
@@ -242,7 +226,73 @@ async function saveRecord() {
     allResults = [...allResults, ...finalArray];
   }
   console.log('Final Results:', allResults);
+  
+// ======= insertExcelRecord =========
+  for (let row of allResults) {
+    await insertOrUpdateExcelRecord(row);
+  } 
+  showFinalMessage();
+
   return allResults;
+}
+
+// ======= insertOrUpdateExcelRecord =========
+let createdCount = 0;
+let updatedCount = 0;
+async function insertOrUpdateExcelRecord(row) {
+  try {
+    let res;
+
+    if (row.data) {
+      // 🔹 Update existing record
+      res = await frappe.call({
+        method: "frappe.client.set_value",
+        args: {
+          doctype: "Excel JSON Wb",
+          name: row.data,  // existing id
+          fieldname: {
+            first_name: row.first_name || "",
+            last_name: row.last_name || "",
+            gender: row.gender || "",
+            age: row.age || ""
+          }
+        }
+      });
+      if (res && res.message) updatedCount++;
+
+    } else {
+      // 🔹 Insert new record
+      res = await frappe.call({
+        method: "frappe.client.insert",
+        args: {
+          doc: {
+            doctype: "Excel JSON Wb",
+            first_name: row.first_name || "",
+            last_name: row.last_name || "",
+            gender: row.gender || "",
+            age: row.age || ""
+          }
+        }
+      });
+      if (res && res.message) createdCount++;
+    }
+
+    return res.message;
+
+  } catch (err) {
+    frappe.throw(`Failed to save record. ${err.message || err}`);
+  }
+}
+
+function showFinalMessage() {
+  if (createdCount || updatedCount) {
+    frappe.msgprint(
+      `${createdCount} record(s) created, ${updatedCount} record(s) updated successfully`
+    );
+    // console.log("Summary:", { createdCount, updatedCount });
+  } else {
+    frappe.throw("No records were saved");
+  }
 }
 
 
