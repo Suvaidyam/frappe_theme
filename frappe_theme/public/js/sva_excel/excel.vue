@@ -30,6 +30,7 @@ import '@univerjs/preset-sheets-drawing/lib/index.css'
 import '@univerjs/preset-sheets-advanced/lib/index.css'
 
 const container = ref(null);
+let workbookRef = null; 
 
 function initUniver(container) {
   const { univer, univerAPI } = createUniver({
@@ -57,12 +58,10 @@ function initUniver(container) {
   })
   return { univer, univerAPI };
 }
-let workbookRef = null; 
 
-
+// =========== onMounted ===========
 onMounted(async () => {
   const { univerAPI } = initUniver(container.value);
-
   try {
     const testDoc = await frappe.call({
       method: "frappe.client.get_list",
@@ -73,38 +72,27 @@ onMounted(async () => {
         limit_page_length: 100
       }
     });
-
-    console.log(testDoc, "testDoc");
-
     let workbookData = null;
-
     // 🔹 Load default workbook first
     const response = await frappe.call({
       method: "frappe_theme.apis.excel.excel",
       args: {},
       freeze: true,
     });
-
     if (!response.message) {
       throw new Error("Workbook data not found in API response");
     }
-
     workbookData = response.message;
-
     // 🔹 Now append DB records
     if (testDoc.message && testDoc.message.length > 0) {
       const records = testDoc.message; 
       const headers = Object.keys(records[0]);
-
       const sheetId = workbookData.sheetOrder[0];
       const sheet = workbookData.sheets[sheetId];
-
       let cellData = sheet.cellData || {};
-
       // 🔹 Find last row index in existing cellData
       const existingRows = Object.keys(cellData).map(r => parseInt(r));
       const lastRow = existingRows.length > 0 ? Math.max(...existingRows) : 0;
-
       // 🔹 Append new rows after lastRow
       records.forEach((rowObj, idx) => {
         const excelRow = lastRow + 1 + idx; // next available row
@@ -113,11 +101,9 @@ onMounted(async () => {
           cellData[excelRow][colIdx] = { v: rowObj[header] };
         });
       });
-
       // Update back
       sheet.cellData = cellData;
     }
-
     // 🔹 Create workbook in Univer
     const workbook = await univerAPI.createWorkbook(workbookData);
     console.log("Workbook created successfully with appended rows", workbookData);
@@ -129,23 +115,20 @@ onMounted(async () => {
   }
 });
 
+// ========== saveRecord ==========
 async function saveRecord() {
   if (!workbookRef) {
     console.error("univerAPI not initialized");
     return;
   }
-
   // 1 Workbook ko JSON me save karo
   const workbookJson = workbookRef.save();
   const sheetsData = workbookJson.sheets;
-
   let allResults = [];
-
   // 2 Process each sheet
   for (let sheetId in sheetsData) {
     let sheet = sheetsData[sheetId];
     let cellData = sheet.cellData || {};
-
     // Transform cellData to flat structure
     let flatCellData = {};
     Object.keys(cellData).forEach(rowKey => {
@@ -157,22 +140,19 @@ async function saveRecord() {
         }
       });
     });
-
     // 3 Find header row - Row with most non-empty cells
     let headerRow = null;
     let maxColumns = 0;
     const rowStats = {};
-    
     for (let key in flatCellData) {
       const [r, c] = key.replace('R','').split('-C').map(Number);
       const cellValue = flatCellData[key];
-      
+
       if (cellValue !== null && cellValue !== undefined && cellValue !== '') {
         if (!rowStats[r]) rowStats[r] = 0;
         rowStats[r]++;
       }
     }
-    
     // Select row with maximum filled columns
     for (let row in rowStats) {
       if (rowStats[row] > maxColumns) {
@@ -180,12 +160,10 @@ async function saveRecord() {
         headerRow = parseInt(row);
       }
     }
-    
     if (!headerRow) {
       console.warn(`No header row found for sheet ${sheetId}`);
       continue;
     }
-
     // 4 Extract headers from header row
     const headers = {};
     for (let key in flatCellData) {
@@ -198,9 +176,7 @@ async function saveRecord() {
         }
       }
     }
-    
     console.log('Headers:', headers);
-
     // 5 Process data rows
     const rowData = {};
     for (let key in flatCellData) {
@@ -214,25 +190,23 @@ async function saveRecord() {
         }
       }
     }
-
     // 6 Filter and format results
     const finalArray = Object.values(rowData).filter(row => {
       return Object.values(row).some(value => 
         value !== null && value !== undefined && value !== ''
       );
     });
-        
     // Add to combined results
     allResults = [...allResults, ...finalArray];
   }
   console.log('Final Results:', allResults);
   
-// ======= insertExcelRecord =========
+// ======= insertOrUpdateExcelRecord =========
   for (let row of allResults) {
     await insertOrUpdateExcelRecord(row);
   } 
+  // ======== Msg =========
   showFinalMessage();
-
   return allResults;
 }
 
@@ -242,14 +216,13 @@ let updatedCount = 0;
 async function insertOrUpdateExcelRecord(row) {
   try {
     let res;
-
     if (row.data) {
       // 🔹 Update existing record
       res = await frappe.call({
         method: "frappe.client.set_value",
         args: {
           doctype: "Excel JSON Wb",
-          name: row.data,  // existing id
+          name: row.data,
           fieldname: {
             first_name: row.first_name || "",
             last_name: row.last_name || "",
@@ -259,7 +232,6 @@ async function insertOrUpdateExcelRecord(row) {
         }
       });
       if (res && res.message) updatedCount++;
-
     } else {
       // 🔹 Insert new record
       res = await frappe.call({
@@ -276,7 +248,6 @@ async function insertOrUpdateExcelRecord(row) {
       });
       if (res && res.message) createdCount++;
     }
-
     return res.message;
 
   } catch (err) {
@@ -289,7 +260,6 @@ function showFinalMessage() {
     frappe.msgprint(
       `${createdCount} record(s) created, ${updatedCount} record(s) updated successfully`
     );
-    // console.log("Summary:", { createdCount, updatedCount });
   } else {
     frappe.throw("No records were saved");
   }
