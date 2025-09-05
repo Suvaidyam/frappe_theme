@@ -104,20 +104,20 @@ class SVAGalleryComponent {
                 display: flex;
                 flex-direction: column;
             }
-            .gallery-header {
+            .gallery-wrapper .gallery-header {
                 padding: 0px 0px 12px 0px;
                 background: #fff;
                 border-bottom: 1px solid #e2e2e2;
                 z-index: 1;
             }
-            .gallery-body {
+            .gallery-wrapper .gallery-body {
                 flex: 1;
                 overflow-y: auto;
                 padding: 16px;
                 display: flex;
                 flex-direction: column;
             }
-            .empty-state {
+            .gallery-wrapper .empty-state {
                 flex: 1;
                 display: flex;
                 flex-direction: column;
@@ -127,12 +127,12 @@ class SVAGalleryComponent {
                 text-align: center;
                 color: #6E7073;
             }
-            .empty-state i {
+            .gallery-wrapper .empty-state i {
                 font-size: 48px;
                 margin-bottom: 16px;
                 color: #E2E2E2;
             }
-            .empty-state p {
+            .gallery-wrapper .empty-state p {
                 font-size: 16px;
                 margin-bottom: 16px;
             }
@@ -143,10 +143,10 @@ class SVAGalleryComponent {
 
     getCommonStyles() {
         return `
-            .gallery {
+            .gallery-wrapper .gallery {
                 margin-bottom: 20px;
             }
-            .checkbox-container {
+            .gallery-wrapper .checkbox-container {
                 position: absolute;
                 top: 10px;
                 left: 10px;
@@ -154,21 +154,21 @@ class SVAGalleryComponent {
                 opacity: 0;
                 transition: opacity 0.2s;
             }
-            .image-container:hover .checkbox-container,
-            .checkbox-container input[type="checkbox"]:checked {
+            .gallery-wrapper .image-container:hover .checkbox-container,
+            .gallery-wrapper .checkbox-container input[type="checkbox"]:checked {
                 opacity: 1;
             }
-            .checkbox-container.selected {
+            .gallery-wrapper .checkbox-container.selected {
                 opacity: 1;
             }
-            .checkbox-container input[type="checkbox"] {
+            .gallery-wrapper.checkbox-container input[type="checkbox"] {
                 width: 20px !important;
                 height: 20px !important;
                 background-color: rgba(255, 255, 255, 0.9);
                 border: 2px solid #fff;
                 border-radius: 4px;
             }
-            .card-img-top {
+            .gallery-wrapper .card-img-top {
                 width: 100%;
                 height: 200px;
                 border-bottom:1px solid #e2e2e2;
@@ -176,7 +176,7 @@ class SVAGalleryComponent {
                 border-top-left-radius: 8px;
                 border-top-right-radius: 8px;
             }
-            .image-card {
+            .gallery-wrapper .image-card {
                 width: 100%;
                 background: white;
                 border-radius: 8px;
@@ -184,18 +184,18 @@ class SVAGalleryComponent {
                 box-shadow: 0 1px 3px rgba(0,0,0,0.12);
                 transition: transform 0.2s, box-shadow 0.2s;
             }
-            .image-card:hover {
+            .gallery-wrapper .image-card:hover {
                 transform: translateY(-2px);
                 box-shadow: 0 4px 6px rgba(0,0,0,0.15);
             }
-            .image-container {
+            .gallery-wrapper .image-container {
                 position: relative;
             }
-            .image-container:hover .image-cover {
+            .gallery-wrapper .image-container:hover .image-cover {
                 opacity: 1;
                 visibility: visible;
             }
-            .image-cover {
+            .gallery-wrapper .image-cover {
                 position: absolute;
                 top: 0;
                 left: 0;
@@ -210,19 +210,19 @@ class SVAGalleryComponent {
                 display: flex;
                 flex-direction: column;
             }
-            .cover-header {
+            .gallery-wrapper .cover-header {
                 position: absolute;
                 top: 10px;
                 right: 10px;
                 z-index: 2;
             }
-            .cover-body {
+            .gallery-wrapper .cover-body {
                 flex: 1;
                 display: flex;
                 align-items: center;
                 justify-content: center;
             }
-            .action-button {
+            .gallery-wrapper .action-button {
                 background: rgba(255, 255, 255, 0.9);
                 border: none;
                 border-radius: 4px;
@@ -230,10 +230,10 @@ class SVAGalleryComponent {
                 color: #1F272E;
                 transition: background-color 0.2s;
             }
-            .action-button:hover {
+            .gallery-wrapper .action-button:hover {
                 background: #ffffff;
             }
-            .view-button {
+            .gallery-wrapper .view-button {
                 background: rgba(255, 255, 255, 0.9);
                 border: none;
                 border-radius: 50%;
@@ -246,87 +246,87 @@ class SVAGalleryComponent {
                 transition: transform 0.2s, background-color 0.2s;
                 text-decoration: none;
             }
-            .view-button:hover {
+            .gallery-wrapper .view-button:hover {
                 transform: scale(1.1);
                 background: #ffffff;
                 text-decoration: none;
                 color: #1F272E;
             }
-            .file-name {
+            .gallery-wrapper .file-name {
                 padding: 6px 12px ;
                 font-size: 14px;
                 color: #1F272E;
                 word-break: break-word;
             }
-            .file-date {
+            .gallery-wrapper .file-date {
                 padding: 0 12px 6px;
                 font-size: 12px;
                 color: #6E7073;
             }
             /* Frappe List View Styles */
-            .frappe-list {
+            .gallery-wrapper .frappe-list {
                 background-color: var(--fg-color);
                 border-radius: var(--border-radius-md);
                 box-shadow: var(--card-shadow);
             }
-            .frappe-list-row {
+            .gallery-wrapper .frappe-list-row {
                 display: flex;
                 align-items: center;
                 padding: 12px 15px;
                 border-bottom: 1px solid var(--border-color);
                 transition: background-color 0.2s;
             }
-            .frappe-list-row:hover {
+            .gallery-wrapper .frappe-list-row:hover {
                 background-color: var(--fg-hover-color);
             }
-            .frappe-list-col {
+            .gallery-wrapper .frappe-list-col {
                 padding: 0 8px;
                 font-size: var(--text-md);
             }
-            .frappe-list-col-checkbox {
+            .gallery-wrapper .frappe-list-col-checkbox {
                 width: 30px;
             }
-            .frappe-list-col-subject {
+            .gallery-wrapper .frappe-list-col-subject {
                 flex: 2;
                 min-width: 200px;
             }
-            .frappe-list-col-creation {
+            .gallery-wrapper .frappe-list-col-creation {
                 width: 140px;
             }
-            .frappe-list-col-preview {
+            .gallery-wrapper .frappe-list-col-preview {
                 width: 100px;
             }
-            .frappe-list-col-actions {
+            .gallery-wrapper .frappe-list-col-actions {
                 width: 40px;
                 text-align: right;
             }
-            .frappe-list-header {
+            .gallery-wrapper .frappe-list-header {
                 background-color: var(--fg-color);
                 border-bottom: 1px solid var(--border-color);
                 font-weight: 600;
                 color: var(--text-muted);
             }
-            .frappe-list-header .frappe-list-row:hover {
+            .gallery-wrapper .frappe-list-header .frappe-list-row:hover {
                 background-color: var(--fg-color);
             }
-            .list-actions {
+            .gallery-wrapper .list-actions {
                 opacity: 0;
                 transition: opacity 0.2s;
             }
-            .frappe-list-row:hover .list-actions {
+            .gallery-wrapper .frappe-list-row:hover .list-actions {
                 opacity: 1;
             }
-            .list-row-checkbox {
+            .gallery-wrapper .list-row-checkbox {
                 margin: 0;
             }
             @media (max-width: 768px) {
                 .gallery-wrapper {
                     height: calc(100vh - 200px);
                 }
-                .card-img-top {
+                .gallery-wrapper .card-img-top {
                     height: 160px;
                 }
-                .image-cover {
+                .gallery-wrapper .image-cover {
                     height: 160px;
                 }
             }
