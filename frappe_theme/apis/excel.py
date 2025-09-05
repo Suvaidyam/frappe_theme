@@ -301,17 +301,12 @@ def is_row_hidden(sheet, row_idx):
         height = getattr(row_dimension, 'height', None)
         outline_level = getattr(row_dimension, 'outline_level', 0)
         collapsed = getattr(row_dimension, 'collapsed', False)
-        
-        # print(f"Row {row_idx}: hidden={hidden_property}, height={height}, outline_level={outline_level}, collapsed={collapsed}")
-        
         # Method 1: Direct hidden property
         if hidden_property is True:
             return True
-        
         # Method 2: Height-based hiding
         if height is not None and height <= 0.1:
             return True
-        
         # Method 3: Grouped/Outlined rows that are collapsed
         if outline_level > 0 and collapsed:
             return True
@@ -329,9 +324,6 @@ def is_column_hidden(sheet, col_idx):
         width = getattr(col_dimension, 'width', None)
         outline_level = getattr(col_dimension, 'outline_level', 0)
         collapsed = getattr(col_dimension, 'collapsed', False)
-        
-        # print(f"Col {col_letter}: hidden={hidden_property}, width={width}, outline_level={outline_level}, collapsed={collapsed}")
-        
         # Method 1: Direct hidden property
         if hidden_property is True:
             return True
@@ -492,7 +484,7 @@ def excel():
             "name": sheet.title,
             "tabColor": "",
             "hidden": 0,
-            "rowCount": max(sheet.max_row, 100),
+            # "rowCount": max(sheet.max_row, 100),
             "columnCount": sheet.max_column,
             "zoomRatio": 1,
             "freeze": freeze,
