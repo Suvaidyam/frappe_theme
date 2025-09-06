@@ -1232,7 +1232,7 @@
     "@univerjs/sheets-ui" "0.10.6"
     "@univerjs/ui" "0.10.6"
 
-"@univerjs/preset-sheets-data-validation@0.10.6":
+"@univerjs/preset-sheets-data-validation@^0.10.6", "@univerjs/preset-sheets-data-validation@0.10.6":
   version "0.10.6"
   resolved "https://registry.npmjs.org/@univerjs/preset-sheets-data-validation/-/preset-sheets-data-validation-0.10.6.tgz"
   integrity sha512-A9z9xh+8qXdsrh0PtxEelGx/zYLInkzFkI5GIp5FfqL+sc4qmh2PA7CDCErV9GricNIra4Yr7iFuJ4cFp5ESsA==
