@@ -360,6 +360,38 @@ def get_freeze_info(sheet):
     else:
         return {"startRow": -1, "startColumn": -1, "ySplit": 0, "xSplit": 0}
     
+# ======== extract_data_validations ========
+def extract_data_validations(sheet):
+    """Extract Excel data validations for UniverJS"""
+    validations = []
+
+    # Get last used row and column of the sheet
+    last_row = sheet.max_row
+    last_col = sheet.max_column
+
+    for dv in sheet.data_validations.dataValidation:
+        v = {
+            "type": dv.type,               # e.g. 'list'
+            "formula1": dv.formula1,       # '"Male,Female,Other"'
+            "allowBlank": dv.allow_blank,
+            "ranges": []
+        }
+
+        # Collect ranges for this validation
+        for sqref in dv.sqref:  
+            # Adjust endRow so it never goes beyond last used row
+            end_row = min(sqref.max_row, last_row)
+            end_col = min(sqref.max_col, last_col)
+
+            v["ranges"].append({
+                "startRow": sqref.min_row - 1,
+                "endRow": end_row - 1,
+                "startColumn": sqref.min_col - 1,
+                "endColumn": end_col - 1
+            })
+
+        validations.append(v)
+    return validations
 
 
 
@@ -367,7 +399,7 @@ def get_freeze_info(sheet):
 @frappe.whitelist(allow_guest=True)
 def excel():
     """Version optimized for UniverJS with proper column hiding/collapsing"""
-    wb = load_excel_from_private("/private/files/data.xlsx")
+    wb = load_excel_from_private("/private/files/excel_dropdown_example (4).xlsx")
     
     sheets = {}
     sheet_order = []
@@ -477,7 +509,9 @@ def excel():
  
         # ====== FREEZE PANES ======
         freeze = get_freeze_info(sheet)
- 
+
+        validations = extract_data_validations(sheet)
+
         # ====== SHEET JSON (UniverJS compatible) ======
         sheets[sheet_id] = {
             "id": sheet_id,
@@ -500,7 +534,7 @@ def excel():
             "rowHeader": {"width": 46, "hidden": 0},
             "columnHeader": {"height": 20, "hidden": 0},
             "rightToLeft": 0,
-            
+            "validations": validations,   # now Univer gets dropdown info
             # Additional metadata for custom handling
             "_hiddenColumns": sorted(list(hidden_cols_set)),
             "_hiddenRows": sorted(list(hidden_rows_set))
@@ -520,3 +554,17 @@ def excel():
         "sheets": sheets,
         "resources": [],
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+

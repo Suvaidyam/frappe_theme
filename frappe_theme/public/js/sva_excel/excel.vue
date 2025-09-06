@@ -10,7 +10,7 @@
     class="btn btn-primary btn-sm"
     @click="saveRecord"
   >
-    Save Record
+    Save Excel Record
   </button>
 </div>
 
@@ -28,7 +28,9 @@ import UniverPresetSheetsAdvancedEnUS from '@univerjs/preset-sheets-advanced/loc
 import '@univerjs/preset-sheets-core/lib/index.css'
 import '@univerjs/preset-sheets-drawing/lib/index.css'
 import '@univerjs/preset-sheets-advanced/lib/index.css'
-
+import { UniverSheetsDataValidationPreset } from '@univerjs/preset-sheets-data-validation'
+import UniverPresetSheetsDataValidationEnUS from '@univerjs/preset-sheets-data-validation/locales/en-US'
+import '@univerjs/preset-sheets-data-validation/lib/index.css'
 const container = ref(null);
 let workbookRef = null; 
 
@@ -39,7 +41,9 @@ function initUniver(container) {
       [LocaleType.EN_US]: mergeLocales(
         UniverPresetSheetsCoreEnUS,
         UniverPresetSheetsDrawingEnUS,
-        UniverPresetSheetsAdvancedEnUS
+        UniverPresetSheetsAdvancedEnUS,
+        UniverPresetSheetsDataValidationEnUS
+
       )
     },
     presets: [
@@ -53,10 +57,211 @@ function initUniver(container) {
       UniverSheetsAdvancedPreset({
         exchangeClientOptions: { enableServerSideComputing: false },
       }),
- 
+      UniverSheetsDataValidationPreset()
     ],
   })
   return { univer, univerAPI };
+}
+
+// ======= findHeaderRow =======
+function findHeaderRow(worksheet) {
+  const lastCol = worksheet.getLastColumn();
+  for (let r = 1; r < 10; r++) {
+    const firstCell = worksheet.getRange(r, 1).getValue();
+    if (firstCell) {
+      const firstValue = String(firstCell).trim();
+      if (firstValue === firstValue.toLowerCase()) {
+        let count = 0;
+        for (let c = 0; c < lastCol; c++) {
+          if (worksheet.getRange(r, c).getValue()) count++;
+        }
+        if (count >= 4) {
+          return r;
+        }
+      }
+    }
+  }
+  return 0;
+}
+
+// 🔹 Get Headers
+function getHeaders(worksheet, headerRow) {
+  const headers = {};
+  const lastCol = worksheet.getLastColumn();
+  
+  for (let c = 0; c <= lastCol; c++) {
+    const header = worksheet.getRange(headerRow, c).getValue();
+    if (header) {
+      headers[c] = String(header).trim().toLowerCase();
+    }
+  }
+  console.log(headers,'headers');
+  return headers;
+}
+// ====== prettyFieldName =======
+function prettifyFieldName(fieldName) {
+  return fieldName
+    .split("_")
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+// ====== Sheet Edit Handler ======
+// async function handleSheetUpdateOnchanges(e) {
+//   try {
+//     const { worksheet, row, column, value } = e; 
+//     const headerRow = findHeaderRow(worksheet);
+//     if (row <= headerRow) return;
+
+//     const headers = getHeaders(worksheet, headerRow);
+//     const firstCol = Math.min(...Object.keys(headers).map(k => parseInt(k)));
+//     const idValue = worksheet.getRange(row, firstCol).getValue()?.toString().trim();
+
+//     if (!idValue) {
+//       console.log("No ID found in first column");
+//       return;
+//     }
+
+//     if (column === firstCol) {
+//       worksheet.getRange(row, column).setValue(idValue);
+//       frappe.show_alert({
+//         message: "Editing ID column is not allowed",
+//         indicator: "red"
+//       }, 3);
+//       return;
+//     }
+
+//     const fieldName = headers[column];
+//     if (!fieldName) {
+//       console.log("No field name found for column:", column);
+//       return;
+//     }
+
+//     // dropdown (list validation) se aaye hue value ko event.value se lena
+//     let newValue = value;
+//     if (newValue === undefined || newValue === null || newValue === "") {
+//       // fallback: agar normal cell edit ho to getValue()
+//       newValue = worksheet.getRange(row, column).getValue() ?? "";
+//     }
+
+//     console.log(`Updating field: ${fieldName}, New Value: ${newValue}, Row ID: ${idValue}`);
+
+//     // 🔹 Backend update
+//     await frappe.call({
+//       method: "frappe.client.set_value",
+//       args: {
+//         doctype: "Excel JSON Wb",
+//         name: idValue,
+//         fieldname: { [fieldName]: newValue }
+//       }
+//     });
+
+//     const prettyField = prettifyFieldName(fieldName);
+//     frappe.show_alert({
+//       message: `Updated ${prettyField}: ${newValue}`,
+//       indicator: "green"
+//     }, 3);
+
+//   } catch (error) {
+//     console.error("Update failed:", error);
+//   }
+// }
+
+async function handleSheetUpdateOnchanges(e) {
+  try {
+    const { worksheet, row, column } = e;
+    console.log(e,'event');
+    const headerRow = findHeaderRow(worksheet);
+    if (row <= headerRow) return;
+
+    const headers = getHeaders(worksheet, headerRow);
+    const firstCol = Math.min(...Object.keys(headers).map(k => parseInt(k)));
+    const idValue = worksheet.getRange(row, firstCol).getValue()?.toString().trim();
+    if (!idValue) return;
+
+    if (column === firstCol) {
+      worksheet.getRange(row, column).setValue(idValue);
+      frappe.show_alert({ message: "Editing ID column is not allowed", indicator: "red" }, 3);
+      return;
+    }
+
+    const fieldName = headers[column];
+    if (!fieldName) return;
+
+    // 🔹 Fetch cell value robustly
+    let newValue = worksheet.getRange(row, column).getValue();
+
+    // Dropdown (DataValidation list) returns array sometimes
+    if (Array.isArray(newValue)) newValue = newValue[0];
+
+    // Convert number to string if needed
+    if (typeof newValue === 'number') newValue = newValue.toString();
+
+    if (!newValue) newValue = "";
+
+    console.log(`Updating field: ${fieldName}, New Value: ${newValue}, Row ID: ${idValue}`);
+
+    // 🔹 Backend update
+    await frappe.call({
+      method: "frappe.client.set_value",
+      args: {
+        doctype: "Excel JSON Wb",
+        name: idValue,
+        fieldname: { [fieldName]: newValue }
+      }
+    });
+
+    frappe.show_alert({
+      message: `Updated ${prettifyFieldName(fieldName)}: ${newValue}`,
+      indicator: "green"
+    }, 3);
+
+  } catch (error) {
+    console.error("Update failed:", error);
+  }
+}
+
+// ========= Data Validation =========
+function Data_Validation(api, workbookData) {
+  try {
+    const workbook = api.getActiveWorkbook();
+    const worksheet = workbook.getActiveSheet();
+    const sheetId = worksheet.getSheetId();
+    const sheetData = workbookData.sheets[sheetId];
+
+    if (!sheetData.validations || sheetData.validations.length === 0) return;
+
+    const validations = sheetData.validations;
+    const lastRow = worksheet.getLastRow(); 
+
+    validations.forEach(v => {
+      const { ranges, type, formula1, formula2 } = v;
+
+      ranges.forEach(r => {
+        const dynamicRange = {
+          startRow: r.startRow,
+          endRow: lastRow,
+          startColumn: r.startColumn,
+          endColumn: r.endColumn,
+        };
+
+        const range = worksheet.getRange(dynamicRange);
+
+        if (type === "list" && formula1) {
+          let values = formula1.replace(/^"|"$/g, "").split(",").map(val => val.trim());
+          const rule = api.newDataValidation().requireValueInList(values).build();
+          range.setDataValidation(rule);
+        } else if (type === "numberBetween") {
+          const min = parseInt(formula1, 10) || 0;
+          const max = parseInt(formula2, 10) || 9999;
+          const rule = api.newDataValidation().requireNumberBetween(min, max).build();
+          range.setDataValidation(rule);
+        }
+      });
+    });
+  } catch (error) {
+    console.error("Validation apply error:", error);
+  }
 }
 
 // =========== onMounted ===========
@@ -95,7 +300,7 @@ onMounted(async () => {
       const lastRow = existingRows.length > 0 ? Math.max(...existingRows) : 0;
       // 🔹 Append new rows after lastRow
       records.forEach((rowObj, idx) => {
-        const excelRow = lastRow + 1 + idx; // next available row
+        const excelRow = lastRow + 1 + idx;
         headers.forEach((header, colIdx) => {
           if (!cellData[excelRow]) cellData[excelRow] = {};
           cellData[excelRow][colIdx] = { v: rowObj[header] };
@@ -104,18 +309,23 @@ onMounted(async () => {
       // Update back
       sheet.cellData = cellData;
     }
-    // 🔹 Create workbook in Univer
+    // ======= Create workbook in Univer =======
     const workbook = await univerAPI.createWorkbook(workbookData);
     console.log("Workbook created successfully with appended rows", workbookData);
-
     workbookRef = univerAPI.getActiveWorkbook();
+
+    // ======= Apply Data Validation =======
+    Data_Validation(univerAPI, workbookData);
+
+    // ======== Update event bind Onchanges ========
+    univerAPI.addEvent(univerAPI.Event.SheetDataValidationChanged, handleSheetUpdateOnchanges)
 
   } catch (error) {
     console.error("Error creating workbook:", error);
   }
 });
 
-// ========== saveRecord ==========
+// ========== SaveExcelRecord ==========
 async function saveRecord() {
   if (!workbookRef) {
     console.error("univerAPI not initialized");
@@ -257,9 +467,7 @@ async function insertOrUpdateExcelRecord(row) {
 
 function showFinalMessage() {
   if (createdCount || updatedCount) {
-    frappe.msgprint(
-      `${createdCount} record(s) created, ${updatedCount} record(s) updated successfully`
-    );
+    frappe.show_alert({ message: `${createdCount} record(s) created, ${updatedCount} record(s) updated successfully`, indicator: 'green' }, 3);
   } else {
     frappe.throw("No records were saved");
   }

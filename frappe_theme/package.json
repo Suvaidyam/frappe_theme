@@ -11,6 +11,7 @@
   "dependencies": {
     "@univerjs/preset-docs-core": "^0.10.5",
     "@univerjs/preset-sheets-advanced": "^0.10.5",
+    "@univerjs/preset-sheets-data-validation": "^0.10.6",
     "@univerjs/presets": "^0.10.5",
     "@zwight/luckyexcel": "^1.1.6",
     "chart.js": "^4.1.1",
