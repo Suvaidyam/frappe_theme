@@ -95,7 +95,7 @@ function getHeaders(worksheet, headerRow) {
       headers[c] = String(header).trim().toLowerCase();
     }
   }
-  console.log(headers,'headers');
+  // console.log(headers,'headers');
   return headers;
 }
 // ====== prettyFieldName =======
@@ -107,70 +107,19 @@ function prettifyFieldName(fieldName) {
 }
 
 // ====== Sheet Edit Handler ======
-// async function handleSheetUpdateOnchanges(e) {
-//   try {
-//     const { worksheet, row, column, value } = e; 
-//     const headerRow = findHeaderRow(worksheet);
-//     if (row <= headerRow) return;
-
-//     const headers = getHeaders(worksheet, headerRow);
-//     const firstCol = Math.min(...Object.keys(headers).map(k => parseInt(k)));
-//     const idValue = worksheet.getRange(row, firstCol).getValue()?.toString().trim();
-
-//     if (!idValue) {
-//       console.log("No ID found in first column");
-//       return;
-//     }
-
-//     if (column === firstCol) {
-//       worksheet.getRange(row, column).setValue(idValue);
-//       frappe.show_alert({
-//         message: "Editing ID column is not allowed",
-//         indicator: "red"
-//       }, 3);
-//       return;
-//     }
-
-//     const fieldName = headers[column];
-//     if (!fieldName) {
-//       console.log("No field name found for column:", column);
-//       return;
-//     }
-
-//     // dropdown (list validation) se aaye hue value ko event.value se lena
-//     let newValue = value;
-//     if (newValue === undefined || newValue === null || newValue === "") {
-//       // fallback: agar normal cell edit ho to getValue()
-//       newValue = worksheet.getRange(row, column).getValue() ?? "";
-//     }
-
-//     console.log(`Updating field: ${fieldName}, New Value: ${newValue}, Row ID: ${idValue}`);
-
-//     // 🔹 Backend update
-//     await frappe.call({
-//       method: "frappe.client.set_value",
-//       args: {
-//         doctype: "Excel JSON Wb",
-//         name: idValue,
-//         fieldname: { [fieldName]: newValue }
-//       }
-//     });
-
-//     const prettyField = prettifyFieldName(fieldName);
-//     frappe.show_alert({
-//       message: `Updated ${prettyField}: ${newValue}`,
-//       indicator: "green"
-//     }, 3);
-
-//   } catch (error) {
-//     console.error("Update failed:", error);
-//   }
-// }
-
+let isInitialLoad = true; // Flag to prevent onChange during initial load
+let lastCellValues = {};
 async function handleSheetUpdateOnchanges(e) {
   try {
+      // Skip during initial load
+    if (isInitialLoad) {
+      return;
+    }
     const { worksheet, row, column } = e;
-    console.log(e,'event');
+    if (!worksheet || row == null || column == null) return;
+
+    const cellKey = `${worksheet.getSheetId()}-${row}-${column}`;
+
     const headerRow = findHeaderRow(worksheet);
     if (row <= headerRow) return;
 
@@ -188,21 +137,21 @@ async function handleSheetUpdateOnchanges(e) {
     const fieldName = headers[column];
     if (!fieldName) return;
 
-    // 🔹 Fetch cell value robustly
+    // 🔹 Get new cell value
     let newValue = worksheet.getRange(row, column).getValue();
-
-    // Dropdown (DataValidation list) returns array sometimes
     if (Array.isArray(newValue)) newValue = newValue[0];
-
-    // Convert number to string if needed
     if (typeof newValue === 'number') newValue = newValue.toString();
-
     if (!newValue) newValue = "";
 
-    console.log(`Updating field: ${fieldName}, New Value: ${newValue}, Row ID: ${idValue}`);
+    // Compare with last saved value
+    if (lastCellValues[cellKey] === newValue) {
+      return;
+    }
+    lastCellValues[cellKey] = newValue;
+    // console.log(`Updating field: ${fieldName}, New Value: ${newValue}, Row ID: ${idValue}`);
 
-    // 🔹 Backend update
-    await frappe.call({
+    // update document
+     res = await frappe.call({
       method: "frappe.client.set_value",
       args: {
         doctype: "Excel JSON Wb",
@@ -210,16 +159,20 @@ async function handleSheetUpdateOnchanges(e) {
         fieldname: { [fieldName]: newValue }
       }
     });
-
-    frappe.show_alert({
+    if (res && res.message){
+      frappe.show_alert({
       message: `Updated ${prettifyFieldName(fieldName)}: ${newValue}`,
       indicator: "green"
     }, 3);
-
+    }
+   
+   
   } catch (error) {
     console.error("Update failed:", error);
   }
 }
+
+
 
 // ========= Data Validation =========
 function Data_Validation(api, workbookData) {
@@ -268,6 +221,7 @@ function Data_Validation(api, workbookData) {
 onMounted(async () => {
   const { univerAPI } = initUniver(container.value);
   try {
+    isInitialLoad = true;
     const testDoc = await frappe.call({
       method: "frappe.client.get_list",
       args: {
@@ -317,14 +271,88 @@ onMounted(async () => {
     // ======= Apply Data Validation =======
     Data_Validation(univerAPI, workbookData);
 
+    // Initialize lastCellValues after workbook creation
+    const worksheet = workbookRef.getActiveSheet();
+    const sheetId = worksheet.getSheetId();
+    const headerRow = findHeaderRow(worksheet);
+    const headers = getHeaders(worksheet, headerRow);
+
+    // Store initial values to prevent false change detection
+    Object.keys(headers).forEach(col => {
+      const columnIndex = parseInt(col);
+      for (let row = headerRow + 1; row <= worksheet.getLastRow(); row++) {
+        const cellKey = `${sheetId}-${row}-${columnIndex}`;
+        const cellValue = worksheet.getRange(row, columnIndex).getValue();
+        lastCellValues[cellKey] = cellValue;
+      }
+    });
+
+    // Set initial load to false after a brief delay
+    setTimeout(() => {
+      isInitialLoad = false;
+      console.log("Initial load completed - Change handler now active");
+    }, 1000);
     // ======== Update event bind Onchanges ========
-    univerAPI.addEvent(univerAPI.Event.SheetDataValidationChanged, handleSheetUpdateOnchanges)
+    univerAPI.addEvent(univerAPI.Event.SheetEditEnded, handleSheetUpdateOnchanges);
+    univerAPI.addEvent(univerAPI.Event.SheetDataValidatorStatusChanged, handleSheetUpdateOnchanges);
 
   } catch (error) {
     console.error("Error creating workbook:", error);
   }
 });
 
+// ======= insertOrUpdateExcelRecord =========
+let createdCount = 0;
+let updatedCount = 0;
+async function insertOrUpdateExcelRecord(row) {
+  try {
+    let res;
+    if (row.data) {
+      // 🔹 Update existing record
+      res = await frappe.call({
+        method: "frappe.client.set_value",
+        args: {
+          doctype: "Excel JSON Wb",
+          name: row.data,
+          fieldname: {
+            first_name: row.first_name || "",
+            last_name: row.last_name || "",
+            gender: row.gender || "",
+            age: row.age || ""
+          }
+        }
+      });
+      if (res && res.message) updatedCount++;
+    } else {
+      // 🔹 Insert new record
+      res = await frappe.call({
+        method: "frappe.client.insert",
+        args: {
+          doc: {
+            doctype: "Excel JSON Wb",
+            first_name: row.first_name || "",
+            last_name: row.last_name || "",
+            gender: row.gender || "",
+            age: row.age || ""
+          }
+        }
+      });
+      if (res && res.message) createdCount++;
+    }
+    return res.message;
+
+  } catch (err) {
+    frappe.throw(`Failed to save record. ${err.message || err}`);
+  }
+}
+// =========== showFinalMessage ===========
+function showFinalMessage() {
+  if (createdCount || updatedCount) {
+    frappe.show_alert({ message: `${createdCount} record(s) created, ${updatedCount} record(s) updated successfully`, indicator: 'green' }, 3);
+  } else {
+    frappe.throw("No records were saved");
+  }
+}
 // ========== SaveExcelRecord ==========
 async function saveRecord() {
   if (!workbookRef) {
@@ -420,58 +448,6 @@ async function saveRecord() {
   return allResults;
 }
 
-// ======= insertOrUpdateExcelRecord =========
-let createdCount = 0;
-let updatedCount = 0;
-async function insertOrUpdateExcelRecord(row) {
-  try {
-    let res;
-    if (row.data) {
-      // 🔹 Update existing record
-      res = await frappe.call({
-        method: "frappe.client.set_value",
-        args: {
-          doctype: "Excel JSON Wb",
-          name: row.data,
-          fieldname: {
-            first_name: row.first_name || "",
-            last_name: row.last_name || "",
-            gender: row.gender || "",
-            age: row.age || ""
-          }
-        }
-      });
-      if (res && res.message) updatedCount++;
-    } else {
-      // 🔹 Insert new record
-      res = await frappe.call({
-        method: "frappe.client.insert",
-        args: {
-          doc: {
-            doctype: "Excel JSON Wb",
-            first_name: row.first_name || "",
-            last_name: row.last_name || "",
-            gender: row.gender || "",
-            age: row.age || ""
-          }
-        }
-      });
-      if (res && res.message) createdCount++;
-    }
-    return res.message;
-
-  } catch (err) {
-    frappe.throw(`Failed to save record. ${err.message || err}`);
-  }
-}
-
-function showFinalMessage() {
-  if (createdCount || updatedCount) {
-    frappe.show_alert({ message: `${createdCount} record(s) created, ${updatedCount} record(s) updated successfully`, indicator: 'green' }, 3);
-  } else {
-    frappe.throw("No records were saved");
-  }
-}
 
 
 </script>
