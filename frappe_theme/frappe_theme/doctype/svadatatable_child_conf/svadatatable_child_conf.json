@@ -48,7 +48,7 @@
   },
   {
    "fieldname": "crud_permissions",
-   "fieldtype": "JSON",
+   "fieldtype": "Code",
    "label": "Crud Permissions",
    "max_height": "4rem",
    "options": "JSON",
@@ -142,7 +142,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-08-01 18:33:49.728140",
+ "modified": "2025-09-05 13:21:07.476847",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "SVADatatable Child Conf",
