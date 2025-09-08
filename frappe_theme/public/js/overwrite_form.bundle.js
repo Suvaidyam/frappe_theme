@@ -118,7 +118,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 	}
 	async custom_refresh(frm) {
 		try {
-			cur_frm.page.add_menu_item(__("Export Excel"),() => {
+			frm.page.add_menu_item(__("Export Excel"),() => {
 				try {
 					let url = `/api/method/frappe_theme.apis.export_json.export_excel?doctype=${frm.doctype}&docname=${frm.docname}`;
 					window.open(url);
