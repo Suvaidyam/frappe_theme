@@ -51,7 +51,7 @@ function initUniver(container) {
         container: container,
         header: false,     
         toolbar: false,    
-        footer: false,     
+        footer: true,     
         contextMenu: true,
       }),
       UniverSheetsAdvancedPreset({
@@ -172,8 +172,6 @@ async function handleSheetUpdateOnchanges(e) {
   }
 }
 
-
-
 // ========= Data Validation =========
 function Data_Validation(api, workbookData) {
   try {
@@ -216,7 +214,16 @@ function Data_Validation(api, workbookData) {
     console.error("Validation apply error:", error);
   }
 }
-
+// ======= Hide "Edit" Button in dropdown =======
+const edit_btn_dropdown = new MutationObserver(() => {
+    document.querySelectorAll(".univer-box-border a.univer-block").forEach((el) => {
+        if (el.textContent.trim() === "Edit") {
+            el.style.display = "none";
+        }
+    });
+});
+edit_btn_dropdown.observe(document.body, { childList: true, subtree: true });
+ 
 // =========== onMounted ===========
 onMounted(async () => {
   const { univerAPI } = initUniver(container.value);
