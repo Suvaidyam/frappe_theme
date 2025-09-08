@@ -118,20 +118,14 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 	}
 	async custom_refresh(frm) {
 		try {
-			console.log("Custom refresh executed");
-			frm.add_custom_button(
-				__("Export Excel"),
-				() => {
-					try {
-						let url = `/api/method/frappe_theme.apis.export_json.export_excel?doctype=${frm.doctype}&docname=${frm.docname}`;
-						window.open(url);
-					} catch (e) {
-						console.error(e);
-					}
-				},
-				""
-			);
-
+			frm.page.add_menu_item(__("Export Excel"),() => {
+				try {
+					let url = `/api/method/frappe_theme.apis.export_json.export_excel?doctype=${frm.doctype}&docname=${frm.docname}`;
+					window.open(url);
+				} catch (e) {
+					console.error(e);
+				}
+			});
 			setupFieldComments(frm);
 			this.goToCommentButton(frm);
 			if (frm.doctype == "DocType") {
