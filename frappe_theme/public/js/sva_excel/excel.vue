@@ -31,6 +31,7 @@ import '@univerjs/preset-sheets-advanced/lib/index.css'
 import { UniverSheetsDataValidationPreset } from '@univerjs/preset-sheets-data-validation'
 import UniverPresetSheetsDataValidationEnUS from '@univerjs/preset-sheets-data-validation/locales/en-US'
 import '@univerjs/preset-sheets-data-validation/lib/index.css'
+
 const container = ref(null);
 let workbookRef = null; 
 
@@ -95,9 +96,10 @@ function getHeaders(worksheet, headerRow) {
       headers[c] = String(header).trim().toLowerCase();
     }
   }
-  // console.log(headers,'headers');
+  // console.log('=== headers ====',headers)
   return headers;
 }
+
 // ====== prettyFieldName =======
 function prettifyFieldName(fieldName) {
   return fieldName
@@ -148,7 +150,6 @@ async function handleSheetUpdateOnchanges(e) {
       return;
     }
     lastCellValues[cellKey] = newValue;
-    // console.log(`Updating field: ${fieldName}, New Value: ${newValue}, Row ID: ${idValue}`);
 
     // update document
      res = await frappe.call({
@@ -166,54 +167,11 @@ async function handleSheetUpdateOnchanges(e) {
     }, 3);
     }
    
-   
   } catch (error) {
     console.error("Update failed:", error);
   }
 }
 
-// ========= Data Validation =========
-function Data_Validation(api, workbookData) {
-  try {
-    const workbook = api.getActiveWorkbook();
-    const worksheet = workbook.getActiveSheet();
-    const sheetId = worksheet.getSheetId();
-    const sheetData = workbookData.sheets[sheetId];
-
-    if (!sheetData.validations || sheetData.validations.length === 0) return;
-
-    const validations = sheetData.validations;
-    const lastRow = worksheet.getLastRow(); 
-
-    validations.forEach(v => {
-      const { ranges, type, formula1, formula2 } = v;
-
-      ranges.forEach(r => {
-        const dynamicRange = {
-          startRow: r.startRow,
-          endRow: lastRow,
-          startColumn: r.startColumn,
-          endColumn: r.endColumn,
-        };
-
-        const range = worksheet.getRange(dynamicRange);
-
-        if (type === "list" && formula1) {
-          let values = formula1.replace(/^"|"$/g, "").split(",").map(val => val.trim());
-          const rule = api.newDataValidation().requireValueInList(values).build();
-          range.setDataValidation(rule);
-        } else if (type === "numberBetween") {
-          const min = parseInt(formula1, 10) || 0;
-          const max = parseInt(formula2, 10) || 9999;
-          const rule = api.newDataValidation().requireNumberBetween(min, max).build();
-          range.setDataValidation(rule);
-        }
-      });
-    });
-  } catch (error) {
-    console.error("Validation apply error:", error);
-  }
-}
 // ======= Hide "Edit" Button in dropdown =======
 const edit_btn_dropdown = new MutationObserver(() => {
     document.querySelectorAll(".univer-box-border a.univer-block").forEach((el) => {
@@ -223,17 +181,169 @@ const edit_btn_dropdown = new MutationObserver(() => {
     });
 });
 edit_btn_dropdown.observe(document.body, { childList: true, subtree: true });
- 
+
+// ========== Get field metadata and options dynamically ==========
+async function getFieldValidationData(doctypeName) {
+  try {
+    const res = await frappe.call({
+      method: "frappe.desk.form.load.getdoctype",
+      args: {
+        doctype: doctypeName
+      }
+    });
+
+    if (!res || !res.docs || !res.docs[0]) {
+      console.error("No metadata found for doctype:", doctypeName);
+      return {};
+    }
+
+    const fieldValidations = {};
+    
+    for (const field of res.docs[0].fields) {
+      const fieldname = field.fieldname;
+      
+      // Handle Link fields
+      if (field.fieldtype === 'Link' && field.options) {
+        try {
+          const linkRes = await frappe.call({
+            method: "frappe.client.get_list",
+            args: {
+              doctype: field.options,
+              fields: ["name"],
+              limit_page_length: 100
+            }
+          });
+          fieldValidations[fieldname] = {
+            type: 'list',
+            options: linkRes.message?.map(item => item.name) || []
+          };
+        } catch (err) {
+          console.warn(`Failed to fetch options for ${fieldname}:`, err);
+        }
+      }
+      
+      // Handle Select fields
+      else if (field.fieldtype === 'Select' && field.options) {
+        const selectOptions = field.options.split('\n').filter(opt => opt.trim());
+        fieldValidations[fieldname] = {
+          type: 'list',
+          options: selectOptions
+        };
+      }
+      
+      // Handle Int/Float with validation
+      else if (field.fieldtype === 'Int' || field.fieldtype === 'Float') {
+        fieldValidations[fieldname] = {
+          type: 'number',
+          min: field.min_value || 0,
+          max: field.max_value || 999999
+        };
+      }
+      
+      // Handle Check fields
+      else if (field.fieldtype === 'Check') {
+        fieldValidations[fieldname] = {
+          type: 'list',
+          options: ['0', '1', 'Yes', 'No', 'True', 'False']
+        };
+      }
+      
+    }
+
+    // console.log("Field validations prepared:", fieldValidations);
+    return fieldValidations;
+    
+  } catch (err) {
+    console.error("Error fetching field metadata:", err);
+    return {};
+  }
+}
+// =============== Data_Validation ==================
+async function Data_Validation(api, worksheet, headers, headerRow) {
+  try {
+    // Get all field validation data
+    const fieldValidations = await getFieldValidationData("Excel JSON Wb");
+    
+    if (Object.keys(fieldValidations).length === 0) {
+      console.log("No validation rules found");
+      return;
+    }
+
+    const lastRow = worksheet.getLastRow();
+    
+    // Apply validation for each header that matches a field
+    Object.entries(headers).forEach(([colIndex, headerName]) => {
+      const fieldValidation = fieldValidations[headerName];
+      
+      if (!fieldValidation) {
+        // console.log(`No validation found for field: ${headerName}`);
+        return;
+      }
+
+      const columnIndex = parseInt(colIndex);
+      
+      try {
+        const range = worksheet.getRange({
+          startRow: headerRow + 1,
+          endRow: lastRow,
+          startColumn: columnIndex,
+          endColumn: columnIndex,
+        });
+
+        let rule = null;
+
+        // Apply different validation types
+        switch (fieldValidation.type) {
+          case 'list':
+            if (fieldValidation.options && fieldValidation.options.length > 0) {
+              rule = api.newDataValidation()
+                .requireValueInList(fieldValidation.options)
+                .build();
+            }
+            break;
+            
+          case 'number':
+            rule = api.newDataValidation()
+              .requireNumberBetween(
+                fieldValidation.min || 0, 
+                fieldValidation.max || 999999
+              )
+              .build();
+            break;
+            
+          case 'date':
+            rule = api.newDataValidation()
+              .requireDate()
+              .build();
+            break;
+        }
+
+        if (rule) {
+          range.setDataValidation(rule);
+          // console.log(`Applied ${fieldValidation.type} validation to ${headerName}:`, fieldValidation.options || `${fieldValidation.min}-${fieldValidation.max}`);
+        }
+        
+      } catch (err) {
+        console.error(`Error applying validation to ${headerName}:`, err);
+      }
+    });
+    
+  } catch (error) {
+    console.error("validation error:", error);
+  }
+}
+
 // =========== onMounted ===========
 onMounted(async () => {
   const { univerAPI } = initUniver(container.value);
   try {
     isInitialLoad = true;
+
     const testDoc = await frappe.call({
       method: "frappe.client.get_list",
       args: {
         doctype: "Excel JSON Wb",
-        fields: ["name","first_name", "last_name", "gender", "age"],
+        fields: ["name","first_name", "last_name", "gender", "age","dob"],
         order_by: "creation asc",
         limit_page_length: 100
       }
@@ -275,14 +385,14 @@ onMounted(async () => {
     console.log("Workbook created successfully with appended rows", workbookData);
     workbookRef = univerAPI.getActiveWorkbook();
 
-    // ======= Apply Data Validation =======
-    Data_Validation(univerAPI, workbookData);
-
     // Initialize lastCellValues after workbook creation
     const worksheet = workbookRef.getActiveSheet();
     const sheetId = worksheet.getSheetId();
     const headerRow = findHeaderRow(worksheet);
     const headers = getHeaders(worksheet, headerRow);
+
+    // ======= Apply Dynamic Data Validation =======
+    await Data_Validation(univerAPI, worksheet, headers, headerRow);
 
     // Store initial values to prevent false change detection
     Object.keys(headers).forEach(col => {
@@ -314,18 +424,22 @@ let updatedCount = 0;
 async function insertOrUpdateExcelRecord(row) {
   try {
     let res;
-    if (row.data) {
+    const firstKey = Object.keys(row)[0];
+    const rowId = row[firstKey];
+    console.log(rowId,'rowId');
+    if (rowId) {
       // 🔹 Update existing record
       res = await frappe.call({
         method: "frappe.client.set_value",
         args: {
           doctype: "Excel JSON Wb",
-          name: row.data,
+          name:rowId,
           fieldname: {
             first_name: row.first_name || "",
             last_name: row.last_name || "",
             gender: row.gender || "",
-            age: row.age || ""
+            age: row.age || "",
+            dob: row.dob || ""
           }
         }
       });
@@ -340,7 +454,8 @@ async function insertOrUpdateExcelRecord(row) {
             first_name: row.first_name || "",
             last_name: row.last_name || "",
             gender: row.gender || "",
-            age: row.age || ""
+            age: row.age || "",
+            dob: row.dob || ""
           }
         }
       });
@@ -352,21 +467,23 @@ async function insertOrUpdateExcelRecord(row) {
     frappe.throw(`Failed to save record. ${err.message || err}`);
   }
 }
+
 // =========== showFinalMessage ===========
 function showFinalMessage() {
   if (createdCount || updatedCount) {
     frappe.show_alert({ message: `${createdCount} record(s) created, ${updatedCount} record(s) updated successfully`, indicator: 'green' }, 3);
   } else {
-    frappe.throw("No records were saved");
+    frappe.throw("No records saved");
   }
 }
+
 // ========== SaveExcelRecord ==========
 async function saveRecord() {
   if (!workbookRef) {
     console.error("univerAPI not initialized");
     return;
   }
-  // 1 Workbook ko JSON me save karo
+  // 1 Workbook of JSON save
   const workbookJson = workbookRef.save();
   const sheetsData = workbookJson.sheets;
   let allResults = [];
@@ -455,8 +572,6 @@ async function saveRecord() {
   return allResults;
 }
 
-
-
 </script>
 
 <style scoped>
@@ -477,10 +592,3 @@ async function saveRecord() {
   background-color: #45a049;
 }
 </style>
-
-
-
-
-
-
-
