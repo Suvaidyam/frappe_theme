@@ -2,26 +2,20 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on('SVAFixture', {
-    export: function(frm) {
-        frappe.prompt(
-            [
-                {
-                    fieldtype: "Check",
-                    fieldname: "with_permissions",
-                    label: __("Include Permissions"),
-                    default: 0
-                }
-            ],
-            function (data) {
+
+    // -------------------- Export Button --------------------
+    export: function (frm) {
+        frappe.confirm(
+            'Are you sure you want to export fixtures?',
+            () => {
                 frappe.call({
-                    method: "frappe_theme.api.download_customizations",
+                    method: "frappe_theme.api.export_fixture_single_doctype",
                     args: {
-                        doctype: frm.doc.ref_doctype,
-                        with_permissions: data.with_permissions ? 1 : 0
+                        docname: frm.doc.name
                     },
                     callback: function (r) {
                         if (r.message) {
-                            const filename = `${frm.doc.ref_doctype}_custom.json`;
+                            const filename = `${frm.doc.ref_doctype || 'fixture'}_data.json`;
                             const blob = new Blob([r.message], { type: "application/json" });
                             const link = document.createElement("a");
                             link.href = URL.createObjectURL(blob);
@@ -29,29 +23,26 @@ frappe.ui.form.on('SVAFixture', {
                             document.body.appendChild(link);
                             link.click();
                             document.body.removeChild(link);
-                            frappe.msgprint(__('Customizations downloaded successfully!'));
+                            frappe.show_alert({
+                                message: __('Fixtures exported successfully'),
+                                indicator: 'green'
+                            });
                         } else {
-                            frappe.msgprint(__('No data found to download.'));
+                            frappe.msgprint(__('No data found.'));
                         }
                     }
                 });
-            },
-            __("Download Options"),
-            __("Download")
-        );
+            });
     },
-    import: function(frm) {
-        if (!frm.doc.ref_doctype) {
-            frappe.msgprint(__('Please select a Reference DocType first before importing customizations.'));
-            return;
-        }
 
+    // -------------------- Import Button --------------------
+    import: function (frm) {
         frappe.prompt(
             [
                 {
                     fieldtype: "Attach",
                     fieldname: "import_file",
-                    label: __("Select Customization JSON File"),
+                    label: __("Select Fixture JSON File"),
                     reqd: 1,
                     options: {
                         restrictions: {
@@ -61,20 +52,28 @@ frappe.ui.form.on('SVAFixture', {
                 }
             ],
             function (data) {
+                const file_url = data.import_file;
+                if (!file_url) {
+                    frappe.msgprint(__('No file selected.'));
+                    return;
+                }
                 frappe.call({
-                    method: "frappe_theme.api.import_customizations",
+                    method: "frappe_theme.api.import_fixture_single_doctype",
                     args: {
-                        file_url: data.import_file,
-                        target_doctype: frm.doc.ref_doctype
+                        file_url: file_url,
+                        fixture_name: frm.doc.name
                     },
                     freeze: true,
-                    freeze_message: __("Importing customizations..."),
-                    callback: function (r) {
-                        if (!r.exc) {
-                            frappe.msgprint(__('Customizations imported successfully!'));
-                            frm.reload_doc(); // Refresh current document without site reload popup
+                    freeze_message: __("Importing fixtures..."),
+                    callback: function (res) {
+                        if (res.message.status === "success") {
+                            frappe.show_alert({
+                                message: __('Fixtures imported successfully'),
+                                indicator: 'green'
+                            });
+                            frm.reload_doc();
                         } else {
-                            frappe.msgprint(__('Failed to import customizations. Check error logs.'));
+                            frappe.msgprint(__('Failed to import fixtures: ') + res.message.message);
                         }
                     }
                 });
@@ -83,6 +82,5 @@ frappe.ui.form.on('SVAFixture', {
             __("Import")
         );
     }
+
 });
-
-
