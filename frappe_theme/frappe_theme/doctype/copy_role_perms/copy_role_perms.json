@@ -5,6 +5,7 @@
  "engine": "InnoDB",
  "field_order": [
   "perms_type",
+  "apps",
   "role_from",
   "column_break_hcbw",
   "role_to",
@@ -49,12 +50,19 @@
    "label": "Perms Type",
    "options": "Get & Update Perms\nCreate Perms",
    "reqd": 1
+  },
+  {
+   "depends_on": "eval: doc.perms_type!==\"Get & Update Perms\"",
+   "fieldname": "apps",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Apps"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-09-01 13:06:15.022116",
+ "modified": "2025-09-12 18:03:47.146718",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Copy Role Perms",

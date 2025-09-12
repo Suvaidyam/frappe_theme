@@ -89,7 +89,18 @@ def apply_common_permissions(doc, perms):
     all_fields = ['select', 'read', 'write', 'create', 
                   'amend', 'report', 'export',  'share', 'print', 'email']
     for field in all_fields:
-        setattr(doc, field, perms.get(field, 0))
+        setattr(doc, field, perms.get(field, 0))        
+        
+ 
+        
+@frappe.whitelist()
+def get_app_list():
+    return frappe.get_installed_apps()
+
+@frappe.whitelist()
+def get_all_doctypes(app):
+    module=frappe.db.get_value("Module Def", {"app_name": app}, "name")
+    return frappe.get_all("DocType", filters={"module": module}, fields=["name"])
 
 
 class CopyRolePerms(Document):
