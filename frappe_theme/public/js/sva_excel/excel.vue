@@ -52,7 +52,7 @@ function initUniver(container) {
         container: container,
         header: false,     
         toolbar: false,    
-        footer: true,     
+        footer: false,     
         contextMenu: true,
       }),
       UniverSheetsAdvancedPreset({
@@ -285,7 +285,7 @@ async function Data_Validation(api, worksheet, headers, headerRow) {
       try {
         const range = worksheet.getRange({
           startRow: headerRow + 1,
-          endRow: lastRow,
+          endRow: "10000",
           startColumn: columnIndex,
           endColumn: columnIndex,
         });
