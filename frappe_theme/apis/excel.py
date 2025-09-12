@@ -399,7 +399,7 @@ def extract_data_validations(sheet):
 @frappe.whitelist(allow_guest=True)
 def excel():
     """Version optimized for UniverJS with proper column hiding/collapsing"""
-    wb = load_excel_from_private("/private/files/excel_dropdown_example (4).xlsx")
+    wb = load_excel_from_private("/private/files/Veha.xlsx")
     
     sheets = {}
     sheet_order = []
