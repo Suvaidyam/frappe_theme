@@ -581,7 +581,11 @@ class SVATimelineGenerator {
                 versions.forEach(item => {
                     let changes = [];
                     try {
-                        changes = JSON.parse(item.changed);
+                        if (typeof item.changed === 'string') {
+                            changes = JSON.parse(item.changed);
+                        }else{
+                            changes = item.changed;
+                        }
                     } catch (error) {
                         console.error("Error parsing 'changed' field:", error);
                     }
