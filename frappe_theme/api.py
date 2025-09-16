@@ -220,6 +220,10 @@ def get_versions(dt, dn, page_length, start, filters=None):
     if isinstance(filters, str):
         filters = json.loads(filters)
 
+    # ✅ Ensure integers for LIMIT/OFFSET
+    page_length = int(page_length or 20)
+    start = int(start or 0)
+
     conditions = ["ver.ref_doctype = %(dt)s", "ver.docname = %(dn)s"]
     params = {"dt": dt, "dn": dn, "page_length": page_length, "start": start}
 
@@ -232,7 +236,7 @@ def get_versions(dt, dn, page_length, start, filters=None):
             params["doctype"] = filters["doctype"]
 
         if filters.get("owner"):
-            conditions.append("usr.full_name ILIKE %(owner)s")
+            conditions.append("usr.full_name LIKE %(owner)s")
             params["owner"] = filters["owner"] + "%"
 
     where_clause = " AND ".join(conditions)
@@ -254,7 +258,6 @@ def get_versions(dt, dn, page_length, start, filters=None):
         ORDER BY ver.creation DESC
         LIMIT %(page_length)s OFFSET %(start)s
     """
-
     rows = frappe.db.sql(sql, params, as_dict=True)
 
     # 🔄 Post-process JSON changes in Python
@@ -293,8 +296,6 @@ def get_versions(dt, dn, page_length, start, filters=None):
         })
 
     return results
-
-
 
 @frappe.whitelist()
 def get_timeline_dt(dt, dn):
