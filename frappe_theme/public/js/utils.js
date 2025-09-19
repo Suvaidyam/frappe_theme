@@ -199,15 +199,14 @@ async function downloadTemplate(api_method, is_existing_file = false, is_downloa
         if (is_existing_file) {
             if (api_method) {
                 let a = document.createElement('a');
-                let extension = api_method.split('.').pop();
+                let fileName = api_method.split('/').pop();
+                
                 a.href = api_method;
-                a.download = `${api_method.split('/').pop()}.${extension}`;
-                // console.log(`${api_method.split('/').pop()}.${extension}`, '///////////////////////////', api_method);
+                a.download = fileName;
 
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
-                window.URL.revokeObjectURL(api_method);
             }
             else {
                 console.error('file path is not provided')
