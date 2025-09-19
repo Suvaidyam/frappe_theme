@@ -1,570 +1,838 @@
-import frappe
-from openpyxl import load_workbook, Workbook
-import frappe
-import io
-import os
-import json
-import uuid 
-import datetime
-from openpyxl.utils.cell import get_column_letter,coordinate_from_string, column_index_from_string
+import frappe,uuid
+
+# # def get_doctype_metadata(doctype_name):
+# #     try:
+# #         doctype_doc = frappe.get_doc("DocType", doctype_name)
+# #         fields, headers = [], []
+
+# #         for field in doctype_doc.fields:
+# #             if field.fieldtype not in ['Section Break', 'Column Break', 'Tab Break', 'HTML']:
+# #                 field_info = {
+# #                     'fieldname': field.fieldname,
+# #                     'label': field.label or field.fieldname,
+# #                     'fieldtype': field.fieldtype,
+# #                     'options': field.options or '',  # For Link / Select / Table
+# #                     'reqd': field.reqd,
+# #                     'read_only': field.read_only,
+# #                     'hidden': field.hidden,
+# #                     'default': field.default or '',
+# #                     'width': field.width or 100
+# #                 }
+# #                 fields.append(field_info)
+
+# #                 # ✅ Skip header for child table fields
+# #                 if field.fieldtype != "Table":
+# #                     headers.append(field.label or field.fieldname)
+
+# #         return fields, headers
+# #     except Exception as e:
+# #         frappe.log_error(f"Error extracting metadata: {str(e)}")
+# #         return [], []
 
 
-def load_excel_from_private(file_url):
-    file_path = os.path.join(frappe.get_site_path(), file_url.lstrip("/"))
-    if not os.path.exists(file_path):
-        frappe.throw(f"File {file_url} not found in private/files")
-    wb = load_workbook(file_path, data_only=False)
-    return wb
+# # def fetch_records_with_children(doctype_name, fields):
+# #     parent_fields = [f['fieldname'] for f in fields if f['fieldtype'] != "Table"]
+# #     child_tables = [f for f in fields if f['fieldtype'] == "Table"]
+
+# #     # ✅ Parent records
+# #     records = frappe.get_list(doctype_name, fields=parent_fields, limit=50)
+
+# #     # ✅ Attach child table data
+# #     for rec in records:
+# #         rec_name = rec.get("name")
+# #         for child in child_tables:
+# #             child_dt = child['options']  # child doctype name
+# #             try:
+# #                 child_rows = frappe.get_list(
+# #                     child_dt,
+# #                     filters={"parent": rec_name, "parenttype": doctype_name, "parentfield": child['fieldname']},
+# #                     fields=["*"]
+# #                 )
+# #             except:
+# #                 child_rows = []
+# #             rec[child['fieldname']] = child_rows
+# #     return records
 
 
-def rgb_to_hex(rgb_value):
-    """Convert RGB value to hex format"""
-    if not rgb_value:
-        return None
-    rgb_str = str(rgb_value)
-    if len(rgb_str) == 8:  # ARGB format
-        return f"#{rgb_str[2:].upper()}"
-    elif len(rgb_str) == 6:  # RGB format
-        return f"#{rgb_str.upper()}"
-    return None
+# # def create_validations(fields, row_count):
+# #     """
+# #     Create dropdowns for Select and Link fields
+# #     """
+# #     validations = []
+
+# #     for col_idx, field in enumerate(fields):
+# #         if field['fieldtype'] == "Select" and field['options']:
+# #             opts = [opt.strip() for opt in field['options'].replace(",", "\n").split("\n") if opt.strip()]
+# #             if opts:
+# #                 validations.append({
+# #                     "sqref": f"{chr(65+col_idx)}2:{chr(65+col_idx)}{row_count}",
+# #                     "type": "list",
+# #                     "formula1": ",".join(opts),
+# #                     "showDropDown": True
+# #                 })
+
+# #         elif field['fieldtype'] == "Link" and field['options']:
+# #             try:
+# #                 link_values = frappe.get_all(field['options'], fields=["name"], limit=50)
+# #                 opts = [lv['name'] for lv in link_values]
+# #             except:
+# #                 opts = []
+
+# #             if opts:
+# #                 validations.append({
+# #                     "sqref": f"{chr(65+col_idx)}2:{chr(65+col_idx)}{row_count}",
+# #                     "type": "list",
+# #                     "formula1": ",".join(opts),
+# #                     "showDropDown": True
+# #                 })
+
+# #     return validations
 
 
-def extract_complete_cell_style(cell):
-    """Extract ALL possible cell styling properties"""
-    style = {}
+# # def create_univer_json_structure(doctype_name):
+# #     fields, headers = get_doctype_metadata(doctype_name)
+# #     if not fields:
+# #         return {"error": "No fields found or doctype doesn't exist"}
 
-    # ====== FILL/BACKGROUND ======
-    if cell.fill:
-        bg_info = {}
-        if hasattr(cell.fill, 'start_color') and cell.fill.start_color:
-            if hasattr(cell.fill.start_color, 'rgb') and cell.fill.start_color.rgb:
-                bg_hex = rgb_to_hex(cell.fill.start_color.rgb)
-                if bg_hex and bg_hex != "#000000":
-                    bg_info["rgb"] = bg_hex
+# #     data_records = fetch_records_with_children(doctype_name, fields)
+# #     row_count = len(data_records) + 1
+
+# #     univer_structure = {
+# #         "id": str(uuid.uuid4()),
+# #         "name": f"{doctype_name} Workbook",
+# #         "sheetOrder": ["sheet1"],
+# #         "sheets": {
+# #             "sheet1": {
+# #                 "id": "sheet1",
+# #                 "name": doctype_name,
+# #                 "rowCount": row_count,
+# #                 "columnCount": len(headers),
+# #                 "freeze": {"xSplit": 0, "ySplit": 1, "startRow": 0, "startColumn": 0},
+# #                 "cellData": create_cell_data(headers, fields, data_records),
+# #                 "rowData": create_row_data(row_count),
+# #                 "columnData": create_column_data(fields),
+# #                 "mergeData": [],
+# #                 "rowTitle": {"width": 46, "hidden": 0},
+# #                 "columnTitle": {"height": 20, "hidden": 0},
+# #                 "showGridlines": 1,
+# #                 "rightToLeft": 0,
+# #                 "pluginMeta": {
+# #                     "dataValidation": create_validations(fields, row_count)  # ✅ Dropdowns
+# #                 }
+# #             }
+# #         },
+# #         "locale": "en",
+# #         "styles": create_styles()
+# #     }
+# #     return univer_structure
+
+
+# # def create_cell_data(headers, fields, data_records):
+# #     cell_data = {}
+# #     # Header row
+# #     cell_data["0"] = {}
+# #     non_table_fields = [f for f in fields if f['fieldtype'] != "Table"]
+
+# #     for col_idx, header in enumerate(headers):
+# #         cell_data["0"][str(col_idx)] = {"v": header, "s": "header_style", "t": 1}
+
+# #     # Data rows
+# #     for row_idx, record in enumerate(data_records, 1):
+# #         cell_data[str(row_idx)] = {}
+# #         for col_idx, field in enumerate(non_table_fields):
+# #             value = record.get(field['fieldname'], "")
+# #             cell_value, cell_type = convert_field_value(value, field['fieldtype'])
+# #             cell_data[str(row_idx)][str(col_idx)] = {"v": cell_value, "t": cell_type}
+
+# #     return cell_data
+
+
+# # def create_row_data(row_count):
+# #     return {str(i): {"h": 25, "hd": 0} for i in range(row_count)}
+
+
+# # def create_column_data(fields):
+# #     column_data = {}
+# #     non_table_fields = [f for f in fields if f['fieldtype'] != "Table"]
+
+# #     for col_idx, field in enumerate(non_table_fields):
+# #         width = field.get('width', 100)
+# #         if isinstance(width, str) and width.endswith('px'):
+# #             width = int(width.replace('px', ''))
+# #         elif isinstance(width, str):
+# #             width = 100
+# #         column_data[str(col_idx)] = {"w": width, "hd": 1 if field.get('hidden') else 0}
+# #     return column_data
+
+
+# # def create_styles():
+# #     return {
+# #         "header_style": {
+# #             "bg": {"rgb": "#E3F2FD"},
+# #             "ff": "Arial",
+# #             "fs": 11,
+# #             "bl": 1,
+# #             "ht": 2,
+# #             "vt": 2
+# #         }
+# #     }
+
+
+# # def convert_field_value(value, fieldtype):
+# #     if value is None or value == '':
+# #         return '', 1
+# #     if fieldtype in ['Int', 'Long Int', 'Check']:
+# #         try: return int(value), 2
+# #         except: return 0, 2
+# #     elif fieldtype in ['Float', 'Currency', 'Percent']:
+# #         try: return float(value), 2
+# #         except: return 0.0, 2
+# #     elif fieldtype in ['Date', 'Datetime', 'Time']:
+# #         return str(value), 1
+# #     else:
+# #         return str(value), 1
+
+
+# # @frappe.whitelist(allow_guest=True)
+# # def generate_excel_json_wb_univer():
+# #     doctype_name = "Excel JSON Wb"
+# #     try:
+# #         univer_json = create_univer_json_structure(doctype_name)
+# #         fields, headers = get_doctype_metadata(doctype_name)
+# #         records = fetch_records_with_children(doctype_name, fields)
+# #         return {
+# #             "univer_workbook": univer_json,
+# #             "metadata": {
+# #                 "doctype": doctype_name,
+# #                 "fields": fields,
+# #                 "headers": headers,
+# #                 "total_fields": len(fields),
+# #                 "records": records
+# #             }
+# #         }
+# #     except Exception as e:
+# #         frappe.log_error(f"Error generating Univer JSON: {str(e)}")
+# #         return {"error": str(e)}
+
+
+# # # # ================= Excel Import Example =================
+# # @frappe.whitelist(allow_guest=True)
+# # def get_excel_json():
+# #     # column/row counts
+# #     column_count = 100
+# #     row_count = 1000
+
+# #     # default column widths
+# #     columnData = {i: {"hd": False, "w": 60} for i in range(column_count)}
+# #     # increase widths for main headers (A-D -> indices 0..3)
+# #     columnData[0] = {"hd": False, "w": 20}
+# #     columnData[1] = {"hd": False, "w": 100}  # Budget Head
+# #     columnData[2] = {"hd": False, "w": 150}  # Sub Budget Head
+# #     columnData[3] = {"hd": False, "w": 100}  # Activity
+
+# #     workbook = {
+# #         "id": str(uuid.uuid4()),
+# #         "name": "Budget Sheet",
+# #         "sheetOrder": ["sheet-1"],
+# #         "styles": {
+# #             "year_header": {"bg": {"rgb": "#FFFF00"}, "bl": 1, "ht": 2, "vt": 2},
+# #             "unit_header": {"bg": {"rgb": "#FFC0CB"}, "bl": 1, "ht": 2, "vt": 2},
+# #             "source_header": {"bg": {"rgb": "#D9EAD3"}, "bl": 1, "ht": 2, "vt": 2},
+# #             "main_header": {"bl": 1, "ht": 2, "vt": 2,},
+# #             "quarter_header": {"bg": {"rgb": "#BD5CA8"}, "ht": 2, "vt": 2},
+# #             "total_header": {"bg": {"rgb": "#D182C0"}, "bl": 1, "ht": 2, "vt": 2},
+# #             "data_cell": {"ht": 2, "vt": 2}
+# #         },
+# #         "sheets": {
+# #             "sheet-1": {
+# #                 "id": "sheet-1",
+# #                 "name": "Budget",
+# #                 "rowCount": row_count,
+# #                 "columnCount": column_count,
+# #                 "freeze": {"xSplit": 4, "ySplit": 4, "startColumn": 4},
+# #                 "cellData": {
+# #                     "0": {
+# #                         "4": {"v": "Year 1", "s": "year_header"},
+# #                         "22": {"v": "Year 2", "s": "year_header"},
+# #                         "40": {"v": "Year 3", "s": "year_header"}
+# #                     },
+# #                      "1": {
+# #                         # Year1
+# #                         "4": {"v": "", "s": "unit_header"},
+# #                         "7": {"v": "Source 1", "s": "source_header"},
+# #                         "12": {"v": "Source 2", "s": "source_header"},
+# #                         "17": {"v": "Source 3", "s": "source_header"},
+# #                         # Year2
+# #                         "22": {"v": "", "s": "unit_header"},
+# #                         "25": {"v": "Source 1", "s": "source_header"},
+# #                         "30": {"v": "Source 2", "s": "source_header"},
+# #                         "35": {"v": "Source 3", "s": "source_header"},
+# #                         # Year3
+# #                         "40": {"v": "", "s": "unit_header"},
+# #                         "43": {"v": "Source 1", "s": "source_header"},
+# #                         "48": {"v": "Source 2", "s": "source_header"},
+# #                         "53": {"v": "Source 3", "s": "source_header"}
+# #                     },
+# #                     "2": {
+# #                         "0": {"v": "", "s": "main_header"},
+# #                         "1": {"v": "Budget Head", "s": "main_header"},
+# #                         "2": {"v": "Sub Budget Head", "s": "main_header"},
+# #                         "3": {"v": "Activity", "s": "main_header"},
+# #                         # Year1 headers
+# #                         "4": {"v": "Unit", "s": "unit_header"},
+# #                         "5": {"v": "Time", "s": "unit_header"},
+# #                         "6": {"v": "Cost", "s": "unit_header"},
+# #                         "7": {"v": "Q1", "s": "quarter_header"},
+# #                         "8": {"v": "Q2", "s": "quarter_header"},
+# #                         "9": {"v": "Q3", "s": "quarter_header"},
+# #                         "10": {"v": "Q4", "s": "quarter_header"},
+# #                         "11": {"v": "Total", "s": "total_header"},
+# #                         # extra Year1 quarters groups...
+# #                         "12": {"v": "Q1", "s": "quarter_header"},
+# #                         "13": {"v": "Q2", "s": "quarter_header"},
+# #                         "14": {"v": "Q3", "s": "quarter_header"},
+# #                         "15": {"v": "Q4", "s": "quarter_header"},
+# #                         "16": {"v": "Total", "s": "total_header"},
+# #                         "17": {"v": "Q1", "s": "quarter_header"},
+# #                         "18": {"v": "Q2", "s": "quarter_header"},
+# #                         "19": {"v": "Q3", "s": "quarter_header"},
+# #                         "20": {"v": "Q4", "s": "quarter_header"},
+# #                         "21": {"v": "Total", "s": "total_header"},
+# #                         # Year2
+# #                         "22": {"v": "Unit", "s": "unit_header"},
+# #                         "23": {"v": "Time", "s": "unit_header"},
+# #                         "24": {"v": "Cost", "s": "unit_header"},
+# #                         "25": {"v": "Q1", "s": "quarter_header"},
+# #                         "26": {"v": "Q2", "s": "quarter_header"},
+# #                         "27": {"v": "Q3", "s": "quarter_header"},
+# #                         "28": {"v": "Q4", "s": "quarter_header"},
+# #                         "29": {"v": "Total", "s": "total_header"},
+# #                         "30": {"v": "Q1", "s": "quarter_header"},
+# #                         "31": {"v": "Q2", "s": "quarter_header"},
+# #                         "32": {"v": "Q3", "s": "quarter_header"},
+# #                         "33": {"v": "Q4", "s": "quarter_header"},
+# #                         "34": {"v": "Total", "s": "total_header"},
+# #                         "35": {"v": "Q1", "s": "quarter_header"},
+# #                         "36": {"v": "Q2", "s": "quarter_header"},
+# #                         "37": {"v": "Q3", "s": "quarter_header"},
+# #                         "38": {"v": "Q4", "s": "quarter_header"},
+# #                         "39": {"v": "Total", "s": "total_header"},
+# #                         # Year3
+# #                         "40": {"v": "Unit", "s": "unit_header"},
+# #                         "41": {"v": "Time", "s": "unit_header"},
+# #                         "42": {"v": "Cost", "s": "unit_header"},
+# #                         "43": {"v": "Q1", "s": "quarter_header"},
+# #                         "44": {"v": "Q2", "s": "quarter_header"},
+# #                         "45": {"v": "Q3", "s": "quarter_header"},
+# #                         "46": {"v": "Q4", "s": "quarter_header"},
+# #                         "47": {"v": "Total", "s": "total_header"},
+# #                         "48": {"v": "Q1", "s": "quarter_header"},
+# #                         "49": {"v": "Q2", "s": "quarter_header"},
+# #                         "50": {"v": "Q3", "s": "quarter_header"},
+# #                         "51": {"v": "Q4", "s": "quarter_header"},
+# #                         "52": {"v": "Total", "s": "total_header"},
+# #                         "53": {"v": "Q1", "s": "quarter_header"},
+# #                         "54": {"v": "Q2", "s": "quarter_header"},
+# #                         "55": {"v": "Q3", "s": "quarter_header"},
+# #                         "56": {"v": "Q4", "s": "quarter_header"},
+# #                         "57": {"v": "Total", "s": "total_header"},
+# #                     },
+# #                     # Row 3 sample data (Excel row 4)
+# #                     "3": {
+# #                         "1": {"v": "Budget_Head 1", "s": "data_cell"},
+# #                         "2": {"v": "Sub_Head 1", "s": "data_cell"},
+# #                         "3": {"v": "Activity_1", "s": "data_cell"},
+# #                         # Year1 raw quarter values
+# #                         "4": {"v": "Nos", "s": "data_cell"},
+# #                         "5": {"v": "12", "s": "data_cell"},
+# #                         "6": {"v": "1000", "s": "data_cell"},
+# #                         "7": {"v": 250, "s": "data_cell"},
+# #                         "8": {"v": 300, "s": "data_cell"},
+# #                         "9": {"v": 200, "s": "data_cell"},
+# #                         "10": {"v": 250, "s": "data_cell"},
+# #                         # Year1 total (value + formula)
+# #                         "11": {"v": 250 + 300 + 200 + 250, "f": "=H4+I4+J4+K4", "s": "data_cell"},
+# #                         # Year1 other quarter group
+# #                         "12": {"v": 200, "s": "data_cell"},
+# #                         "13": {"v": 150, "s": "data_cell"},
+# #                         "14": {"v": 100, "s": "data_cell"},
+# #                         "15": {"v": 50, "s": "data_cell"},
+# #                         "16": {"v": 200 + 150 + 100 + 50, "f": "=M4+N4+O4+P4", "s": "data_cell"},
+# #                         # Year1 third quarter group
+# #                         "17": {"v": 300, "s": "data_cell"},
+# #                         "18": {"v": 200, "s": "data_cell"},
+# #                         "19": {"v": 150, "s": "data_cell"},
+# #                         "20": {"v": 100, "s": "data_cell"},
+# #                         "21": {"v": 300 + 200 + 150 + 100, "f": "=R4+S4+T4+U4", "s": "data_cell"},
+# #                         # Year2 raw quarter values
+# #                         "22": {"v": "Nos", "s": "data_cell"},
+# #                         "23": {"v": 10, "s": "data_cell"},
+# #                         "24": {"v": 900, "s": "data_cell"},
+# #                         "25": {"v": 100, "s": "data_cell"},
+# #                         "26": {"v": 200, "s": "data_cell"},
+# #                         "27": {"v": 300, "s": "data_cell"},
+# #                         "28": {"v": 400, "s": "data_cell"},
+# #                         "29": {"v": 100 + 200 + 300 + 400, "f": "=Z4+AA4+AB4+AC4", "s": "data_cell"},
+# #                         "30": {"v": 150, "s": "data_cell"},
+# #                         "31": {"v": 100, "s": "data_cell"},
+# #                         "32": {"v": 250, "s": "data_cell"},
+# #                         "33": {"v": 200, "s": "data_cell"},
+# #                         "34": {"v": 150 + 100 + 250 + 200, "f": "=AE4+AF4+AG4+AH4", "s": "data_cell"},
+# #                         "35": {"v": 200, "s": "data_cell"},
+# #                         "36": {"v": 250, "s": "data_cell"},
+# #                         "37": {"v": 150, "s": "data_cell"},
+# #                         "38": {"v": 300, "s": "data_cell"},
+# #                         "39": {"v": 200 + 250 + 150 + 300, "f": "=AJ4+AK4+AL4+AM4", "s": "data_cell"},
+# #                         # Year3 raw quarter values
+# #                         "40": {"v": "Nos", "s": "data_cell"},
+# #                         "41": {"v": 15, "s": "data_cell"},
+# #                         "42": {"v": 1100, "s": "data_cell"},
+# #                         "43": {"v": 200, "s": "data_cell"},
+# #                         "44": {"v": 150, "s": "data_cell"},
+# #                         "45": {"v": 300, "s": "data_cell"},
+# #                         "46": {"v": 350, "s": "data_cell"},
+# #                         "47": {"v": 200 + 150 + 300 + 350, "f": "=AR4+AS4+AT4+AU4", "s": "data_cell"},
+# #                         "48": {"v": 250, "s": "data_cell"},
+# #                         "49": {"v": 200, "s": "data_cell"},
+# #                         "50": {"v": 300, "s": "data_cell"},
+# #                         "51": {"v": 150, "s": "data_cell"},
+# #                         "52": {"v": 250 + 200 + 300 + 150, "f": "=AW4+AX4+AY4+AZ4", "s": "data_cell"},
+# #                         "53": {"v": 300, "s": "data_cell"},
+# #                         "54": {"v": 200, "s": "data_cell"},
+# #                         "55": {"v": 250, "s": "data_cell"},
+# #                         "56": {"v": 150, "s": "data_cell"},
+# #                         "57": {"v": 300 + 200 + 250 + 150, "f": "=BB4+BC4+BD4+BE4", "s": "data_cell"},
+# #                     }
+# #                 },
+# #                 "mergeData": [
+# #                 # Main header merge (row 0 aur 1)
+# #                 {"startRow": 0, "endRow": 1, "startColumn": 1, "endColumn": 1},   # Budget Head
+# #                 {"startRow": 0, "endRow": 1, "startColumn": 2, "endColumn": 2},   # Sub Budget Head
+# #                 {"startRow": 0, "endRow": 1, "startColumn": 3, "endColumn": 3},   # Activity
+# #                 # Year headers
+# #                 {"startRow": 0, "endRow": 0, "startColumn": 4, "endColumn": 21},
+# #                 {"startRow": 0, "endRow": 0, "startColumn": 22, "endColumn": 39},
+# #                 {"startRow": 0, "endRow": 0, "startColumn": 40, "endColumn": 57},
+# #                 # Unit/Time/Cost merge (each year)
+# #                 {"startRow": 1, "endRow": 1, "startColumn": 4, "endColumn": 6},
+# #                 {"startRow": 1, "endRow": 1, "startColumn": 22, "endColumn": 24},
+# #                 {"startRow": 1, "endRow": 1, "startColumn": 40, "endColumn": 42},
+# #                 # Sources merge
+# #                 {"startRow": 1, "endRow": 1, "startColumn": 7, "endColumn": 11},
+# #                 {"startRow": 1, "endRow": 1, "startColumn": 12, "endColumn": 16},
+# #                 {"startRow": 1, "endRow": 1, "startColumn": 17, "endColumn": 21},
+# #                 {"startRow": 1, "endRow": 1, "startColumn": 25, "endColumn": 29},
+# #                 {"startRow": 1, "endRow": 1, "startColumn": 30, "endColumn": 34},
+# #                 {"startRow": 1, "endRow": 1, "startColumn": 35, "endColumn": 39},
+# #                 {"startRow": 1, "endRow": 1, "startColumn": 43, "endColumn": 47},
+# #                 {"startRow": 1, "endRow": 1, "startColumn": 48, "endColumn": 52},
+# #                 {"startRow": 1, "endRow": 1, "startColumn": 53, "endColumn": 57}
+# #                 ],
+# #                 "columnData": columnData,
+# #                 "rowData": {i: {"hd": False, "h": 25} for i in range(row_count)}
+# #             }
+# #         }
+# #     }
+
+# #     return workbook
+
+
+# @frappe.whitelist(allow_guest=True)
+# def get_excel_json(project_name=None):
+#     if not project_name:
+#         frappe.throw("Project name is required")
+
+#     project = frappe.get_doc("Project", project_name)
+
+#     # --- Dynamic Years ---
+#     years = [row.year for row in project.annual_project]
+
+#     # --- Dynamic Quarters (grouped by year) ---
+#     quarters_by_year = {}
+#     for row in project.quaterly_project:
+#         year = row.year
+#         if year not in quarters_by_year:
+#             quarters_by_year[year] = []
+#         quarters_by_year[year].append(row.timespan)
+
+#     # --- Dynamic Sources ---
+#     sources = []
+#     if project.donor_name:
+#         sources.append(project.donor_name)
+
+#     if project.other_fund_sources:
+#         for row in project.other_fund_sources:
+#             fund_sources_title = frappe.get_value("Fund Sources Child", row.name, 'fund_sources_title')
+#             if fund_sources_title:
+#                 sources.append(fund_sources_title)
+
+#     # --- Counts ---
+#     column_count = 100
+#     row_count = 1000
+
+#     # --- Default Column Widths ---
+#     columnData = {i: {"hd": False, "w": 100} for i in range(column_count)}
+#     columnData[0] = {"hd": False, "w": 20}   # ID / Sl No
+#     columnData[1] = {"hd": False, "w": 100}  # Budget Head
+#     columnData[2] = {"hd": False, "w": 150}  # Sub Budget Head
+#     columnData[3] = {"hd": False, "w": 90}  # Activity
+
+#     workbook = {
+#         "id": str(uuid.uuid4()),
+#         "name": f"Budget Sheet - {project.project_name}",
+#         "sheetOrder": ["sheet-1"],
+#         "styles": {
+#             "year_header": {"bg": {"rgb": "#FFFF00"}, "bl": 1, "ht": 2, "vt": 2, "wrapText": True},
+#             "unit_header": {"bg": {"rgb": "#FFC0CB"}, "bl": 1, "ht": 2, "vt": 2, "wrapText": True},
+#             "source_header": {"bg": {"rgb": "#D9EAD3"}, "bl": 1, "ht": 2, "vt": 2, "wrapText": True},
+#             "main_header": {"bl": 1, "ht": 2, "vt": 2, "wrapText": True},
+#             "quarter_header": {"bg": {"rgb": "#BD5CA8"}, "ht": 2, "vt": 2, "wrapText": True},
+#             "total_header": {"bg": {"rgb": "#D182C0"}, "bl": 1, "ht": 2, "vt": 2, "wrapText": True},
+#             "data_cell": {"ht": 2, "vt": 2, "wrapText": True}
+#         },
+#         "sheets": {
+#             "sheet-1": {
+#                 "id": "sheet-1",
+#                 "name": project.project_name,
+#                 "rowCount": row_count,
+#                 "columnCount": column_count,
+#                 "freeze": {"xSplit": 4, "ySplit": 4, "startColumn": 4},
+#                 "cellData": {},
+#                 "mergeData": [],
+#                 "columnData": columnData,
+#                 "rowData": {i: {"hd": False, "h": 25} for i in range(row_count)}
+#             }
+#         }
+#     }
+
+#     sheet = workbook["sheets"]["sheet-1"]
+
+#     # --- Base headers (row 2) ---
+#     sheet["cellData"]["2"] = {
+#         "0": {"v": "", "s": "main_header"},
+#         "1": {"v": "Budget Head", "s": "main_header"},
+#         "2": {"v": "Sub Budget Head", "s": "main_header"},
+#         "3": {"v": "Activity", "s": "main_header"},
+#     }
+
+#     sheet["cellData"]["0"] = {}
+#     sheet["cellData"]["1"] = {}
+#     sheet["cellData"]["3"] = {}
+
+#     col_index = 4
+
+#     # --- Fill Years Dynamically ---
+#     for year in years:
+#         year_quarters = quarters_by_year.get(year, [])
+#         year_start = col_index
+
+#         # Year header
+#         sheet["cellData"]["0"][str(col_index)] = {"v": year, "s": "year_header"}
+#         year_block = 3 + len(sources) * len(year_quarters) + 1  # +1 for single Total column
+#         sheet["mergeData"].append({
+#             "startRow": 0, "endRow": 0,
+#             "startColumn": year_start,
+#             "endColumn": year_start + year_block - 1
+#         })
+
+#         # Unit/Time/Cost
+#         sheet["cellData"]["2"][str(col_index)] = {"v": "Unit", "s": "unit_header"}
+#         sheet["cellData"]["2"][str(col_index + 1)] = {"v": "Time", "s": "unit_header"}
+#         sheet["cellData"]["2"][str(col_index + 2)] = {"v": "Cost", "s": "unit_header"}
+#         sheet["mergeData"].append({
+#             "startRow": 1, "endRow": 1,
+#             "startColumn": year_start,
+#             "endColumn": year_start + 2
+#         })
+#         sheet["cellData"]["1"][str(year_start)] = {"v": "", "s": "unit_header"}
+#         col_index += 3
+
+#         # --- Sources ---
+#         for source in sources:
+#             source_start = col_index
+#             sheet["cellData"]["1"][str(source_start)] = {"v": source, "s": "source_header"}
+
+#             # Merge across quarters only
+#             sheet["mergeData"].append({
+#                 "startRow": 1, "endRow": 1,
+#                 "startColumn": source_start,
+#                 "endColumn": source_start + len(year_quarters) - 1
+#             })
+
+#             # Quarters row
+#             for q in year_quarters:
+#                 sheet["cellData"]["2"][str(col_index)] = {"v": q, "s": "quarter_header"}
+#                 col_index += 1
+
+#         # --- Single Total column after all sources ---
+#         sheet["cellData"]["1"][str(col_index)] = {"v": "", "s": "source_header"}  # Extend source color
+#         sheet["cellData"]["2"][str(col_index)] = {"v": "Total", "s": "total_header"}
+#         col_index += 1
         
-        # Pattern type
-        if hasattr(cell.fill, 'fill_type') and cell.fill.fill_type:
-            bg_info["pattern"] = cell.fill.fill_type
-            
-        # Gradient fills
-        if hasattr(cell.fill, 'end_color') and cell.fill.end_color:
-            if hasattr(cell.fill.end_color, 'rgb') and cell.fill.end_color.rgb:
-                end_hex = rgb_to_hex(cell.fill.end_color.rgb)
-                if end_hex:
-                    bg_info["endColor"] = end_hex
-        
-        if bg_info:
-            style["bg"] = bg_info
-
-    # ====== FONT PROPERTIES ======
-    if cell.font:
-        font_info = {}
-        
-        # Font color
-        if cell.font.color and hasattr(cell.font.color, 'rgb') and cell.font.color.rgb:
-            font_hex = rgb_to_hex(cell.font.color.rgb)
-            if font_hex:
-                font_info["rgb"] = font_hex
-        
-        # Font formatting
-        if cell.font.bold is True:
-            style["bl"] = 1
-        if cell.font.italic is True:
-            style["it"] = 1
-        if cell.font.underline and cell.font.underline != 'none':
-            style["ul"] = 1
-        if cell.font.strike is True:
-            style["st"] = 1
-            
-        # Font size and family
-        if cell.font.size:
-            style["fs"] = int(cell.font.size)
-        if cell.font.name:
-            style["ff"] = cell.font.name
-            
-        # Font scheme
-        if hasattr(cell.font, 'scheme') and cell.font.scheme:
-            font_info["scheme"] = cell.font.scheme
-            
-        if font_info:
-            style["cl"] = font_info
-
-    # ====== ALIGNMENT ======
-    if cell.alignment:
-        # Horizontal alignment
-        h_align = cell.alignment.horizontal
-        if h_align == "center":
-            style["ht"] = 2
-        elif h_align == "right":
-            style["ht"] = 3
-        elif h_align == "left":
-            style["ht"] = 1
-        elif h_align == "justify":
-            style["ht"] = 4
-        
-        # Vertical alignment
-        v_align = cell.alignment.vertical
-        if v_align == "center":
-            style["vt"] = 2
-        elif v_align == "top":
-            style["vt"] = 1
-        elif v_align == "bottom":
-            style["vt"] = 3
-        elif v_align == "justify":
-            style["vt"] = 4
-        
-        # Text wrapping
-        if cell.alignment.wrap_text is True:
-            style["tb"] = 2  # wrap text
-            
-        # Text rotation
-        if cell.alignment.text_rotation:
-            style["tr"] = {"a": cell.alignment.text_rotation, "v": 0}
-            
-        # Indent
-        if cell.alignment.indent:
-            style["in"] = cell.alignment.indent
-
-    # ====== BORDERS ======
-    if cell.border:
-        border = {}
-        
-        # Top border
-        if cell.border.top and cell.border.top.style:
-            top_border = {"s": 1}
-            if cell.border.top.color and hasattr(cell.border.top.color, 'rgb') and cell.border.top.color.rgb:
-                border_hex = rgb_to_hex(cell.border.top.color.rgb)
-                if border_hex:
-                    top_border["cl"] = {"rgb": border_hex}
-            # Border style mapping
-            if cell.border.top.style == "thin":
-                top_border["s"] = 1
-            elif cell.border.top.style == "medium":
-                top_border["s"] = 2
-            elif cell.border.top.style == "thick":
-                top_border["s"] = 3
-            elif cell.border.top.style == "double":
-                top_border["s"] = 4
-            border["t"] = top_border
-
-        # Bottom border
-        if cell.border.bottom and cell.border.bottom.style:
-            bottom_border = {"s": 1}
-            if cell.border.bottom.color and hasattr(cell.border.bottom.color, 'rgb') and cell.border.bottom.color.rgb:
-                border_hex = rgb_to_hex(cell.border.bottom.color.rgb)
-                if border_hex:
-                    bottom_border["cl"] = {"rgb": border_hex}
-            if cell.border.bottom.style == "thin":
-                bottom_border["s"] = 1
-            elif cell.border.bottom.style == "medium":
-                bottom_border["s"] = 2
-            elif cell.border.bottom.style == "thick":
-                bottom_border["s"] = 3
-            elif cell.border.bottom.style == "double":
-                bottom_border["s"] = 4
-            border["b"] = bottom_border
-
-        # Left border
-        if cell.border.left and cell.border.left.style:
-            left_border = {"s": 1}
-            if cell.border.left.color and hasattr(cell.border.left.color, 'rgb') and cell.border.left.color.rgb:
-                border_hex = rgb_to_hex(cell.border.left.color.rgb)
-                if border_hex:
-                    left_border["cl"] = {"rgb": border_hex}
-            if cell.border.left.style == "thin":
-                left_border["s"] = 1
-            elif cell.border.left.style == "medium":
-                left_border["s"] = 2
-            elif cell.border.left.style == "thick":
-                left_border["s"] = 3
-            elif cell.border.left.style == "double":
-                left_border["s"] = 4
-            border["l"] = left_border
-
-        # Right border
-        if cell.border.right and cell.border.right.style:
-            right_border = {"s": 1}
-            if cell.border.right.color and hasattr(cell.border.right.color, 'rgb') and cell.border.right.color.rgb:
-                border_hex = rgb_to_hex(cell.border.right.color.rgb)
-                if border_hex:
-                    right_border["cl"] = {"rgb": border_hex}
-            if cell.border.right.style == "thin":
-                right_border["s"] = 1
-            elif cell.border.right.style == "medium":
-                right_border["s"] = 2
-            elif cell.border.right.style == "thick":
-                right_border["s"] = 3
-            elif cell.border.right.style == "double":
-                right_border["s"] = 4
-            border["r"] = right_border
-
-        if border:
-            style["bd"] = border
-
-    # ====== NUMBER FORMAT ======
-    if cell.number_format and cell.number_format != "General":
-        style["nf"] = {"t": "n", "v": cell.number_format}
-
-    # ====== PROTECTION ======
-    if cell.protection:
-        if cell.protection.locked is False:
-            style["lo"] = 0
-        if cell.protection.hidden is True:
-            style["hi"] = 1
-
-    return style if style else None
 
 
-def extract_complete_cell_value(cell):
-    """Extract ALL possible cell value properties"""
-    value_obj = {}
+#         # --- ADD Dynamic Data Row from Project Budget Planning ---
+#         pbp_doc = frappe.get_doc("Project Budget Planning", "PBP-002303")
+#         data_start_row = 3
+#         row_counter = data_start_row
 
-    # ====== FORMULA ======
-    if cell.value is not None and isinstance(cell.value, str) and cell.value.startswith("="):
-        value_obj["f"] = cell.value
-        # Try to get calculated value
-        try:
-            if hasattr(cell, 'calculated_value') and cell.calculated_value is not None:
-                value_obj["v"] = cell.calculated_value
-            else:
-                value_obj["v"] = 0
-        except:
-            value_obj["v"] = 0
-    else:
-        # ====== VALUE TYPES ======
-        if isinstance(cell.value, datetime.datetime):
-            value_obj["v"] = cell.value.strftime("%Y-%m-%d %H:%M:%S")
-            value_obj["t"] = "dt"
-        elif isinstance(cell.value, datetime.date):
-            value_obj["v"] = cell.value.strftime("%Y-%m-%d")
-            value_obj["t"] = "d"
-        elif isinstance(cell.value, datetime.time):
-            value_obj["v"] = cell.value.strftime("%H:%M:%S")
-            value_obj["t"] = "t"
-        elif isinstance(cell.value, bool):
-            value_obj["v"] = 1 if cell.value else 0
-            value_obj["t"] = "b"
-        elif isinstance(cell.value, (int, float)):
-            value_obj["v"] = cell.value
-            value_obj["t"] = "n"
-        elif isinstance(cell.value, str):
-            value_obj["v"] = cell.value
-            value_obj["t"] = "s"
-        elif cell.value is None:
-            value_obj["v"] = ""
-        else:
-            value_obj["v"] = str(cell.value) if cell.value is not None else ""
+#         sheet["cellData"][str(row_counter)] = {}
 
-    # ====== HYPERLINKS ======
-    if cell.hyperlink:
-        if hasattr(cell.hyperlink, 'target') and cell.hyperlink.target:
-            value_obj["l"] = {
-                "Target": cell.hyperlink.target,
-                "Display": cell.hyperlink.display or cell.value or cell.hyperlink.target
-            }
-        elif hasattr(cell.hyperlink, 'location') and cell.hyperlink.location:
-            value_obj["l"] = {
-                "Target": f"#{cell.hyperlink.location}",
-                "Display": cell.hyperlink.display or cell.value or cell.hyperlink.location
-            }
+#         # --- Parent fields ---
+#         sheet["cellData"][str(row_counter)]["0"] = {"v": "", "s": "data_cell"}
+#         sheet["cellData"][str(row_counter)]["1"] = {"v": pbp_doc.budget_head_title, "s": "data_cell"}
+#         sheet["cellData"][str(row_counter)]["2"] = {"v": pbp_doc.sub_budget_head_title, "s": "data_cell"}
+#         sheet["cellData"][str(row_counter)]["3"] = {"v": pbp_doc.fund_source_title, "s": "data_cell"}
 
-    # ====== COMMENTS/NOTES ======
-    if cell.comment:
-        value_obj["ct"] = {
-            "t": cell.comment.text,
-            "a": cell.comment.author if hasattr(cell.comment, 'author') else ""
-        }
+#         # --- Fill quarter values dynamically from planning_table by matching timespan with headers ---
+#         col_idx = 4
 
-    # ====== DATA VALIDATION ======
-    if hasattr(cell, 'data_validation') and cell.data_validation:
-        dv = cell.data_validation
-        validation = {}
-        if hasattr(dv, 'type') and dv.type:
-            validation["type"] = dv.type
-        if hasattr(dv, 'formula1') and dv.formula1:
-            validation["formula1"] = str(dv.formula1)
-        if hasattr(dv, 'formula2') and dv.formula2:
-            validation["formula2"] = str(dv.formula2)
-        if validation:
-            value_obj["dv"] = validation
+#         for year in years:
+#             year_quarters = quarters_by_year.get(year, [])
+#             for source in sources:
+#                 for q in year_quarters:
+#                     # Match planning_table row with header text (timespan)
+#                     match = next((r for r in pbp_doc.planning_table if r.timespan == q), None)
+#                     if match:
+#                         planned = match.planned_amount or 0
+#                         unit = match.custom_unit or 0
+#                         time = match.custom_time or 0
+#                         cost = match.custom_unit_cost or 0
+#                         total = unit * time * cost
 
-    return value_obj if value_obj else None
+#                         sheet["cellData"][str(row_counter)][str(col_idx)] = {"v": planned, "s": "data_cell"}
+#                         sheet["cellData"][str(row_counter)][str(col_idx + 1)] = {"v": unit, "s": "data_cell"}
+#                         sheet["cellData"][str(row_counter)][str(col_idx + 2)] = {"v": time, "s": "data_cell"}
+#                         sheet["cellData"][str(row_counter)][str(col_idx + 3)] = {"v": total, "s": "data_cell"}
+#                     else:
+#                         # empty if no matching timespan
+#                         sheet["cellData"][str(row_counter)][str(col_idx)] = {"v": 0, "s": "data_cell"}
+#                         sheet["cellData"][str(row_counter)][str(col_idx + 1)] = {"v": 0, "s": "data_cell"}
+#                         sheet["cellData"][str(row_counter)][str(col_idx + 2)] = {"v": 0, "s": "data_cell"}
+#                         sheet["cellData"][str(row_counter)][str(col_idx + 3)] = {"v": 0, "s": "data_cell"}
+#                     col_idx += 4
 
-
-def is_row_hidden(sheet, row_idx):
-    """Enhanced row hidden detection with detailed logging"""
-    row_dimension = sheet.row_dimensions.get(row_idx)
-    
-    if row_dimension:
-        # Check all possible hidden indicators
-        hidden_property = getattr(row_dimension, 'hidden', False)
-        height = getattr(row_dimension, 'height', None)
-        outline_level = getattr(row_dimension, 'outline_level', 0)
-        collapsed = getattr(row_dimension, 'collapsed', False)
-        # Method 1: Direct hidden property
-        if hidden_property is True:
-            return True
-        # Method 2: Height-based hiding
-        if height is not None and height <= 0.1:
-            return True
-        # Method 3: Grouped/Outlined rows that are collapsed
-        if outline_level > 0 and collapsed:
-            return True
-    
-    return False
- 
-def is_column_hidden(sheet, col_idx):
-    """Enhanced column hidden detection with detailed logging"""
-    col_letter = get_column_letter(col_idx)
-    col_dimension = sheet.column_dimensions.get(col_letter)
-    
-    if col_dimension:
-        # Check all possible hidden indicators
-        hidden_property = getattr(col_dimension, 'hidden', False)
-        width = getattr(col_dimension, 'width', None)
-        outline_level = getattr(col_dimension, 'outline_level', 0)
-        collapsed = getattr(col_dimension, 'collapsed', False)
-        # Method 1: Direct hidden property
-        if hidden_property is True:
-            return True
-        
-        # Method 2: Width-based hiding
-        if width is not None and width <= 0.01:
-            return True
-        
-        # Method 3: Grouped/Outlined columns that are collapsed
-        if outline_level > 0 and collapsed:
-            return True
-    
-    return False
-
-def get_freeze_info(sheet):
-    if sheet.freeze_panes:
-        fp = sheet.freeze_panes
-        if isinstance(fp, str):  
-            # e.g. "C5"
-            col, row = coordinate_from_string(fp)
-            row_idx = row
-            col_idx = column_index_from_string(col)
-        else:  
-            # OpenPyXL Cell object
-            row_idx = fp.row
-            col_idx = fp.col_idx
-
-        return {
-            "startRow": row_idx - 1 if row_idx else -1,
-            "startColumn": col_idx - 1 if col_idx else -1,
-            "ySplit": row_idx - 1 if row_idx else 0,
-            "xSplit": col_idx - 1 if col_idx else 0,
-        }
-    else:
-        return {"startRow": -1, "startColumn": -1, "ySplit": 0, "xSplit": 0}
-    
-# ======== extract_data_validations ========
-def extract_data_validations(sheet):
-    """Extract Excel data validations for UniverJS"""
-    validations = []
-
-    # Get last used row and column of the sheet
-    last_row = sheet.max_row
-    last_col = sheet.max_column
-
-    for dv in sheet.data_validations.dataValidation:
-        v = {
-            "type": dv.type,               # e.g. 'list'
-            "formula1": dv.formula1,       # '"Male,Female,Other"'
-            "allowBlank": dv.allow_blank,
-            "ranges": []
-        }
-
-        # Collect ranges for this validation
-        for sqref in dv.sqref:  
-            # Adjust endRow so it never goes beyond last used row
-            end_row = min(sqref.max_row, last_row)
-            end_col = min(sqref.max_col, last_col)
-
-            v["ranges"].append({
-                "startRow": sqref.min_row - 1,
-                "endRow": end_row - 1,
-                "startColumn": sqref.min_col - 1,
-                "endColumn": end_col - 1
-            })
-
-        validations.append(v)
-    return validations
+#     return workbook
 
 
 
-#  ========= Main API Function ========
+
+
+# =================== main api =================
 @frappe.whitelist(allow_guest=True)
-def excel():
-    """Version optimized for UniverJS with proper column hiding/collapsing"""
-    wb = load_excel_from_private("/private/files/Veha.xlsx")
-    
-    sheets = {}
-    sheet_order = []
-    
-    for sheet in wb.worksheets:
-        sheet_id = str(uuid.uuid4())
-        sheet_order.append(sheet_id)
-        
-        print(f"\n=== Processing Sheet: {sheet.title} ===")
-        
-        # ====== DETECT HIDDEN ELEMENTS ======
-        hidden_rows_set = set()
-        hidden_cols_set = set()
-        
-        for row_idx in range(1, sheet.max_row + 1):
-            if is_row_hidden(sheet, row_idx):
-                hidden_rows_set.add(row_idx - 1) 
-                
-        for col_idx in range(1, sheet.max_column + 1):
-            if is_column_hidden(sheet, col_idx):
-                hidden_cols_set.add(col_idx - 1) 
-                col_letter = get_column_letter(col_idx)
-        
-        # print(f"Hidden rows (0-based): {sorted(hidden_rows_set)}")
-        # print(f"Hidden columns (0-based): {sorted(hidden_cols_set)}")
-        
-        # ====== CELL DATA (All cells preserved) ======
-        cell_data = {}
-        for row_idx in range(1, sheet.max_row + 1):
-            row_data = {}
-            for col_idx in range(1, sheet.max_column + 1):
-                cell = sheet.cell(row=row_idx, column=col_idx)
-                cell_obj = {}
- 
-                # Extract styling
-                cell_style = extract_complete_cell_style(cell)
-                
-                # Extract values
-                cell_val = extract_complete_cell_value(cell)
-                if cell_val:
-                    cell_obj.update(cell_val)
- 
-                # Add style if it exists
-                if cell_style:
-                    cell_obj["s"] = cell_style
- 
-                # Store cell (preserve all data)
-                if cell_obj:
-                    row_data[col_idx - 1] = cell_obj
- 
-            if row_data:
-                cell_data[row_idx - 1] = row_data
- 
-        # ====== ROW DATA (UniverJS format) ======
-        row_data = {}
-        for row_idx in range(sheet.max_row):
-            row_props = {}
-            
-            # Get explicit row height
-            excel_row_idx = row_idx + 1
-            row_dimension = sheet.row_dimensions.get(excel_row_idx)
-            
-            if row_idx in hidden_rows_set:
-                # Hidden rows: set height to 0
-                row_props["h"] = 0
-                row_props["hd"] = 1  # Hidden flag for UniverJS
-            elif row_dimension and hasattr(row_dimension, 'height') and row_dimension.height is not None:
-                # Explicit height from Excel
-                row_props["h"] = max(row_dimension.height, 1)
-            
-            if row_props:
-                row_data[row_idx] = row_props
- 
-        # ====== COLUMN DATA (UniverJS format with collapsible hidden columns) ======
-        column_data = {}
-        for col_idx in range(sheet.max_column):
-            col_props = {}
-            
-            # Get explicit column width
-            excel_col_idx = col_idx + 1
-            col_letter = get_column_letter(excel_col_idx)
-            col_dimension = sheet.column_dimensions.get(col_letter)
-            
-            if col_idx in hidden_cols_set:
-                # Hidden columns: minimal width but still accessible
-                col_props["w"] = 2       
-                col_props["hd"] = 1  
-                col_props["isHidden"] = True  # Additional flag for frontend
-            elif col_dimension and hasattr(col_dimension, 'width') and col_dimension.width is not None:
-                # Explicit width from Excel (convert Excel units to pixels)
-                excel_width = col_dimension.width
-                pixel_width = max(excel_width * 7, 20)  # Rough conversion, minimum 20px
-                col_props["w"] = pixel_width
-            
-            if col_props:
-                column_data[col_idx] = col_props
- 
-        # ====== MERGED CELLS ======
-        merge_data = []
-        for merged in sheet.merged_cells.ranges:
-            merge_data.append({
-                "startRow": merged.min_row - 1,
-                "endRow": merged.max_row - 1,
-                "startColumn": merged.min_col - 1,
-                "endColumn": merged.max_col - 1
-            })
- 
-        # ====== FREEZE PANES ======
-        freeze = get_freeze_info(sheet)
+def get_excel_json(project_name=None):
+    if not project_name:
+        frappe.throw("Project name is required")
 
-        validations = extract_data_validations(sheet)
+    # ------------------ HEADER SOURCE ------------------
+    project = frappe.get_doc("Project", project_name)
 
-        # ====== SHEET JSON (UniverJS compatible) ======
-        sheets[sheet_id] = {
-            "id": sheet_id,
-            "name": sheet.title,
-            "tabColor": "",
-            "hidden": 0,
-            # "rowCount": max(sheet.max_row, 100),
-            "columnCount": sheet.max_column,
-            "zoomRatio": 1,
-            "freeze": freeze,
-            "scrollTop": 0,
-            "scrollLeft": 0,
-            "defaultColumnWidth": 73,
-            "defaultRowHeight": 23,
-            "mergeData": merge_data,
-            "cellData": cell_data,
-            "rowData": row_data,
-            "columnData": column_data,
-            "showGridlines": 1,
-            "rowHeader": {"width": 46, "hidden": 0},
-            "columnHeader": {"height": 20, "hidden": 0},
-            "rightToLeft": 0,
-            "validations": validations,   # now Univer gets dropdown info
-            # Additional metadata for custom handling
-            "_hiddenColumns": sorted(list(hidden_cols_set)),
-            "_hiddenRows": sorted(list(hidden_rows_set))
-        }
-        
-        # print(f"Sheet '{sheet.title}' processed: {sheet.max_row} rows, {sheet.max_column} cols")
-        # print(f"  - Hidden columns: {len(hidden_cols_set)}")
-        # print(f"  - Hidden rows: {len(hidden_rows_set)}")
-    
-    return {
+    # --- Dynamic Years ---
+    years = [row.year for row in project.annual_project]
+
+    # --- Dynamic Quarters (grouped by year) ---
+    quarters_by_year = {}
+    for row in project.quaterly_project:
+        year = row.year
+        if year not in quarters_by_year:
+            quarters_by_year[year] = []
+        quarters_by_year[year].append(row.timespan)
+
+    # --- Dynamic Sources ---
+    sources = []
+    if project.donor_name:
+        sources.append(project.donor_name)
+
+    if project.other_fund_sources:
+        for r in project.other_fund_sources:
+            fund_sources_title = frappe.get_value(
+                "Fund Sources Child", r.name, "fund_sources_title"
+            )
+            if fund_sources_title:
+                sources.append(fund_sources_title)
+
+    # --- Counts ---
+    column_count = 100
+    row_count = 1000
+
+    # --- Default Column Widths ---
+    columnData = {i: {"hd": False, "w": 100} for i in range(column_count)}
+    columnData[0] = {"hd": False, "w": 20}   # ID / Sl No
+    columnData[1] = {"hd": False, "w": 100}  # Budget Head
+    columnData[2] = {"hd": False, "w": 150}  # Sub Budget Head
+    columnData[3] = {"hd": False, "w": 90}   # Activity
+
+    workbook = {
         "id": str(uuid.uuid4()),
-        "name":sheet.title,
-        "appVersion": "0.10.2",
-        "locale": "enUS",
-        "styles": cell_style,
-        "sheetOrder": sheet_order,
-        "sheets": sheets,
-        "resources": [],
+        "name": f"Budget Sheet - {project.project_name}",
+        "sheetOrder": ["sheet-1"],
+        "styles": {
+            "year_header": {"bg": {"rgb": "#FFFF00"}, "bl": 1, "ht": 2, "vt": 2, "wrapText": True},
+            "unit_header": {"bg": {"rgb": "#FFC0CB"}, "bl": 1, "ht": 2, "vt": 2, "wrapText": True},
+            "source_header": {"bg": {"rgb": "#D9EAD3"}, "bl": 1, "ht": 2, "vt": 2, "wrapText": True},
+            "main_header": {"bl": 1, "ht": 2, "vt": 2, "wrapText": True},
+            "quarter_header": {"bg": {"rgb": "#BD5CA8"}, "ht": 2, "vt": 2, "wrapText": True},
+            "total_header": {"bg": {"rgb": "#D182C0"}, "bl": 1, "ht": 2, "vt": 2, "wrapText": True},
+            "data_cell": {"ht": 2, "vt": 2, "wrapText": True},
+        },
+        "sheets": {
+            "sheet-1": {
+                "id": "sheet-1",
+                "name": project.project_name,
+                "rowCount": row_count,
+                "columnCount": column_count,
+                "freeze": {"xSplit": 4, "ySplit": 4, "startColumn": 4},
+                "cellData": {},
+                "mergeData": [],
+                "columnData": columnData,
+                "rowData": {i: {"hd": False, "h": 25} for i in range(row_count)},
+            }
+        },
     }
 
+    sheet = workbook["sheets"]["sheet-1"]
 
+    # --- Base headers (row 2) ---
+    sheet["cellData"]["2"] = {
+        "0": {"v": "", "s": "main_header"},
+        "1": {"v": "Budget Head", "s": "main_header"},
+        "2": {"v": "Sub Budget Head", "s": "main_header"},
+        "3": {"v": "Activity", "s": "main_header"},
+    }
 
+    sheet["cellData"]["0"] = {}
+    sheet["cellData"]["1"] = {}
+    sheet["cellData"]["3"] = {}
 
+    col_index = 4
 
+    # --- Fill Years Dynamically ---
+    for year in years:
+        year_quarters = quarters_by_year.get(year, [])
+        year_start = col_index
 
+        # Year header
+        sheet["cellData"]["0"][str(col_index)] = {"v": year, "s": "year_header"}
+        year_block = 3 + len(sources) * len(year_quarters) + 1  # +1 for single Total column
+        sheet["mergeData"].append(
+            {"startRow": 0, "endRow": 0, "startColumn": year_start, "endColumn": year_start + year_block - 1}
+        )
 
+        # Unit/Time/Cost
+        sheet["cellData"]["2"][str(col_index)] = {"v": "Unit", "s": "unit_header"}
+        sheet["cellData"]["2"][str(col_index + 1)] = {"v": "Time", "s": "unit_header"}
+        sheet["cellData"]["2"][str(col_index + 2)] = {"v": "Cost", "s": "unit_header"}
+        sheet["mergeData"].append(
+            {"startRow": 1, "endRow": 1, "startColumn": year_start, "endColumn": year_start + 2}
+        )
+        sheet["cellData"]["1"][str(year_start)] = {"v": "", "s": "unit_header"}
+        col_index += 3
 
+        # --- Sources ---
+        for source in sources:
+            source_start = col_index
+            sheet["cellData"]["1"][str(source_start)] = {"v": source, "s": "source_header"}
+            sheet["mergeData"].append(
+                {"startRow": 1, "endRow": 1, "startColumn": source_start, "endColumn": source_start + len(year_quarters) - 1}
+            )
 
+            # Quarters row
+            for q in year_quarters:
+                sheet["cellData"]["2"][str(col_index)] = {"v": q, "s": "quarter_header"}
+                col_index += 1
 
+        # --- Single Total column after all sources ---
+        sheet["cellData"]["1"][str(col_index)] = {"v": "", "s": "source_header"}
+        sheet["cellData"]["2"][str(col_index)] = {"v": "Total", "s": "total_header"}
+        col_index += 1
 
+    # --- keep final column index for mapping ---
+    final_col = col_index
 
+    # ---------- DATA ROW (FROM Project Budget Planning) ----------
+    try:
+        pbp_doc = frappe.get_doc("Project Budget Planning", "PBP-001263")
+    except Exception:
+        found = frappe.get_all("Project Budget Planning", filters={"project": project.name}, fields=["name"], limit=1)
+        if not found:
+            found = frappe.get_all("Project Budget Planning", filters=[["name", "like", f"%{project_name}%"]], fields=["name"], limit=1)
+        if found:
+            pbp_doc = frappe.get_doc("Project Budget Planning", found[0]["name"])
+        else:
+            frappe.throw(f"Project Budget Planning doc not found for '{project_name}'.")
 
+    # Build year_start positions from header row 0
+    year_positions = {int(k): v["v"] for k, v in sheet["cellData"]["0"].items()}
 
+    # Compute total column for each year_start
+    year_total_col = {}
+    for ys in sorted(year_positions.keys()):
+        total_col = None
+        next_starts = [s for s in sorted(year_positions.keys()) if s > ys]
+        end_search = next_starts[0] if next_starts else final_col
+        for c in range(ys, end_search):
+            h2 = sheet["cellData"]["2"].get(str(c))
+            if h2 and h2.get("s") == "total_header":
+                total_col = c
+                break
+        year_total_col[ys] = total_col
+
+    # --- Single Data Row ---
+    data_row = 3
+    sheet["cellData"][str(data_row)] = {
+        "0": {"v": 1, "s": "data_cell"},
+        "1": {"v": getattr(pbp_doc, "budget_head_title", "") or "", "s": "data_cell"},
+        "2": {"v": getattr(pbp_doc, "sub_budget_head_title", "") or "", "s": "data_cell"},
+        "3": {"v": getattr(pbp_doc, "fund_source_title", "") or "", "s": "data_cell"},
+    }
+
+    year_filled = set()
+
+    # --- iterate over all columns ---
+    for col in range(4, final_col):
+        header_cell = sheet["cellData"]["2"].get(str(col))
+        if not header_cell:
+            continue
+
+        kind = header_cell.get("s")
+        value = header_cell.get("v")
+
+        if kind == "quarter_header":
+            q_text = value
+            year_keys = [k for k in year_positions.keys() if k <= col]
+            year_start_col = max(year_keys) if year_keys else None
+            year_header = year_positions.get(year_start_col)
+
+            # --- Find child row where both timespan & year match ---
+            ch = next(
+                (r for r in pbp_doc.planning_table if r.timespan == q_text and str(r.year) == str(year_header)),
+                None,
+            )
+
+            if ch:
+                planned = getattr(ch, "planned_amount", 0) or 0
+                unit = getattr(ch, "unit", 0) or 0
+                ctime = getattr(ch, "time", 0) or 0
+                cost = getattr(ch, "unit_cost", 0) or 0
+                total_val = (unit * ctime * cost) or 0
+
+                # quarter value
+                sheet["cellData"][str(data_row)][str(col)] = {"v": planned, "s": "data_cell"}
+
+                # unit/time/cost/total (set once per year)
+                if year_start_col is not None and year_start_col not in year_filled:
+                    u_col = year_start_col
+                    t_col = year_start_col + 1
+                    c_col = year_start_col + 2
+                    tot_col = year_total_col.get(year_start_col)
+
+                    sheet["cellData"][str(data_row)][str(u_col)] = {"v": unit, "s": "data_cell"}
+                    sheet["cellData"][str(data_row)][str(t_col)] = {"v": ctime, "s": "data_cell"}
+                    sheet["cellData"][str(data_row)][str(c_col)] = {"v": cost, "s": "data_cell"}
+                    if tot_col:
+                        sheet["cellData"][str(data_row)][str(tot_col)] = {"v": total_val, "s": "data_cell"}
+                    year_filled.add(year_start_col)
+            else:
+                sheet["cellData"][str(data_row)][str(col)] = {"v": 0, "s": "data_cell"}
+
+    return workbook
