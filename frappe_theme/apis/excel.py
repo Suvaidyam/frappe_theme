@@ -620,12 +620,12 @@ import frappe,uuid
 
 # =================== main api =================
 @frappe.whitelist(allow_guest=True)
-def get_excel_json(project_name=None):
-    if not project_name:
+def get_excel_json(name):
+    if not name:
         frappe.throw("Project name is required")
 
     # ------------------ HEADER SOURCE ------------------
-    project = frappe.get_doc("Project", project_name)
+    project = frappe.get_doc("Project", name)
 
     # --- Dynamic Years ---
     years = [row.year for row in project.annual_project]
@@ -748,19 +748,23 @@ def get_excel_json(project_name=None):
 
     # --- keep final column index for mapping ---
     final_col = col_index
-
+    data = []
     # ---------- DATA ROW (FROM Project Budget Planning) ----------
     try:
-        pbp_doc = frappe.get_doc("Project Budget Planning", "PBP-001263")
+        pbp_list = frappe.get_all("Project Budget Planning", filters={"project": project.name}, pluck="name")
+        for item in pbp_list:
+            doc = frappe.get_doc("Project Budget Planning", item,)
+            data.append(doc.as_dict())
     except Exception:
-        found = frappe.get_all("Project Budget Planning", filters={"project": project.name}, fields=["name"], limit=1)
-        if not found:
-            found = frappe.get_all("Project Budget Planning", filters=[["name", "like", f"%{project_name}%"]], fields=["name"], limit=1)
-        if found:
-            pbp_doc = frappe.get_doc("Project Budget Planning", found[0]["name"])
-        else:
-            frappe.throw(f"Project Budget Planning doc not found for '{project_name}'.")
-
+        print('jhgj')
+    #     found = frappe.get_all("Project Budget Planning", filters={"project": project.name}, fields=["name"], limit=1)
+    #     if not found:
+    #         found = frappe.get_all("Project Budget Planning", filters=[["name", "like", f"%{project_name}%"]], fields=["name"], limit=1)
+    #     if found:
+    #         pbp_doc = frappe.get_doc("Project Budget Planning", found[0]["name"])
+    #     else:
+    #         frappe.throw(f"Project Budget Planning doc not found for '{project_name}'.")
+    
     # Build year_start positions from header row 0
     year_positions = {int(k): v["v"] for k, v in sheet["cellData"]["0"].items()}
 

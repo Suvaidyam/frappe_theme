@@ -3,9 +3,10 @@ import { createPinia } from "pinia";
 import App from "../sva_excel/excel.vue";
 
 class Excel {
-    constructor({ wrapper, frm }) {
+    constructor(frm,wrapper,conf) {
         this.$wrapper = $(wrapper);
         this.frm = frm;
+        this.conf = conf;
         this.init();
     }
 
@@ -35,6 +36,7 @@ class Excel {
         // create a vue instance with dynamic props
         this.app = createApp(App, {
             frm: this.frm || {},
+            conf: this.conf || {},
         });
         SetVueGlobals(this.app);
         this.app.use(pinia);
