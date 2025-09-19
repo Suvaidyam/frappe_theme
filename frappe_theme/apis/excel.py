@@ -748,22 +748,17 @@ def get_excel_json(name):
 
     # --- keep final column index for mapping ---
     final_col = col_index
-    data = []
-    # ---------- DATA ROW (FROM Project Budget Planning) ----------
+    # ---------- DATA ROWS (FROM Project Budget Planning) ----------
+    pbp_docs = []
     try:
         pbp_list = frappe.get_all("Project Budget Planning", filters={"project": project.name}, pluck="name")
-        for item in pbp_list:
-            doc = frappe.get_doc("Project Budget Planning", item,)
-            data.append(doc.as_dict())
-    except Exception:
-        print('jhgj')
-    #     found = frappe.get_all("Project Budget Planning", filters={"project": project.name}, fields=["name"], limit=1)
-    #     if not found:
-    #         found = frappe.get_all("Project Budget Planning", filters=[["name", "like", f"%{project_name}%"]], fields=["name"], limit=1)
-    #     if found:
-    #         pbp_doc = frappe.get_doc("Project Budget Planning", found[0]["name"])
-    #     else:
-    #         frappe.throw(f"Project Budget Planning doc not found for '{project_name}'.")
+        if pbp_list:
+            # Get all Project Budget Planning documents for this project
+            for pbp_name in pbp_list:
+                pbp_doc = frappe.get_doc("Project Budget Planning", pbp_name)
+                pbp_docs.append(pbp_doc)
+    except Exception as e:
+        frappe.log_error(f"Error fetching Project Budget Planning: {str(e)}")
     
     # Build year_start positions from header row 0
     year_positions = {int(k): v["v"] for k, v in sheet["cellData"]["0"].items()}
@@ -781,62 +776,66 @@ def get_excel_json(name):
                 break
         year_total_col[ys] = total_col
 
-    # --- Single Data Row ---
+    # --- Multiple Data Rows ---
     data_row = 3
-    sheet["cellData"][str(data_row)] = {
-        "0": {"v": 1, "s": "data_cell"},
-        "1": {"v": getattr(pbp_doc, "budget_head_title", "") or "", "s": "data_cell"},
-        "2": {"v": getattr(pbp_doc, "sub_budget_head_title", "") or "", "s": "data_cell"},
-        "3": {"v": getattr(pbp_doc, "fund_source_title", "") or "", "s": "data_cell"},
-    }
+    
+    for row_idx, pbp_doc in enumerate(pbp_docs):
+        current_data_row = data_row + row_idx
+        
+        # Initialize the row
+        sheet["cellData"][str(current_data_row)] = {
+            "1": {"v": getattr(pbp_doc, "budget_head_title", "") or "", "s": "data_cell"},
+            "2": {"v": getattr(pbp_doc, "sub_budget_head_title", "") or "", "s": "data_cell"},
+            "3": {"v": getattr(pbp_doc, "fund_source_title", "") or "", "s": "data_cell"},
+        }
 
-    year_filled = set()
+        year_filled = set()
 
-    # --- iterate over all columns ---
-    for col in range(4, final_col):
-        header_cell = sheet["cellData"]["2"].get(str(col))
-        if not header_cell:
-            continue
+        # --- iterate over all columns ---
+        for col in range(4, final_col):
+            header_cell = sheet["cellData"]["2"].get(str(col))
+            if not header_cell:
+                continue
 
-        kind = header_cell.get("s")
-        value = header_cell.get("v")
+            kind = header_cell.get("s")
+            value = header_cell.get("v")
 
-        if kind == "quarter_header":
-            q_text = value
-            year_keys = [k for k in year_positions.keys() if k <= col]
-            year_start_col = max(year_keys) if year_keys else None
-            year_header = year_positions.get(year_start_col)
+            if kind == "quarter_header":
+                q_text = value
+                year_keys = [k for k in year_positions.keys() if k <= col]
+                year_start_col = max(year_keys) if year_keys else None
+                year_header = year_positions.get(year_start_col)
 
-            # --- Find child row where both timespan & year match ---
-            ch = next(
-                (r for r in pbp_doc.planning_table if r.timespan == q_text and str(r.year) == str(year_header)),
-                None,
-            )
+                # --- Find child row where both timespan & year match ---
+                ch = next(
+                    (r for r in pbp_doc.planning_table if r.timespan == q_text and str(r.year) == str(year_header)),
+                    None,
+                )
 
-            if ch:
-                planned = getattr(ch, "planned_amount", 0) or 0
-                unit = getattr(ch, "unit", 0) or 0
-                ctime = getattr(ch, "time", 0) or 0
-                cost = getattr(ch, "unit_cost", 0) or 0
-                total_val = (unit * ctime * cost) or 0
+                if ch:
+                    planned = getattr(ch, "planned_amount", 0) or 0
+                    unit = getattr(ch, "unit", 0) or 0
+                    ctime = getattr(ch, "time", 0) or 0
+                    cost = getattr(ch, "unit_cost", 0) or 0
+                    total_val = (unit * ctime * cost) or 0
 
-                # quarter value
-                sheet["cellData"][str(data_row)][str(col)] = {"v": planned, "s": "data_cell"}
+                    # quarter value
+                    sheet["cellData"][str(current_data_row)][str(col)] = {"v": planned, "s": "data_cell"}
 
-                # unit/time/cost/total (set once per year)
-                if year_start_col is not None and year_start_col not in year_filled:
-                    u_col = year_start_col
-                    t_col = year_start_col + 1
-                    c_col = year_start_col + 2
-                    tot_col = year_total_col.get(year_start_col)
+                    # unit/time/cost/total (set once per year)
+                    if year_start_col is not None and year_start_col not in year_filled:
+                        u_col = year_start_col
+                        t_col = year_start_col + 1
+                        c_col = year_start_col + 2
+                        tot_col = year_total_col.get(year_start_col)
 
-                    sheet["cellData"][str(data_row)][str(u_col)] = {"v": unit, "s": "data_cell"}
-                    sheet["cellData"][str(data_row)][str(t_col)] = {"v": ctime, "s": "data_cell"}
-                    sheet["cellData"][str(data_row)][str(c_col)] = {"v": cost, "s": "data_cell"}
-                    if tot_col:
-                        sheet["cellData"][str(data_row)][str(tot_col)] = {"v": total_val, "s": "data_cell"}
-                    year_filled.add(year_start_col)
-            else:
-                sheet["cellData"][str(data_row)][str(col)] = {"v": 0, "s": "data_cell"}
+                        sheet["cellData"][str(current_data_row)][str(u_col)] = {"v": unit, "s": "data_cell"}
+                        sheet["cellData"][str(current_data_row)][str(t_col)] = {"v": ctime, "s": "data_cell"}
+                        sheet["cellData"][str(current_data_row)][str(c_col)] = {"v": cost, "s": "data_cell"}
+                        if tot_col:
+                            sheet["cellData"][str(current_data_row)][str(tot_col)] = {"v": total_val, "s": "data_cell"}
+                        year_filled.add(year_start_col)
+                else:
+                    sheet["cellData"][str(current_data_row)][str(col)] = {"v": 0, "s": "data_cell"}
 
     return workbook
