@@ -23,7 +23,6 @@ import UniverPresetSheetsDataValidationEnUS from '@univerjs/preset-sheets-data-v
 import '@univerjs/preset-sheets-data-validation/lib/index.css'
 
 const container_excel = ref(null);
-let workbookRef = null; 
 
 const props = defineProps({
   frm: {
@@ -64,7 +63,6 @@ function initUniver(container) {
   })
   return { univer, univerAPI };
 }
-console.log(props.frm);
 
 // =========== onMounted ===========
 onMounted(async () => {
@@ -87,7 +85,7 @@ onMounted(async () => {
     const unitId = workbook.getId();
     permission.setWorkbookPermissionPoint(unitId, workbookEditablePerm, false);
     
-    // ==== catch ====
+    // ==== catch =====
   } catch (error) {
     console.error("Error loading workbook:", error);
   }
@@ -95,22 +93,3 @@ onMounted(async () => {
 });
 
 </script>
-
-<style scoped>
-/* .save-btn {
-  background-color: #4CAF50;
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: 0.3s;
-  margin-bottom: 10px;
-}
-  */
-/* .save-btn:hover {
-  background-color: #45a049;
-} */
-</style>
