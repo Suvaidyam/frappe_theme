@@ -194,46 +194,63 @@ frappe.utils.make_popover = makePopover;
 
 
 // Download Template
-async function downloadTemplate(api_method, is_download = true) {
+async function downloadTemplate(api_method, is_existing_file = false, is_download = true) {
     try {
-        frappe.dom.freeze();
-        let response = await fetch(`/api/method/${api_method}`);
-        if (!response.ok) {
-            let error = await response.json();
-            console.error('Error downloading template',error);
-            frappe.msgprint(error.message || frappe.utils.messages.get('generate_mou'));
-            return;
-        }
-        
-        if (is_download) {
-            let blob = await response.blob();
-            let url = window.URL.createObjectURL(blob);
-            let a = document.createElement('a');
-            a.href = url;
-            let contentDisposition = response.headers.get('Content-Disposition');
-            let today = frappe.datetime.get_today();
-            let [year, month, day] = today.split("-");
-            let todayFormatted = `${day}-${month}-${year}`;
-            let fileName = `mgrant_document_${todayFormatted}`;
-            if (contentDisposition && contentDisposition.includes("filename=")) {
-                fileName = contentDisposition
-                    .split("filename=")[1]
-                    .replace(/["']/g, ""); // remove quotes if any
+        if (is_existing_file) {
+            if (api_method) {
+                let a = document.createElement('a');
+                let fileName = api_method.split('/').pop();
+                
+                a.href = api_method;
+                a.download = fileName;
+
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
             }
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
+            else {
+                console.error('file path is not provided')
+                return;
+            }
         } else {
-            let blob = await response.blob();
-            let url = window.URL.createObjectURL(blob);
-            window.open(url, '_blank'); // Just open in new tab
-            // Optional: Cleanup after short delay
-            setTimeout(() => window.URL.revokeObjectURL(url), 5000);
+            frappe.dom.freeze();
+            let response = await fetch(`/api/method/${api_method}`);
+            if (!response.ok) {
+                let error = await response.json();
+                console.error('Error downloading template', error);
+                frappe.msgprint(error.message || frappe.utils.messages.get('generate_mou'));
+                return;
+            }
+
+            if (is_download) {
+                let blob = await response.blob();
+                let url = window.URL.createObjectURL(blob);
+                let a = document.createElement('a');
+                a.href = url;
+                let contentDisposition = response.headers.get('Content-Disposition');
+                let today = frappe.datetime.get_today();
+                let [year, month, day] = today.split("-");
+                let todayFormatted = `${day}-${month}-${year}`;
+                let fileName = `mgrant_document_${todayFormatted}`;
+                if (contentDisposition && contentDisposition.includes("filename=")) {
+                    fileName = contentDisposition
+                        .split("filename=")[1]
+                        .replace(/["']/g, "");
+                }
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            } else {
+                let blob = await response.blob();
+                let url = window.URL.createObjectURL(blob);
+                window.open(url, '_blank');
+                setTimeout(() => window.URL.revokeObjectURL(url), 5000);
+            }
         }
     } catch (error) {
-        console.error('Error downloading template',error);
+        console.error('Error downloading template', error);
         frappe.msgprint(error.message || frappe.utils.messages.get('generate_mou'));
         return;
     } finally {
