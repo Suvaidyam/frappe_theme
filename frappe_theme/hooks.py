@@ -149,6 +149,11 @@ jinja = {
 # Hook on document methods and events
 
 doc_events = {
+    "*": {
+        "before_insert": "frappe_theme.utils.data_protection.encrypt_doc_fields",
+        "before_save": "frappe_theme.utils.data_protection.encrypt_doc_fields",
+        "onload": "frappe_theme.utils.data_protection.decrypt_doc_fields"
+    },
 	"Version": {
 		"validate": "frappe_theme.controllers.timeline.validate",
 		# "on_cancel": "method",
@@ -190,7 +195,11 @@ doc_events = {
 # }
 
 override_whitelisted_methods = {
-    "frappe.model.workflow.apply_workflow": "frappe_theme.overrides.workflow.custom_apply_workflow"
+    "frappe.model.workflow.apply_workflow": "frappe_theme.overrides.workflow.custom_apply_workflow",
+    "frappe.model.base_document.BaseDocument.as_dict": "frappe_theme.patches.extend_as_dict.patch_as_dict",
+    "frappe.desk.reportview.get": "frappe_theme.utils.data_protection.get_with_masking",
+    "frappe.desk.listview.get": "frappe_theme.utils.data_protection.get_with_masking",
+    "frappe.desk.formview.get": "frappe_theme.utils.data_protection.get_with_masking"
 }
 
 #
