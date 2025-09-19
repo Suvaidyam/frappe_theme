@@ -1,14 +1,14 @@
 <template>
   <div class="w-full h-full">
     <div
-    ref="container"
+    ref="container_excel"
     style="width: 100%; height: 60vh; border: 1px solid #ccc"
     ></div>
 </div>
 </template>
  
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted,defineProps } from "vue";
 import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import { UniverSheetsAdvancedPreset } from '@univerjs/preset-sheets-advanced'
@@ -22,8 +22,19 @@ import { UniverSheetsDataValidationPreset } from '@univerjs/preset-sheets-data-v
 import UniverPresetSheetsDataValidationEnUS from '@univerjs/preset-sheets-data-validation/locales/en-US'
 import '@univerjs/preset-sheets-data-validation/lib/index.css'
 
-const container = ref(null);
+const container_excel = ref(null);
 let workbookRef = null; 
+
+const props = defineProps({
+  frm: {
+    type: Object,
+    required: true,
+  },
+  conf: {
+    type: Object,
+    required: true,
+  },
+});
 
 function initUniver(container) {
   const { univer, univerAPI } = createUniver({
@@ -39,7 +50,7 @@ function initUniver(container) {
     },
     presets: [
       UniverSheetsCorePreset({
-        container: container,
+        container: container_excel.value,
         header: false,     
         toolbar: false,    
         footer: false,     
@@ -53,21 +64,21 @@ function initUniver(container) {
   })
   return { univer, univerAPI };
 }
+console.log(props.frm);
 
 // =========== onMounted ===========
 onMounted(async () => {
-  const { univerAPI } = initUniver(container.value);
+  const { univerAPI } = initUniver(container_excel.value);
 
     try {
     const response = await frappe.call({
-      method: "frappe_theme.apis.excel.get_excel_json",
+      method: props.conf?.endpoint,
       args: {
-        project_name:"P-2378"
+        project_name:props.frm?.doc?.name
       },
       freeze: true,
     });
     const workbookData = response.message;
-    console.log("Loaded workbookData:", workbookData);
     const workbook = await univerAPI.createWorkbook(workbookData);
 
     // =========== no edit permission ===========
