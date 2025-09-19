@@ -158,3 +158,103 @@ function getUserAvatar(fullName) {
     return firstInitial + lastInitial;
 }
 frappe.utils.get_user_avatar = getUserAvatar;
+
+function makePopover(el, title, content, placement = "left", trigger = "hover") {
+    // Handle case where only title is available
+    let popoverContent = content;
+    let popoverTitle = title;
+
+    if (!content && title) {
+        // If only title is provided, use it as content and create a styled title
+        popoverContent = title;
+        popoverTitle = "Info : ";
+    } else if (!title && content) {
+        // If only content is provided, create a default title
+        popoverTitle = "Information : ";
+    } else if (!title && !content) {
+        // If neither is provided, don't create popover
+        return;
+    }
+
+    // Set popover attributes
+    el.setAttribute("data-toggle", "popover");
+    el.setAttribute("data-content", popoverContent);
+    el.setAttribute("data-placement", placement);
+    el.setAttribute("data-trigger", trigger);
+    el.setAttribute("data-html", "true");
+    el.setAttribute("data-container", "body");
+    el.setAttribute("data-delay", "100");
+    el.setAttribute("data-offset", "10,10");
+    el.setAttribute("title", popoverTitle);
+    // Initialize Bootstrap popover
+    $(el).popover();
+}
+
+frappe.utils.make_popover = makePopover;
+
+
+// Download Template
+async function downloadTemplate(api_method, is_existing_file = false, is_download = true) {
+    try {
+        if (is_existing_file) {
+            if (api_method) {
+                let a = document.createElement('a');
+                let fileName = api_method.split('/').pop();
+                
+                a.href = api_method;
+                a.download = fileName;
+
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            }
+            else {
+                console.error('file path is not provided')
+                return;
+            }
+        } else {
+            frappe.dom.freeze();
+            let response = await fetch(`/api/method/${api_method}`);
+            if (!response.ok) {
+                let error = await response.json();
+                console.error('Error downloading template', error);
+                frappe.msgprint(error.message || frappe.utils.messages.get('generate_mou'));
+                return;
+            }
+
+            if (is_download) {
+                let blob = await response.blob();
+                let url = window.URL.createObjectURL(blob);
+                let a = document.createElement('a');
+                a.href = url;
+                let contentDisposition = response.headers.get('Content-Disposition');
+                let today = frappe.datetime.get_today();
+                let [year, month, day] = today.split("-");
+                let todayFormatted = `${day}-${month}-${year}`;
+                let fileName = `mgrant_document_${todayFormatted}`;
+                if (contentDisposition && contentDisposition.includes("filename=")) {
+                    fileName = contentDisposition
+                        .split("filename=")[1]
+                        .replace(/["']/g, "");
+                }
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            } else {
+                let blob = await response.blob();
+                let url = window.URL.createObjectURL(blob);
+                window.open(url, '_blank');
+                setTimeout(() => window.URL.revokeObjectURL(url), 5000);
+            }
+        }
+    } catch (error) {
+        console.error('Error downloading template', error);
+        frappe.msgprint(error.message || frappe.utils.messages.get('generate_mou'));
+        return;
+    } finally {
+        frappe.dom.unfreeze();
+    }
+}
+frappe.utils.download_template = downloadTemplate;
