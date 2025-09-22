@@ -1,0 +1,37 @@
+{
+ "app": "frappe_theme",
+ "charts": [],
+ "content": "[{\"id\":\"DD8nopHmUg\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"wrenAI\",\"col\":12}}]",
+ "creation": "2025-09-15 12:27:50.755739",
+ "custom_blocks": [
+  {
+   "custom_block_name": "wrenAI",
+   "label": "wrenAI"
+  }
+ ],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "funnel-plus",
+ "idx": 0,
+ "indicator_color": "green",
+ "is_hidden": 0,
+ "label": "WrenAi",
+ "link_type": "DocType",
+ "links": [],
+ "modified": "2025-09-18 16:55:08.190741",
+ "modified_by": "Administrator",
+ "module": "Frappe Theme",
+ "name": "WrenAi",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 23.0,
+ "shortcuts": [],
+ "title": "WrenAi",
+ "type": "Workspace"
+}
