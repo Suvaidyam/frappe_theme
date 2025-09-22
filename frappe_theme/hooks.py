@@ -59,7 +59,9 @@ doctype_js = {
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
-
+app_include = [
+    "frappe_theme.patches.db_overrides"
+]
 # Svg Icons
 # ------------------
 # include app icons in desk
@@ -197,9 +199,8 @@ doc_events = {
 override_whitelisted_methods = {
     "frappe.model.workflow.apply_workflow": "frappe_theme.overrides.workflow.custom_apply_workflow",
     "frappe.model.base_document.BaseDocument.as_dict": "frappe_theme.patches.extend_as_dict.patch_as_dict",
-    "frappe.desk.reportview.get": "frappe_theme.utils.data_protection.get_with_masking",
-    "frappe.desk.listview.get": "frappe_theme.utils.data_protection.get_with_masking",
-    "frappe.desk.formview.get": "frappe_theme.utils.data_protection.get_with_masking"
+    "frappe.desk.reportview.get": "frappe_theme.utils.data_protection.mask_doc_list_view",
+    "frappe.desk.listview.get": "frappe_theme.utils.data_protection.mask_doc_list_view"
 }
 
 #

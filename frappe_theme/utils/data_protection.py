@@ -6,6 +6,59 @@ from frappe.desk import reportview
 
 logger = logging.getLogger(__name__)
 
+@frappe.whitelist()
+def encrypt_doc_fields(doc, method=None):
+    """Encrypt fields before saving"""
+    for df in doc.meta.fields:
+        cfg = get_data_protection(df)
+        if cfg.get("encrypt"):
+            val = doc.get(df.fieldname)
+            if val and not val.startswith("gAAAA"):
+                print(val,'encrypt_value???????????????????????????????????????????????',encrypt_value(val))
+                doc.set(df.fieldname, encrypt_value(val))
+
+@frappe.whitelist()
+def decrypt_doc_fields(doc, method=None):
+    """Decrypt fields after loading"""
+    for df in doc.meta.fields:
+        cfg = get_data_protection(df)
+        if cfg.get("encrypt"):
+            val = doc.get(df.fieldname)
+            if val:
+                print(val,'decrypt_value???????????????????????????????????????????????',decrypt_value(val))
+                doc.set(df.fieldname, decrypt_value(val))
+
+@frappe.whitelist()
+def mask_doc_list_view(*args, **kwargs):
+    """Wrapper around frappe.desk.reportview.get to apply masking on list view"""
+    result = reportview.get(*args, **kwargs)
+    try:
+        if isinstance(result, dict) and "keys" in result and "values" in result:
+            doctype = kwargs.get("doctype") or (args[0] if args else None)
+            if doctype:
+                meta = frappe.get_meta(doctype)
+                user_roles = frappe.get_roles(frappe.session.user)
+
+                # Find index of fields that need masking
+                masking_fields = []
+                for idx, fieldname in enumerate(result["keys"]):
+                    df = meta.get_field(fieldname)
+                    if not df:
+                        continue
+                    cfg = get_data_protection(df)
+                    if cfg.get("masking") and "list" in cfg["masking"].get("apply_masking_on", []):
+                        masking_fields.append((idx, cfg))
+
+                # Apply masking on each row
+                for row in result["values"]:
+                    for idx, cfg in masking_fields:
+                        if idx < len(row):
+                            row[idx] = mask_value(row[idx], cfg, user_roles)
+
+    except Exception:
+        frappe.log_error("List Masking Error", frappe.get_traceback())
+    return result
+
 # ---------- Load Config ----------
 @frappe.whitelist()
 def get_data_protection(field):
@@ -120,68 +173,24 @@ def mask_value(value, cfg, user_roles):
         logger.error(f"Masking failed: {e}")
     return value
 
-@frappe.whitelist()
-def encrypt_doc_fields(doc, method=None):
-    """Encrypt fields before saving"""
-    for df in doc.meta.fields:
-        cfg = get_data_protection(df)
-        if cfg.get("encrypt"):
-            val = doc.get(df.fieldname)
-            if val and not val.startswith("gAAAA"):
-                print(val,'encrypt_value???????????????????????????????????????????????',encrypt_value(val))
-                doc.set(df.fieldname, encrypt_value(val))
+# @frappe.whitelist()
+# def mask_doc_list(docs, meta):
+#     """Mask values in list view / reports"""
+#     user_roles = frappe.get_roles(frappe.session.user)
+#     for doc in docs:
+#         for df in meta.fields:
+#             cfg = get_data_protection(df)
+#             if cfg.get("masking") and "list" in cfg["masking"].get("apply_masking_on", []):
+#                 if df.fieldname in doc:
+#                     doc[df.fieldname] = mask_value(doc[df.fieldname], cfg, user_roles)
+#     return docs
 
 @frappe.whitelist()
-def decrypt_doc_fields(doc, method=None):
-    """Decrypt fields after loading"""
-    for df in doc.meta.fields:
-        cfg = get_data_protection(df)
-        if cfg.get("encrypt"):
-            val = doc.get(df.fieldname)
-            if val:
-                print(val,'decrypt_value???????????????????????????????????????????????',decrypt_value(val))
-                doc.set(df.fieldname, decrypt_value(val))
-
-@frappe.whitelist()
-def get_with_masking(*args, **kwargs):
-    """Wrapper around frappe.desk.reportview.get to apply masking on list view"""
-    result = reportview.get(*args, **kwargs)
-    try:
-        # Frappe v15 returns { keys: [...], values: [...] }
-        if isinstance(result, dict) and "keys" in result and "values" in result:
-            doctype = kwargs.get("doctype") or (args[0] if args else None)
-            if doctype:
-                meta = frappe.get_meta(doctype)
-                user_roles = frappe.get_roles(frappe.session.user)
-
-                # Find index of fields that need masking
-                masking_fields = []
-                for idx, fieldname in enumerate(result["keys"]):
-                    df = meta.get_field(fieldname)
-                    if not df:
-                        continue
-                    cfg = get_data_protection(df)
-                    if cfg.get("masking") and "list" in cfg["masking"].get("apply_masking_on", []):
-                        masking_fields.append((idx, cfg))
-
-                # Apply masking on each row
-                for row in result["values"]:
-                    for idx, cfg in masking_fields:
-                        if idx < len(row):
-                            row[idx] = mask_value(row[idx], cfg, user_roles)
-
-    except Exception:
-        frappe.log_error("List Masking Error", frappe.get_traceback())
-    return result
-
-@frappe.whitelist()
-def mask_doc_list(docs, meta):
-    """Mask values in list view / reports"""
-    user_roles = frappe.get_roles(frappe.session.user)
+def testing_api():
+    docs = frappe.get_all("NGO", fields=["name", "pan_number", "account_number"])
+    values = []
     for doc in docs:
-        for df in meta.fields:
-            cfg = get_data_protection(df)
-            if cfg.get("masking") and "list" in cfg["masking"].get("apply_masking_on", []):
-                if df.fieldname in doc:
-                    doc[df.fieldname] = mask_value(doc[df.fieldname], cfg, user_roles)
+        value = frappe.get_value("NGO", doc.name, "pan_number")
+        values.append(value)
+    return values
     return docs
