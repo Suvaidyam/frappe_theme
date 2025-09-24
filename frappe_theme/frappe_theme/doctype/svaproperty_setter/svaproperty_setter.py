@@ -30,6 +30,8 @@ class SVAPropertySetter(Document):
 					apply_masking_on.append("report")
 				if self.get("api_response"):
 					apply_masking_on.append("api")
+				if self.get("mask_on_export"):
+					apply_masking_on.append("export")
 
 				config["masking"] = {
 					"masking_strategy": self.get("masking_strategy", "Partial"),
@@ -40,7 +42,6 @@ class SVAPropertySetter(Document):
 						r.strip() for r in (self.get("role_based_unmask") or "").splitlines() if r.strip()
 					],
 					"apply_masking_on": apply_masking_on,
-					"mask_on_export": 1 if self.get("mask_on_export") else 0,
 					"custom_function": self.get("custom_function", ""),
 					"pattern": self.get("pattern", "")
 				}

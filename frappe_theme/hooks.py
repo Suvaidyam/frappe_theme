@@ -163,6 +163,28 @@ doc_events = {
 	}
 }
 
+override_whitelisted_methods = {
+    "frappe.model.workflow.apply_workflow": "frappe_theme.overrides.workflow.custom_apply_workflow",
+    "frappe.desk.reportview.get": "frappe_theme.utils.data_protection.mask_doc_list_view",
+    "frappe.desk.listview.get": "frappe_theme.utils.data_protection.mask_doc_list_view"
+}
+
+after_migrate = [
+    "frappe_theme.utils.data_protection.initialize_data_protection",
+    "frappe_theme.patches.export_patches.initialize_export_patches"
+]
+
+# Startup hook - Initialize both core and export patches
+startup = [
+    "frappe_theme.utils.data_protection.initialize_data_protection",
+    "frappe_theme.patches.export_patches.initialize_export_patches"
+]
+
+# Website context processors (if needed for web views)
+website_context = {
+    "get_data_protection": "frappe_theme.utils.data_protection.get_data_protection"
+}
+
 # Scheduled Tasks
 # ---------------
 
@@ -196,12 +218,6 @@ doc_events = {
 # 	"frappe.desk.doctype.event.event.get_events": "frappe_theme.event.get_events"
 # }
 
-override_whitelisted_methods = {
-    "frappe.model.workflow.apply_workflow": "frappe_theme.overrides.workflow.custom_apply_workflow",
-    "frappe.model.base_document.BaseDocument.as_dict": "frappe_theme.patches.extend_as_dict.patch_as_dict",
-    "frappe.desk.reportview.get": "frappe_theme.utils.data_protection.mask_doc_list_view",
-    "frappe.desk.listview.get": "frappe_theme.utils.data_protection.mask_doc_list_view"
-}
 
 #
 # each overriding function accepts a `data` argument;
