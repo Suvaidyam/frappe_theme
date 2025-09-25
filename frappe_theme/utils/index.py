@@ -84,7 +84,7 @@ def generate_pdf_template(template_path_or_print_format,filename=None,**kwargs):
         except Exception:
             frappe.log_error(f"Template path or print format not found: {template_path_or_print_format}")
             frappe.throw(f"Template path or print format not found: {template_path_or_print_format}")
-        try:    
+        try:
             pdf = get_pdf(mou_template)
         except Exception as e:
             frappe.log_error(f"Error in converting to PDF: {str(e)}")
