@@ -72,7 +72,7 @@ onMounted(async () => {
     const response = await frappe.call({
       method: props.conf?.endpoint,
       args: {
-        name:props.frm?.doc?.name
+        doc: JSON.stringify(props.frm?.doc)
       },
       freeze: true,
     });
