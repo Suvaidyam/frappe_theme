@@ -2,7 +2,7 @@
   <div class="w-full h-full">
     <div
     ref="container_excel"
-    style="width: 100%; height: 60vh; border: 1px solid #ccc"
+    style="width: 100%; height: 60vh;"
     ></div>
 </div>
 </template>
