@@ -31,6 +31,7 @@ app_include_js = [
     f"/assets/frappe_theme/js/custom_import.js?ver={time.time()}",
     f"/assets/frappe_theme/js/sva_dt_utils.js?ver={time.time()}",
     f"/assets/frappe_theme/js/customizations.js?ver={time.time()}",
+    f"/assets/frappe_theme/js/doctype/global_doctype.js?ver={time.time()}"
 ]
 extend_bootinfo = f"frappe_theme.boot.boot_theme"
 # include js, css files in header of web template
