@@ -3,11 +3,10 @@ import frappe
 import logging
 from cryptography.fernet import Fernet, InvalidToken
 from frappe.desk import reportview
-from frappe.model.document import Document
+from frappe import _
+from frappe.desk import query_report, reportview
 
 logger = logging.getLogger(__name__)
-
-# ==================== DOCUMENT HOOKS ====================
 
 @frappe.whitelist()
 def encrypt_doc_fields(doc, method=None):
@@ -29,8 +28,6 @@ def decrypt_doc_fields(doc, method=None):
             if val and is_encrypted(val):
                 doc.set(df.fieldname, decrypt_value(val))
 
-# ==================== LIST VIEW HANDLING ====================
-
 @frappe.whitelist()
 def mask_doc_list_view(*args, **kwargs):
     """Enhanced wrapper for list view with decryption + masking"""
@@ -43,7 +40,6 @@ def mask_doc_list_view(*args, **kwargs):
                 meta = frappe.get_meta(doctype)
                 user_roles = frappe.get_roles(frappe.session.user)
 
-                # Find fields that need processing
                 processing_fields = []
                 for idx, fieldname in enumerate(result["keys"]):
                     df = meta.get_field(fieldname)
@@ -53,16 +49,13 @@ def mask_doc_list_view(*args, **kwargs):
                     if cfg.get("encrypt") or (cfg.get("masking") and "list" in cfg["masking"].get("apply_masking_on", [])):
                         processing_fields.append((idx, cfg, fieldname))
 
-                # Process each row
                 for row in result["values"]:
                     for idx, cfg, fieldname in processing_fields:
                         if idx < len(row) and row[idx]:
-                            # Step 1: Decrypt if needed
                             value = row[idx]
                             if cfg.get("encrypt") and is_encrypted(value):
                                 value = decrypt_value(value)
                             
-                            # Step 2: Apply masking if configured
                             if cfg.get("masking") and "list" in cfg["masking"].get("apply_masking_on", []):
                                 value = mask_value(value, cfg, user_roles)
                             
@@ -74,237 +67,9 @@ def mask_doc_list_view(*args, **kwargs):
     
     return result
 
-# ==================== API METHOD OVERRIDES ====================
-
-def patch_get_value():
-    """Patch frappe.get_value to handle decryption + masking"""
-    original_get_value = frappe.get_value
-    
-    def enhanced_get_value(*args, **kwargs):
-        try:
-            result = original_get_value(*args, **kwargs)
-            
-            # Extract doctype and fieldname from arguments
-            doctype = args[0] if args else kwargs.get('doctype')
-            fieldname = args[2] if len(args) > 2 else kwargs.get('fieldname', 'name')
-            
-            if not doctype or not result:
-                return result
-            
-            # Handle single field result
-            if isinstance(fieldname, str) and fieldname != "name":
-                try:
-                    meta = frappe.get_meta(doctype)
-                    df = meta.get_field(fieldname)
-                    if df:
-                        result = process_field_value(result, df, context="api")
-                except Exception as e:
-                    logger.error(f"Error processing field {fieldname} in get_value: {e}")
-            
-            # Handle multiple fields result (dict or list)
-            elif isinstance(result, (dict, list)) and fieldname != "name":
-                try:
-                    meta = frappe.get_meta(doctype)
-                    user_roles = frappe.get_roles(frappe.session.user)
-                    
-                    if isinstance(result, dict):
-                        for field, value in result.items():
-                            if value:
-                                df = meta.get_field(field)
-                                if df:
-                                    result[field] = process_field_value(value, df, user_roles, context="api")
-                    
-                    elif isinstance(result, list):
-                        for item in result:
-                            if isinstance(item, dict):
-                                for field, value in item.items():
-                                    if value:
-                                        df = meta.get_field(field)
-                                        if df:
-                                            item[field] = process_field_value(value, df, user_roles, context="api")
-                except Exception as e:
-                    logger.error(f"Error processing multiple fields in get_value: {e}")
-            
-            return result
-            
-        except Exception as e:
-            # If our patch fails, return original result to avoid breaking functionality
-            logger.error(f"Enhanced get_value patch failed: {e}")
-            return original_get_value(*args, **kwargs)
-    
-    frappe.get_value = enhanced_get_value
-
-def patch_get_all():
-    """Patch frappe.get_all to handle decryption + masking"""
-    original_get_all = frappe.get_all
-    
-    def enhanced_get_all(*args, **kwargs):
-        try:
-            result = original_get_all(*args, **kwargs)
-            
-            # Extract doctype and fields from arguments
-            doctype = args[0] if args else kwargs.get('doctype')
-            fields = args[1] if len(args) > 1 else kwargs.get('fields')
-            
-            if not result or not fields or not doctype:
-                return result
-            
-            try:
-                meta = frappe.get_meta(doctype)
-                user_roles = frappe.get_roles(frappe.session.user)
-                
-                # Determine which fields need processing
-                fields_to_process = []
-                if isinstance(fields, list):
-                    for field in fields:
-                        field_name = field.split(" as ")[0].strip() if " as " in field else field
-                        df = meta.get_field(field_name)
-                        if df:
-                            cfg = get_data_protection(df)
-                            if cfg.get("encrypt") or (cfg.get("masking") and "api" in cfg["masking"].get("apply_masking_on", [])):
-                                fields_to_process.append((field_name, cfg))
-                
-                # Process results
-                for item in result:
-                    if isinstance(item, dict):
-                        for field_name, cfg in fields_to_process:
-                            if field_name in item and item[field_name]:
-                                item[field_name] = process_field_with_config(item[field_name], cfg, user_roles, context="api")
-            
-            except Exception as e:
-                logger.error(f"Error processing get_all results: {e}")
-            
-            return result
-            
-        except Exception as e:
-            # If our patch fails, return original result
-            logger.error(f"Enhanced get_all patch failed: {e}")
-            return original_get_all(*args, **kwargs)
-    
-    frappe.get_all = enhanced_get_all
-
-def patch_get_doc():
-    """Patch frappe.get_doc to handle decryption + masking"""
-    original_get_doc = frappe.get_doc
-    
-    def enhanced_get_doc(*args, **kwargs):
-        # Handle different call patterns for get_doc
-        doc = original_get_doc(*args, **kwargs)
-        
-        # Determine context for masking
-        context = determine_context()
-        
-        # Process document fields
-        process_document_fields(doc, context)
-        
-        return doc
-    
-    frappe.get_doc = enhanced_get_doc
-
-def patch_as_dict():
-    """Patch Document.as_dict to handle masking"""
-    original_as_dict = Document.as_dict
-    
-    def enhanced_as_dict(self, *args, **kwargs):
-        # Call original method with all arguments
-        result = original_as_dict(self, *args, **kwargs)
-        
-        # Apply masking for API/form contexts
-        try:
-            user_roles = frappe.get_roles(frappe.session.user)
-            context = determine_context()
-            
-            for df in self.meta.fields:
-                cfg = get_data_protection(df)
-                if cfg.get("masking") and df.fieldname in result and result[df.fieldname]:
-                    masking_cfg = cfg["masking"]
-                    contexts = masking_cfg.get("apply_masking_on", [])
-                    
-                    if context in contexts:
-                        result[df.fieldname] = mask_value(result[df.fieldname], cfg, user_roles)
-                        
-        except Exception as e:
-            # Don't break the as_dict functionality if masking fails
-            logger.error(f"Masking in as_dict failed: {e}")
-        
-        return result
-    
-    Document.as_dict = enhanced_as_dict
-
-# ==================== UTILITY FUNCTIONS ====================
-
-def process_field_value(value, df, user_roles=None, context="api"):
-    """Process a single field value (decrypt + mask)"""
-    cfg = get_data_protection(df)
-    return process_field_with_config(value, cfg, user_roles or frappe.get_roles(frappe.session.user), context)
-
-def process_field_with_config(value, cfg, user_roles, context="api"):
-    """Process field value with given config"""
-    if not value:
-        return value
-    
-    processed_value = value
-    
-    # Step 1: Decrypt if needed
-    if cfg.get("encrypt") and is_encrypted(processed_value):
-        processed_value = decrypt_value(processed_value)
-    
-    # Step 2: Apply masking if configured
-    if cfg.get("masking"):
-        masking_cfg = cfg["masking"]
-        contexts = masking_cfg.get("apply_masking_on", [])
-        if context in contexts:
-            processed_value = mask_value(processed_value, cfg, user_roles)
-    
-    return processed_value
-
-def process_document_fields(doc, context="form"):
-    """Process all fields in a document for encryption/masking"""
-    if not (hasattr(doc, 'meta') and hasattr(doc.meta, 'fields')):
-        return doc
-    
-    try:
-        user_roles = frappe.get_roles(frappe.session.user)
-        
-        for df in doc.meta.fields:
-            cfg = get_data_protection(df)
-            if not (cfg.get("encrypt") or cfg.get("masking")):
-                continue
-                
-            val = doc.get(df.fieldname)
-            if not val:
-                continue
-                
-            processed_val = process_field_with_config(val, cfg, user_roles, context)
-            
-            if processed_val != val:
-                doc.set(df.fieldname, processed_val)
-                
-    except Exception as e:
-        logger.error(f"Document field processing failed: {e}")
-    
-    return doc
-
 def is_encrypted(value):
     """Check if value is encrypted (Fernet tokens start with 'gAAAA')"""
     return isinstance(value, str) and value.startswith("gAAAA")
-
-def determine_context():
-    """Determine the current context (form, api, list, etc.)"""
-    try:
-        if frappe.request and frappe.request.path:
-            path = frappe.request.path
-            if "/api/" in path:
-                return "api"
-            elif "/desk" in path or "/app" in path:
-                if "listview" in path or "list" in path:
-                    return "list"
-                return "form"
-        return "form"  # Default fallback
-    except:
-        return "form"
-
-# ==================== EXISTING FUNCTIONS (ENHANCED) ====================
 
 @frappe.whitelist()
 def get_data_protection(field):
@@ -366,7 +131,6 @@ def mask_value(value, cfg, user_roles):
 
     m = cfg["masking"]
 
-    # Role-based unmask
     allowed_roles = m.get("role_based_unmask", [])
     if any(role in user_roles for role in allowed_roles):
         return value
@@ -413,223 +177,208 @@ def mask_value(value, cfg, user_roles):
         logger.error(f"Masking failed: {e}")
         return char * len(str(value))
 
+
+@frappe.whitelist()
+def mask_query_report(*args, **kwargs):
+    """
+    Wrapper around frappe.desk.query_report.run
+    Apply decryption + masking on report data
+    """
+    result = query_report.run(*args, **kwargs)
+
+    try:
+        report_name = kwargs.get("report_name") or (args[0] if args else None)
+        if not report_name:
+            return result
+
+        report = frappe.get_doc("Report", report_name)
+        doctype = report.ref_doctype
+        if not doctype:
+            return result
+
+        meta = frappe.get_meta(doctype)
+        user_roles = frappe.get_roles(frappe.session.user)
+
+        for row in result.get("result", []):
+            for col in result.get("columns", []):
+                fieldname = col.get("fieldname")
+                if not fieldname:
+                    continue
+
+                df = meta.get_field(fieldname)
+                if not df:
+                    continue
+
+                cfg = get_data_protection(df)
+
+                if cfg.get("encrypt") or cfg.get("masking"):
+                    val = row.get(fieldname)
+
+                    if cfg.get("encrypt") and is_encrypted(val):
+                        val = decrypt_value(val)
+
+                    if cfg.get("masking") and "report" in cfg["masking"].get("apply_masking_on", []):
+                        val = mask_value(val, cfg, user_roles)
+
+                    row[fieldname] = val
+
+    except Exception as e:
+        frappe.log_error("Report Processing Error", frappe.get_traceback())
+        logger.error(f"Report processing failed: {e}")
+
+    return result
+
+
+@frappe.whitelist()
+def mask_query_report_export_query():
+    """Custom export from query reports with masking"""
+    from frappe.desk.utils import get_csv_bytes, pop_csv_params, provide_binary_file
+    from frappe.desk.query_report import format_fields, build_xlsx_data, valid_report_name
+    from frappe.utils.xlsxutils import handle_html
+
+    # Step 1: replicate Frappe’s export_query logic
+    form_params = frappe._dict(frappe.local.form_dict)
+    csv_params = pop_csv_params(form_params)
+
+    from frappe.desk.query_report import clean_params, parse_json
+    clean_params(form_params)
+    parse_json(form_params)
+
+    report_name = form_params.report_name
+    frappe.permissions.can_export(
+        frappe.get_cached_value("Report", report_name, "ref_doctype"),
+        raise_exception=True,
+    )
+
+    file_format_type = form_params.file_format_type
+    custom_columns = frappe.parse_json(form_params.custom_columns or "[]")
+    include_indentation = form_params.include_indentation
+    include_filters = form_params.include_filters
+    visible_idx = form_params.visible_idx
+    include_hidden_columns = form_params.include_hidden_columns
+
+    if isinstance(visible_idx, str):
+        visible_idx = json.loads(visible_idx)
+
+    # Step 2: Run report
+    data = query_report.run(report_name, form_params.filters, custom_columns=custom_columns, are_default_filters=False)
+    data = frappe._dict(data)
+    data.filters = form_params.applied_filters
+
+    if not data.columns:
+        frappe.respond_as_web_page(
+            _("No data to export"),
+            _("You can try changing the filters of your report."),
+        )
+        return
+
+    # Step 3: Apply masking here
+    try:
+        report = frappe.get_doc("Report", report_name)
+        doctype = report.ref_doctype
+        if doctype:
+            meta = frappe.get_meta(doctype)
+            user_roles = frappe.get_roles(frappe.session.user)
+
+            for row in data.result:
+                for col, val in row.items():
+                    df = meta.get_field(col)
+                    if not df:
+                        continue
+
+                    cfg = get_data_protection(df)
+
+                    if cfg.get("encrypt") and is_encrypted(val):
+                        val = decrypt_value(val)
+
+                    if cfg.get("masking") and "report" in cfg["masking"].get("apply_masking_on", []):
+                        val = mask_value(val, cfg, user_roles)
+
+                    row[col] = val
+    except Exception:
+        frappe.log_error("Report Export Masking Error", frappe.get_traceback())
+
+    # Step 4: Continue with normal export
+    format_fields(data)
+    xlsx_data, column_widths = build_xlsx_data(
+        data,
+        visible_idx,
+        include_indentation,
+        include_filters=include_filters,
+        include_hidden_columns=include_hidden_columns,
+    )
+
+    if file_format_type == "CSV":
+        content = get_csv_bytes(
+            [[handle_html(frappe.as_unicode(v)) if isinstance(v, str) else v for v in r] for r in xlsx_data],
+            csv_params,
+        )
+        file_extension = "csv"
+    elif file_format_type == "Excel":
+        from frappe.utils.xlsxutils import make_xlsx
+
+        file_extension = "xlsx"
+        content = make_xlsx(xlsx_data, "Query Report", column_widths=column_widths).getvalue()
+
+    if include_filters:
+        for value in (data.filters or {}).values():
+            suffix = ""
+            if isinstance(value, list):
+                suffix = "_" + ",".join(value)
+            elif isinstance(value, str) and value not in {"Yes", "No"}:
+                suffix = f"_{value}"
+
+            if valid_report_name(report_name, suffix):
+                report_name += suffix
+
+    provide_binary_file(report_name, file_extension, content)
+
+
+
 # ==================== EXPORT HANDLING ====================
 
-# ==================== EXPORT HANDLING (Moved to separate file) ====================
-
-# Export handling functions have been moved to:
-# frappe_theme/patches/export_patches.py
-
-# Legacy function for backward compatibility
-def handle_export_masking(data, doctype):
-    """Legacy function - now handled by export_patches.py"""
-    try:
-        from frappe_theme.patches.export_patches import handle_export_masking as new_handle_export_masking
-        return new_handle_export_masking(data, doctype)
-    except ImportError:
-        logger.warning("Export patches not available - skipping export masking")
-        return data
-
-# ==================== INITIALIZATION ====================
-
-def safe_initialize_data_protection():
-    """Safely initialize core data protection patches without breaking boot process"""
-    try:
-        # Only initialize if Frappe is properly loaded
-        if not (frappe.db and frappe.session and hasattr(frappe, 'get_roles')):
-            logger.warning("Frappe not fully loaded - skipping data protection initialization")
-            return False
-            
-        # Only initialize if not already done
-        if hasattr(frappe, '_data_protection_initialized'):
-            logger.info("Data Protection core patches already initialized")
-            return True
-            
-        logger.info("Initializing Data Protection core patches...")
-        
-        # Apply core patches
-        patch_get_value()
-        patch_get_all()
-        patch_get_doc()
-        patch_as_dict()
-        
-        # Mark as initialized
-        frappe._data_protection_initialized = True
-        logger.info("✅ Data Protection core patches initialized successfully")
-        return True
-        
-    except Exception as e:
-        logger.error(f"❌ Failed to initialize data protection core patches: {e}")
-        import traceback
-        logger.error(traceback.format_exc())
-        return False
-
-def initialize_data_protection():
-    """Main initialization function for core data protection - called from hooks"""
-    try:
-        logger.info("Starting Data Protection core initialization...")
-        
-        # Try immediate initialization
-        if safe_initialize_data_protection():
-            return True
-            
-        # If immediate fails, try delayed initialization
-        if frappe.db:
-            logger.info("Attempting delayed Data Protection initialization...")
-            frappe.enqueue(
-                'frappe_theme.utils.data_protection.safe_initialize_data_protection',
-                queue='short',
-                timeout=30,
-                is_async=False
-            )
-            return True
-        
-        return False
-        
-    except Exception as e:
-        logger.error(f"❌ Data protection core initialization failed: {e}")
-        return False
-
-def reset_data_protection():
-    """Reset data protection initialization - for testing/debugging"""
-    if hasattr(frappe, '_data_protection_initialized'):
-        delattr(frappe, '_data_protection_initialized')
-        logger.info("🔄 Data Protection initialization flag cleared")
-
-# Utility function to check if core patches are active
-def is_data_protection_active():
-    """Check if core data protection patches are active"""
-    return getattr(frappe, '_data_protection_initialized', False)
-
-def get_data_protection_status():
-    """Get detailed status of data protection core"""
-    return {
-        "initialized": is_data_protection_active(),
-        "patches_applied": [
-            "get_value",
-            "get_all", 
-            "get_doc",
-            "as_dict"
-        ],
-        "module": "frappe_theme.utils.data_protection"
-    }
-
-# ==================== TESTING API ====================
-
 @frappe.whitelist()
-def testing_api():
-    """Enhanced test API to verify encryption/decryption/masking across all methods"""
-    docs = frappe.get_all("NGO", fields=["name", "pan_number", "account_number"], limit=2)
-    results = []
+def mask_export_query(*args, **kwargs):
+    """
+    Wrapper around frappe.desk.reportview.export_query
+    """
+    result = reportview.export_query(*args, **kwargs)
     
-    for doc_info in docs:
-        doc_name = doc_info.name
-        
-        # Test different methods
-        test_result = {
-            "name": doc_name,
-            "methods": {}
-        }
-        
-        # Test get_value
-        try:
-            pan_from_get_value = frappe.get_value("NGO", doc_name, "pan_number")
-            account_from_get_value = frappe.get_value("NGO", doc_name, "account_number")
-            test_result["methods"]["get_value"] = {
-                "pan_number": pan_from_get_value,
-                "account_number": account_from_get_value
-            }
-        except Exception as e:
-            test_result["methods"]["get_value"] = {"error": str(e)}
-        
-        # Test get_all
-        try:
-            from_get_all = frappe.get_all("NGO", 
-                                        fields=["pan_number", "account_number"], 
-                                        filters={"name": doc_name}, 
-                                        limit=1)
-            test_result["methods"]["get_all"] = from_get_all[0] if from_get_all else {}
-        except Exception as e:
-            test_result["methods"]["get_all"] = {"error": str(e)}
-        
-        # Test get_doc
-        try:
-            full_doc = frappe.get_doc("NGO", doc_name)
-            test_result["methods"]["get_doc"] = {
-                "pan_number": full_doc.get("pan_number"),
-                "account_number": full_doc.get("account_number")
-            }
-        except Exception as e:
-            test_result["methods"]["get_doc"] = {"error": str(e)}
-        
-        # Test as_dict
-        try:
-            full_doc = frappe.get_doc("NGO", doc_name)
-            as_dict_result = full_doc.as_dict()
-            test_result["methods"]["as_dict"] = {
-                "pan_number": as_dict_result.get("pan_number"),
-                "account_number": as_dict_result.get("account_number")
-            }
-        except Exception as e:
-            test_result["methods"]["as_dict"] = {"error": str(e)}
-        
-        # Raw database value (for comparison)
-        try:
-            raw_values = frappe.db.get_value("NGO", doc_name, 
-                                           ["pan_number", "account_number"], as_dict=True)
-            test_result["raw_db_values"] = raw_values
-        except Exception as e:
-            test_result["raw_db_values"] = {"error": str(e)}
-        
-        results.append(test_result)
-    
-    return {
-        "results": results,
-        "data_protection_status": {
-            "initialized": getattr(frappe, '_data_protection_initialized', False),
-            "current_user": frappe.session.user,
-            "user_roles": frappe.get_roles(frappe.session.user)
-        }
-    }
-
-@frappe.whitelist()
-def test_masking_contexts():
-    """Test masking in different contexts"""
     try:
-        # Get a test document
-        test_doc = frappe.get_all("NGO", fields=["name"], limit=1)
-        if not test_doc:
-            return {"error": "No NGO documents found for testing"}
-        
-        doc_name = test_doc[0].name
-        
-        # Test different contexts
-        contexts = ["form", "api", "list", "report"]
-        results = {}
-        
-        for context in contexts:
-            try:
-                # Get document
-                doc = frappe.get_doc("NGO", doc_name)
-                
-                # Manually process with specific context
-                user_roles = frappe.get_roles(frappe.session.user)
-                processed_values = {}
-                
-                for df in doc.meta.fields:
-                    if df.fieldname in ["pan_number", "account_number"]:
-                        cfg = get_data_protection(df)
-                        val = doc.get(df.fieldname)
-                        if val:
-                            processed_val = process_field_with_config(val, cfg, user_roles, context)
-                            processed_values[df.fieldname] = processed_val
-                
-                results[context] = processed_values
-                
-            except Exception as e:
-                results[context] = {"error": str(e)}
-        
-        return results
-        
+        doctype = kwargs.get("doctype") or (args[0] if args else None)
+        if not doctype:
+            return result
+
+        meta = frappe.get_meta(doctype)
+        user_roles = frappe.get_roles(frappe.session.user)
+
+        # Keys exist in first row
+        if result and isinstance(result, list):
+            header = result[0]  # first row is header
+            for i, fieldname in enumerate(header):
+                df = meta.get_field(fieldname)
+                if not df:
+                    continue
+
+                cfg = get_data_protection(df)
+                if not (cfg.get("encrypt") or cfg.get("masking")):
+                    continue
+
+                # Process each row after header
+                for row in result[1:]:
+                    if i < len(row) and row[i]:
+                        val = row[i]
+
+                        if cfg.get("encrypt") and is_encrypted(val):
+                            val = decrypt_value(val)
+
+                        if cfg.get("masking") and "report" in cfg["masking"].get("apply_masking_on", []):
+                            val = mask_value(val, cfg, user_roles)
+
+                        row[i] = val
+
     except Exception as e:
-        return {"error": str(e)}
+        frappe.log_error("Export Processing Error", frappe.get_traceback())
+        logger.error(f"Export processing failed: {e}")
+
+    return result

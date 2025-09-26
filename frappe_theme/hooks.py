@@ -166,23 +166,11 @@ doc_events = {
 override_whitelisted_methods = {
     "frappe.model.workflow.apply_workflow": "frappe_theme.overrides.workflow.custom_apply_workflow",
     "frappe.desk.reportview.get": "frappe_theme.utils.data_protection.mask_doc_list_view",
-    "frappe.desk.listview.get": "frappe_theme.utils.data_protection.mask_doc_list_view"
-}
+    "frappe.desk.listview.get": "frappe_theme.utils.data_protection.mask_doc_list_view",
 
-after_migrate = [
-    "frappe_theme.utils.data_protection.initialize_data_protection",
-    "frappe_theme.patches.export_patches.initialize_export_patches"
-]
 
-# Startup hook - Initialize both core and export patches
-startup = [
-    "frappe_theme.utils.data_protection.initialize_data_protection",
-    "frappe_theme.patches.export_patches.initialize_export_patches"
-]
-
-# Website context processors (if needed for web views)
-website_context = {
-    "get_data_protection": "frappe_theme.utils.data_protection.get_data_protection"
+    "frappe.desk.query_report.run": "frappe_theme.utils.data_protection.mask_query_report",
+    "frappe.desk.query_report.export_query": "frappe_theme.utils.data_protection.mask_query_report_export_query"
 }
 
 # Scheduled Tasks
