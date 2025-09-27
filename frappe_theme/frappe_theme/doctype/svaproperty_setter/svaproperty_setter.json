@@ -1,0 +1,232 @@
+{
+ "actions": [],
+ "autoname": "format:{doc_type}-{fname}",
+ "creation": "2025-09-18 13:32:05.125501",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_xgye",
+  "doc_type",
+  "column_break_gocd",
+  "fname",
+  "column_break_yorc",
+  "section_break_ntdi",
+  "encrypt",
+  "column_break_zfse",
+  "masking",
+  "column_break_lxjz",
+  "column_break_bwrf",
+  "section_break_walf",
+  "masking_strategy",
+  "custom_function",
+  "pattern",
+  "visible_prefix",
+  "visible_suffix",
+  "masking_character",
+  "column_break_dxmq",
+  "role_based_unmask",
+  "column_break_xvkz",
+  "apply_masking_on_section",
+  "list_view",
+  "form_view",
+  "api_response",
+  "column_break_qbql",
+  "reports",
+  "mask_on_export",
+  "column_break_yvxy",
+  "column_break_zzxa"
+ ],
+ "fields": [
+  {
+   "fieldname": "column_break_gocd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_ntdi",
+   "fieldtype": "Section Break",
+   "label": "Data Protection"
+  },
+  {
+   "default": "0",
+   "fieldname": "encrypt",
+   "fieldtype": "Check",
+   "label": "Enable Encryption"
+  },
+  {
+   "fieldname": "column_break_zfse",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "masking",
+   "fieldtype": "Check",
+   "label": "Enable Masking"
+  },
+  {
+   "depends_on": "eval:doc.masking",
+   "fieldname": "section_break_walf",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "Partial",
+   "fieldname": "masking_strategy",
+   "fieldtype": "Select",
+   "label": "Masking Strategy",
+   "options": "Partial\nFull\nRegex\nCustom Function"
+  },
+  {
+   "default": "X",
+   "fieldname": "masking_character",
+   "fieldtype": "Data",
+   "label": "Masking Character",
+   "length": 1
+  },
+  {
+   "depends_on": "eval:doc.masking",
+   "description": "Apply Masking On",
+   "fieldname": "apply_masking_on_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "list_view",
+   "fieldtype": "Check",
+   "label": "List View"
+  },
+  {
+   "default": "0",
+   "fieldname": "form_view",
+   "fieldtype": "Check",
+   "label": "Form View"
+  },
+  {
+   "default": "0",
+   "fieldname": "api_response",
+   "fieldtype": "Check",
+   "label": " API Response"
+  },
+  {
+   "fieldname": "column_break_qbql",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "reports",
+   "fieldtype": "Check",
+   "label": " Reports"
+  },
+  {
+   "default": "0",
+   "fieldname": "mask_on_export",
+   "fieldtype": "Check",
+   "label": " Mask on Export"
+  },
+  {
+   "fieldname": "column_break_yorc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_lxjz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_dxmq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_xvkz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_yvxy",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_bwrf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_zzxa",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_xgye",
+   "fieldtype": "Section Break",
+   "hidden": 1,
+   "hide_border": 1
+  },
+  {
+   "default": "2",
+   "depends_on": "eval: doc.masking_strategy == \"Partial\"",
+   "fieldname": "visible_prefix",
+   "fieldtype": "Int",
+   "label": "Visible Prefix",
+   "non_negative": 1
+  },
+  {
+   "default": "2",
+   "depends_on": "eval: doc.masking_strategy == \"Partial\"",
+   "fieldname": "visible_suffix",
+   "fieldtype": "Int",
+   "label": "Visible Suffix",
+   "non_negative": 1
+  },
+  {
+   "description": "Enter one role per line",
+   "fieldname": "role_based_unmask",
+   "fieldtype": "Small Text",
+   "label": "Roles That Can View Unmasked"
+  },
+  {
+   "fieldname": "fname",
+   "fieldtype": "Data",
+   "label": "Fieldname",
+   "read_only": 1
+  },
+  {
+   "fieldname": "doc_type",
+   "fieldtype": "Data",
+   "label": "Doctype",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval: doc.masking_strategy == \"Regex\"",
+   "fieldname": "pattern",
+   "fieldtype": "Data",
+   "label": "Regex Pattern"
+  },
+  {
+   "depends_on": "eval:doc.masking_strategy==\"Custom Function\"",
+   "fieldname": "custom_function",
+   "fieldtype": "Data",
+   "label": "Custom Function (dotted path)"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-09-19 17:56:56.283622",
+ "modified_by": "Administrator",
+ "module": "Frappe Theme",
+ "name": "SVAProperty Setter",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
