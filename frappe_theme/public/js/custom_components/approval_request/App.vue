@@ -75,12 +75,14 @@ const showTable = async (document_type) => {
     const frmCopy = Object.assign({}, props.frm);
     let wf_field = await frappe.db.get_value('Workflow', { document_type, is_active: 1 }, 'workflow_state_field');
     wf_field = wf_field?.message?.workflow_state_field;
-
+    
     frmCopy.sva_dt_instance = new frappe.ui.SvaDataTable({
         wrapper: sva_datatable.value,
         frm: Object.assign(frmCopy, {
             dt_events: {
+                ...frmCopy?.['dt_events'],
                 [document_type]: {
+                    ...frmCopy?.['dt_events']?.[document_type],
                     before_load: async function (dt) {
                         let wf_positive_closure = await frappe.xcall('frappe_theme.utils.get_wf_state_by_closure', {
                             doctype: document_type,
