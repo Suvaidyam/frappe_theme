@@ -3,32 +3,26 @@
 
 frappe.ui.form.on("Copy Role Perms", {
 	refresh(frm) {
-		set_select_options(frm);
-		frm.set_df_property("Copy Role Perms Child", "read_only", 1, "select");
-		frm.disable_save();
-		let icons = document.getElementsByClassName("bi-chat"); // grab by single class
-		// icons[0].hide()
-		// Array.from(icons).forEach((icon, index) => {
-		// 	console.log("Icon " + index, icon);
-		// });
-		frm.page.remove_inner_button("Email");
-
-		console.log("First icon:", icons[0]); // ab chalega
-
-		for (let i = 0; i < icons.length; i++) {
-			// go to the <button> containing the <svg>
-			let button = icons[i].closest("button");
-			if (button) {
-				console.log(button);
-
-				button.style.display = "none";
+		 const toggleBtn = document.querySelector(".btn.btn-default.icon-btn");
+			if (toggleBtn) {
+				toggleBtn.style.display = "none";
 			}
-		}
+		set_app_select_options(frm);
+		frm.disable_save();
+		frappe.after_ajax(() => {
+			let parent = frm.page.wrapper.querySelector(".custom-actions");
+			if (parent && parent.children.length > 2) {
+				parent.children[1].style.display = "none";
+				parent.children[2].style.display = "none";
+			}
+		});
+
 		frm.set_value("perms_type", "Get & Update Perms");
 		if (!frm.custom_btn) {
 			frm.custom_btn = frm.add_custom_button(__("Create Permissions"), function () {
-				if (frm.doc.permissions.length === 0 || !frm.doc.role_to) {
-					frappe.throw(__("Select 'Role To' and add permissions first."));
+				if (!frm.doc.role_to || !frm.doc.permissions || frm.doc.permissions.length === 0) {
+					let msg = frm.doc.perms_type === "Create Perms" ? "Role" : "Role To";
+					frappe.throw(__("Select '{0}' and add permissions first.", [msg]));
 				}
 				check_duplicate_perms(frm);
 				let btn_label = frm.custom_btn.text().trim();
@@ -118,7 +112,7 @@ frappe.ui.form.on("Copy Role Perms", {
 	}
 });
 
-function set_select_options(frm) {
+function set_app_select_options(frm) {
 	frappe.call({
 		method: "frappe_theme.controllers.copy_role_perms.copy_role_perms.get_app_list",
 		callback: function (r) {
@@ -147,19 +141,19 @@ function set_all_doctypes_in_permissions(frm) {
 						{
 							permlevel: 0,
 							select: 0,
-							read: 0,
-							write: 0,
+							read: 1,
+							write: 1,
 							create: 0,
 							delete_to: 0,
 							submit_to: 0,
 							cancel_to: 0,
 							amend: 0,
-							report: 0,
-							export: 0,
+							report: 1,
+							export: 1,
 							import_to: 0,
 							share: 0,
 							print: 0,
-							email: 0,
+							email: 1,
 						}
 					)
 				);
@@ -204,11 +198,6 @@ frappe.ui.form.on("Copy Role Perms Child", {
 			row.permlevel = null;
 			frappe.throw(__(`Value of Level cannot exceed 9 in  row ${row.idx}`));
 		}
-		let row1 = locals[cdt][cdn];
-		// console.log("row1", row1, frm.doc.permissions[0], row);
-		// frm.set_df_property("select", "read_only", 1);
-		let grid_row = frm.fields_dict["permissions"].grid.grid_rows_by_docname[cdn];
-		grid_row.toggle_enable("select", false); // disable only this row’s "select" field
 	},
 	
 });

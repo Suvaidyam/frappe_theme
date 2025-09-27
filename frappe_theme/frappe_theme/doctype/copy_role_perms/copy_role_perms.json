@@ -19,6 +19,7 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Role From",
+   "mandatory_depends_on": "eval: doc.perms_type==\"Get & Update Perms\"",
    "options": "Role"
   },
   {
@@ -56,13 +57,15 @@
    "fieldname": "apps",
    "fieldtype": "Select",
    "in_list_view": 1,
-   "label": "Apps"
+   "label": "Apps",
+   "reqd": 1
   }
  ],
+ "hide_toolbar": 1,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-09-12 18:03:47.146718",
+ "modified": "2025-09-20 16:54:31.764711",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Copy Role Perms",

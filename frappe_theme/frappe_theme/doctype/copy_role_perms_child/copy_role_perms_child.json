@@ -35,12 +35,15 @@
   },
   {
    "default": "0",
+   "depends_on": "eval:doc.permlevel == 0",
    "fieldname": "select",
    "fieldtype": "Check",
    "in_list_view": 1,
-   "label": "Select"
+   "label": "Select",
+   "width": "500px"
   },
   {
+   "columns": 4,
    "default": "0",
    "fieldname": "read",
    "fieldtype": "Check",
@@ -48,6 +51,7 @@
    "label": "Read"
   },
   {
+   "columns": 4,
    "default": "0",
    "fieldname": "write",
    "fieldtype": "Check",
@@ -56,6 +60,7 @@
   },
   {
    "default": "0",
+   "depends_on": "eval:doc.permlevel == 0",
    "fieldname": "create",
    "fieldtype": "Check",
    "in_list_view": 1,
@@ -67,6 +72,7 @@
   },
   {
    "default": "0",
+   "depends_on": "eval:doc.permlevel == 0",
    "fieldname": "submit_to",
    "fieldtype": "Check",
    "in_list_view": 1,
@@ -74,6 +80,7 @@
   },
   {
    "default": "0",
+   "depends_on": "eval:doc.permlevel == 0",
    "fieldname": "cancel_to",
    "fieldtype": "Check",
    "in_list_view": 1,
@@ -81,6 +88,7 @@
   },
   {
    "default": "0",
+   "depends_on": "eval:doc.permlevel == 0",
    "fieldname": "amend",
    "fieldtype": "Check",
    "in_list_view": 1,
@@ -164,6 +172,7 @@
   },
   {
    "default": "0",
+   "depends_on": "eval:doc.permlevel == 0",
    "fieldname": "delete_to",
    "fieldtype": "Check",
    "in_list_view": 1,
@@ -173,7 +182,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-09-10 18:04:12.706886",
+ "modified": "2025-09-18 16:16:54.704582",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Copy Role Perms Child",
