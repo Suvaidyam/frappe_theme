@@ -153,8 +153,8 @@ doc_events = {
 		# "on_trash": "method"
 	},
 	"File": {
-		"after_insert": "frappe_theme.controllers.sva_integrations.s3_bucket.file_upload_to_s3",
-		"on_trash": "frappe_theme.controllers.sva_integrations.s3_bucket.delete_from_cloud",
+		"after_insert": "frappe_theme.controllers.sva_integrations.cloud_assets.file_upload_to_s3",
+		"on_trash": "frappe_theme.controllers.sva_integrations.cloud_assets.delete_from_cloud",
 	},
 }
 # Scheduled Tasks
