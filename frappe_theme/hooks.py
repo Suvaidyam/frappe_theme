@@ -153,7 +153,7 @@ doc_events = {
 		# "on_trash": "method"
 	},
 	"File": {
-		"after_insert": "frappe_theme.controllers.sva_integrations.cloud_assets.file_upload_to_s3",
+		"after_insert": "frappe_theme.controllers.sva_integrations.cloud_assets.file_upload_to_cloud",
 		"on_trash": "frappe_theme.controllers.sva_integrations.cloud_assets.delete_from_cloud",
 	},
 }

@@ -100,7 +100,7 @@ class S3Operations:
 			final_key = doc_path + "/" + key + "_" + file_name
 			return final_key
 
-	def upload_files_to_s3_with_key(self, file_path, file_name, is_private, parent_doctype, parent_name):
+	def upload_files_with_key(self, file_path, file_name, is_private, parent_doctype, parent_name):
 		"""
 		Uploads a new file to S3.
 		Strips the file extension to set the content_type in metadata.
@@ -137,7 +137,7 @@ class S3Operations:
 			frappe.throw(frappe._("File Upload Failed. Please try again."))
 		return key
 
-	def delete_from_s3(self, key):
+	def delete_file(self, key):
 		"""Delete file from s3"""
 		if self.s3_settings_doc.enable and key:
 			try:

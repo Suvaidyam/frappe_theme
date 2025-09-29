@@ -40,12 +40,14 @@
   {
    "fieldname": "access_key",
    "fieldtype": "Data",
-   "label": "Access key"
+   "label": "Access key",
+   "length": 150
   },
   {
    "fieldname": "secret_key",
    "fieldtype": "Password",
-   "label": "Secret key"
+   "label": "Secret key",
+   "length": 150
   },
   {
    "fieldname": "region_name",
@@ -78,7 +80,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-09-29 13:26:31.290655",
+ "modified": "2025-09-29 15:43:44.610388",
  "modified_by": "Administrator",
  "module": "sva_Integrations",
  "name": "Cloud Assets",
