@@ -11,10 +11,11 @@ frappe.ui.form.on('*', {
         for (let prop of regex_props) {
             if (!prop.value) continue;
 
-            let config = JSON.parse(prop.value);
-            if (!config.regex_pattern) continue;
+            let config = (() => { try { return JSON.parse(prop.value); } catch { return prop.value; } })();
+            if (!config) continue;
             let fieldname = prop.field_name;
-            let regex = new RegExp(config.regex_pattern);
+            let regex = new RegExp(config);
+            console.log('regex',regex);
             let field_value = frm.doc[fieldname];
             if (frm.fields_dict[fieldname] && field_value) {
                 if (!regex.test(field_value)) {
