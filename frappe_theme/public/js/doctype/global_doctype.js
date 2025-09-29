@@ -15,7 +15,6 @@ frappe.ui.form.on('*', {
             if (!config) continue;
             let fieldname = prop.field_name;
             let regex = new RegExp(config);
-            console.log('regex',regex);
             let field_value = frm.doc[fieldname];
             if (frm.fields_dict[fieldname] && field_value) {
                 if (!regex.test(field_value)) {
