@@ -5,6 +5,9 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "enable",
+  "section_break_myex",
+  "column_break_fvjs",
   "provider",
   "env_manager",
   "path",
@@ -28,6 +31,7 @@
    "label": "env_manager"
   },
   {
+   "description": "it include both Bucket name and Folder name",
    "fieldname": "path",
    "fieldtype": "Data",
    "label": "Path"
@@ -46,13 +50,28 @@
    "fieldname": "region_name",
    "fieldtype": "Data",
    "label": "region_name"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable",
+   "fieldtype": "Check",
+   "label": "Enable"
+  },
+  {
+   "depends_on": "eval:doc.enable==\"1\";",
+   "fieldname": "section_break_myex",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_fvjs",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-09-27 13:39:06.061480",
+ "modified": "2025-09-29 12:01:24.076129",
  "modified_by": "Administrator",
  "module": "sva_Integrations",
  "name": "Cloud Assets",

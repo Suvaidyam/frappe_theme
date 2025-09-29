@@ -25,6 +25,7 @@ class S3Operations:
 		self.s3_settings_doc.bucket_name = self.s3_settings_doc.path.split("/")[0]
 		self.s3_settings_doc.folder_name = self.s3_settings_doc.path.split("/")[1]
 		self.s3_settings_doc.signed_url_expiry_time = 300
+
 		if self.s3_settings_doc.access_key and self.s3_settings_doc.secret_key:
 			self.S3_CLIENT = boto3.client(
 				"s3",
@@ -183,8 +184,10 @@ def file_upload_to_s3(doc, method):
 	"""
 	check and upload files to s3. the path check and
 	"""
-	if getattr(doc, "custom_skip_s3_upload", 0):
-		frappe.logger().info(f"Skipping S3 upload for {doc.name} due to skip_s3_upload flag.")
+	if not frappe.get_single_value("Cloud Assets", "enable"):
+		return
+	if getattr(doc, "custom_skip_cloud_assets", 0):
+		frappe.logger().info(f"Skipping S3 upload for {doc.name} due to custom_skip_cloud_assets flag.")
 		return
 	s3_upload = S3Operations()
 	path = doc.file_url
