@@ -30,6 +30,7 @@ def copy_all_permissions(doc):
             "name"
             )
             src = frappe.get_doc("Custom DocPerm", existing_name)
+<<<<<<< HEAD
 
             perm["cancel"] = cint(perm.get("cancel_to", 0))
             perm["submit"] = cint(perm.get("submit_to", 0))
@@ -41,6 +42,25 @@ def copy_all_permissions(doc):
 
             for key in common:
                 src.set(key, perm[key])
+=======
+            
+            if permlevel > 0:
+                src.read = cint(perm.get("read", 0))
+                src.write = cint(perm.get("write", 0))
+             
+            else:    
+
+                perm["cancel"] = cint(perm.get("cancel_to", 0))
+                perm["submit"] = cint(perm.get("submit_to", 0))
+                perm["delete"] = cint(perm.get("delete_to", 0))
+                perm["import"] = cint(perm.get("import_to", 0))
+                perm["parent"] = perm.get("reference_doctype")
+                
+                common = get_common_permissions_from_list("Custom DocPerm", perm)
+
+                for key in common:
+                    src.set(key, perm[key])
+>>>>>>> 1d410952714d4b288d7b1cd8cfc49645b4f70441
             src.save(ignore_permissions=True)
 
         else:
@@ -49,6 +69,7 @@ def copy_all_permissions(doc):
             src.role = role
             src.parent = target_doctype
             src.permlevel = permlevel
+<<<<<<< HEAD
             src.set("delete", cint(perm.get("delete_to", 0)))
             src.set("cancel", cint(perm.get("cancel_to", 0)))
             src.set("submit", cint(perm.get("submit_to", 0)))
@@ -56,6 +77,20 @@ def copy_all_permissions(doc):
             perm["parent"] = perm.get("reference_doctype")
 
             apply_common_permissions(src, perm)
+=======
+            
+            if permlevel > 0:
+                src.read = cint(perm.get("read", 0))
+                src.write = cint(perm.get("write", 0))
+            else:
+                src.set("delete", cint(perm.get("delete_to", 0)))
+                src.set("cancel", cint(perm.get("cancel_to", 0)))
+                src.set("submit", cint(perm.get("submit_to", 0)))
+                src.set("import", cint(perm.get("import_to", 0)))
+                perm["parent"] = perm.get("reference_doctype")
+
+                apply_common_permissions(src, perm)
+>>>>>>> 1d410952714d4b288d7b1cd8cfc49645b4f70441
             src.insert(ignore_permissions=True, ignore_mandatory=True)
 
     frappe.db.commit()
@@ -89,7 +124,22 @@ def apply_common_permissions(doc, perms):
     all_fields = ['select', 'read', 'write', 'create', 
                   'amend', 'report', 'export',  'share', 'print', 'email']
     for field in all_fields:
+<<<<<<< HEAD
         setattr(doc, field, perms.get(field, 0))
+=======
+        setattr(doc, field, perms.get(field, 0))        
+        
+ 
+        
+@frappe.whitelist()
+def get_app_list():
+    return frappe.get_installed_apps()
+
+@frappe.whitelist()
+def get_all_doctypes(app):
+    module=frappe.db.get_value("Module Def", {"app_name": app}, "name")
+    return frappe.get_all("DocType", filters={"module": module}, fields=["name"])
+>>>>>>> 1d410952714d4b288d7b1cd8cfc49645b4f70441
 
 
 class CopyRolePerms(Document):
