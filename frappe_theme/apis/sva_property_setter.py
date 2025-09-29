@@ -6,15 +6,15 @@ def save_field_data_protection(values):
     try:
         if isinstance(values, str):
             values = frappe.parse_json(values)
-        if not values.doc_type or not values.fname:
+        if not values['doc_type'] or not values['fname']:
             frappe.throw('Doctype and Fieldname is required.')
 
-        if not frappe.db.exists("SVAProperty Setter",{"doc_type": values.doc_type, "fname": values.fname}):
+        if not frappe.db.exists("SVAProperty Setter",{"doc_type": values['doc_type'], "fname": values['fname']}):
             sva_prop = frappe.new_doc("SVAProperty Setter")
             sva_prop.update(values)
             sva_prop.insert(ignore_permissions=True)
         else:
-            sva_prop = frappe.get_doc("SVAProperty Setter",{"doc_type": values.doc_type, "fname": values.fname})
+            sva_prop = frappe.get_doc("SVAProperty Setter",{"doc_type": values['doc_type'], "fname": values['fname']})
             sva_prop.update(values)
             sva_prop.flags.ignore_permissions = True
             sva_prop.save()
