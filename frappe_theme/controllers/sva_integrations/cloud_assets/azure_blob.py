@@ -40,7 +40,6 @@ class AzureBlobOperations:
 		)
 
 		self.BLOB_CLIENT = BlobServiceClient.from_connection_string(conn_str)
-		self.azure_settings_doc.signed_url_expiry_time = 300
 
 	def strip_special_chars(self, file_name):
 		"""Strips invalid characters"""
@@ -108,7 +107,7 @@ class AzureBlobOperations:
 			account_name=self.azure_settings_doc.account_name,
 			container_name=self.CONTAINER,
 			blob_name=key,
-			account_key=get_decrypted_password("Cloud Assets", "Cloud Assets", "secret_key"),  # <-- FIXED
+			account_key=get_decrypted_password("Cloud Assets", "Cloud Assets", "secret_key"),
 			permission=BlobSasPermissions(read=True),
 			expiry=datetime.utcnow() + timedelta(seconds=expiry_time),
 		)

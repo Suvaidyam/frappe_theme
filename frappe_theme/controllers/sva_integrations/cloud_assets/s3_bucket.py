@@ -23,7 +23,6 @@ class S3Operations:
 		)
 		self.s3_settings_doc.bucket_name = self.s3_settings_doc.path.split("/")[0]
 		self.s3_settings_doc.folder_name = self.s3_settings_doc.path.split("/")[1]
-		self.s3_settings_doc.signed_url_expiry_time = 300
 
 		if self.s3_settings_doc.access_key and self.s3_settings_doc.secret_key:
 			self.S3_CLIENT = boto3.client(

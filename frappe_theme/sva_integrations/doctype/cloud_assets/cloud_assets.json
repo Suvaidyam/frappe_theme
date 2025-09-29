@@ -13,6 +13,7 @@
   "path",
   "access_key",
   "secret_key",
+  "signed_url_expiry_time",
   "region_name",
   "cloud_asset_exclusion"
  ],
@@ -35,12 +36,12 @@
    "description": "it include both Bucket name and Folder name",
    "fieldname": "path",
    "fieldtype": "Data",
-   "label": "Path"
+   "label": "Path/url"
   },
   {
    "fieldname": "access_key",
    "fieldtype": "Data",
-   "label": "Access key",
+   "label": "Access key / Connection string",
    "length": 150
   },
   {
@@ -50,9 +51,11 @@
    "length": 150
   },
   {
+   "depends_on": "eval:doc.provider == \"AWS\"",
    "fieldname": "region_name",
    "fieldtype": "Data",
-   "label": "region_name"
+   "label": "Region Name",
+   "mandatory_depends_on": "eval:doc.provider == \"AWS\""
   },
   {
    "default": "0",
@@ -74,13 +77,19 @@
    "fieldtype": "Table MultiSelect",
    "label": "Cloud Asset Exclusion",
    "options": "Cloud Asset Exclusion"
+  },
+  {
+   "default": "300",
+   "fieldname": "signed_url_expiry_time",
+   "fieldtype": "Int",
+   "label": "URL Expiry"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-09-29 15:43:44.610388",
+ "modified": "2025-09-29 16:24:02.569173",
  "modified_by": "Administrator",
  "module": "sva_Integrations",
  "name": "Cloud Assets",
