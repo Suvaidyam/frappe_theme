@@ -2,7 +2,6 @@ import json
 import frappe
 import logging
 from cryptography.fernet import Fernet, InvalidToken
-from frappe.desk import reportview
 from frappe import _
 from frappe.desk import query_report, reportview
 

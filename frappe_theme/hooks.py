@@ -60,9 +60,6 @@ doctype_js = {
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
-app_include = [
-    "frappe_theme.patches.db_overrides"
-]
 # Svg Icons
 # ------------------
 # include app icons in desk
