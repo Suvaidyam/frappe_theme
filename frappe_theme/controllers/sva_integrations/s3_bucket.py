@@ -140,7 +140,7 @@ class S3Operations:
 
 	def delete_from_s3(self, key):
 		"""Delete file from s3"""
-		if self.s3_settings_doc.delete_file_from_cloud:
+		if self.s3_settings_doc.enable and key:
 			try:
 				self.S3_CLIENT.delete_object(Bucket=self.s3_settings_doc.bucket_name, Key=key)
 			except ClientError:

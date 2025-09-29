@@ -154,7 +154,7 @@ doc_events = {
 	},
 	"File": {
 		"after_insert": "frappe_theme.controllers.sva_integrations.s3_bucket.file_upload_to_s3",
-		"on_trash": "frappe_theme.controllers.sva_integrations.s3_bucket.delete_from_s3",
+		"on_trash": "frappe_theme.controllers.sva_integrations.s3_bucket.delete_from_cloud",
 	},
 }
 # Scheduled Tasks
