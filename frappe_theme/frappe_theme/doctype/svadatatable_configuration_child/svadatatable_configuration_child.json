@@ -25,11 +25,8 @@
   "dt_reference_field",
   "dn_reference_field",
   "template",
-<<<<<<< HEAD
   "type",
   "endpoint",
-=======
->>>>>>> 1d410952714d4b288d7b1cd8cfc49645b4f70441
   "column_break_divo",
   "action_label",
   "add_row_button_label",
@@ -143,11 +140,7 @@
    "fieldtype": "Select",
    "label": "Template",
    "mandatory_depends_on": "eval:doc.connection_type == \"Is Custom Design\"",
-<<<<<<< HEAD
    "options": "Tasks\nEmail\nTimeline\nGallery\nNotes\nLinked Users\nApproval Request\nExcel"
-=======
-   "options": "Tasks\nEmail\nTimeline\nGallery\nNotes\nLinked Users\nApproval Request"
->>>>>>> 1d410952714d4b288d7b1cd8cfc49645b4f70441
   },
   {
    "depends_on": "eval:doc.connection_type !== \"Is Custom Design\"",
@@ -369,7 +362,6 @@
    "label": "List Filters",
    "max_height": "10rem",
    "read_only": 1
-<<<<<<< HEAD
   },
   {
    "depends_on": "eval:doc.template == \"Excel\"",
@@ -386,19 +378,13 @@
    "fieldtype": "Data",
    "label": "Endpoint",
    "mandatory_depends_on": "eval:doc.type == \"API\""
-=======
->>>>>>> 1d410952714d4b288d7b1cd8cfc49645b4f70441
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
-<<<<<<< HEAD
  "modified": "2025-09-19 12:40:52.167853",
-=======
- "modified": "2025-08-11 19:16:51.259163",
->>>>>>> 1d410952714d4b288d7b1cd8cfc49645b4f70441
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "SVADatatable Configuration Child",

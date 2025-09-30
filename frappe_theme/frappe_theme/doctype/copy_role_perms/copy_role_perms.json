@@ -5,10 +5,7 @@
  "engine": "InnoDB",
  "field_order": [
   "perms_type",
-<<<<<<< HEAD
-=======
   "apps",
->>>>>>> 1d410952714d4b288d7b1cd8cfc49645b4f70441
   "role_from",
   "column_break_hcbw",
   "role_to",
@@ -22,10 +19,7 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Role From",
-<<<<<<< HEAD
-=======
    "mandatory_depends_on": "eval: doc.perms_type==\"Get & Update Perms\"",
->>>>>>> 1d410952714d4b288d7b1cd8cfc49645b4f70441
    "options": "Role"
   },
   {
@@ -57,14 +51,6 @@
    "label": "Perms Type",
    "options": "Get & Update Perms\nCreate Perms",
    "reqd": 1
-<<<<<<< HEAD
-  }
- ],
- "index_web_pages_for_search": 1,
- "issingle": 1,
- "links": [],
- "modified": "2025-09-01 13:06:15.022116",
-=======
   },
   {
    "depends_on": "eval: doc.perms_type!==\"Get & Update Perms\"",
@@ -80,7 +66,6 @@
  "issingle": 1,
  "links": [],
  "modified": "2025-09-20 16:54:31.764711",
->>>>>>> 1d410952714d4b288d7b1cd8cfc49645b4f70441
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Copy Role Perms",
