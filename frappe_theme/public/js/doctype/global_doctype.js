@@ -1,14 +1,9 @@
 frappe.ui.form.on('*', {
     async validate(frm) {
-        const regex_props = await frappe.db.get_list('Property Setter', {
-            filters: {
-                doc_type: frm.doctype,
-                property: 'regex_validation'
-            },
-            fields: ['field_name', 'value']
+        const regex_props = await frappe.call('frappe_theme.apis.sva_property_setter.get_regex_validation', {
+            doctype: frm.doctype
         });
-
-        for (let prop of regex_props) {
+        for (let prop of regex_props?.message) {
             if (!prop.value) continue;
 
             let config = (() => { try { return JSON.parse(prop.value); } catch { return prop.value; } })();
