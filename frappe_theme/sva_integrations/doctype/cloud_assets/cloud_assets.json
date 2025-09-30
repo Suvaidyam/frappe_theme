@@ -28,27 +28,33 @@
   },
   {
    "default": "0",
+   "description": "If it is enabled, then the value of the Access Key / Connection String and Secret Key is set from the system OS environment variables.",
    "fieldname": "env_manager",
    "fieldtype": "Check",
-   "label": "env_manager"
+   "label": "Env manager"
   },
   {
    "description": "it include both Bucket name and Folder name",
    "fieldname": "path",
    "fieldtype": "Data",
-   "label": "Path/url"
+   "label": "Path/url",
+   "reqd": 1
   },
   {
+   "depends_on": "eval:!doc.env_manager",
    "fieldname": "access_key",
    "fieldtype": "Data",
    "label": "Access key / Connection string",
-   "length": 150
+   "length": 150,
+   "mandatory_depends_on": "eval:!doc.env_manager"
   },
   {
+   "depends_on": "eval:!doc.env_manager",
    "fieldname": "secret_key",
    "fieldtype": "Password",
    "label": "Secret key",
-   "length": 150
+   "length": 150,
+   "mandatory_depends_on": "eval:!doc.env_manager"
   },
   {
    "depends_on": "eval:doc.provider == \"AWS\"",
@@ -82,14 +88,15 @@
    "default": "300",
    "fieldname": "signed_url_expiry_time",
    "fieldtype": "Int",
-   "label": "URL Expiry"
+   "label": "URL Expiry",
+   "reqd": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-09-29 16:24:02.569173",
+ "modified": "2025-09-30 11:22:50.440763",
  "modified_by": "Administrator",
  "module": "sva_Integrations",
  "name": "Cloud Assets",
