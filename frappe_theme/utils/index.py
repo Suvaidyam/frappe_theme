@@ -232,6 +232,8 @@ def save_and_send_docx(document, filename, template_name):
 
 @frappe.whitelist()
 def generate_pdf_template(template_path_or_print_format,filename=None,**kwargs):
+    if kwargs.get("mode") == "docx":
+        return generate_docx_template(template_path_or_print_format,filename,**kwargs)
     """
     Generate a PDF template from a Template page or print format.
     """
