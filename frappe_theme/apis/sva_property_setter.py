@@ -43,7 +43,7 @@ def get_field_data_protection(doctype, fieldname):
 def get_regex_validation(doctype):
     """Get regex validation"""
     try:
-        if not doctype :
+        if not doctype:
             frappe.log_error('doctype is required for get_regex_validation')
             return []
         ps = frappe.get_all("Property Setter",{"doc_type": doctype, "property": "regex_validation"},["field_name", "value"],ignore_permissions=True)
