@@ -47,7 +47,6 @@ def get_regex_validation(doctype):
             frappe.log_error('doctype is required for get_regex_validation')
             return []
         ps = frappe.get_all("Property Setter",{"doc_type": doctype, "property": "regex_validation"},["field_name", "value"],ignore_permissions=True)
-        print(ps,'?????????????????????????????????')
         return ps
     except Exception as e:
         frappe.log_error('Error in get_regex_validation',frappe.get_traceback())
