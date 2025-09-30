@@ -37,3 +37,17 @@ def get_field_data_protection(doctype, fieldname):
     except Exception as e:
             frappe.log_error('Error in get_field_data_protection',frappe.get_traceback())
             return {}
+
+
+@frappe.whitelist()
+def get_regex_validation(doctype):
+    """Get regex validation"""
+    try:
+        if not doctype:
+            frappe.log_error('doctype is required for get_regex_validation')
+            return []
+        ps = frappe.get_all("Property Setter",{"doc_type": doctype, "property": "regex_validation"},["field_name", "value"],ignore_permissions=True)
+        return ps
+    except Exception as e:
+        frappe.log_error('Error in get_regex_validation',frappe.get_traceback())
+        return []
