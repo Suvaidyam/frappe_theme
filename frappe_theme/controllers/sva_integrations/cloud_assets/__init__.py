@@ -68,7 +68,7 @@ def file_upload_to_cloud(doc, method):
 			method = "frappe_theme.controllers.sva_integrations.cloud_assets.generate_file"
 			file_url = f"""/api/method/{method}?key={key}&file_name={doc.file_name}"""
 		else:
-			file_url = storage.get_public_url(key)
+			file_url = storage.get_url(key)
 
 		# Remove local file
 		os.remove(file_path)
