@@ -24,7 +24,17 @@ class S3Operations:
 		self.s3_settings_doc.bucket_name = self.s3_settings_doc.path.split("/")[0]
 		self.s3_settings_doc.folder_name = self.s3_settings_doc.path.split("/")[1]
 
-		if self.s3_settings_doc.access_key and self.s3_settings_doc.secret_key:
+		if self.s3_settings_doc.env_manager:
+			import os
+
+			self.S3_CLIENT = boto3.client(
+				"s3",
+				aws_access_key_id=os.getenv("access_key"),
+				aws_secret_access_key=os.getenv("secret_key"),
+				region_name=self.s3_settings_doc.region_name,
+				config=Config(signature_version="s3v4"),
+			)
+		elif self.s3_settings_doc.access_key and self.s3_settings_doc.secret_key:
 			self.S3_CLIENT = boto3.client(
 				"s3",
 				aws_access_key_id=self.s3_settings_doc.access_key,
