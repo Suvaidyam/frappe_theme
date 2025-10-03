@@ -45,7 +45,7 @@
    "fieldname": "access_key",
    "fieldtype": "Data",
    "label": "Access key / Connection string",
-   "length": 150,
+   "length": 200,
    "mandatory_depends_on": "eval:!doc.env_manager"
   },
   {
@@ -53,7 +53,7 @@
    "fieldname": "secret_key",
    "fieldtype": "Password",
    "label": "Secret key",
-   "length": 150,
+   "length": 200,
    "mandatory_depends_on": "eval:!doc.env_manager"
   },
   {
@@ -96,7 +96,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-09-30 11:22:50.440763",
+ "modified": "2025-10-03 16:36:41.614989",
  "modified_by": "Administrator",
  "module": "sva_Integrations",
  "name": "Cloud Assets",
