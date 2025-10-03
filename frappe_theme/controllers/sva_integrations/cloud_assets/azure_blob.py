@@ -13,7 +13,7 @@ class AzureBlobOperations:
 		"""
 		Initialize Azure settings from frappe Cloud Assets doctype.
 		"""
-		self.azure_settings_doc = frappe.get_doc("Cloud Assets", "Cloud Assets")
+		self.azure_settings_doc = frappe.get_cached_doc("Cloud Assets", "Cloud Assets")
 
 		# Parse path
 		parts = self.azure_settings_doc.path.split("/")

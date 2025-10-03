@@ -12,7 +12,7 @@ def get_storage_client():
 	Returns the correct storage client (AWS or Azure Blob)
 	based on the Cloud Assets configuration.
 	"""
-	cloud_assets = frappe.get_single("Cloud Assets").as_dict()
+	cloud_assets = frappe.get_cached_doc("Cloud Assets", "Cloud Assets").as_dict()
 
 	if not cloud_assets.enable:
 		return None, cloud_assets
@@ -38,7 +38,6 @@ def get_cloud_upload_exclusions(exclusion_list: str | dict) -> list:
 	return [d.get("include_doctype") for d in exclusion_list if d.get("include_doctype")]
 
 
-@frappe.whitelist()
 def file_upload_to_cloud(doc, method):
 	"""
 	Upload files to the configured cloud provider (S3 / Azure).
@@ -91,7 +90,6 @@ def file_upload_to_cloud(doc, method):
 		frappe.db.commit()
 
 
-@frappe.whitelist()
 def generate_file(key=None, file_name=None):
 	"""
 	Function to stream file from cloud (S3 / Azure).
@@ -154,7 +152,6 @@ def s3_file_regex_match(file_url):
 	)
 
 
-@frappe.whitelist()
 def migrate_existing_files():
 	"""
 	Migrate existing files to the configured cloud.

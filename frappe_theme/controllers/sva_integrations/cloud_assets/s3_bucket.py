@@ -17,10 +17,7 @@ class S3Operations:
 		Function to initialise the aws settings from frappe Cloud Assets
 		doctype.
 		"""
-		self.s3_settings_doc = frappe.get_doc(
-			"Cloud Assets",
-			"Cloud Assets",
-		)
+		self.s3_settings_doc = frappe.get_cached_doc("Cloud Assets", "Cloud Assets")
 		self.s3_settings_doc.bucket_name = self.s3_settings_doc.path.split("/")[0]
 		self.s3_settings_doc.folder_name = self.s3_settings_doc.path.split("/")[1]
 
