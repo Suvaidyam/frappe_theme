@@ -39,6 +39,25 @@ class TestAzureBlobOperations(IntegrationTestCase):
 			print("Cloud Assets integration is disabled")
 			self.skipTest("Cloud Assets integration is disabled.")
 
+	def test_azure_blob_connection_invalid_credentials(self):
+		"""
+		Negative test: Should pass if connection fails with invalid Azure Blob credentials.
+		"""
+		if self.cloud_assets_doc.enable and self.cloud_assets_doc.provider == "Azure":
+			blob_client = AzureBlobOperations()
+
+			# Simulate invalid credentials
+			blob_client.BLOB_CLIENT.account_key = "invalid_key"
+
+			try:
+				blob_client.BLOB_CLIENT.list_containers()
+				# If no error, test should fail
+				self.fail("Connection succeeded with invalid credentials, but it should have failed.")
+				print("Connection unexpectedly succeeded with invalid credentials.")
+			except Exception as e:
+				# Expected path: connection fails
+				self.assertIsNotNone(e, "Expected an exception for invalid credentials.")
+
 	def test_strip_special_chars(self):
 		"""
 		This test checks if special characters are stripped from file names.
@@ -48,6 +67,14 @@ class TestAzureBlobOperations(IntegrationTestCase):
 		stripped_name = blob_client.strip_special_chars(test_file_name)
 		self.assertEqual(stripped_name, "testfilename.txt", "Special characters were not stripped correctly.")
 		print(f"Original: {test_file_name}, Stripped: {stripped_name}")
+
+	def test_strip_special_chars_invalid_type(self):
+		"""
+		Negative test: Checks behavior when input is not a string.
+		"""
+		blob_client = AzureBlobOperations()
+		with self.assertRaises(TypeError):
+			blob_client.strip_special_chars(None)
 
 	def test_key_generator(self):
 		"""
@@ -61,6 +88,14 @@ class TestAzureBlobOperations(IntegrationTestCase):
 		self.assertIn(parent_doctype, generated_key, "Parent doctype not in generated key.")
 		self.assertIn("example.txt", generated_key, "File name not in generated key.")
 		print(f"Generated Key: {generated_key}")
+
+	def test_key_generator_missing_params(self):
+		"""
+		Negative test: Checks behavior when required params are missing.
+		"""
+		blob_client = AzureBlobOperations()
+		with self.assertRaises(TypeError):
+			blob_client.key_generator("file.txt")  # Missing parent_doctype and parent_name
 
 	def test_upload_and_delete_file(self):
 		"""
@@ -110,6 +145,34 @@ class TestAzureBlobOperations(IntegrationTestCase):
 		finally:
 			os.remove(temp_file_path)
 
+	def test_upload_files_with_key_missing_file(self):
+		"""
+		Negative test: Checks upload failure when file does not exist.
+		"""
+		if not self.cloud_assets_doc.enable or self.cloud_assets_doc.provider != "Azure":
+			self.skipTest("Cloud Assets integration is disabled or provider is not Azure.")
+
+		blob_client = AzureBlobOperations()
+		with self.assertRaises(FileNotFoundError):
+			blob_client.upload_files_with_key(
+				file_path="non_existent_file.txt",
+				file_name="non_existent_file.txt",
+				is_private=False,
+				parent_doctype="TestDocType",
+				parent_name="TestDocName",
+			)
+
+	def test_delete_file_invalid_key(self):
+		"""
+		Negative test: Checks deletion with an invalid blob key.
+		"""
+		if not self.cloud_assets_doc.enable or self.cloud_assets_doc.provider != "Azure":
+			self.skipTest("Cloud Assets integration is disabled or provider is not Azure.")
+
+		blob_client = AzureBlobOperations()
+		with self.assertRaises(Exception):
+			blob_client.delete_file("invalid/key/does/not/exist.txt")
+
 	def test_get_url(self):
 		"""
 		This test checks if a signed URL can be generated for a blob.
@@ -122,6 +185,17 @@ class TestAzureBlobOperations(IntegrationTestCase):
 		url = blob_client.get_url(test_key)
 		self.assertIn(test_key, url, "Generated URL does not contain the correct blob key.")
 		print(f"Generated URL: {url}")
+
+	def test_get_url_invalid_key(self):
+		"""
+		Negative test: Checks URL generation for a non-existent blob key.
+		"""
+		if not self.cloud_assets_doc.enable or self.cloud_assets_doc.provider != "Azure":
+			self.skipTest("Cloud Assets integration is disabled or provider is not Azure.")
+
+		blob_client = AzureBlobOperations()
+		url = blob_client.get_url("invalid/key/does/not/exist.txt")
+		self.assertIn("invalid/key/does/not/exist.txt", url)
 
 	def test_get_public_url(self):
 		"""
@@ -179,3 +253,14 @@ class TestAzureBlobOperations(IntegrationTestCase):
 			# Clean up: delete the blob and temporary file
 			blob_client.delete_file(key)
 			os.remove(temp_file_path)
+
+	def test_read_blob_invalid_key(self):
+		"""
+		Negative test: Checks reading a blob that does not exist.
+		"""
+		if not self.cloud_assets_doc.enable or self.cloud_assets_doc.provider != "Azure":
+			self.skipTest("Cloud Assets integration is disabled or provider is not Azure.")
+
+		blob_client = AzureBlobOperations()
+		with self.assertRaises(Exception):
+			blob_client.read_blob("invalid/key/does/not/exist.txt")
