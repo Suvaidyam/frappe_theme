@@ -90,6 +90,7 @@ def file_upload_to_cloud(doc, method):
 		frappe.db.commit()
 
 
+@frappe.whitelist()
 def generate_file(key=None, file_name=None):
 	"""
 	Function to stream file from cloud (S3 / Azure).
@@ -152,6 +153,7 @@ def s3_file_regex_match(file_url):
 	)
 
 
+@frappe.whitelist()
 def migrate_existing_files():
 	"""
 	Migrate existing files to the configured cloud.
