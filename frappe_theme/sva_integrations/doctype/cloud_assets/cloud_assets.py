@@ -6,4 +6,7 @@ from frappe.model.document import Document
 
 
 class CloudAssets(Document):
-	pass
+	def validate(self):
+		if self.env_manager:
+			self.access_key = ""
+			self.secret_key = ""

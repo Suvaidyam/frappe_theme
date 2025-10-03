@@ -28,7 +28,13 @@ class AzureBlobOperations:
 		self.account_name = endpoint.split(".")[0]
 		self.azure_settings_doc.account_name = self.account_name
 		# Build client
-		secret_key = get_decrypted_password("Cloud Assets", "Cloud Assets", "secret_key")
+		if self.azure_settings_doc.env_manager:
+			import os
+
+			# access_key = os.getenv("access_key")  # in the case of azure, access_key is not required
+			secret_key = os.getenv("secret_key")
+		else:
+			secret_key = get_decrypted_password("Cloud Assets", "Cloud Assets", "secret_key")
 		if not secret_key:
 			frappe.throw("Azure Storage account key is missing in Cloud Assets")
 
