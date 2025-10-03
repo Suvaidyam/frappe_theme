@@ -83,6 +83,7 @@
   "hide_side_bar",
   "hide_form_comment",
   "import_file",
+  "cloud_assets",
   "change_logs_tab",
   "change_logs"
  ],
@@ -493,13 +494,19 @@
    "fieldname": "embed_url",
    "fieldtype": "Data",
    "label": "Embed URL"
+  },
+  {
+   "description": "This is for AWS S3 Bucket and Azure Blob Integration",
+   "fieldname": "cloud_assets",
+   "fieldtype": "Button",
+   "label": "Cloud Assets"
   }
  ],
  "hide_toolbar": 1,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-09-22 14:00:02.927436",
+ "modified": "2025-10-03 13:39:58.874096",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "My Theme",

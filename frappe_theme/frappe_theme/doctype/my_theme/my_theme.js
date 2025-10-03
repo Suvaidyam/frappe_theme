@@ -5,4 +5,7 @@ frappe.ui.form.on("My Theme", {
    refresh(frm) {
        add_customization_buttons(frm);
     },
+    cloud_assets(frm){
+        frappe.new_doc("Cloud Assets", { enable: 1 });
+    }
 });
