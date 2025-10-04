@@ -7,27 +7,41 @@ frappe.ui.ThemeSwitcher = class CustomThemeSwitcher extends frappe.ui.ThemeSwitc
 		const r = await frappe.call({
 			method: "frappe.client.get_list",
 			args: {
-				doctype: "Theme", //  "theme_name", "description"
+				doctype: "Theme",
 				fields: ["name"],
 				limit_page_length: 20,
 			},
 		});
 		return (r.message || []).map((theme) => ({
 			name: theme.name,
-			label: theme.theme_name || theme.name,
-			info: theme.description || "Description is not set",
+			label: theme.name,
+			info: "Custom theme",
 		}));
 	}
 
 	async fetch_themes() {
 		console.log("Using custom theme switcher");
-		this.themes = await this.fetch_theme_list();
-		// Add 'automatic' option if needed
-		this.themes.push({
-			name: "automatic",
-			label: "Automatic",
-			info: "Uses system's theme to switch between light and dark mode",
-		});
+		// Default themes
+		this.themes = [
+			{
+				name: "light",
+				label: "Light",
+				info: "Default light theme",
+			},
+			{
+				name: "dark",
+				label: "Dark",
+				info: "Default dark theme",
+			},
+			{
+				name: "automatic",
+				label: "Automatic",
+				info: "Uses system's theme to switch between light and dark mode",
+			},
+		];
+		// Add custom themes
+		const customThemes = await this.fetch_theme_list();
+		this.themes = this.themes.concat(customThemes);
 		return this.themes;
 	}
 };
