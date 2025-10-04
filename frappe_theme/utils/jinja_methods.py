@@ -134,8 +134,8 @@ def decode_url(token):
     frappe.local.response["location"] = redirect_url
 
 def get_loging_url(email):
-    is_signup = frappe.db.get_single_value('My Theme','disable_usr_pass_login')
-    if is_signup:
+    is_signup = frappe.db.get_single_value('My Theme','enable_usr_pass_login')
+    if not is_signup:
         baseurl = base_url()
         url = f"{baseurl}/login?email={email}"
         frappe.log_error("url1", url)
@@ -143,7 +143,6 @@ def get_loging_url(email):
     else:
         key = frappe.generate_hash()
         hashed_key = sha256(key.encode("utf-8")).hexdigest()
-        
         frappe.db.set_value("User", email, "reset_password_key", hashed_key)
         frappe.db.set_value("User", email, "last_reset_password_key_generated_on", now_datetime())
         
