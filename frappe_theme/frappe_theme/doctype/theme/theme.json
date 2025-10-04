@@ -1,0 +1,539 @@
+{
+ "actions": [],
+ "allow_copy": 1,
+ "autoname": "prompt",
+ "creation": "2025-10-04 08:58:22.071374",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "login_page_tab",
+  "login_page_section",
+  "login_button_background_color",
+  "login_page_button_hover_background_color",
+  "page_background_type",
+  "login_page_background_color",
+  "login_page_background_image",
+  "is_app_details_inside_the_box",
+  "login_page_title",
+  "column_break_umnl",
+  "login_button_text_color",
+  "login_page_button_hover_text_color",
+  "login_box_position",
+  "page_heading_text_color",
+  "login_box_background_color",
+  "disable_usr_pass_login",
+  "navbar_tab",
+  "navbar_section",
+  "navbar_color",
+  "hide_help_button",
+  "hide_search",
+  "column_break_jevx",
+  "navbar_text_color",
+  "custom_logo",
+  "custom_logo_height",
+  "buttons_tab",
+  "primary_button_section",
+  "button_background_color",
+  "button_hover_background_color",
+  "column_break_soto",
+  "button_text_color",
+  "button_hover_text_color",
+  "secondary_button_section",
+  "secondary_button_background_color",
+  "secondary_button_hover_background_color",
+  "column_break_mslv",
+  "secondary_button_text_color",
+  "secondary_button_hover_text_color",
+  "body_tab",
+  "main_body_section",
+  "body_background_color",
+  "column_break_ojdd",
+  "main_body_content_box_background_color",
+  "table_tab",
+  "list_table_section",
+  "table_head_background_color",
+  "table_body_background_color",
+  "table_hide_like_comment_section",
+  "column_break_xskf",
+  "table_head_text_color",
+  "table_body_text_color",
+  "disable_card_view_on_mobile_view",
+  "disable_flex_card_content_on_mobile_view",
+  "widgets_tab",
+  "number_card_section",
+  "number_card_background_color",
+  "number_card_border_color",
+  "column_break_swjv",
+  "number_card_text_color",
+  "embed_url",
+  "section_break_bbon",
+  "dialog_width",
+  "input_tab",
+  "input_background_color",
+  "input_border_color",
+  "column_break_pdaj",
+  "input_text_color",
+  "input_label_color",
+  "workspace_remapping_tab",
+  "sidebar_element_selector",
+  "workspace",
+  "features_tab",
+  "hide_print_icon",
+  "hide_fields_comment",
+  "hide_side_bar",
+  "hide_form_comment",
+  "import_file",
+  "cloud_assets",
+  "change_logs_tab",
+  "change_logs"
+ ],
+ "fields": [
+  {
+   "fieldname": "login_page_tab",
+   "fieldtype": "Tab Break",
+   "label": "Login Page"
+  },
+  {
+   "fieldname": "login_page_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "login_button_background_color",
+   "fieldtype": "Color",
+   "label": "Button Background Color"
+  },
+  {
+   "fieldname": "login_page_button_hover_background_color",
+   "fieldtype": "Color",
+   "label": "Button Hover Background Color"
+  },
+  {
+   "fieldname": "page_background_type",
+   "fieldtype": "Select",
+   "label": "Page Background Type",
+   "options": "\nColor\nImage"
+  },
+  {
+   "depends_on": "eval:doc.page_background_type == \"Color\"",
+   "fieldname": "login_page_background_color",
+   "fieldtype": "Color",
+   "label": "Page Background Color"
+  },
+  {
+   "depends_on": "eval:doc.page_background_type == \"Image\"",
+   "fieldname": "login_page_background_image",
+   "fieldtype": "Attach Image",
+   "label": "Page Background Image"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_app_details_inside_the_box",
+   "fieldtype": "Check",
+   "label": "Is App Details Inside The Box"
+  },
+  {
+   "description": "Warning:This field accepts 30 characters only",
+   "fieldname": "login_page_title",
+   "fieldtype": "Data",
+   "label": "Login Page Title",
+   "length": 30
+  },
+  {
+   "fieldname": "column_break_umnl",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "login_button_text_color",
+   "fieldtype": "Color",
+   "label": "Button Text Color"
+  },
+  {
+   "fieldname": "login_page_button_hover_text_color",
+   "fieldtype": "Color",
+   "label": "Button Hover Text Color"
+  },
+  {
+   "default": "Default",
+   "fieldname": "login_box_position",
+   "fieldtype": "Select",
+   "label": "Login Box Position",
+   "options": "Default\nLeft\nRight"
+  },
+  {
+   "fieldname": "page_heading_text_color",
+   "fieldtype": "Color",
+   "label": "Heading Text Color"
+  },
+  {
+   "fieldname": "login_box_background_color",
+   "fieldtype": "Color",
+   "label": "Box Background Color"
+  },
+  {
+   "default": "1",
+   "fieldname": "disable_usr_pass_login",
+   "fieldtype": "Check",
+   "label": " Disable Username/Password Login"
+  },
+  {
+   "fieldname": "navbar_tab",
+   "fieldtype": "Tab Break",
+   "label": "Navbar"
+  },
+  {
+   "fieldname": "navbar_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "navbar_color",
+   "fieldtype": "Color",
+   "label": "Background Color"
+  },
+  {
+   "default": "0",
+   "fieldname": "hide_help_button",
+   "fieldtype": "Check",
+   "label": "Hide Help Button"
+  },
+  {
+   "fieldname": "hide_search",
+   "fieldtype": "Table MultiSelect",
+   "label": "Hide Search ",
+   "options": "Has Role"
+  },
+  {
+   "fieldname": "column_break_jevx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "navbar_text_color",
+   "fieldtype": "Color",
+   "label": "Text Color"
+  },
+  {
+   "fieldname": "custom_logo",
+   "fieldtype": "Attach Image",
+   "label": "Custom Logo"
+  },
+  {
+   "default": "45",
+   "description": "Set the height of your custom logo in pixels. The width will adjust automatically to maintain the aspect ratio. Recommended height is between 30-60 pixels.",
+   "fieldname": "custom_logo_height",
+   "fieldtype": "Int",
+   "label": "Logo Height (px)"
+  },
+  {
+   "fieldname": "buttons_tab",
+   "fieldtype": "Tab Break",
+   "label": "Buttons"
+  },
+  {
+   "fieldname": "primary_button_section",
+   "fieldtype": "Section Break",
+   "label": "Primary Button"
+  },
+  {
+   "fieldname": "button_background_color",
+   "fieldtype": "Color",
+   "label": "Background Color"
+  },
+  {
+   "fieldname": "button_hover_background_color",
+   "fieldtype": "Color",
+   "label": "Hover Background Color"
+  },
+  {
+   "fieldname": "column_break_soto",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "button_text_color",
+   "fieldtype": "Color",
+   "label": "Text Color"
+  },
+  {
+   "fieldname": "button_hover_text_color",
+   "fieldtype": "Color",
+   "label": "Hover Text Color"
+  },
+  {
+   "fieldname": "secondary_button_section",
+   "fieldtype": "Section Break",
+   "label": "Secondary Button"
+  },
+  {
+   "fieldname": "secondary_button_background_color",
+   "fieldtype": "Color",
+   "label": "Background Color"
+  },
+  {
+   "fieldname": "secondary_button_hover_background_color",
+   "fieldtype": "Color",
+   "label": "Hover Background Color"
+  },
+  {
+   "fieldname": "column_break_mslv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "secondary_button_text_color",
+   "fieldtype": "Color",
+   "label": "Text Color"
+  },
+  {
+   "fieldname": "secondary_button_hover_text_color",
+   "fieldtype": "Color",
+   "label": "Hover Text Color"
+  },
+  {
+   "fieldname": "body_tab",
+   "fieldtype": "Tab Break",
+   "label": "Body"
+  },
+  {
+   "fieldname": "main_body_section",
+   "fieldtype": "Section Break",
+   "label": "Main Body"
+  },
+  {
+   "fieldname": "body_background_color",
+   "fieldtype": "Color",
+   "label": "Background Color"
+  },
+  {
+   "fieldname": "column_break_ojdd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "main_body_content_box_background_color",
+   "fieldtype": "Color",
+   "label": "Content Box Background Color"
+  },
+  {
+   "fieldname": "table_tab",
+   "fieldtype": "Tab Break",
+   "label": "Table"
+  },
+  {
+   "fieldname": "list_table_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "table_head_background_color",
+   "fieldtype": "Color",
+   "label": "Head Background Color"
+  },
+  {
+   "fieldname": "table_body_background_color",
+   "fieldtype": "Color",
+   "label": "Body Background Color"
+  },
+  {
+   "default": "0",
+   "description": "Warning : This will dislocate the list count string from header to footer",
+   "fieldname": "table_hide_like_comment_section",
+   "fieldtype": "Check",
+   "label": "Hide Like Comment Section"
+  },
+  {
+   "fieldname": "column_break_xskf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "table_head_text_color",
+   "fieldtype": "Color",
+   "label": "Head Text Color"
+  },
+  {
+   "fieldname": "table_body_text_color",
+   "fieldtype": "Color",
+   "label": "Body Text Color"
+  },
+  {
+   "default": "0",
+   "fieldname": "disable_card_view_on_mobile_view",
+   "fieldtype": "Check",
+   "label": "Disable card view on mobile view"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.disable_card_view_on_mobile_view == 0",
+   "fieldname": "disable_flex_card_content_on_mobile_view",
+   "fieldtype": "Check",
+   "label": "Disable flex card content on mobile view"
+  },
+  {
+   "fieldname": "widgets_tab",
+   "fieldtype": "Tab Break",
+   "label": "Widgets"
+  },
+  {
+   "fieldname": "number_card_section",
+   "fieldtype": "Section Break",
+   "label": "Number Card"
+  },
+  {
+   "fieldname": "number_card_background_color",
+   "fieldtype": "Color",
+   "label": "Background Color"
+  },
+  {
+   "fieldname": "number_card_border_color",
+   "fieldtype": "Color",
+   "label": "Border Color"
+  },
+  {
+   "fieldname": "column_break_swjv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "number_card_text_color",
+   "fieldtype": "Color",
+   "label": "Text Color"
+  },
+  {
+   "fieldname": "embed_url",
+   "fieldtype": "Data",
+   "label": "Embed URL"
+  },
+  {
+   "fieldname": "section_break_bbon",
+   "fieldtype": "Section Break",
+   "label": "Dialog"
+  },
+  {
+   "fieldname": "dialog_width",
+   "fieldtype": "Data",
+   "label": "SVA DataTable Dialog Width"
+  },
+  {
+   "fieldname": "input_tab",
+   "fieldtype": "Tab Break",
+   "label": "Input"
+  },
+  {
+   "fieldname": "input_background_color",
+   "fieldtype": "Color",
+   "label": "Background Color"
+  },
+  {
+   "fieldname": "input_border_color",
+   "fieldtype": "Color",
+   "label": "Border Color"
+  },
+  {
+   "fieldname": "column_break_pdaj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "input_text_color",
+   "fieldtype": "Color",
+   "label": "Text Color"
+  },
+  {
+   "fieldname": "input_label_color",
+   "fieldtype": "Color",
+   "label": "Label Color"
+  },
+  {
+   "fieldname": "workspace_remapping_tab",
+   "fieldtype": "Tab Break",
+   "label": "Workspace Remapping"
+  },
+  {
+   "fieldname": "sidebar_element_selector",
+   "fieldtype": "Data",
+   "label": "Sidebar Element Selector",
+   "mandatory_depends_on": "eval:doc.workspace.length > 0"
+  },
+  {
+   "fieldname": "workspace",
+   "fieldtype": "Table",
+   "label": "Workspace",
+   "options": "Workspace Sidebar Remapping"
+  },
+  {
+   "fieldname": "features_tab",
+   "fieldtype": "Tab Break",
+   "label": "Features"
+  },
+  {
+   "default": "0",
+   "fieldname": "hide_print_icon",
+   "fieldtype": "Check",
+   "label": "Hide Print Icon"
+  },
+  {
+   "default": "0",
+   "fieldname": "hide_fields_comment",
+   "fieldtype": "Check",
+   "label": "Hide Fields Comment"
+  },
+  {
+   "default": "0",
+   "fieldname": "hide_side_bar",
+   "fieldtype": "Check",
+   "label": "Hide Side Bar"
+  },
+  {
+   "default": "0",
+   "fieldname": "hide_form_comment",
+   "fieldtype": "Check",
+   "label": "Hide Form Comment"
+  },
+  {
+   "fieldname": "import_file",
+   "fieldtype": "Attach",
+   "label": "Last Imported File"
+  },
+  {
+   "description": "This is for AWS S3 Bucket and Azure Blob Integration",
+   "fieldname": "cloud_assets",
+   "fieldtype": "Button",
+   "label": "Cloud Assets"
+  },
+  {
+   "fieldname": "change_logs_tab",
+   "fieldtype": "Tab Break",
+   "label": "Change logs"
+  },
+  {
+   "fieldname": "change_logs",
+   "fieldtype": "HTML"
+  }
+ ],
+ "hide_toolbar": 1,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-10-04 08:58:33.709879",
+ "modified_by": "Administrator",
+ "module": "Frappe Theme",
+ "name": "Theme",
+ "naming_rule": "Set by user",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "All",
+   "select": 1,
+   "share": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
