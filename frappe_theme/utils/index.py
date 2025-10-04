@@ -1,3 +1,4 @@
+from click.exceptions import Exit
 import frappe
 from frappe.utils.pdf import get_pdf
 from datetime import datetime
@@ -103,7 +104,7 @@ def generate_docx_template(template_path_or_print_format, filename=None, **kwarg
         html_content = get_html_content(template_path_or_print_format, kwargs)
         cleaned_html = clean_html_for_docx(html_content)
         try:
-            return generate_with_htmldocx(cleaned_html, filename, template_path_or_print_format)
+            return generate_with_htmldocx(html_content, filename, template_path_or_print_format)
         except Exception as e1:
             frappe.log_error(f"htmldocx failed: {str(e1)}", "DOCX Generation Method 1")
     
@@ -203,10 +204,12 @@ def generate_with_htmldocx(html_content, filename, template_name):
     
     try:
         parser.add_html_to_document(html_content, document)
+        frappe.log_error(f"htmldocx try:", "DOCX Generation Method 1")
     except IndexError as e:
+        frappe.log_error(f"catch :{e}")
         from bs4 import BeautifulSoup
         soup = BeautifulSoup(html_content, 'html.parser')
-        
+        frappe.log_error(f"sop htmldocx catch:{soup}")
         for element in soup.find_all(['table', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'ul', 'ol']):
             try:
                 parser.add_html_to_document(str(element), document)
@@ -232,7 +235,7 @@ def save_and_send_docx(document, filename, template_name):
 
 @frappe.whitelist()
 def generate_pdf_template(template_path_or_print_format,filename=None,**kwargs):
-    if kwargs.get("mode") == "docx":
+    if kwargs.get("type") == "docx":
         return generate_docx_template(template_path_or_print_format,filename,**kwargs)
     """
     Generate a PDF template from a Template page or print format.
