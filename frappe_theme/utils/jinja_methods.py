@@ -133,7 +133,7 @@ def decode_url(token):
     frappe.local.response["type"] = "redirect"
     frappe.local.response["location"] = redirect_url
 
-def get_loging_url(email):
+def get_login_url(email):
     is_signup = frappe.db.get_single_value('My Theme','enable_usr_pass_login')
     if not is_signup:
         baseurl = base_url()
