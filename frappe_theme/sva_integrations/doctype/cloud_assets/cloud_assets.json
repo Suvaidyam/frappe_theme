@@ -1,0 +1,120 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-09-27 12:08:18.300056",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "enable",
+  "section_break_myex",
+  "column_break_fvjs",
+  "provider",
+  "env_manager",
+  "path",
+  "access_key",
+  "secret_key",
+  "signed_url_expiry_time",
+  "region_name",
+  "cloud_asset_exclusion"
+ ],
+ "fields": [
+  {
+   "fieldname": "provider",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Provider",
+   "options": "AWS\nAzure",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "description": "If it is enabled, then the value of the Access Key / Connection String and Secret Key is set from the system OS environment variables.",
+   "fieldname": "env_manager",
+   "fieldtype": "Check",
+   "label": "Env manager"
+  },
+  {
+   "description": "it include both Bucket name and Folder name",
+   "fieldname": "path",
+   "fieldtype": "Data",
+   "label": "Path/url",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:!doc.env_manager",
+   "fieldname": "access_key",
+   "fieldtype": "Data",
+   "label": "Access key / Connection string",
+   "length": 200,
+   "mandatory_depends_on": "eval:!doc.env_manager"
+  },
+  {
+   "depends_on": "eval:!doc.env_manager",
+   "fieldname": "secret_key",
+   "fieldtype": "Password",
+   "label": "Secret key",
+   "length": 200,
+   "mandatory_depends_on": "eval:!doc.env_manager"
+  },
+  {
+   "depends_on": "eval:doc.provider == \"AWS\"",
+   "fieldname": "region_name",
+   "fieldtype": "Data",
+   "label": "Region Name",
+   "mandatory_depends_on": "eval:doc.provider == \"AWS\""
+  },
+  {
+   "default": "0",
+   "fieldname": "enable",
+   "fieldtype": "Check",
+   "label": "Enable"
+  },
+  {
+   "depends_on": "eval:doc.enable==\"1\";",
+   "fieldname": "section_break_myex",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_fvjs",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cloud_asset_exclusion",
+   "fieldtype": "Table MultiSelect",
+   "label": "Cloud Asset Exclusion",
+   "options": "Cloud Asset Exclusion"
+  },
+  {
+   "default": "300",
+   "fieldname": "signed_url_expiry_time",
+   "fieldtype": "Int",
+   "label": "URL Expiry",
+   "reqd": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2025-10-03 16:36:41.614989",
+ "modified_by": "Administrator",
+ "module": "sva_Integrations",
+ "name": "Cloud Assets",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
