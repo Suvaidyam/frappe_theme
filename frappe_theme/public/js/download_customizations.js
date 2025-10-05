@@ -13,7 +13,6 @@ frappe.ui.form.on('Customize Form', {
 });
 
 function add_configure_data_protection_buttons(frm) {
-    console.log(frm,'frm')
     frm.add_custom_button(__('Configure Data Protection & Properties'), async () => {
 
         let fields = await frappe.call({
