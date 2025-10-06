@@ -168,7 +168,7 @@ def migrate_existing_files():
 
 def delete_from_cloud(doc, method):
 	"""Delete file from cloud."""
-	if not frappe.get_cached_doc("Cloud Assets", "Cloud Assets").enable:
+	if not frappe.get_cached_value("Cloud Assets", "Cloud Assets", "enable"):
 		frappe.logger().info(f"Skipping cloud remove for {doc.name} due to skip_s3_upload flag.")
 		return
 
