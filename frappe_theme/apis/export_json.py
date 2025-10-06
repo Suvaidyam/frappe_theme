@@ -1,4 +1,6 @@
+import html
 import json
+import re
 from io import BytesIO
 from typing import Any, Optional
 
@@ -176,11 +178,23 @@ def process_attachment_fields(doc: dict, fields_meta: list[dict]) -> None:
 			doc[field["fieldname"]] = f"{base_url}{attach_val}"
 
 
+def strip_html_tags(text: str) -> str:
+	"""Remove HTML tags and unescape HTML entities from a string."""
+	if not isinstance(text, str):
+		return text
+	text = re.sub(r"<[^>]+>", "", text)
+	return html.unescape(text)
+
+
 def get_title(doctype: str, docname: str, as_title_field: bool = True) -> dict:
 	"""Get document data with title field processing"""
 	doc = frappe.db.get_value(doctype, docname, "*", as_dict=True)
 	if not doc:
 		return {"data": {}, "meta": []}
+
+	main_doc_meta = frappe.get_meta(doctype).as_dict()
+	fields = get_visible_fields(main_doc_meta["fields"])
+	fields_meta = get_fields_meta(fields)
 
 	main_doc_meta = frappe.get_meta(doctype).as_dict()
 	fields = get_visible_fields(main_doc_meta["fields"])
@@ -201,6 +215,9 @@ def get_title(doctype: str, docname: str, as_title_field: bool = True) -> dict:
 		if f["fieldtype"] == "Check":
 			val = _doc.get(f["fieldname"])
 			_doc[f["fieldname"]] = "Yes" if val == 1 else "No"
+		elif f["fieldtype"] == "Text Editor":
+			val = _doc.get(f["fieldname"])
+			_doc[f["fieldname"]] = strip_html_tags(val)
 
 	return {"data": _doc, "meta": fields_meta}
 
