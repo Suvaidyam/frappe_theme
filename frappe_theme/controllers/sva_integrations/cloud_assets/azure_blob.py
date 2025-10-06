@@ -29,23 +29,32 @@ class AzureBlobOperations:
 		self.azure_settings_doc.account_name = self.account_name
 		# Build client
 		if self.azure_settings_doc.env_manager:
-			import os
-
-			# access_key = os.getenv("access_key")  # in the case of azure, access_key is not required
-			secret_key = os.getenv("secret_key")
+			env_value = self.load_env_config()
+			if not env_value.get("secret_key"):
+				frappe.throw("Azure Storage account name or key is missing in Environment Variables")
+			self.secret_key = env_value.get("secret_key")
 		else:
-			secret_key = get_decrypted_password("Cloud Assets", "Cloud Assets", "secret_key")
-		if not secret_key:
-			frappe.throw("Azure Storage account key is missing in Cloud Assets")
+			self.secret_key = get_decrypted_password("Cloud Assets", "Cloud Assets", "secret_key")
 
 		conn_str = (
 			f"DefaultEndpointsProtocol=https;"
 			f"AccountName={self.account_name};"
-			f"AccountKey={secret_key};"
+			f"AccountKey={self.secret_key};"
 			f"EndpointSuffix=core.windows.net"
 		)
 
 		self.BLOB_CLIENT = BlobServiceClient.from_connection_string(conn_str)
+
+	def load_env_config(self):
+		"""
+		Load the environment variables if env_manager is checked.
+		"""
+		if self.azure_settings_doc.env_manager:
+			# temporary i am getting the value from site_config
+			return {
+				"access_key": frappe.conf.get("access_key"),
+				"secret_key": frappe.conf.get("secret_key"),
+			}
 
 	def strip_special_chars(self, file_name):
 		"""Strips invalid characters"""
@@ -110,10 +119,10 @@ class AzureBlobOperations:
 		expiry_time = self.azure_settings_doc.signed_url_expiry_time or 120
 
 		sas_token = generate_blob_sas(
-			account_name=self.azure_settings_doc.account_name,
+			account_name=self.account_name,
 			container_name=self.CONTAINER,
 			blob_name=key,
-			account_key=get_decrypted_password("Cloud Assets", "Cloud Assets", "secret_key"),
+			account_key=self.secret_key,
 			permission=BlobSasPermissions(read=True),
 			expiry=datetime.utcnow() + timedelta(seconds=expiry_time),
 		)

@@ -82,6 +82,7 @@
   "hide_side_bar",
   "hide_form_comment",
   "import_file",
+  "cloud_assets",
   "change_logs_tab",
   "change_logs"
  ],
@@ -487,13 +488,18 @@
    "fieldname": "enable_usr_pass_login",
    "fieldtype": "Check",
    "label": "Enable Username/Password Login"
+  },
+  {
+   "fieldname": "cloud_assets",
+   "fieldtype": "Button",
+   "label": "Cloud Assets"
   }
  ],
  "hide_toolbar": 1,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-10-04 12:29:49.929554",
+ "modified": "2025-10-06 12:32:17.308993",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "My Theme",

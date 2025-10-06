@@ -22,12 +22,13 @@ class S3Operations:
 		self.s3_settings_doc.folder_name = self.s3_settings_doc.path.split("/")[1]
 
 		if self.s3_settings_doc.env_manager:
-			import os
-
+			env_value = self.load_env_config()
+			if not env_value.get("access_key") or not env_value.get("secret_key"):
+				frappe.throw("AWS Access key or Secret key is missing in Environment Variables")
 			self.S3_CLIENT = boto3.client(
 				"s3",
-				aws_access_key_id=os.getenv("access_key"),
-				aws_secret_access_key=os.getenv("secret_key"),
+				aws_access_key_id=env_value.get("access_key"),
+				aws_secret_access_key=env_value.get("secret_key"),
 				region_name=self.s3_settings_doc.region_name,
 				config=Config(signature_version="s3v4"),
 			)
@@ -45,6 +46,17 @@ class S3Operations:
 			)
 		self.BUCKET = self.s3_settings_doc.bucket_name
 		self.folder_name = self.s3_settings_doc.folder_name
+
+	def load_env_config(self):
+		"""
+		Load the environment variables if env_manager is checked.
+		"""
+		if self.s3_settings_doc.env_manager:
+			# temporary i am getting the value from site_config
+			return {
+				"access_key": frappe.conf.get("access_key"),
+				"secret_key": frappe.conf.get("secret_key"),
+			}
 
 	def strip_special_chars(self, file_name):
 		"""
