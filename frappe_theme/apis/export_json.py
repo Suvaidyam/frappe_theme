@@ -133,10 +133,31 @@ def process_table_fields(doc: dict, fields_meta: list[dict], doctype: str, docna
 			if not child_rows:
 				continue
 
-			processed_rows = [process_child_table_row(row, child_fields) for row in child_rows]
-			child_fields_meta = get_fields_meta(child_fields)
-
-			doc[field["fieldname"]] = {"data": processed_rows, "meta": child_fields_meta}
+			if field["fieldtype"] == "Table MultiSelect":
+				# Show as comma-separated value using title field of link field
+				title_field = child_meta.get("title_field") or "name"
+				values = []
+				for row in child_rows:
+					# Find the first Link field in child_fields
+					link_field = next((cf for cf in child_fields if cf["fieldtype"] == "Link"), None)
+					if link_field:
+						link_doctype = link_field["options"]
+						link_val = row.get(link_field["fieldname"])
+						if link_val:
+							title_val = frappe.db.get_value(
+								link_doctype, link_val, frappe.get_meta(link_doctype).title_field or "name"
+							)
+							values.append(title_val or link_val)
+						else:
+							values.append("")
+					else:
+						# fallback to child row name/title
+						values.append(row.get(title_field, row.get("name", "")))
+				doc[field["fieldname"]] = ", ".join(values)
+			else:
+				processed_rows = [process_child_table_row(row, child_fields) for row in child_rows]
+				child_fields_meta = get_fields_meta(child_fields)
+				doc[field["fieldname"]] = {"data": processed_rows, "meta": child_fields_meta}
 		except Exception as e:
 			frappe.log_error(f"Error processing table field {field['fieldname']}: {str(e)}")
 			continue
@@ -174,6 +195,12 @@ def get_title(doctype: str, docname: str, as_title_field: bool = True) -> dict:
 
 	# Extract only relevant field data
 	_doc = {f["fieldname"]: doc.get(f["fieldname"]) for f in fields_meta}
+
+	# Convert Check field values to Yes/No
+	for f in fields_meta:
+		if f["fieldtype"] == "Check":
+			val = _doc.get(f["fieldname"])
+			_doc[f["fieldname"]] = "Yes" if val == 1 else "No"
 
 	return {"data": _doc, "meta": fields_meta}
 
@@ -229,7 +256,7 @@ def get_related_tables(
 	if exclude_meta_fields is None:
 		exclude_meta_fields = EXCLUDED_FIELDTYPES
 
-	main_data = get_title(doctype, docname, as_title_field)
+	main_data = get_title(doctype, docname, True)
 
 	try:
 		sva_dt_config = frappe.get_doc("SVADatatable Configuration", doctype, as_dict=True)
@@ -343,7 +370,7 @@ def extract_child_tables_from_related(result: dict, related_tables: list[dict]) 
 				}
 
 
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True)
 def export_json(doctype: str, docname: str, excluded_fieldtypes: list[str] | None = None) -> dict:
 	"""Export document and related tables as JSON"""
 	if excluded_fieldtypes is None:
@@ -351,6 +378,14 @@ def export_json(doctype: str, docname: str, excluded_fieldtypes: list[str] | Non
 
 	try:
 		main_data, related_tables = get_related_tables(doctype, docname, excluded_fieldtypes, True)
+
+		# Change 'name' to 'id' in main_data
+		if "name" in main_data.get("data", {}):
+			main_data["data"]["id"] = main_data["data"].pop("name")
+		for field in main_data.get("meta", []):
+			if field.get("fieldname") == "name":
+				field["fieldname"] = "id"
+				field["label"] = "ID"
 
 		result = {
 			doctype: {"data": main_data.get("data", {}), "meta": main_data.get("meta", [])},
@@ -361,6 +396,15 @@ def export_json(doctype: str, docname: str, excluded_fieldtypes: list[str] | Non
 
 		# Extract child tables from related tables
 		extract_child_tables_from_related(result, related_tables)
+
+		# Change 'name' to 'id' in child tables
+		for value in result.values():
+			for row in value.get("data", []):
+				if isinstance(row, dict) and "name" in row:
+					row["id"] = row.pop("name")
+			for field in value.get("meta", []):
+				if field.get("fieldname") == "name":
+					field["fieldname"] = "id"
 
 		return result
 
