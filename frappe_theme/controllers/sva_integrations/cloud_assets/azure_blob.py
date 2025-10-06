@@ -50,7 +50,6 @@ class AzureBlobOperations:
 		Load the environment variables if env_manager is checked.
 		"""
 		if self.azure_settings_doc.env_manager:
-			# temporary i am getting the value from site_config
 			return {
 				"access_key": frappe.conf.get("access_key"),
 				"secret_key": frappe.conf.get("secret_key"),
