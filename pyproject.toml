@@ -12,6 +12,9 @@ dependencies = [
     "azure-storage-blob>=12.14.1",
     "boto3>=1.34.0",
     "python-magic>=0.4.27",
+    "htmldocx>=0.0.6",
+    "beautifulsoup4>=4.12.3"
+    
 ]
 
 [build-system]
