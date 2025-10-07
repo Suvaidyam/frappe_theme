@@ -1,10 +1,8 @@
 <template>
-  <div class="w-full h-full">
     <div
     ref="container_excel"
-    style="width: 100%; height: 60vh;"
+    id="sva_container_excel"
     ></div>
-</div>
 </template>
  
 <script setup>
@@ -89,7 +87,19 @@ onMounted(async () => {
   } catch (error) {
     console.error("Error loading workbook:", error);
   }
- 
 });
 
+
 </script>
+
+<style scoped>
+#sva_container_excel {
+  width: 90% !important;
+  height: 50vh !important;
+  z-index: -1000 !important;
+}
+#sva_container_excel ::v-deep(canvas[data-u-comp="render-canvas"]) {
+  z-index: 0 !important;
+  touch-action: auto !important;
+}
+</style>
