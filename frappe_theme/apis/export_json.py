@@ -329,6 +329,7 @@ def get_related_tables(
 				{
 					"table_doctype": table_doctype,
 					"html_field": child.html_field,
+					"label": child.title,
 					"data": all_docs,
 					"sva_dt_meta": _child,
 					"meta": fields_meta,
@@ -364,7 +365,7 @@ def extract_child_tables_from_data(result: dict, data_key: str, main_data: dict)
 def extract_child_tables_from_related(result: dict, related_tables: list[dict]) -> None:
 	"""Extract child tables from related tables and add as separate entries"""
 	for table in related_tables:
-		table_doctype = table.get("table_doctype")
+		table_doctype = table.get("label") or table.get("table_doctype")
 		table_meta = table.get("meta", [])
 		table_data = [doc.get("data", {}) for doc in table.get("data", [])]
 
