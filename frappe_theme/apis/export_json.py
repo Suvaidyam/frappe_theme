@@ -2,7 +2,6 @@ import html
 import json
 import re
 from io import BytesIO
-from typing import Any, Optional
 
 import frappe
 import openpyxl
@@ -10,37 +9,50 @@ import openpyxl
 from frappe_theme.api import get_files
 
 # Constants
-EXCLUDED_FIELDTYPES = ["Column Break", "Section Break", "Tab Break", "Fold", "HTML", "Button"]
+EXCLUDED_FIELDTYPES = ["Column Break", "Section Break", "Tab Break", "Icon", "HTML", "Button"]
 TABLE_FIELDTYPES = ["Table", "Table MultiSelect"]
 LINK_FIELDTYPES = ["Link"]
 ATTACHMENT_FIELDTYPES = ["Attach", "Attach Image"]
 
 
 def get_visible_fields(fields: list[dict]) -> list[dict]:
-	"""Return all visible fields from a DocType meta object"""
+	"""Return all visible (non-hidden) fields from a DocType meta object.
+	- Excludes fields inside hidden tabs or sections breaks and columns breaks
+	- Excludes individually hidden fields
+	"""
+
 	visible = []
+	tab_hidden = False
 	section_hidden = False
 	column_hidden = False
 
 	for df in fields:
-		# Track hidden Section Breaks
-		if df["fieldtype"] == "Section Break":
-			section_hidden = bool(df.get("hidden", 0))
-			column_hidden = False  # reset when new section starts
+		fieldtype = df.get("fieldtype")
+
+		# Handle Tab Break
+		if fieldtype == "Tab Break":
+			tab_hidden = bool(df.get("hidden", 0))
+			section_hidden = False  # Reset when new tab starts
+			column_hidden = False
 			continue
 
-		# Track hidden Column Breaks
-		if df["fieldtype"] == "Column Break":
+		# Handle Section Break
+		if fieldtype == "Section Break":
+			section_hidden = bool(df.get("hidden", 0))
+			column_hidden = False  # Reset column visibility for new section
+			continue
+
+		# Handle Column Break
+		if fieldtype == "Column Break":
 			column_hidden = bool(df.get("hidden", 0))
 			continue
 
-		# Skip hidden fields or fields in hidden sections/columns
-		if bool(df.get("hidden", 0)) or section_hidden or column_hidden:
+		# Skip if field or its parent tab/section/column is hidden
+		if tab_hidden or section_hidden or column_hidden or bool(df.get("hidden", 0)):
 			continue
-
+		# Add name field at the beginning
 		visible.append(df)
 
-	# Add name field at the beginning
 	visible.insert(0, {"fieldname": "name", "fieldtype": "Data", "label": "Name", "hidden": 0, "options": ""})
 	return visible
 
