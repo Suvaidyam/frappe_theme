@@ -13,6 +13,7 @@ EXCLUDED_FIELDTYPES = ["Column Break", "Section Break", "Tab Break", "Icon", "HT
 TABLE_FIELDTYPES = ["Table", "Table MultiSelect"]
 LINK_FIELDTYPES = ["Link"]
 ATTACHMENT_FIELDTYPES = ["Attach", "Attach Image"]
+EXCLUDED_FIELDTYPES_IN_META = EXCLUDED_FIELDTYPES + ["Table", "Table MultiSelect"]
 
 
 def get_visible_fields(fields: list[dict]) -> list[dict]:
@@ -354,9 +355,21 @@ def extract_child_tables_from_data(result: dict, data_key: str, main_data: dict)
 			continue
 
 		key = field.get("label") or field["options"]
+		data_rows = child_table.get("data", [])
+		meta_rows = child_table.get("meta", [])
+
+		# Replace 'name' with 'id' in child table rows
+		for row in data_rows:
+			if isinstance(row, dict) and "name" in row:
+				row["id"] = row.pop("name")
+		for meta in meta_rows:
+			if meta.get("fieldname") == "name":
+				meta["fieldname"] = "id"
+				meta["label"] = "ID"
+
 		result[key] = {
-			"data": child_table.get("data", []),
-			"meta": child_table.get("meta", []),
+			"data": data_rows,
+			"meta": meta_rows,
 		}
 		# Remove child table from main doc data
 		result[data_key]["data"].pop(field["fieldname"], None)
@@ -368,6 +381,15 @@ def extract_child_tables_from_related(result: dict, related_tables: list[dict]) 
 		table_doctype = table.get("label") or table.get("table_doctype")
 		table_meta = table.get("meta", [])
 		table_data = [doc.get("data", {}) for doc in table.get("data", [])]
+
+		# Replace 'name' with 'id' in related table rows
+		for row in table_data:
+			if isinstance(row, dict) and "name" in row:
+				row["id"] = row.pop("name")
+		for meta in table_meta:
+			if meta.get("fieldname") == "name":
+				meta["fieldname"] = "id"
+				meta["label"] = "ID"
 
 		result[table_doctype] = {
 			"data": table_data,
@@ -389,8 +411,20 @@ def extract_child_tables_from_related(result: dict, related_tables: list[dict]) 
 				if not (child_table and isinstance(child_table, dict)):
 					continue
 
-				all_child_rows.extend(child_table.get("data", []))
-				child_meta = child_table.get("meta", [])
+				child_rows = child_table.get("data", [])
+				child_meta_rows = child_table.get("meta", [])
+
+				# Replace 'name' with 'id' in child table rows
+				for row in child_rows:
+					if isinstance(row, dict) and "name" in row:
+						row["id"] = row.pop("name")
+				for meta in child_meta_rows:
+					if meta.get("fieldname") == "name":
+						meta["fieldname"] = "id"
+						meta["label"] = "ID"
+
+				all_child_rows.extend(child_rows)
+				child_meta = child_meta_rows
 				doc.pop(field["fieldname"], None)
 
 			if all_child_rows:
@@ -467,7 +501,7 @@ def export_excel(doctype: str, docname: str) -> dict:
 			headers = [
 				f.get("label", f.get("fieldname", ""))
 				for f in meta
-				if f.get("fieldtype") not in EXCLUDED_FIELDTYPES
+				if f.get("fieldtype") not in EXCLUDED_FIELDTYPES_IN_META
 			]
 
 			# Create or use existing worksheet
