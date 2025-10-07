@@ -13,7 +13,7 @@ EXCLUDED_FIELDTYPES = ["Column Break", "Section Break", "Tab Break", "Icon", "HT
 TABLE_FIELDTYPES = ["Table", "Table MultiSelect"]
 LINK_FIELDTYPES = ["Link"]
 ATTACHMENT_FIELDTYPES = ["Attach", "Attach Image"]
-EXCLUDED_FIELDTYPES_IN_META = EXCLUDED_FIELDTYPES + ["Table", "Table MultiSelect"]
+EXCLUDED_FIELDTYPES_IN_META = EXCLUDED_FIELDTYPES + ["Table"]
 
 
 def get_visible_fields(fields: list[dict]) -> list[dict]:
@@ -524,7 +524,7 @@ def export_excel(doctype: str, docname: str) -> dict:
 						if row.get(f.get("fieldname", "")) is not None
 						else ""
 						for f in meta
-						if f.get("fieldtype") not in EXCLUDED_FIELDTYPES
+						if f.get("fieldtype") not in EXCLUDED_FIELDTYPES_IN_META
 					]
 				)
 
