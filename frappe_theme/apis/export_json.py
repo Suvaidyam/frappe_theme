@@ -209,10 +209,6 @@ def get_title(doctype: str, docname: str, as_title_field: bool = True) -> dict:
 	fields = get_visible_fields(main_doc_meta["fields"])
 	fields_meta = get_fields_meta(fields)
 
-	main_doc_meta = frappe.get_meta(doctype).as_dict()
-	fields = get_visible_fields(main_doc_meta["fields"])
-	fields_meta = get_fields_meta(fields)
-
 	if as_title_field:
 		process_link_fields(doc, fields_meta)
 		process_json_fields(doc, fields_meta)
