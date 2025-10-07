@@ -430,7 +430,7 @@ def extract_child_tables_from_related(result: dict, related_tables: list[dict]) 
 				}
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def export_json(doctype: str, docname: str, excluded_fieldtypes: list[str] | None = None) -> dict:
 	"""Export document and related tables as JSON"""
 	if excluded_fieldtypes is None:
