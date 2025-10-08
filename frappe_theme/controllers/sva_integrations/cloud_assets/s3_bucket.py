@@ -156,12 +156,22 @@ class S3Operations:
 		return key
 
 	def delete_file(self, key):
-		"""Delete file from s3"""
+		"""Delete file from S3"""
 		if self.s3_settings_doc.enable and key:
 			try:
+				self.S3_CLIENT.head_object(Bucket=self.s3_settings_doc.bucket_name, Key=key)
 				self.S3_CLIENT.delete_object(Bucket=self.s3_settings_doc.bucket_name, Key=key)
-			except ClientError:
-				frappe.throw(frappe._("Access denied: Could not delete file"))
+			except ClientError as e:
+				error_code = e.response.get("Error", {}).get("Code")
+				if error_code in ("404", "NoSuchKey"):
+					return  # Object not found, just return
+				frappe.log_error(
+					title="S3 file object not found for deletion:", message=frappe.get_traceback()
+				)
+				return
+			except Exception:
+				frappe.log_error(frappe.get_traceback(), f"S3 delete failed for object {key}")
+				return
 
 	def read_file_from_s3(self, key):
 		"""
