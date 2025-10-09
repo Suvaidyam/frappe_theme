@@ -114,8 +114,8 @@ class SvaDataTable {
 		await this.setupWrapper(this.wrapper);
 		let reLoad = this.wrapper.children.length > 1;
 		this.showSkeletonLoader(reLoad);
-		if (this.frm?.["dt_events"]?.[this.doctype]?.["before_load"]) {
-			let change = this.frm["dt_events"][this.doctype]["before_load"];
+		if (this.frm?.["dt_events"]?.[this.doctype ?? this.link_report]?.["before_load"]) {
+			let change = this.frm["dt_events"][this.doctype ?? this.link_report]["before_load"];
 			if (this.isAsync(change)) {
 				await change(this);
 			} else {
@@ -832,16 +832,16 @@ class SvaDataTable {
 
 		return header_element;
 	}
-	add_custom_button(label, click, style="secondary") {
+	add_custom_button(label, click, style = "secondary") {
 		let button = document.createElement("button");
 		button.classList.add("btn", `btn-${style}`, "btn-sm");
 		button.innerHTML = label;
 		button.onclick = click.bind(this);
 		let wrapper = this.header_element.querySelector("div#custom-button-section");
-		let existingButton = Array.from(wrapper.children).find(btn => 
+		let existingButton = Array.from(wrapper.children).find(btn =>
 			btn.tagName === 'BUTTON' && btn.textContent === button.textContent
 		);
-		if(existingButton){
+		if (existingButton) {
 			return;
 		}
 		wrapper.appendChild(button);
