@@ -2086,7 +2086,7 @@ class SvaDataTable {
 						)
 					) {
 						appendDropdownOption(
-							`${frappe.utils.icon("edit", "sm")} Edit`,
+							`${frappe.utils.icon("edit", "sm")} ${__("Edit")}`,
 							async () => {
 								if (this.connection?.redirect_to_main_form) {
 									let route = frappe.get_route();
@@ -2100,7 +2100,7 @@ class SvaDataTable {
 						);
 					}
 				} else {
-					appendDropdownOption(`${frappe.utils.icon("edit", "sm")} Edit`, async () => {
+					appendDropdownOption(`${frappe.utils.icon("edit", "sm")} ${__("Edit")}`, async () => {
 						if (this.connection?.redirect_to_main_form) {
 							let route = frappe.get_route();
 							frappe.set_route("Form", this.doctype, primaryKey).then(() => {
@@ -2132,7 +2132,7 @@ class SvaDataTable {
 						)
 					) {
 						appendDropdownOption(
-							`${frappe.utils.icon("delete", "sm")} Delete`,
+							`${frappe.utils.icon("delete", "sm")} ${__("Delete")}`,
 							async () => {
 								await this.deleteRecord(this.doctype, primaryKey);
 							}
@@ -2140,7 +2140,7 @@ class SvaDataTable {
 					}
 				} else {
 					appendDropdownOption(
-						`${frappe.utils.icon("delete", "sm")} Delete`,
+						`${frappe.utils.icon("delete", "sm")} ${__("Delete")}`,
 						async () => {
 							await this.deleteRecord(this.doctype, primaryKey);
 						}
@@ -2150,7 +2150,7 @@ class SvaDataTable {
 		}
 		// ========================= Print Button ======================
 		if (this.permissions.includes("print")) {
-			appendDropdownOption(`${frappe.utils.icon("printer", "sm")} Print`, () => {
+			appendDropdownOption(`${frappe.utils.icon("printer", "sm")} ${__("Print")}`, () => {
 				frappe.utils.print(
 					this.doctype,
 					primaryKey,
@@ -2165,8 +2165,7 @@ class SvaDataTable {
 		if (this.childLinks?.length) {
 			this.childLinks.forEach(async (link) => {
 				appendDropdownOption(
-					`${frappe.utils.icon("external-link", "sm")} ${link?.title || link.link_doctype
-					}`,
+					`${frappe.utils.icon("external-link", "sm")} ${__(link?.title || link.link_doctype)}`,
 					async () => {
 						await this.childTableDialog(link.link_doctype, primaryKey, row, link);
 					}
