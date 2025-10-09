@@ -22,12 +22,13 @@ class S3Operations:
 		self.s3_settings_doc.folder_name = self.s3_settings_doc.path.split("/")[1]
 
 		if self.s3_settings_doc.env_manager:
-			import os
-
+			env_value = self.load_env_config()
+			if not env_value.get("access_key") or not env_value.get("secret_key"):
+				frappe.throw("AWS Access key or Secret key is missing in Environment Variables")
 			self.S3_CLIENT = boto3.client(
 				"s3",
-				aws_access_key_id=os.getenv("access_key"),
-				aws_secret_access_key=os.getenv("secret_key"),
+				aws_access_key_id=env_value.get("access_key"),
+				aws_secret_access_key=env_value.get("secret_key"),
 				region_name=self.s3_settings_doc.region_name,
 				config=Config(signature_version="s3v4"),
 			)
@@ -45,6 +46,17 @@ class S3Operations:
 			)
 		self.BUCKET = self.s3_settings_doc.bucket_name
 		self.folder_name = self.s3_settings_doc.folder_name
+
+	def load_env_config(self):
+		"""
+		Load the environment variables if env_manager is checked.
+		"""
+		if self.s3_settings_doc.env_manager:
+			# temporary i am getting the value from site_config
+			return {
+				"access_key": frappe.conf.get("access_key"),
+				"secret_key": frappe.conf.get("secret_key"),
+			}
 
 	def strip_special_chars(self, file_name):
 		"""
@@ -144,12 +156,22 @@ class S3Operations:
 		return key
 
 	def delete_file(self, key):
-		"""Delete file from s3"""
+		"""Delete file from S3"""
 		if self.s3_settings_doc.enable and key:
 			try:
+				self.S3_CLIENT.head_object(Bucket=self.s3_settings_doc.bucket_name, Key=key)
 				self.S3_CLIENT.delete_object(Bucket=self.s3_settings_doc.bucket_name, Key=key)
-			except ClientError:
-				frappe.throw(frappe._("Access denied: Could not delete file"))
+			except ClientError as e:
+				error_code = e.response.get("Error", {}).get("Code")
+				if error_code in ("404", "NoSuchKey"):
+					return  # Object not found, just return
+				frappe.log_error(
+					title="S3 file object not found for deletion:", message=frappe.get_traceback()
+				)
+				return
+			except Exception:
+				frappe.log_error(frappe.get_traceback(), f"S3 delete failed for object {key}")
+				return
 
 	def read_file_from_s3(self, key):
 		"""

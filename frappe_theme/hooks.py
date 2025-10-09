@@ -23,17 +23,16 @@ app_include_js = [
 	"overwrite_form.bundle.js",
 	"overwrite_workflow.bundle.js",
 	"override_date_field.bundle.js",
+	"frappe_theme.bundle.js",
 	f"/assets/frappe_theme/js/svadb.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/fields_comment.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/extended_chart.js?ver={time.time()}",
-	f"/assets/frappe_theme/js/frappe_theme.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/mobile_view.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/utils.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/custom_import.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/sva_dt_utils.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/customizations.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/doctype/global_doctype.js?ver={time.time()}",
-	f"/assets/frappe_theme/js/overwrite_theme_switcher.js?ver={time.time()}",
 ]
 extend_bootinfo = "frappe_theme.boot.boot_theme"
 # include js, css files in header of web template
