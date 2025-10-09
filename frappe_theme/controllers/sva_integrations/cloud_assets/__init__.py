@@ -95,11 +95,14 @@ def generate_file(key=None, file_name=None):
 	"""
 	Function to stream file from cloud (S3 / Azure).
 	"""
+	if not frappe.get_cached_value("Cloud Assets", "Cloud Assets", "enable"):
+		return
 	if key:
 		storage, _ = get_storage_client()
-		signed_url = storage.get_url(key, file_name)
-		frappe.local.response["type"] = "redirect"
-		frappe.local.response["location"] = signed_url
+		if storage:
+			signed_url = storage.get_url(key, file_name)
+			frappe.local.response["type"] = "redirect"
+			frappe.local.response["location"] = signed_url
 	else:
 		frappe.local.response["body"] = "Key not found."
 	return
@@ -158,6 +161,8 @@ def migrate_existing_files():
 	"""
 	Migrate existing files to the configured cloud.
 	"""
+	if not frappe.get_cached_value("Cloud Assets", "Cloud Assets", "enable"):
+		return
 	files_list = frappe.get_all("File", fields=["name", "file_url"])
 	for file in files_list:
 		if file["file_url"]:
@@ -168,7 +173,7 @@ def migrate_existing_files():
 
 def delete_from_cloud(doc, method):
 	"""Delete file from cloud."""
-	if getattr(doc, "custom_skip_s3_upload", 0):
+	if not frappe.get_cached_value("Cloud Assets", "Cloud Assets", "enable"):
 		frappe.logger().info(f"Skipping cloud remove for {doc.name} due to skip_s3_upload flag.")
 		return
 

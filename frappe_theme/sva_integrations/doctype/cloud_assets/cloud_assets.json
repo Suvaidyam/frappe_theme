@@ -23,8 +23,8 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Provider",
-   "options": "AWS\nAzure",
-   "reqd": 1
+   "mandatory_depends_on": "eval:doc.enable",
+   "options": "AWS\nAzure"
   },
   {
    "default": "0",
@@ -34,27 +34,28 @@
    "label": "Env manager"
   },
   {
+   "depends_on": "eval:doc.enable",
    "description": "it include both Bucket name and Folder name",
    "fieldname": "path",
    "fieldtype": "Data",
    "label": "Path/url",
-   "reqd": 1
+   "mandatory_depends_on": "eval:doc.enable"
   },
   {
-   "depends_on": "eval:!doc.env_manager",
+   "depends_on": "eval: !doc.env_manager && doc.enable",
    "fieldname": "access_key",
    "fieldtype": "Data",
    "label": "Access key / Connection string",
    "length": 200,
-   "mandatory_depends_on": "eval:!doc.env_manager"
+   "mandatory_depends_on": "eval: !doc.env_manager && doc.enable"
   },
   {
-   "depends_on": "eval:!doc.env_manager",
+   "depends_on": "eval: !doc.env_manager && doc.enable",
    "fieldname": "secret_key",
    "fieldtype": "Password",
    "label": "Secret key",
    "length": 200,
-   "mandatory_depends_on": "eval:!doc.env_manager"
+   "mandatory_depends_on": "eval: !doc.env_manager && doc.enable"
   },
   {
    "depends_on": "eval:doc.provider == \"AWS\"",
@@ -67,7 +68,8 @@
    "default": "0",
    "fieldname": "enable",
    "fieldtype": "Check",
-   "label": "Enable"
+   "label": "Enable",
+   "options": "0"
   },
   {
    "depends_on": "eval:doc.enable==\"1\";",
@@ -86,17 +88,17 @@
   },
   {
    "default": "300",
+   "depends_on": "eval:doc.enable",
    "fieldname": "signed_url_expiry_time",
    "fieldtype": "Int",
-   "label": "URL Expiry",
-   "reqd": 1
+   "label": "URL Expiry"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-10-03 16:36:41.614989",
+ "modified": "2025-10-08 11:17:31.866658",
  "modified_by": "Administrator",
  "module": "sva_Integrations",
  "name": "Cloud Assets",
