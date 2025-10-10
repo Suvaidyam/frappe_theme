@@ -55,6 +55,8 @@ class SvaTestUtils:
 		meta = frappe.get_meta(doctype)
 		for field in meta.fields:
 			if field.reqd and not doc.get(field.fieldname):
+				if field.fieldname in ["Tab", "Section Break", "Column Break", "Fold"]:
+					continue
 				if field.fieldname in default_values:
 					doc.set(field.fieldname, default_values[field.fieldname])
 					continue
@@ -170,7 +172,7 @@ class SvaTestUtils:
 		return doc
 
 
-def abc():
-	abc = SvaTestUtils()
-	doc = abc.generate_test_doc_with_mandatory_fields("Donor")
-	return doc
+# def abc():
+#     abc = SvaTestUtils()
+#     doc = abc.generate_test_doc_with_mandatory_fields("Donor")
+#     return doc
