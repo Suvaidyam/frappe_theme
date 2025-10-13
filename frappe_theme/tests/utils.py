@@ -77,23 +77,20 @@ class SvaTestUtils:
 				return [{"test_field": "Test Value"}]
 			return []
 		if field.fieldtype == "Table MultiSelect":
-			# Return a list with one test child row if options is set
 			if getattr(field, "options", None):
 				return [{"test_field": "Test Value"}]
 			return []
 		if field.fieldtype in ["Link", "Dynamic Link"]:
-			# For Link, try to get an existing doc or return a test name
 			if field.fieldtype == "Link" and getattr(field, "options", None):
 				linked_doc = frappe.get_all(field.options, limit=1)
 				if linked_doc:
 					return linked_doc[0].name
 				else:
-					# Create a new doc if none exists
-					new_linked_doc = frappe.new_doc(field.options)
+					new_linked_doc = self.generate_test_doc_with_mandatory_fields(field.options, {})
 					new_linked_doc.insert(ignore_permissions=True)
 					return new_linked_doc.name
-			# For Dynamic Link, just return a test value
-			return "Test Dynamic Link"
+			if field.fieldtype == "Dynamic Link":
+				return "Test Dynamic Link"
 		return None
 
 	@staticmethod
