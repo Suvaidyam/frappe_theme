@@ -37,7 +37,7 @@ app_include_js = [
 extend_bootinfo = "frappe_theme.boot.boot_theme"
 # include js, css files in header of web template
 web_include_css = "/assets/frappe_theme/css/frappe_theme.css"
-web_include_js = f"/assets/frappe_theme/js/frappe_theme.js?ver={time.time()}"
+web_include_js = f"/assets/frappe_theme/js/frappe_theme.bundle.js?ver={time.time()}"
 
 # include custom scss in every website theme (without file extension ".scss")
 # website_theme_scss = "frappe_theme/public/scss/website"
