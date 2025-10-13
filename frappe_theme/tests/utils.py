@@ -174,8 +174,3 @@ class SvaTestUtils:
 					doc.set(field.fieldname, value)
 		return doc
 
-
-# def abc():
-#     abc = SvaTestUtils()
-#     doc = abc.generate_test_doc_with_mandatory_fields("Donor")
-#     return doc
