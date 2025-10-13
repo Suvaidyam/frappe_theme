@@ -11,7 +11,7 @@ class SvaTestUtils:
 		"""
 		if default_values is None:
 			default_values = {}
-		if field.fieldname in ["Tab", "Section Break", "Column Break"]:
+		if field.fieldtype in ["Tab", "Section Break", "Column Break"]:
 			return None
 		if field.fieldname in default_values:
 			return default_values[field.fieldname]
