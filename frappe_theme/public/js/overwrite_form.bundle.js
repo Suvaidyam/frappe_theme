@@ -6,13 +6,13 @@ if (frappe.ui?.FileUploader) {
 			// Call parent constructor with modified options
 
 			/* Other available flags
-            make_attachments_public,
-            allow_web_link,
-            allow_take_photo,
-            allow_toggle_private,
-            allow_toggle_optimize,
+			make_attachments_public,
+			allow_web_link,
+			allow_take_photo,
+			allow_toggle_private,
+			allow_toggle_optimize,
 
-            */
+			*/
 			super(options);
 		}
 	};
@@ -118,7 +118,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 	}
 	async custom_refresh(frm) {
 		try {
-			frm.page.add_menu_item(__("Export Excel"),() => {
+			frm.page.add_menu_item(__("Export Excel"), () => {
 				try {
 					let url = `/api/method/frappe_theme.apis.export_json.export_excel?doctype=${frm.doctype}&docname=${frm.docname}`;
 					window.open(url);
@@ -572,7 +572,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 	}
 
 	async processDataTables(dtFields, frm, dts, signal) {
-		this.sva_tables = {};
+		// this.sva_tables = {};
 		for (const field of dtFields) {
 			try {
 				if (signal.aborted) break;
@@ -597,8 +597,8 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					field?.connection_type === "Is Custom Design"
 						? field?.template
 						: ["Direct", "Unfiltered", "Indirect"].includes(field.connection_type)
-						? field.link_doctype
-						: field.referenced_link_doctype
+							? field.link_doctype
+							: field.referenced_link_doctype
 				)} items`
 			);
 			element.innerHTML = `
@@ -837,10 +837,10 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			onFieldClick: this.handleFieldEvent("onFieldClick"),
 			onFieldValueChange: this.handleFieldEvent("onFieldValueChange"),
 		});
-		this.sva_tables[
+		frm.sva_tables[
 			["Direct", "Unfiltered"].includes(field.connection_type)
 				? field.link_doctype
-				: field.referenced_link_doctype
+				: (field.referenced_link_doctype || field.link_report)
 		] = instance;
 		// Store cleanup function
 		this.mountedComponents.set(wrapperId, () => {

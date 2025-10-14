@@ -100,8 +100,17 @@ class AzureBlobOperations:
 	def delete_file(self, key):
 		"""Delete blob from Azure"""
 		if self.azure_settings_doc.enable and key:
-			blob_client = self.BLOB_CLIENT.get_blob_client(container=self.CONTAINER, blob=key)
-			blob_client.delete_blob()
+			try:
+				blob_client = self.BLOB_CLIENT.get_blob_client(container=self.CONTAINER, blob=key)
+
+				# Check if blob exists before deleting
+				if blob_client.exists():
+					blob_client.delete_blob()
+				else:
+					frappe.error_log(title="Azure blob not found for deletion:", message=str(key))
+			except Exception as e:
+				frappe.log_error(frappe.get_traceback(), f"Azure delete failed for blob {key}")
+				frappe.logger().error(f"Azure blob delete error: {str(e)}")
 
 	def read_blob(self, key):
 		"""Read blob content"""
