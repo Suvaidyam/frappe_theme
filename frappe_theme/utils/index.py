@@ -1,3 +1,4 @@
+from click.exceptions import Exit
 import frappe
 from frappe.utils.pdf import get_pdf
 from datetime import datetime
@@ -35,236 +36,240 @@ def update_site_config(key, value):
     except Exception as e:
         frappe.throw(f"Failed to update site config: {str(e)}", frappe.ValidationError)
 
-# @frappe.whitelist()
-# def generate_docx_template(template_path_or_print_format, filename=None, **kwargs):
-#     """
-#     Generate a DOCX template from HTML with excellent layout preservation.
-#     """
-#     from htmldocx import HtmlToDocx
-#     from docx import Document
-#     from docx.shared import Inches
-#     from bs4 import BeautifulSoup
-#     import os
-#     from datetime import datetime
-    
-#     try:
-#         # Get HTML template
-#         if isinstance(template_path_or_print_format, str) and "templates/pages" in template_path_or_print_format:
-#             html_content = frappe.get_template(template_path_or_print_format).render(kwargs)
-#         else:
-#             if frappe.db.exists("Print Format", template_path_or_print_format):
-#                 print_format_template = frappe.get_doc("Print Format", template_path_or_print_format).html
-#                 html_content = frappe.render_template(print_format_template, kwargs)
-#             else:
-#                 frappe.throw(f"Print Format not found: {template_path_or_print_format}")
-        
-#         # Create document
-#         document = Document()
-        
-#         # Set margins
-#         for section in document.sections:
-#             section.top_margin = Inches(0.5)
-#             section.bottom_margin = Inches(0.5)
-#             section.left_margin = Inches(0.75)
-#             section.right_margin = Inches(0.75)
-        
-#         # Convert HTML to DOCX using htmldocx
-#         parser = HtmlToDocx()
-#         parser.add_html_to_document(html_content, document)
-        
-#         # Generate filename
-#         filename = filename or template_path_or_print_format
-#         today = frappe.utils.nowdate()
-#         formatted_today = datetime.strptime(today, "%Y-%m-%d").strftime("%d-%m-%Y")
-#         out_filename = f"{filename}_{formatted_today}.docx"
-#         file_path = os.path.join(frappe.get_site_path("private", "files"), out_filename)
-        
-#         # Save and send
-#         document.save(file_path)
-        
-#         with open(file_path, "rb") as f:
-#             filedata = f.read()
-        
-#         frappe.local.response.filename = out_filename
-#         frappe.local.response.filecontent = filedata
-#         frappe.local.response.type = "download"
-        
-#     except Exception as e:
-#         frappe.log_error(f"Error generating DOCX template: {str(e)}")
-#         frappe.throw(f"Error generating DOCX template: {str(e)}")
 
+from io import BytesIO
+import tempfile
+from pdf2docx import Converter
+from docx import Document
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+from docx.shared import Pt, Inches, RGBColor
+from frappe.utils.pdf import get_pdf
+from frappe.utils import nowdate, formatdate
+
+def pdf_bytes_to_docx_bytes(pdf_bytes: bytes) -> bytes:
+    # Convert PDF → DOCX using temp files
+    with tempfile.NamedTemporaryFile(suffix=".pdf") as temp_pdf:
+        temp_pdf.write(pdf_bytes)
+        temp_pdf.flush()
+
+        with tempfile.NamedTemporaryFile(suffix=".docx") as temp_docx:
+            cv = Converter(temp_pdf.name)
+            cv.convert(temp_docx.name)
+            cv.close()
+
+            temp_docx.seek(0)
+            docx_bytes = temp_docx.read()
+
+    # Post-process DOCX: add table borders and apply formatting
+    docx_stream = BytesIO(docx_bytes)
+    doc = Document(docx_stream)
+
+    # Static formatting values for DOCX
+    font_name = "Calibri"
+    font_size = 12
+    page_width_inch = 11.0
+    page_height_inch = 8.5
+    left_margin_inch = 0.5
+    right_margin_inch = 0.5
+    top_margin_inch = 0.7
+    bottom_margin_inch = 0.7
+
+    # Calculate available width for table
+    available_width = page_width_inch - left_margin_inch - right_margin_inch
+    available_width_twips = int(available_width * 1440)  # Convert inches to twips (1 inch = 1440 twips)
+
+    # Set page size and margins for all sections
+    for section in doc.sections:
+        # Set page dimensions for landscape
+        section.page_width = Inches(page_width_inch)
+        section.page_height = Inches(page_height_inch)
+        
+        # Margins
+        section.left_margin = Inches(left_margin_inch)
+        section.right_margin = Inches(right_margin_inch)
+        section.top_margin = Inches(top_margin_inch)
+        section.bottom_margin = Inches(bottom_margin_inch)
+        
+        # Section type - continuous
+        section.start_type = 2  # WD_SECTION.CONTINUOUS
+
+    # Apply font to all paragraphs
+    for paragraph in doc.paragraphs:
+        for run in paragraph.runs:
+            run.font.name = font_name
+            run.font.size = Pt(font_size)
+
+    # Add table borders, apply font, set full width and equal columns
+    for table in doc.tables:
+        # Set table width to 100% using twips
+        tbl = table._element
+        tblPr = tbl.tblPr
+        if tblPr is None:
+            tblPr = OxmlElement('w:tblPr')
+            tbl.insert(0, tblPr)
+        
+        # Remove table cell spacing
+        tblCellSpacing = tblPr.find(qn('w:tblCellSpacing'))
+        if tblCellSpacing is not None:
+            tblPr.remove(tblCellSpacing)
+        
+        # Set table width in twips (absolute measurement)
+        tblW = tblPr.find(qn('w:tblW'))
+        if tblW is None:
+            tblW = OxmlElement('w:tblW')
+            tblPr.append(tblW)
+        tblW.set(qn('w:w'), str(available_width_twips))
+        tblW.set(qn('w:type'), 'dxa')  # Use absolute width in twips
+        
+        # Set table alignment to left (to fill from left margin)
+        tblJc = tblPr.find(qn('w:jc'))
+        if tblJc is None:
+            tblJc = OxmlElement('w:jc')
+            tblPr.append(tblJc)
+        tblJc.set(qn('w:val'), 'left')
+        
+        # Set table layout to fixed
+        tblLayout = tblPr.find(qn('w:tblLayout'))
+        if tblLayout is None:
+            tblLayout = OxmlElement('w:tblLayout')
+            tblPr.append(tblLayout)
+        tblLayout.set(qn('w:type'), 'fixed')
+        
+        # Remove table indentation
+        tblInd = tblPr.find(qn('w:tblInd'))
+        if tblInd is None:
+            tblInd = OxmlElement('w:tblInd')
+            tblPr.append(tblInd)
+        tblInd.set(qn('w:w'), '0')
+        tblInd.set(qn('w:type'), 'dxa')
+        
+        # Remove table borders at table level and set at cell level only
+        tblBorders = tblPr.find(qn('w:tblBorders'))
+        if tblBorders is not None:
+            tblPr.remove(tblBorders)
+        
+        # Get number of columns from first row
+        num_cols = 0
+        if table.rows:
+            num_cols = len(table.rows[0].cells)
+        
+        # Calculate equal column width in twips
+        if num_cols > 0:
+            equal_col_width = int(available_width_twips / num_cols)
+        
+        # Update grid columns
+        tblGrid = tbl.find(qn('w:tblGrid'))
+        if tblGrid is not None:
+            # Clear existing grid columns
+            for gridCol in list(tblGrid):
+                tblGrid.remove(gridCol)
+            # Add new grid columns with equal width
+            for _ in range(num_cols):
+                gridCol = OxmlElement('w:gridCol')
+                gridCol.set(qn('w:w'), str(equal_col_width))
+                tblGrid.append(gridCol)
+        
+        for row in table.rows:
+            for cell in row.cells:
+                # Apply font to cell text
+                for paragraph in cell.paragraphs:
+                    for run in paragraph.runs:
+                        run.font.name = font_name
+                        run.font.size = Pt(font_size)
+                
+                # Set equal cell width in twips
+                tc = cell._tc
+                tcPr = tc.get_or_add_tcPr()
+                
+                # Add cell width property
+                tcW = tcPr.find(qn('w:tcW'))
+                if tcW is None:
+                    tcW = OxmlElement('w:tcW')
+                    tcPr.append(tcW)
+                if num_cols > 0:
+                    tcW.set(qn('w:w'), str(equal_col_width))
+                    tcW.set(qn('w:type'), 'dxa')  # Use absolute width
+                
+                # Add cell margins for better spacing
+                tcMar = tcPr.find(qn('w:tcMar'))
+                if tcMar is None:
+                    tcMar = OxmlElement('w:tcMar')
+                    tcPr.append(tcMar)
+                
+                # Set cell padding (reduced for more space)
+                for margin_side in ['left', 'right']:
+                    margin = OxmlElement(f'w:{margin_side}')
+                    margin.set(qn('w:w'), '50')  # Reduced from 100
+                    margin.set(qn('w:type'), 'dxa')
+                    tcMar.append(margin)
+                for margin_side in ['top', 'bottom']:
+                    margin = OxmlElement(f'w:{margin_side}')
+                    margin.set(qn('w:w'), '50')
+                    margin.set(qn('w:type'), 'dxa')
+                    tcMar.append(margin)
+                
+                # Add borders
+                tcBorders = tcPr.first_child_found_in("w:tcBorders")
+                if tcBorders is None:
+                    tcBorders = OxmlElement('w:tcBorders')
+                    tcPr.append(tcBorders)
+                else:
+                    # Clear existing borders
+                    for border in list(tcBorders):
+                        tcBorders.remove(border)
+                
+                for border_name in ['top', 'left', 'bottom', 'right']:
+                    border = OxmlElement(f'w:{border_name}')
+                    border.set(qn('w:val'), 'single')
+                    border.set(qn('w:sz'), '4')
+                    border.set(qn('w:space'), '0')
+                    border.set(qn('w:color'), '000000')
+                    tcBorders.append(border)
+
+    # Return updated DOCX bytes
+    new_stream = BytesIO()
+    doc.save(new_stream)
+    new_stream.seek(0)
+    return new_stream.read()
+
+def send_file(bytes_data, filename, filetype="download"):
+    frappe.local.response.filename = filename
+    frappe.local.response.filecontent = bytes_data
+    frappe.local.response.type = filetype
 
 @frappe.whitelist()
-def generate_docx_template(template_path_or_print_format, filename=None, **kwargs):
+def generate_pdf_template(template_path_or_print_format, filename=None, **kwargs):
     """
-    Generate a DOCX template from HTML with robust error handling.
+    Generates PDF by default, DOCX if kwargs['type'] == 'docx'
+    Formatting parameters only apply to DOCX generation
     """
     try:
-        html_content = get_html_content(template_path_or_print_format, kwargs)
-        cleaned_html = clean_html_for_docx(html_content)
-        try:
-            return generate_with_htmldocx(cleaned_html, filename, template_path_or_print_format)
-        except Exception as e1:
-            frappe.log_error(f"htmldocx failed: {str(e1)}", "DOCX Generation Method 1")
-    
-    except Exception as e:
-        frappe.log_error(f"Fatal error in generate_docx_template: {str(e)}")
-        frappe.throw(f"Error generating DOCX template: {str(e)}")
-
-
-def get_html_content(template_path_or_print_format, kwargs):
-    """Extract HTML content from template or print format."""
-    try:
+        # Render template
         if isinstance(template_path_or_print_format, str) and "templates/pages" in template_path_or_print_format:
-            return frappe.get_template(template_path_or_print_format).render(kwargs)
+            template_html = frappe.get_template(template_path_or_print_format).render(kwargs)
         else:
             if frappe.db.exists("Print Format", template_path_or_print_format):
                 print_format_template = frappe.get_doc("Print Format", template_path_or_print_format).html
-                return frappe.render_template(print_format_template, kwargs)
+                template_html = frappe.render_template(print_format_template, kwargs)
             else:
                 frappe.throw(f"Print Format not found: {template_path_or_print_format}")
-    except Exception as e:
-        frappe.log_error(f"Template rendering error: {str(e)}")
-        frappe.throw(f"Template path or print format not found: {template_path_or_print_format}")
 
+        # Generate filename with date
+        today = nowdate()
+        formatted_today = formatdate(today, "dd-MM-yyyy")
+        base_filename = (filename or template_path_or_print_format) + f"_{formatted_today}"
 
-def clean_html_for_docx(html_content):
-    """
-    Aggressively clean HTML to make it compatible with DOCX converters.
-    Removes problematic elements and simplifies structure.
-    """
-    from bs4 import BeautifulSoup
-    
-    soup = BeautifulSoup(html_content, 'html.parser')
-    
-    for tag in soup(['script', 'style', 'link', 'meta', 'head']):
-        tag.decompose()
-    
-    for tag in soup.find_all(True):
-        if tag.has_attr('class'):
-            classes = tag.get('class', [])
-            tag['class'] = [c for c in classes if c in ['bordered-table', 'report-table']]
-            if not tag['class']:
-                del tag['class']
-        
-        if tag.has_attr('style'):
-            del tag['style']
-        
-        attrs_to_remove = [attr for attr in tag.attrs if attr.startswith('data-')]
-        for attr in attrs_to_remove:
-            del tag[attr]
-    
-    for tag in soup.find_all(['td', 'th']):
-        if tag.get_text(strip=True) == '' or tag.get_text(strip=True) == '\xa0':
-            tag.string = ' '
-    
-    for table in soup.find_all('table'):
-        if not table.find('tbody'):
-            tbody = soup.new_tag('tbody')
-            for row in table.find_all('tr'):
-                tbody.append(row.extract())
-            table.append(tbody)
-        
-        for section in table.find_all(['thead', 'tfoot']):
-            for row in section.find_all('tr'):
-                table.tbody.insert(0, row)
-            section.decompose()
-    
-    for div in soup.find_all('div'):
-        if not div.find_all(['div', 'table', 'ul', 'ol', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']):
-            div.name = 'p'
-    
-    cleaned = str(soup)
-    
-    cleaned = re.sub(r'<!DOCTYPE[^>]*>', '', cleaned)
-    cleaned = re.sub(r'<html[^>]*>', '', cleaned)
-    cleaned = re.sub(r'</html>', '', cleaned)
-    cleaned = re.sub(r'<body[^>]*>', '', cleaned)
-    cleaned = re.sub(r'</body>', '', cleaned)
-    
-    return cleaned
-
-
-def generate_with_htmldocx(html_content, filename, template_name):
-    """Generate DOCX using htmldocx library."""
-    from htmldocx import HtmlToDocx
-    from docx import Document
-    from docx.shared import Inches
-    
-    document = Document()
-    
-    for section in document.sections:
-        section.top_margin = Inches(0.5)
-        section.bottom_margin = Inches(0.5)
-        section.left_margin = Inches(0.75)
-        section.right_margin = Inches(0.75)
-    
-    parser = HtmlToDocx()
-    
-    try:
-        parser.add_html_to_document(html_content, document)
-    except IndexError as e:
-        from bs4 import BeautifulSoup
-        soup = BeautifulSoup(html_content, 'html.parser')
-        
-        for element in soup.find_all(['table', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'ul', 'ol']):
-            try:
-                parser.add_html_to_document(str(element), document)
-            except:
-                continue
-    
-    return save_and_send_docx(document, filename, template_name)
-
-def save_and_send_docx(document, filename, template_name):
-    import io
-    """Save document and prepare for download."""
-    today = frappe.utils.nowdate()
-    formatted_today = datetime.strptime(today, "%Y-%m-%d").strftime("%d-%m-%Y")
-    out_filename = f"{filename or template_name}_{formatted_today}.docx"
-    file_buffer = io.BytesIO()
-    document.save(file_buffer)
-    file_buffer.seek(0)
-
-    frappe.local.response.filename = out_filename
-    frappe.local.response.filecontent = file_buffer.read()
-    frappe.local.response.type = "download"
-    return out_filename
-
-@frappe.whitelist()
-def generate_pdf_template(template_path_or_print_format,filename=None,**kwargs):
-    if kwargs.get("mode") == "docx":
-        return generate_docx_template(template_path_or_print_format,filename,**kwargs)
-    """
-    Generate a PDF template from a Template page or print format.
-    """
-    try:
-        try:
-            if isinstance(template_path_or_print_format, str) and "templates/pages" in template_path_or_print_format:
-                mou_template = frappe.get_template(template_path_or_print_format).render(kwargs)
-            else:
-                if frappe.db.exists("Print Format", template_path_or_print_format):
-                    print_format_template = frappe.get_doc("Print Format", template_path_or_print_format).html
-                    mou_template = frappe.render_template(print_format_template, kwargs)
-                else:
-                    frappe.log_error(f"Print Format not found: {template_path_or_print_format}")
-                    frappe.throw(f"Print Format not found: {template_path_or_print_format}")
-        except Exception:
-            frappe.log_error(f"Template path or print format not found: {template_path_or_print_format}")
-            frappe.throw(f"Template path or print format not found: {template_path_or_print_format}")
-        try:
-            pdf = get_pdf(mou_template)
-        except Exception as e:
-            frappe.log_error(f"Error in converting to PDF: {str(e)}")
-            frappe.throw(f"Error in converting to PDF: {str(e)}")
-        today = frappe.utils.nowdate()
-        formated_today = datetime.strptime(today, "%Y-%m-%d").strftime("%d-%m-%Y")
-        if filename:
-            _filename = f"{filename}_{formated_today}.pdf"
+        # Conditional PDF or DOCX
+        if kwargs.get("type") == "docx":
+            pdf_bytes = get_pdf(template_html)
+            docx_bytes = pdf_bytes_to_docx_bytes(pdf_bytes)
+            send_file(docx_bytes, f"{base_filename}.docx")
         else:
-            _filename = f"{template_path_or_print_format}_{formated_today}.pdf"
-        frappe.local.response.filename = _filename
-        frappe.local.response.filecontent = pdf
-        frappe.local.response.type = "download"
+            # PDF generation - no special formatting applied
+            pdf_bytes = get_pdf(template_html)
+            send_file(pdf_bytes, f"{base_filename}.pdf")
+
     except Exception as e:
-        frappe.log_error(f"Error generating PDF template: {str(e)}")
-        frappe.throw(f"Error generating PDF template: {str(e)}")
+        frappe.log_error(f"Error generating document: {str(e)}")
+        frappe.throw(f"Error generating document: {str(e)}")

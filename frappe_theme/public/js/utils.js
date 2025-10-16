@@ -258,3 +258,15 @@ async function downloadTemplate(api_method, is_existing_file = false, is_downloa
     }
 }
 frappe.utils.download_template = downloadTemplate;
+
+const setup_year_options_on_autocomplete_field = (frm, fieldname) => {
+    try {
+        let currentYear = new Date().getFullYear();
+        let years = Array.from({length: currentYear - 1899}, (_, i) => (1900 + i).toString());
+        frm.fields_dict[fieldname].set_data(years);
+        frm.refresh_field(fieldname);
+    } catch (error) {
+        console.error(error);
+    }
+}
+frappe.utils.setup_year_options_on_autocomplete_field = setup_year_options_on_autocomplete_field;
