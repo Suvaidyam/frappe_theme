@@ -1,28 +1,28 @@
 class ColorPrint:
     @staticmethod
-    def red(text):
-        print(f"\033[91m{text}\033[0m")
+    def red(*args):
+        print(f"\033[91m{' '.join(map(str, args))}\033[0m")
 
     @staticmethod
-    def green(text):
-        print(f"\033[92m{text}\033[0m")
+    def green(*args):
+        print(f"\033[92m{' '.join(map(str, args))}\033[0m")
 
     @staticmethod
-    def yellow(text):
-        print(f"\033[93m{text}\033[0m")
+    def yellow(*args):
+        print(f"\033[93m{' '.join(map(str, args))}\033[0m")
 
     @staticmethod
-    def blue(text):
-        print(f"\033[94m{text}\033[0m")
+    def blue(*args):
+        print(f"\033[94m{' '.join(map(str, args))}\033[0m")
 
     @staticmethod
-    def magenta(text):
-        print(f"\033[95m{text}\033[0m")
+    def magenta(*args):
+        print(f"\033[95m{' '.join(map(str, args))}\033[0m")
 
     @staticmethod
-    def cyan(text):
-        print(f"\033[96m{text}\033[0m")
+    def cyan(*args):
+        print(f"\033[96m{' '.join(map(str, args))}\033[0m")
 
     @staticmethod
-    def default(text):
-        print(f"\033[0m{text}")
+    def default(*args):
+        print(f"\033[0m{' '.join(map(str, args))}\033[0m")
