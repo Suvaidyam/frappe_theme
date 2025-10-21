@@ -15,6 +15,7 @@ dependencies = [
     "htmldocx>=0.0.6",
     "beautifulsoup4>=4.12.3",
     "pdf2docx>=0.5.0",
+    "PyMuPDF==1.23.5",
     "python-docx>=0.8.11"
     
 ]
