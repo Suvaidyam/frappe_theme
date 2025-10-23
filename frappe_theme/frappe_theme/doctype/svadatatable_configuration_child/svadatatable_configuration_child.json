@@ -362,7 +362,6 @@
    "label": "List Filters",
    "max_height": "10rem",
    "read_only": 1
-<<<<<<< HEAD
   },
   {
    "depends_on": "eval:doc.template == \"Excel\"",
@@ -379,19 +378,13 @@
    "fieldtype": "Data",
    "label": "Endpoint",
    "mandatory_depends_on": "eval:doc.type == \"API\""
-=======
->>>>>>> 1ff745d6be71d6936a3e551dbbc02b3e06c9fa3e
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
-<<<<<<< HEAD
  "modified": "2025-09-19 12:40:52.167853",
-=======
- "modified": "2025-08-11 19:16:51.259163",
->>>>>>> 1ff745d6be71d6936a3e551dbbc02b3e06c9fa3e
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "SVADatatable Configuration Child",
