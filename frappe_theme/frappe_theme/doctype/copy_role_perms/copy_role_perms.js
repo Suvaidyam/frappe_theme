@@ -3,21 +3,10 @@
 
 frappe.ui.form.on("Copy Role Perms", {
 	refresh(frm) {
-<<<<<<< HEAD
-		frm.set_value("perms_type", "Get & Update Perms");
-		if (!frm.custom_btn) {
-			frm.custom_btn = frm.add_custom_button(__("Create Permissions"), function () {
-				if (frm.doc.permissions.length === 0 || !frm.doc.role_to) {
-					frappe.throw(__("Select 'Role To' and add permissions first."));	
-				}
-				check_duplicate_perms(frm);
-				let btn_label = frm.custom_btn.text().trim();
-				let freeze_msg = btn_label === "Create Permissions" ? "Creating Permissions..." : "Updating Permissions...";
-=======
-		 const toggleBtn = document.querySelector(".btn.btn-default.icon-btn");
-			if (toggleBtn) {
-				toggleBtn.style.display = "none";
-			}
+		const toggleBtn = document.querySelector(".btn.btn-default.icon-btn");
+		if (toggleBtn) {
+			toggleBtn.style.display = "none";
+		}
 		set_app_select_options(frm);
 		frm.disable_save();
 		frappe.after_ajax(() => {
@@ -41,7 +30,6 @@ frappe.ui.form.on("Copy Role Perms", {
 					btn_label === "Create Permissions"
 						? "Creating Permissions..."
 						: "Updating Permissions...";
->>>>>>> 1d410952714d4b288d7b1cd8cfc49645b4f70441
 				frappe.call({
 					method: "frappe_theme.controllers.copy_role_perms.copy_role_perms.copy_all_permissions",
 					args: {
@@ -63,23 +51,16 @@ frappe.ui.form.on("Copy Role Perms", {
 			});
 		}
 		frm.trigger("set_button_label");
-<<<<<<< HEAD
-		
-=======
->>>>>>> 1d410952714d4b288d7b1cd8cfc49645b4f70441
 	},
 	perms_type: function (frm) {
 		frm.set_value("role_from", null);
 		frm.trigger("set_button_label");
-<<<<<<< HEAD
-=======
 
 		if (frm.doc.perms_type === "Create Perms") {
 			frm.set_df_property("role_to", "label", "Role");
 		} else {
 			frm.set_df_property("role_to", "label", "Role To");
 		}
->>>>>>> 1d410952714d4b288d7b1cd8cfc49645b4f70441
 	},
 	role_from: function (frm) {
 		frappe.call({
@@ -126,10 +107,6 @@ frappe.ui.form.on("Copy Role Perms", {
 			frm.custom_btn.html(label);
 		}
 	},
-<<<<<<< HEAD
-});
-
-=======
 	apps: function (frm) {
 		set_all_doctypes_in_permissions(frm);
 	}
@@ -144,7 +121,7 @@ function set_app_select_options(frm) {
 			}
 		},
 	});
-	
+
 }
 
 function set_all_doctypes_in_permissions(frm) {
@@ -188,7 +165,6 @@ function set_all_doctypes_in_permissions(frm) {
 }
 
 
->>>>>>> 1d410952714d4b288d7b1cd8cfc49645b4f70441
 function check_duplicate_perms(frm) {
 	if (!frm.doc.permissions?.length) return false;
 	const seen = new Set();
@@ -207,39 +183,25 @@ function check_duplicate_perms(frm) {
 			title: __("Duplicate Permissions Found"),
 			indicator: "red",
 			message:
-				__("The following permissions are duplicated:") + "<br>" + duplicates.join("<br>"),
+				__("The following permissions are duplicated:") + " " + duplicates.join(""),
 		});
 	}
-<<<<<<< HEAD
-}
 
-=======
-	
 
 }
->>>>>>> 1d410952714d4b288d7b1cd8cfc49645b4f70441
 
 frappe.ui.form.on("Copy Role Perms Child", {
 	permlevel: function (frm, cdt, cdn) {
 		let row = frappe.get_doc(cdt, cdn);
-<<<<<<< HEAD
-		if (row.permlevel > 9) {
-			row.permlevel = null;	
-			frappe.throw(__(`Value of Level cannot exceed 9 in  row ${row.idx}` ));
-		}
-	},
-});
-=======
 		frappe.meta.get_docfield(cdt, "select", cdn).read_only = 1;
 		if (row.permlevel > 9) {
 			row.permlevel = null;
 			frappe.throw(__(`Value of Level cannot exceed 9 in  row ${row.idx}`));
 		}
 	},
-	
+
 });
 
 
 
 
->>>>>>> 1d410952714d4b288d7b1cd8cfc49645b4f70441
