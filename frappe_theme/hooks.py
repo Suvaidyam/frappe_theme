@@ -11,35 +11,41 @@ app_license = "mit"
 # fixtures = []
 # include js, css files in header of desk.html
 import time
+
 app_include_css = [
-    f"https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
-    f"/assets/frappe_theme/css/frappe_theme.css?ver={time.time()}",
-    f"/assets/frappe_theme/css/number_card_mapper.css?ver={time.time()}"
+	"https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
+	f"/assets/frappe_theme/css/frappe_theme.css?ver={time.time()}",
+	f"/assets/frappe_theme/css/number_card_mapper.css?ver={time.time()}",
 ]
 app_include_js = [
-    f"https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
-    "sva_workspace.bundle.js",
-    "overwrite_form.bundle.js",
-    "overwrite_workflow.bundle.js",
-    f"/assets/frappe_theme/js/svadb.js?ver={time.time()}",
-    f"/assets/frappe_theme/js/fields_comment.js?ver={time.time()}",
-    f"/assets/frappe_theme/js/extended_chart.js?ver={time.time()}",
-    f"/assets/frappe_theme/js/frappe_theme.js?ver={time.time()}",
-    f"/assets/frappe_theme/js/mobile_view.js?ver={time.time()}",
-    f"/assets/frappe_theme/js/utils.js?ver={time.time()}",
-    f"/assets/frappe_theme/js/custom_import.js?ver={time.time()}",
-    f"/assets/frappe_theme/js/sva_dt_utils.js?ver={time.time()}"
+	"https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
+	"sva_workspace.bundle.js",
+	"overwrite_form.bundle.js",
+	"overwrite_workflow.bundle.js",
+	"override_date_field.bundle.js",
+	"frappe_theme.bundle.js",
+	f"/assets/frappe_theme/js/svadb.js?ver={time.time()}",
+	f"/assets/frappe_theme/js/fields_comment.js?ver={time.time()}",
+	f"/assets/frappe_theme/js/extended_chart.js?ver={time.time()}",
+	f"/assets/frappe_theme/js/mobile_view.js?ver={time.time()}",
+	f"/assets/frappe_theme/js/utils.js?ver={time.time()}",
+	f"/assets/frappe_theme/js/custom_import.js?ver={time.time()}",
+	f"/assets/frappe_theme/js/sva_dt_utils.js?ver={time.time()}",
+	f"/assets/frappe_theme/js/customizations.js?ver={time.time()}",
+	f"/assets/frappe_theme/js/doctype/global_doctype.js?ver={time.time()}",
 ]
-extend_bootinfo = f"frappe_theme.boot.boot_theme"
+extend_bootinfo = "frappe_theme.boot.boot_theme"
 # include js, css files in header of web template
 web_include_css = "/assets/frappe_theme/css/frappe_theme.css"
-web_include_js = f"/assets/frappe_theme/js/frappe_theme.js?ver={time.time()}"
+web_include_js = f"/assets/frappe_theme/js/frappe_theme.bundle.js?ver={time.time()}"
 
 # include custom scss in every website theme (without file extension ".scss")
 # website_theme_scss = "frappe_theme/public/scss/website"
 
 # include js, css files in header of web form
-# webform_include_js = {"doctype": "public/js/doctype.js"}
+webform_include_js = {
+	"*": ["public/js/web_form/common_web_form.bundle.js"],
+}
 # webform_include_css = {"doctype": "public/css/doctype.css"}
 
 # include js in page
@@ -47,12 +53,14 @@ web_include_js = f"/assets/frappe_theme/js/frappe_theme.js?ver={time.time()}"
 
 # include js in doctype views
 doctype_js = {
-    "Workflow" : "public/js/doctype/workflow.js"
+	"Workflow": "public/js/doctype/workflow.js",
+	"Web Form": "public/js/doctype/web_form.js",
+	"Customize Form": "public/js/download_customizations.js",
+	"DocType": "public/js/doctype/doctype.js",
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
-
 # Svg Icons
 # ------------------
 # include app icons in desk
@@ -79,9 +87,7 @@ doctype_js = {
 # ----------
 
 # add methods and filters to jinja environment
-jinja = {
-	"methods": "frappe_theme.utils.jinja_methods"
-}
+jinja = {"methods": "frappe_theme.utils.jinja_methods"}
 
 # Installation
 # ------------
@@ -142,11 +148,28 @@ jinja = {
 # Hook on document methods and events
 
 doc_events = {
+	"*": {
+		"before_insert": "frappe_theme.utils.data_protection.encrypt_doc_fields",
+		"before_save": "frappe_theme.utils.data_protection.encrypt_doc_fields",
+		"onload": "frappe_theme.utils.data_protection.decrypt_doc_fields",
+	},
 	"Version": {
 		"validate": "frappe_theme.controllers.timeline.validate",
 		# "on_cancel": "method",
 		# "on_trash": "method"
-	}
+	},
+	"File": {
+		"after_insert": "frappe_theme.controllers.sva_integrations.cloud_assets.file_upload_to_cloud",
+		"on_trash": "frappe_theme.controllers.sva_integrations.cloud_assets.delete_from_cloud",
+	},
+}
+
+override_whitelisted_methods = {
+	"frappe.model.workflow.apply_workflow": "frappe_theme.overrides.workflow.custom_apply_workflow",
+	"frappe.desk.reportview.get": "frappe_theme.utils.data_protection.mask_doc_list_view",
+	"frappe.desk.listview.get": "frappe_theme.utils.data_protection.mask_doc_list_view",
+	"frappe.desk.query_report.run": "frappe_theme.utils.data_protection.mask_query_report",
+	"frappe.desk.query_report.export_query": "frappe_theme.utils.data_protection.mask_query_report_export_query",
 }
 
 # Scheduled Tasks
@@ -182,9 +205,6 @@ doc_events = {
 # 	"frappe.desk.doctype.event.event.get_events": "frappe_theme.event.get_events"
 # }
 
-override_whitelisted_methods = {
-    "frappe.model.workflow.apply_workflow": "frappe_theme.overrides.workflow.custom_apply_workflow"
-}
 
 #
 # each overriding function accepts a `data` argument;
@@ -250,4 +270,3 @@ override_whitelisted_methods = {
 # default_log_clearing_doctypes = {
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
-

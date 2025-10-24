@@ -2,6 +2,8 @@ import frappe
 import json
 from frappe import _
 import re
+from frappe.utils import cint
+from frappe.custom.doctype.custom_field.custom_field import create_custom_field
 
 @frappe.whitelist(allow_guest=True)
 def get_my_theme():
@@ -307,199 +309,269 @@ def get_timeline_dt(dt, dn):
     result = frappe.db.sql(sql, as_dict=True)
     return [row["doctype"] for row in result]
 
+# @frappe.whitelist()
+# def copy_role_perms(doc):
+#     # Parse the doc parameter if it's a string
+#     if isinstance(doc, str):
+#         doc = frappe.parse_json(doc)
+    
+#     # Get all existing Custom DocPerm records for the source role
+#     existing_perms = frappe.get_all('Custom DocPerm', 
+#                     filters={
+#                         'role': doc.get('role_from'), 
+#                         'permlevel': 0,
+#                     },
+#                     fields=['name', 'parent'],
+#                     ignore_permissions=True
+#                 )
+    
+#     # Check if records with role_to already exist
+#     existing_role_to_perms = frappe.get_all('Custom DocPerm',
+#                     filters={
+#                         'role': doc.get('role_to'),
+#                         'permlevel': 0,
+#                     },
+#                     fields=['name', 'parent'],
+#                     ignore_permissions=True
+#                 )
+    
+#     records_updated = 0
+#     records_created = 0
+    
+#     # Create a dictionary of existing doctypes for role_to for faster lookup
+#     existing_doctypes = {perm.parent: perm.name for perm in existing_role_to_perms}
+    
+#     # Process each permission from the source role
+#     for perm in existing_perms:
+#         # Get the full document for the permission
+#         source_perm = frappe.get_doc('Custom DocPerm', perm.name)
+        
+#         # Get common permissions between source_perm and doc
+#         common_permissions = get_common_permissions(source_perm, doc)
+        
+#         # Check if this doctype already has a permission for role_to
+#         if perm.parent in existing_doctypes:
+#             # Get the existing permission for role_to with the same parent
+#             target_perm_name = existing_doctypes[perm.parent]
+#             target_perm_doc = frappe.get_doc('Custom DocPerm', target_perm_name)
+            
+#             # Update the permission values based on common permissions
+#             apply_common_permissions(target_perm_doc, common_permissions)
+            
+#             # Only save if there are common permissions to apply
+#             if common_permissions:
+#                 target_perm_doc.save()
+#                 records_updated += 1
+#         else:
+#             # Create a new permission with role_to
+#             new_perm = frappe.get_doc('Custom DocPerm', perm.name)
+#             new_perm.role = doc.get('role_to')
+            
+#             # Copy parent from the original permission
+#             new_perm.parent = perm.parent
+            
+#             # Apply common permissions
+#             apply_common_permissions(new_perm, common_permissions)
+            
+#             # Only insert if there are common permissions to apply
+#             if common_permissions:
+#                 new_perm.insert()
+#                 records_created += 1
+    
+#     # Create redirect link
+#     redirect_link = f'<a href="/app/custom-docperm" class="">View Permissions</a>'
+    
+#     # Show appropriate message with redirect link
+#     if records_updated > 0 and records_created > 0:
+#         frappe.msgprint(f"{records_updated} permissions updated and {records_created} permissions created successfully {redirect_link}")
+#     elif records_updated > 0:
+#         frappe.msgprint(f"{records_updated} permissions updated successfully {redirect_link}")
+#     elif records_created > 0:
+#         frappe.msgprint(f"{records_created} permissions created successfully {redirect_link}")
+#     else:
+#         frappe.msgprint(f"No permissions were updated or created")
+    
+#     return True
+
+# def get_common_permissions(source_perm, doc):
+#     """Get common permissions between source_perm and doc"""
+#     common_permissions = {}
+    
+#     # Check each permission field
+#     if 'select' in doc and int(doc.get('select', 0)) == int(source_perm.select):
+#         common_permissions['select'] = int(doc.get('select', 0))
+#     if 'read' in doc and int(doc.get('read', 0)) == int(source_perm.read):
+#         common_permissions['read'] = int(doc.get('read', 0))
+#     if 'write' in doc and int(doc.get('write', 0)) == int(source_perm.write):
+#         common_permissions['write'] = int(doc.get('write', 0))
+#     if 'create' in doc and int(doc.get('create', 0)) == int(source_perm.create):
+#         common_permissions['create'] = int(doc.get('create', 0))
+#     if 'delete_to' in doc and int(doc.get('delete_to', 0)) == int(source_perm.delete):
+#         common_permissions['delete'] = int(doc.get('delete_to', 0))
+#     if 'submit_to' in doc and int(doc.get('submit_to', 0)) == int(source_perm.submit):
+#         common_permissions['submit'] = int(doc.get('submit_to', 0))
+#     if 'cancel_to' in doc and int(doc.get('cancel_to', 0)) == int(source_perm.cancel):
+#         common_permissions['cancel'] = int(doc.get('cancel_to', 0))
+#     if 'amend' in doc and int(doc.get('amend', 0)) == int(source_perm.amend):
+#         common_permissions['amend'] = int(doc.get('amend', 0))
+#     if 'report' in doc and int(doc.get('report', 0)) == int(source_perm.report):
+#         common_permissions['report'] = int(doc.get('report', 0))
+#     if 'export' in doc and int(doc.get('export', 0)) == int(source_perm.export):
+#         common_permissions['export'] = int(doc.get('export', 0))
+#     if 'import_to' in doc and int(doc.get('import_to', 0)) == int(getattr(source_perm, 'import', 0)):
+#         common_permissions['import'] = int(doc.get('import_to', 0))
+#     if 'share' in doc and int(doc.get('share', 0)) == int(source_perm.share):
+#         common_permissions['share'] = int(doc.get('share', 0))
+#     if 'print' in doc and int(doc.get('print', 0)) == int(source_perm.print):
+#         common_permissions['print'] = int(doc.get('print', 0))
+#     if 'email' in doc and int(doc.get('email', 0)) == int(source_perm.email):
+#         common_permissions['email'] = int(doc.get('email', 0))
+    
+#     return common_permissions
+
+# def apply_common_permissions(target_perm, common_permissions):
+#     """Apply common permissions to a permission document"""
+#     # For each permission, check if it's in common_permissions
+#     # If it is, use that value, otherwise set it to 0
+#     if 'select' in common_permissions:
+#         target_perm.select = common_permissions['select']
+#     else:
+#         target_perm.select = 0
+        
+#     if 'read' in common_permissions:
+#         target_perm.read = common_permissions['read']
+#     else:
+#         target_perm.read = 0
+        
+#     if 'write' in common_permissions:
+#         target_perm.write = common_permissions['write']
+#     else:
+#         target_perm.write = 0
+        
+#     if 'create' in common_permissions:
+#         target_perm.create = common_permissions['create']
+#     else:
+#         target_perm.create = 0
+        
+#     if 'delete' in common_permissions:
+#         target_perm.delete = common_permissions['delete']
+#     else:
+#         target_perm.delete = 0
+        
+#     if 'submit' in common_permissions:
+#         target_perm.submit = common_permissions['submit']
+#     else:
+#         target_perm.submit = 0
+        
+#     if 'cancel' in common_permissions:
+#         target_perm.cancel = common_permissions['cancel']
+#     else:
+#         target_perm.cancel = 0
+        
+#     if 'amend' in common_permissions:
+#         target_perm.amend = common_permissions['amend']
+#     else:
+#         target_perm.amend = 0
+        
+#     if 'report' in common_permissions:
+#         target_perm.report = common_permissions['report']
+#     else:
+#         target_perm.report = 0
+        
+#     if 'export' in common_permissions:
+#         target_perm.export = common_permissions['export']
+#     else:
+#         target_perm.export = 0
+        
+#     if 'import' in common_permissions:
+#         setattr(target_perm, 'import', common_permissions['import'])
+#     else:
+#         setattr(target_perm, 'import', 0)
+        
+#     if 'share' in common_permissions:
+#         target_perm.share = common_permissions['share']
+#     else:
+#         target_perm.share = 0
+        
+#     if 'print' in common_permissions:
+#         target_perm.print = common_permissions['print']
+#     else:
+#         target_perm.print = 0
+        
+#     if 'email' in common_permissions:
+#         target_perm.email = common_permissions['email']
+#     else:
+#         target_perm.email = 0
+
+
+
 @frappe.whitelist()
 def copy_role_perms(doc):
-    # Parse the doc parameter if it's a string
-    if isinstance(doc, str):
-        doc = frappe.parse_json(doc)
-    
-    # Get all existing Custom DocPerm records for the source role
-    existing_perms = frappe.get_all('Custom DocPerm', 
-                    filters={
-                        'role': doc.get('role_from'), 
-                        'permlevel': 0,
-                    },
-                    fields=['name', 'parent'],
-                    ignore_permissions=True
-                )
-    
-    # Check if records with role_to already exist
-    existing_role_to_perms = frappe.get_all('Custom DocPerm',
-                    filters={
-                        'role': doc.get('role_to'),
-                        'permlevel': 0,
-                    },
-                    fields=['name', 'parent'],
-                    ignore_permissions=True
-                )
-    
-    records_updated = 0
-    records_created = 0
-    
-    # Create a dictionary of existing doctypes for role_to for faster lookup
-    existing_doctypes = {perm.parent: perm.name for perm in existing_role_to_perms}
-    
-    # Process each permission from the source role
-    for perm in existing_perms:
-        # Get the full document for the permission
-        source_perm = frappe.get_doc('Custom DocPerm', perm.name)
-        
-        # Get common permissions between source_perm and doc
-        common_permissions = get_common_permissions(source_perm, doc)
-        
-        # Check if this doctype already has a permission for role_to
-        if perm.parent in existing_doctypes:
-            # Get the existing permission for role_to with the same parent
-            target_perm_name = existing_doctypes[perm.parent]
-            target_perm_doc = frappe.get_doc('Custom DocPerm', target_perm_name)
-            
-            # Update the permission values based on common permissions
-            apply_common_permissions(target_perm_doc, common_permissions)
-            
-            # Only save if there are common permissions to apply
-            if common_permissions:
-                target_perm_doc.save()
-                records_updated += 1
+    doc = frappe.parse_json(doc) if isinstance(doc, str) else doc
+
+    role_from, role_to = doc.get('role_from'), doc.get('role_to')
+    fields = ['name', 'parent', 'permlevel']
+
+    perms_from = frappe.get_all('Custom DocPerm', {'role': role_from}, fields, ignore_permissions=True)
+    perms_to = frappe.get_all('Custom DocPerm', {'role': role_to}, fields, ignore_permissions=True)
+
+    perms_to_map = {(p.parent, p.permlevel): p.name for p in perms_to}
+
+    updated, created = 0, 0
+
+    for perm in perms_from:
+        src = frappe.get_doc('Custom DocPerm', perm.name)
+        common = get_common_permissions(src, doc)
+
+        if not common:
+            continue
+
+        key = (perm.parent, perm.permlevel)
+
+        if key in perms_to_map:
+            tgt = frappe.get_doc('Custom DocPerm', perms_to_map[key])
+            apply_common_permissions(tgt, common)
+            tgt.save()
+            updated += 1
         else:
-            # Create a new permission with role_to
-            new_perm = frappe.get_doc('Custom DocPerm', perm.name)
-            new_perm.role = doc.get('role_to')
-            
-            # Copy parent from the original permission
-            new_perm.parent = perm.parent
-            
-            # Apply common permissions
-            apply_common_permissions(new_perm, common_permissions)
-            
-            # Only insert if there are common permissions to apply
-            if common_permissions:
-                new_perm.insert()
-                records_created += 1
-    
-    # Create redirect link
-    redirect_link = f'<a href="/app/custom-docperm" class="">View Permissions</a>'
-    
-    # Show appropriate message with redirect link
-    if records_updated > 0 and records_created > 0:
-        frappe.msgprint(f"{records_updated} permissions updated and {records_created} permissions created successfully {redirect_link}")
-    elif records_updated > 0:
-        frappe.msgprint(f"{records_updated} permissions updated successfully {redirect_link}")
-    elif records_created > 0:
-        frappe.msgprint(f"{records_created} permissions created successfully {redirect_link}")
+            new_doc = frappe.copy_doc(src)
+            new_doc.role = role_to
+            apply_common_permissions(new_doc, common)
+            new_doc.insert()
+            created += 1
+
+    if updated or created:
+        msg = f"{updated} updated, {created} created. <a href='/app/custom-docperm'>View Permissions</a>"
     else:
-        frappe.msgprint(f"No permissions were updated or created")
-    
+        msg = "No permissions updated or created"
+
+    frappe.msgprint(msg)
     return True
 
-def get_common_permissions(source_perm, doc):
-    """Get common permissions between source_perm and doc"""
-    common_permissions = {}
-    
-    # Check each permission field
-    if 'select' in doc and int(doc.get('select', 0)) == int(source_perm.select):
-        common_permissions['select'] = int(doc.get('select', 0))
-    if 'read' in doc and int(doc.get('read', 0)) == int(source_perm.read):
-        common_permissions['read'] = int(doc.get('read', 0))
-    if 'write' in doc and int(doc.get('write', 0)) == int(source_perm.write):
-        common_permissions['write'] = int(doc.get('write', 0))
-    if 'create' in doc and int(doc.get('create', 0)) == int(source_perm.create):
-        common_permissions['create'] = int(doc.get('create', 0))
-    if 'delete_to' in doc and int(doc.get('delete_to', 0)) == int(source_perm.delete):
-        common_permissions['delete'] = int(doc.get('delete_to', 0))
-    if 'submit_to' in doc and int(doc.get('submit_to', 0)) == int(source_perm.submit):
-        common_permissions['submit'] = int(doc.get('submit_to', 0))
-    if 'cancel_to' in doc and int(doc.get('cancel_to', 0)) == int(source_perm.cancel):
-        common_permissions['cancel'] = int(doc.get('cancel_to', 0))
-    if 'amend' in doc and int(doc.get('amend', 0)) == int(source_perm.amend):
-        common_permissions['amend'] = int(doc.get('amend', 0))
-    if 'report' in doc and int(doc.get('report', 0)) == int(source_perm.report):
-        common_permissions['report'] = int(doc.get('report', 0))
-    if 'export' in doc and int(doc.get('export', 0)) == int(source_perm.export):
-        common_permissions['export'] = int(doc.get('export', 0))
-    if 'import_to' in doc and int(doc.get('import_to', 0)) == int(getattr(source_perm, 'import', 0)):
-        common_permissions['import'] = int(doc.get('import_to', 0))
-    if 'share' in doc and int(doc.get('share', 0)) == int(source_perm.share):
-        common_permissions['share'] = int(doc.get('share', 0))
-    if 'print' in doc and int(doc.get('print', 0)) == int(source_perm.print):
-        common_permissions['print'] = int(doc.get('print', 0))
-    if 'email' in doc and int(doc.get('email', 0)) == int(source_perm.email):
-        common_permissions['email'] = int(doc.get('email', 0))
-    
-    return common_permissions
 
-def apply_common_permissions(target_perm, common_permissions):
-    """Apply common permissions to a permission document"""
-    # For each permission, check if it's in common_permissions
-    # If it is, use that value, otherwise set it to 0
-    if 'select' in common_permissions:
-        target_perm.select = common_permissions['select']
-    else:
-        target_perm.select = 0
-        
-    if 'read' in common_permissions:
-        target_perm.read = common_permissions['read']
-    else:
-        target_perm.read = 0
-        
-    if 'write' in common_permissions:
-        target_perm.write = common_permissions['write']
-    else:
-        target_perm.write = 0
-        
-    if 'create' in common_permissions:
-        target_perm.create = common_permissions['create']
-    else:
-        target_perm.create = 0
-        
-    if 'delete' in common_permissions:
-        target_perm.delete = common_permissions['delete']
-    else:
-        target_perm.delete = 0
-        
-    if 'submit' in common_permissions:
-        target_perm.submit = common_permissions['submit']
-    else:
-        target_perm.submit = 0
-        
-    if 'cancel' in common_permissions:
-        target_perm.cancel = common_permissions['cancel']
-    else:
-        target_perm.cancel = 0
-        
-    if 'amend' in common_permissions:
-        target_perm.amend = common_permissions['amend']
-    else:
-        target_perm.amend = 0
-        
-    if 'report' in common_permissions:
-        target_perm.report = common_permissions['report']
-    else:
-        target_perm.report = 0
-        
-    if 'export' in common_permissions:
-        target_perm.export = common_permissions['export']
-    else:
-        target_perm.export = 0
-        
-    if 'import' in common_permissions:
-        setattr(target_perm, 'import', common_permissions['import'])
-    else:
-        setattr(target_perm, 'import', 0)
-        
-    if 'share' in common_permissions:
-        target_perm.share = common_permissions['share']
-    else:
-        target_perm.share = 0
-        
-    if 'print' in common_permissions:
-        target_perm.print = common_permissions['print']
-    else:
-        target_perm.print = 0
-        
-    if 'email' in common_permissions:
-        target_perm.email = common_permissions['email']
-    else:
-        target_perm.email = 0
+def get_common_permissions(src, doc):
+    fields_map = {
+        'select': 'select', 'read': 'read', 'write': 'write', 'create': 'create',
+        'delete_to': 'delete', 'submit_to': 'submit', 'cancel_to': 'cancel',
+        'amend': 'amend', 'report': 'report', 'export': 'export', 'import_to': 'import',
+        'share': 'share', 'print': 'print', 'email': 'email'
+    }
+    return {
+        tgt: int(doc.get(src_field, 0))
+        for src_field, tgt in fields_map.items()
+        if int(doc.get(src_field, 0)) == int(getattr(src, tgt, 0))
+    }
+
+
+def apply_common_permissions(doc, perms):
+    all_fields = ['select', 'read', 'write', 'create', 'delete', 'submit', 'cancel',
+                  'amend', 'report', 'export', 'import', 'share', 'print', 'email']
+    for field in all_fields:
+        setattr(doc, field, perms.get(field, 0))
+
+
+
+
 
 
 @frappe.whitelist()
@@ -911,3 +983,431 @@ def get_eligible_users_for_task(doctype, txt, searchfield, start, page_length, f
     except Exception as e:
         frappe.log_error(f"Error in get_eligible_users_for_task: {str(e)}")
         return []
+
+@frappe.whitelist()
+def get_workflow_count(doctype):
+    wf_field = frappe.get_cached_value('Workflow',{'document_type':doctype,"is_active":1},'workflow_state_field')
+    if not wf_field:
+        return []
+
+    sql = f"""
+        SELECT 
+            wfs.state AS state,
+            COALESCE(COUNT(tab.name), 0) AS count,
+            ws.style
+        FROM `tabWorkflow` AS w
+        LEFT JOIN `tabWorkflow Document State` AS wfs ON wfs.parent = w.name 
+        LEFT JOIN `tabWorkflow State` AS ws ON ws.name = wfs.state 
+        LEFT JOIN `tab{doctype}` AS tab ON tab.{wf_field} = wfs.state
+        WHERE w.document_type = %s AND w.is_active = 1
+        GROUP BY wfs.state
+        ORDER BY wfs.state
+    """
+
+    return frappe.db.sql(sql, (doctype,), as_dict=True)
+
+@frappe.whitelist()
+def workflow_doctype_query(current_doctype):
+    """Return workflows allowed by SVADatatable Configuration for given doctype,
+    including either link_fieldname or dn_reference_field depending on type."""
+    
+    if not current_doctype:
+        return {"options": [], "option_map": {}}
+
+    if not frappe.db.exists("SVADatatable Configuration", current_doctype):
+        return {"options": [], "option_map": {}}
+
+    conf_doc = frappe.get_doc("SVADatatable Configuration", current_doctype).as_dict()
+
+    doctypes_info = {}
+
+    if not len(conf_doc.get('child_doctypes',[])):
+        return {"options":[], "option_map": {}}
+    for row in conf_doc.get('child_doctypes',[]):
+        if row.get("connection_type") not in ["Direct","Referenced","Unfiltered"]:
+            continue
+        else:
+            link_doctype = row.get("link_doctype") or row.get("referenced_link_doctype")
+            if link_doctype and link_doctype not in doctypes_info:
+                    doctypes_info[link_doctype] = row
+
+    if not doctypes_info:
+        return {"options":[], "option_map": {}}
+
+    doctypes_to_check = list(doctypes_info.keys())
+
+    workflows = frappe.db.sql(f"""
+        SELECT name,document_type
+        FROM `tabWorkflow`
+        WHERE is_active = 1
+        AND document_type IN ({", ".join(["%s"] * len(doctypes_to_check))})
+        ORDER BY document_type
+    """, tuple(doctypes_to_check),as_dict=True)
+
+    if not len(workflows):
+        return {"options": [], "option_map": {}}
+
+    options = []
+    option_map = {}
+    for workflow in workflows:
+        if workflow.document_type in doctypes_info:
+            options.append(workflow.document_type)
+            option_map[workflow.document_type] = doctypes_info[workflow.document_type]
+
+    return {"options" : options,'option_map': option_map}
+
+
+@frappe.whitelist()
+def get_files(doctype, docname):
+    all_doctype = [doctype]
+    all_docname = [docname]
+
+    try:
+        get_config = frappe.get_doc("SVADatatable Configuration", doctype)
+    except frappe.DoesNotExistError:
+        frappe.log_error(title="SVADatatable Configuration missing", message=f"No SVADatatable Configuration found for doctype: {doctype}")
+        # Optionally, return empty list or a specific error message
+        return []
+    except Exception as e:
+        frappe.log_error(title="Error fetching SVADatatable Configuration", message=str(e))
+        return []
+
+    try:
+        for child in get_config.child_doctypes:
+            if child.connection_type == "Direct" and child.link_doctype:
+                if frappe.has_permission(child.link_doctype, "read"):
+                    all_doctype.append(child.link_doctype)
+                    docname_list = frappe.get_all(child.link_doctype, filters={child.link_fieldname: docname}, fields=["name"])
+                    all_docname.extend([doc.name for doc in docname_list])
+            elif child.connection_type == "Referenced" and child.referenced_link_doctype and child.dn_reference_field:
+                if frappe.has_permission(child.referenced_link_doctype, "read"):
+                    all_doctype.append(child.referenced_link_doctype)
+                    docname_list = frappe.get_all(child.referenced_link_doctype, filters={child.dn_reference_field: docname}, fields=["name"])
+                    all_docname.extend([doc.name for doc in docname_list])
+            elif child.connection_type == "Indirect" and child.link_doctype:
+                pass
+                # skipping this part for future enhancement
+            elif child.connection_type == "Is Custom Design":
+                # skipping this part for future enhancement
+                pass
+
+    except Exception as e:
+        frappe.log_error(title=f"Error in get_files config from svadatatable configuration", message=str(e))
+
+    try:
+        file_list = frappe.get_all(
+            "File",
+            filters={
+                "attached_to_name": ["in", all_docname],
+                "attached_to_doctype": ["in", all_doctype],
+            },
+            fields=["name", "file_url", "attached_to_doctype", "attached_to_name", "owner", "file_name","file_size","creation"],
+            as_list=False
+        )
+        return file_list
+    except Exception as e:
+        frappe.log_error(title="Error fetching files", message=str(e))
+        return []
+
+@frappe.whitelist()
+def export_customizations(doctype: str, with_permissions: bool = False):
+    """
+    Export custom fields, property setters, permissions for a DocType (and child tables)
+    and return as downloadable JSON.
+    """
+    with_permissions = cint(with_permissions)
+
+    def get_customizations(dt):
+        custom = {
+            "custom_fields": frappe.get_all("Custom Field", fields="*", filters={"dt": dt}, order_by="name"),
+            "property_setters": frappe.get_all("Property Setter", fields="*", filters={"doc_type": dt}, order_by="name"),
+            "custom_perms": [],
+            "links": frappe.get_all("DocType Link", fields="*", filters={"parent": dt}, order_by="name"),
+            "doctype": dt,
+        }
+        if with_permissions:
+            custom["custom_perms"] = frappe.get_all("Custom DocPerm", fields="*", filters={"parent": dt}, order_by="name")
+        return custom
+
+    # Main DocType customizations
+    data = get_customizations(doctype)
+
+    # Child table customizations
+    for d in frappe.get_meta(doctype).get_table_fields():
+        data[f"child_{d.options}"] = get_customizations(d.options)
+
+    return frappe.as_json(data)
+
+
+@frappe.whitelist()
+def export_multiple_customizations(doctypes: list[str] | str, with_permissions: bool = False):
+    """
+    Export customizations for multiple doctypes at once.
+    Accepts a list of doctypes (from dialog table) and returns a JSON blob.
+    """
+    if isinstance(doctypes, str):
+        import json
+        doctypes = json.loads(doctypes)
+
+    all_data = {}
+
+    for dt in doctypes:
+        doctype_name = dt.get("doctype_name") if isinstance(dt, dict) else dt
+        # Directly call function in same file
+        data = export_customizations(doctype_name, with_permissions)
+        import json
+        all_data[doctype_name] = json.loads(data)
+
+    return frappe.as_json(all_data)
+
+
+from frappe.modules.utils import sync_customizations_for_doctype
+import json
+import frappe
+
+def _apply_customizations(custom_data: dict):
+    """
+    Core logic for applying customizations for a single doctype
+    and its child tables. Used by both single and multiple import.
+    """
+    # Ensure JSON contains main doctype key
+    if not custom_data.get("doctype"):
+        frappe.throw("Invalid JSON: 'doctype' missing.")
+
+    main_doctype = custom_data["doctype"]
+
+    # ---------------- Apply main doctype customizations ----------------
+    sync_customizations_for_doctype(custom_data, folder="", filename=f"{main_doctype}.json")
+
+    # ---------------- Apply customizations for child tables (if any) ----------------
+    for key, value in custom_data.items():
+        if key.startswith("child_") and isinstance(value, dict):
+            child_dt = value.get("doctype")
+            if child_dt:
+                sync_customizations_for_doctype(value, folder="", filename=f"{child_dt}.json")
+
+    frappe.clear_cache(doctype=main_doctype)
+    return main_doctype
+
+
+@frappe.whitelist()
+def import_customizations(file_url: str, target_doctype: str):
+    """
+    Import customizations for a single doctype (and its child tables).
+    - Validates file content
+    - Ensures correct doctype match
+    - Applies customizations via _apply_customizations
+    """
+    try:
+        # ---------------- Read uploaded file from File doctype ----------------
+        file_doc = frappe.get_doc("File", {"file_url": file_url})
+        content = file_doc.get_content()
+        data = json.loads(content)
+
+        if not data.get("doctype"):
+            raise frappe.ValidationError("Doctype attribute not found in data.")
+        if data["doctype"] != target_doctype:
+            raise frappe.ValidationError(
+                f"Importing customizations for wrong doctype: <b>{data['doctype']}</b>"
+            )
+
+        applied_dt = _apply_customizations(data)
+        return {
+            "status": "success",
+            "message": f"Customizations imported for {applied_dt} and child tables"
+        }
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Import Customizations Error")
+        frappe.throw(f"Failed to import customizations: {str(e)}")
+
+
+@frappe.whitelist()
+def import_multiple_customizations(file_url: str):
+    """
+    Import customizations for multiple doctypes (and child tables).
+    JSON must match output of download_multiple_customizations.
+    - Iterates over each doctype
+    - Applies customizations individually
+    """
+    try:
+        file_doc = frappe.get_doc("File", {"file_url": file_url})
+        content = file_doc.get_content()
+        data = json.loads(content)
+
+        if not isinstance(data, dict):
+            frappe.throw("Invalid JSON format. Expected dict of doctypes.")
+
+        imported, errors = [], []
+
+        # ---------------- Iterate and apply each doctype ----------------
+        for doctype_name, custom_data in data.items():
+            try:
+                applied_dt = _apply_customizations(custom_data)
+                imported.append(applied_dt)
+            except Exception as inner_e:
+                frappe.log_error(frappe.get_traceback(), f"Import Error for {doctype_name}")
+                errors.append(f"{doctype_name}: {str(inner_e)}")
+
+        return {
+            "status": "completed",
+            "imported": imported,
+            "errors": errors,
+            "message": f"Imported {len(imported)} doctypes, {len(errors)} failed."
+        }
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Import Multiple Customizations Error")
+        frappe.throw(f"Failed to import multiple customizations: {str(e)}")
+
+
+from frappe.utils.response import build_response
+
+@frappe.whitelist()
+def export_fixture_single_doctype(docname):
+    """
+    Export data for a single SVAFixture record as downloadable JSON.
+    Returns just the array of records (like fixtures), not wrapped in a dict.
+    """
+    import json
+
+    fx = frappe.get_doc("SVAFixture", docname)
+    filters_data = json.loads(fx.filters) if fx.filters else {}
+
+    def get_records(doctype, filters_data):
+        filters = filters_data.get("filters", {})
+        or_filters = filters_data.get("or_filters", [])
+        meta = frappe.get_meta(doctype)
+
+        if meta.issingle:
+            return []
+
+        return frappe.get_all(
+            doctype,
+            fields="*",
+            filters=filters,
+            or_filters=or_filters,
+            order_by="creation asc"
+        )
+
+    # Just return the array, no wrapping object
+    records = get_records(fx.ref_doctype, filters_data)
+    
+    return frappe.as_json(records)
+
+@frappe.whitelist()
+def export_fixtures_runtime():
+    """
+    Export fixtures (with filters & or_filters) as downloadable JSON.
+    """
+    export_data = {}
+    for fx in frappe.get_all("SVAFixture", fields=["ref_doctype", "name"]):
+        data = export_fixture_single_doctype(fx.name)
+        if isinstance(data,str):
+            export_data[fx.ref_doctype] = json.loads(data)
+        else:
+            export_data[fx.ref_doctype] = data
+
+    return frappe.as_json(export_data)
+
+import os
+from frappe.core.doctype.data_import.data_import import import_doc
+
+def import_records_to_doctype(doctype, records):
+    """
+    Add 'doctype' to each record, save modified JSON to a temp file,
+    import the data using import_doc, and then remove the temp file.
+    """
+    # Add 'doctype' to each record
+    for record in records:
+        record["doctype"] = doctype
+
+    # Save modified JSON to a temporary file
+    tmp_path = os.path.join(frappe.get_site_path("private", "files"), f"tmp_{doctype}.json")
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        json.dump(records, f, indent=2)
+
+    # Import records from temp JSON
+    import_doc(tmp_path, sort=True)
+    os.remove(tmp_path)
+
+
+@frappe.whitelist()
+def import_fixture_single_doctype(file_url, fixture_name):
+    """
+    Import single-doctype fixture from a JSON file uploaded via Attach field.
+    Uses the 'ref_doctype' from SVAFixture for setting 'doctype'.
+    """
+    try:
+        # Get the File doc
+        file_docs = frappe.get_all("File", filters={"file_url": file_url}, fields=["name"])
+        if not file_docs:
+            return {"status": "error", "message": "File not found."}
+
+        file_doc = frappe.get_doc("File", file_docs[0].name)
+        file_path = file_doc.get_full_path()
+
+        # Check if file exists on disk
+        if not os.path.exists(file_path):
+            return {"status": "error", "message": "File not found on disk."}
+
+        # Get the fixture document to read ref_doctype
+        fixture_doc = frappe.get_doc("SVAFixture", fixture_name)
+        target_doctype = fixture_doc.ref_doctype
+        if not target_doctype:
+            return {"status": "error", "message": "ref_doctype not set in SVAFixture."}
+
+        # Load records from JSON file
+        with open(file_path, "r", encoding="utf-8") as f:
+            records = json.load(f)
+
+        # Import records into the target_doctype
+        import_records_to_doctype(target_doctype, records)
+
+        return {"status": "success", "message": f"Fixtures imported successfully into {target_doctype}"}
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Fixture Import Error")
+        return {"status": "error", "message": str(e)}
+
+
+@frappe.whitelist()
+def import_fixtures_runtime(file_url):
+    """
+    Import a runtime-exported JSON file.
+    The JSON must be like:
+    {
+        "District": [...],
+        "State": [...],
+        ...
+    }
+    Each key is a DocType, value is a list of records.
+    """
+    try:
+        # Get File doc
+        file_docs = frappe.get_all("File", filters={"file_url": file_url}, fields=["name"])
+        if not file_docs:
+            return {"status": "error", "message": "File not found."}
+
+        file_doc = frappe.get_doc("File", file_docs[0].name)
+        file_path = file_doc.get_full_path()
+
+        # Check if file exists on disk
+        if not os.path.exists(file_path):
+            return {"status": "error", "message": "File not found on disk."}
+
+        # Read JSON data (multiple doctypes)
+        with open(file_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        # Loop through each DocType in JSON and import
+        for doctype, records in data.items():
+            if not records:
+                continue  # Skip empty arrays
+            import_records_to_doctype(doctype, records)
+
+        return {"status": "success", "message": "All fixtures imported successfully!"}
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Fixture Import Error")
+        return {"status": "error", "message": str(e)}

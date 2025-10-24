@@ -21,7 +21,7 @@
   "login_box_position",
   "page_heading_text_color",
   "login_box_background_color",
-  "disable_usr_pass_login",
+  "enable_usr_pass_login",
   "navbar_tab",
   "navbar_section",
   "navbar_color",
@@ -80,7 +80,11 @@
   "hide_print_icon",
   "hide_fields_comment",
   "hide_side_bar",
-  "hide_form_comment"
+  "hide_form_comment",
+  "import_file",
+  "cloud_assets",
+  "change_logs_tab",
+  "change_logs"
  ],
  "fields": [
   {
@@ -449,12 +453,6 @@
    "label": "Logo Height (px)"
   },
   {
-   "default": "1",
-   "fieldname": "disable_usr_pass_login",
-   "fieldtype": "Check",
-   "label": " Disable Username/Password Login"
-  },
-  {
    "fieldname": "features_tab",
    "fieldtype": "Tab Break",
    "label": "Features"
@@ -470,13 +468,38 @@
    "fieldname": "hide_form_comment",
    "fieldtype": "Check",
    "label": "Hide Form Comment"
+  },
+  {
+   "fieldname": "change_logs_tab",
+   "fieldtype": "Tab Break",
+   "label": "Change logs"
+  },
+  {
+   "fieldname": "change_logs",
+   "fieldtype": "HTML"
+  },
+  {
+   "fieldname": "import_file",
+   "fieldtype": "Attach",
+   "label": "Last Imported File"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_usr_pass_login",
+   "fieldtype": "Check",
+   "label": "Enable Username/Password Login"
+  },
+  {
+   "fieldname": "cloud_assets",
+   "fieldtype": "Button",
+   "label": "Cloud Assets"
   }
  ],
  "hide_toolbar": 1,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-07-01 15:28:37.557258",
+ "modified": "2025-10-06 12:32:17.308993",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "My Theme",
@@ -502,7 +525,9 @@
    "share": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "creation",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }
