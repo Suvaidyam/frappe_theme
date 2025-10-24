@@ -1002,7 +1002,8 @@ class SvaDataTable {
 			this.crud.create &&
 			(this.frm ? this.frm?.doc?.docstatus == 0 : true) &&
 			this.conf_perms.length &&
-			this.conf_perms.includes("create")
+			this.conf_perms.includes("create") &&
+			!frappe.utils.custom_eval(this.connection?.disable_add_depends_on, row)
 		) {
 			if (this.permissions?.length && this.permissions.includes("create")) {
 				if (
