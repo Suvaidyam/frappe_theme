@@ -997,13 +997,15 @@ class SvaDataTable {
 		) {
 			wrapper.querySelector("div#footer-element").appendChild(buttonContainer);
 		}
-
+		let is_addable = this.connection?.disable_add_depends_on
+				? !frappe.utils.custom_eval(this.connection?.disable_add_depends_on, row)
+				: true;
 		if (
 			this.crud.create &&
 			(this.frm ? this.frm?.doc?.docstatus == 0 : true) &&
 			this.conf_perms.length &&
 			this.conf_perms.includes("create") &&
-			!frappe.utils.custom_eval(this.connection?.disable_add_depends_on, row)
+			is_addable
 		) {
 			if (this.permissions?.length && this.permissions.includes("create")) {
 				if (
