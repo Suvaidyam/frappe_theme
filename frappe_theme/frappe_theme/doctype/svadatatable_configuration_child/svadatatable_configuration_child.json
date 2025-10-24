@@ -43,6 +43,7 @@
   "list_filters",
   "setup_list_filters",
   "section_break_nzmt",
+  "disable_add_depends_on",
   "disable_edit_depends_on",
   "column_break_zjxl",
   "disable_delete_depends_on",
@@ -378,13 +379,21 @@
    "fieldtype": "Data",
    "label": "Endpoint",
    "mandatory_depends_on": "eval:doc.type == \"API\""
+  },
+  {
+   "depends_on": "eval:![\"Report\"].includes(doc.connection_type)",
+   "fieldname": "disable_add_depends_on",
+   "fieldtype": "Code",
+   "label": "Disable Add Depends On (JS)",
+   "max_height": "3rem",
+   "options": "JS"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-09-19 12:40:52.167853",
+ "modified": "2025-10-24 10:56:14.232508",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "SVADatatable Configuration Child",
