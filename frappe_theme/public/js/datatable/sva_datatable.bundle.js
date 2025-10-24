@@ -114,8 +114,8 @@ class SvaDataTable {
 		await this.setupWrapper(this.wrapper);
 		let reLoad = this.wrapper.children.length > 1;
 		this.showSkeletonLoader(reLoad);
-		if (this.frm?.["dt_events"]?.[this.doctype]?.["before_load"]) {
-			let change = this.frm["dt_events"][this.doctype]["before_load"];
+		if (this.frm?.["dt_events"]?.[this.doctype ?? this.link_report]?.["before_load"]) {
+			let change = this.frm["dt_events"][this.doctype ?? this.link_report]["before_load"];
 			if (this.isAsync(change)) {
 				await change(this);
 			} else {
@@ -832,16 +832,16 @@ class SvaDataTable {
 
 		return header_element;
 	}
-	add_custom_button(label, click, style="secondary") {
+	add_custom_button(label, click, style = "secondary") {
 		let button = document.createElement("button");
 		button.classList.add("btn", `btn-${style}`, "btn-sm");
 		button.innerHTML = label;
 		button.onclick = click.bind(this);
 		let wrapper = this.header_element.querySelector("div#custom-button-section");
-		let existingButton = Array.from(wrapper.children).find(btn => 
+		let existingButton = Array.from(wrapper.children).find(btn =>
 			btn.tagName === 'BUTTON' && btn.textContent === button.textContent
 		);
-		if(existingButton){
+		if (existingButton) {
 			return;
 		}
 		wrapper.appendChild(button);
@@ -997,12 +997,15 @@ class SvaDataTable {
 		) {
 			wrapper.querySelector("div#footer-element").appendChild(buttonContainer);
 		}
-
+		let is_addable = this.connection?.disable_add_depends_on
+				? !frappe.utils.custom_eval(this.connection?.disable_add_depends_on, row)
+				: true;
 		if (
 			this.crud.create &&
 			(this.frm ? this.frm?.doc?.docstatus == 0 : true) &&
 			this.conf_perms.length &&
-			this.conf_perms.includes("create")
+			this.conf_perms.includes("create") &&
+			is_addable
 		) {
 			if (this.permissions?.length && this.permissions.includes("create")) {
 				if (
@@ -2086,7 +2089,7 @@ class SvaDataTable {
 						)
 					) {
 						appendDropdownOption(
-							`${frappe.utils.icon("edit", "sm")} Edit`,
+							`${frappe.utils.icon("edit", "sm")} ${__("Edit")}`,
 							async () => {
 								if (this.connection?.redirect_to_main_form) {
 									let route = frappe.get_route();
@@ -2100,7 +2103,7 @@ class SvaDataTable {
 						);
 					}
 				} else {
-					appendDropdownOption(`${frappe.utils.icon("edit", "sm")} Edit`, async () => {
+					appendDropdownOption(`${frappe.utils.icon("edit", "sm")} ${__("Edit")}`, async () => {
 						if (this.connection?.redirect_to_main_form) {
 							let route = frappe.get_route();
 							frappe.set_route("Form", this.doctype, primaryKey).then(() => {
@@ -2132,7 +2135,7 @@ class SvaDataTable {
 						)
 					) {
 						appendDropdownOption(
-							`${frappe.utils.icon("delete", "sm")} Delete`,
+							`${frappe.utils.icon("delete", "sm")} ${__("Delete")}`,
 							async () => {
 								await this.deleteRecord(this.doctype, primaryKey);
 							}
@@ -2140,7 +2143,7 @@ class SvaDataTable {
 					}
 				} else {
 					appendDropdownOption(
-						`${frappe.utils.icon("delete", "sm")} Delete`,
+						`${frappe.utils.icon("delete", "sm")} ${__("Delete")}`,
 						async () => {
 							await this.deleteRecord(this.doctype, primaryKey);
 						}
@@ -2150,7 +2153,7 @@ class SvaDataTable {
 		}
 		// ========================= Print Button ======================
 		if (this.permissions.includes("print")) {
-			appendDropdownOption(`${frappe.utils.icon("printer", "sm")} Print`, () => {
+			appendDropdownOption(`${frappe.utils.icon("printer", "sm")} ${__("Print")}`, () => {
 				frappe.utils.print(
 					this.doctype,
 					primaryKey,
@@ -2165,8 +2168,7 @@ class SvaDataTable {
 		if (this.childLinks?.length) {
 			this.childLinks.forEach(async (link) => {
 				appendDropdownOption(
-					`${frappe.utils.icon("external-link", "sm")} ${link?.title || link.link_doctype
-					}`,
+					`${frappe.utils.icon("external-link", "sm")} ${__(link?.title || link.link_doctype)}`,
 					async () => {
 						await this.childTableDialog(link.link_doctype, primaryKey, row, link);
 					}
