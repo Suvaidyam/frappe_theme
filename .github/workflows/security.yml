@@ -1,36 +1,11 @@
-name: CI – Security Scan (Semgrep)
+name: Deprecated – Security (use CI – Pipeline)
 
 on:
-  pull_request:
-    types: [opened, reopened, synchronize, ready_for_review]
-  push:
-    branches: [ main, development ,"dev_abhirock" ]
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  workflow_dispatch:
 
 jobs:
-  semgrep:
-    name: Semgrep security scan
+  notice:
     runs-on: ubuntu-latest
-    continue-on-error: true
-    container:
-      image: returntocorp/semgrep
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Run Semgrep
-        run: |
-          echo "=================================================="
-          echo "Running Semgrep security scan..."
-          echo "=================================================="
-          semgrep scan --config auto --error --sarif > semgrep.sarif || true
-          echo "✓ Semgrep scan completed"
-
-      - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: semgrep.sarif
-        if: always()
+      - run: |
+          echo "This workflow is deprecated. Use .github/workflows/ci.yml instead."
