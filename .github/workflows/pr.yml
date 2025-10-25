@@ -145,6 +145,14 @@ jobs:
           bench init --frappe-branch "${{ env.FRAPPE_BRANCH }}" --skip-assets --skip-redis-config-generation --python "python${{ env.PYTHON_VERSION }}" ci-bench
           echo "✓ Bench initialized successfully"
 
+      - name: Configure esbuild target globally
+        working-directory: ci-bench
+        run: |
+          echo "Setting esbuild target to es2022 for modern JS support..."
+          # Set esbuild_target in common_site_config.json for modern JS compilation
+          bench set-config -g esbuild_target "es2022"
+          echo "✓ esbuild_target configured"
+
       - name: Add app to bench
         working-directory: ci-bench
         run: |
@@ -161,14 +169,6 @@ jobs:
           bench set-config -g redis_queue   redis://redis:6379
           bench set-config -g redis_socketio redis://redis:6379
           echo "✓ Redis configured"
-
-      - name: Configure esbuild target globally
-        working-directory: ci-bench
-        run: |
-          echo "Setting esbuild target to es2022 for modern JS support..."
-          # Set esbuild_target in common_site_config.json for modern JS compilation
-          bench set-config -g esbuild_target "es2022"
-          echo "✓ esbuild_target configured"
 
       - name: Create site
         working-directory: ci-bench
