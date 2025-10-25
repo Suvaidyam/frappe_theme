@@ -219,4 +219,4 @@ jobs:
           echo "Running test suite for $APP_NAME on site $SITE_NAME..."
           echo "=================================================="
           # Run the app's test suite via Frappe's runner
-          bench --site "$SITE_NAME" run-tests --app "$APP_NAME" --profile --verbose
+          bench --site "$SITE_NAME" run-tests --app "$APP_NAME"
