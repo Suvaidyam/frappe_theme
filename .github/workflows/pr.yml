@@ -17,7 +17,7 @@ env:
   NODE_VERSION: "22"
   APP_NAME: "frappe_theme"
   SITE_NAME: "test.localhost"
-  FRAPPE_BRANCH: "version-14" # Adjust to your target Frappe branch (e.g., version-15)
+  FRAPPE_BRANCH: "develop" # Using latest development version of Frappe
   DB_HOST: "mariadb"
   DB_ROOT_USER: "root"
   DB_ROOT_PASSWORD: "root"
