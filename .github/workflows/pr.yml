@@ -14,7 +14,7 @@ concurrency:
 
 env:
   PYTHON_VERSION: "3.11"
-  NODE_VERSION: "18"
+  NODE_VERSION: "22"
   APP_NAME: "frappe_theme"
   SITE_NAME: "test.localhost"
   FRAPPE_BRANCH: "version-14" # Adjust to your target Frappe branch (e.g., version-15)
@@ -165,6 +165,14 @@ jobs:
           APP_NAME: ${{ env.APP_NAME }}
         run: |
           bench --site "$SITE_NAME" install-app "$APP_NAME"
+
+      - name: Configure site for esbuild
+        working-directory: ci-bench
+        env:
+          SITE_NAME: ${{ env.SITE_NAME }}
+        run: |
+          # Add esbuild_target to site_config.json for modern JS compilation
+          bench --site "$SITE_NAME" set-config esbuild_target "es2022"
 
       - name: Build and validate frontend assets
         working-directory: ci-bench
