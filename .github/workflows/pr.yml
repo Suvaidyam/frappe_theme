@@ -5,7 +5,7 @@ on:
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
   push:
-    branches: [ main, development ]
+    branches: [ main, development ,"dev_abhirock" ]
 
 env:
   PYTHON_VERSION: "3.11"
