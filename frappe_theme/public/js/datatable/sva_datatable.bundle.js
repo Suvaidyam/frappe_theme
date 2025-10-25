@@ -998,7 +998,7 @@ class SvaDataTable {
 			wrapper.querySelector("div#footer-element").appendChild(buttonContainer);
 		}
 		let is_addable = this.connection?.disable_add_depends_on
-				? !frappe.utils.custom_eval(this.connection?.disable_add_depends_on, row)
+				? !frappe.utils.custom_eval(this.connection?.disable_add_depends_on, this?.frm?.doc || {})
 				: true;
 		if (
 			this.crud.create &&
