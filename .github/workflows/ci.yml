@@ -21,6 +21,17 @@ env:
   DB_ROOT_PASSWORD: "root"
 
 jobs:
+  label-check:
+    name: PR label validation
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Check PR labels
+        uses: docker://agilepathway/pull-request-label-checker:v1.6.0
+        with:
+          any_of: fix,feat,chore,refactor,test,docs,ci,perf,style,breaking,dependencies
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+
   pre-commit:
     name: pre-commit
     runs-on: ubuntu-latest
@@ -84,7 +95,7 @@ jobs:
     name: Frappe unit tests
     runs-on: ubuntu-latest
     if: always()
-    needs: [pre-commit, semgrep]
+    needs: [pre-commit, semgrep, label-check]
     services:
       mariadb:
         image: mariadb:10.6
