@@ -2,7 +2,7 @@ import json
 
 import frappe
 
-# from frappe_theme.api import get_files
+from frappe_theme.api import get_files
 
 # Constants
 EXCLUDED_FIELDTYPES = ["Column Break", "Section Break", "Tab Break", "Icon", "HTML", "Button"]
