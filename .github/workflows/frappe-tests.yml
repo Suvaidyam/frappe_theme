@@ -1,0 +1,11 @@
+name: Deprecated – Frappe Tests (use CI – Pipeline)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  notice:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "This workflow is deprecated. Use .github/workflows/ci.yml instead."
