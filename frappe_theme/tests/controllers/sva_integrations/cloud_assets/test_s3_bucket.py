@@ -11,7 +11,8 @@ class TestS3Operations(IntegrationTestCase):
 	def setUp(self):
 		super().setUp()
 		self.cloud_assets_doc = frappe.get_doc("Cloud Assets", "Cloud Assets")
-		self.s3_ops = S3Operations()
+		if self.cloud_assets_doc.enable and self.cloud_assets_doc.provider == "AWS":
+			self.s3_ops = S3Operations()
 
 	# -------------------------------
 	# Positive Test Cases
