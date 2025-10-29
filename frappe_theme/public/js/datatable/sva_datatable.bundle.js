@@ -2359,6 +2359,7 @@ class SvaDataTable {
 								method: "frappe.model.workflow.get_transitions",
 								doc: { ...row, doctype: this.doctype },
 							});
+							el.disabled = el.disabled || transitions.length === 0 || (this.connection?.disable_workflow_depends_on ? frappe.utils.custom_eval(this.connection?.disable_workflow_depends_on, row) : false);
 							// const titleText = transitions
 							// 	.map((e) => `&#x2022; ${e.action} by ${e.allowed}`)
 							// 	.join("<br>");
