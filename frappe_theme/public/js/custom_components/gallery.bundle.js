@@ -1,53 +1,52 @@
-import Loader from '../loader-element.js';
-
+import Loader from "../loader-element.js";
 
 class SVAGalleryComponent {
-    constructor(frm, wrapper) {
-        this.frm = frm;
-        this.wrapper = wrapper;
-        this.gallery_files = [];
-        this.selectedFiles = [];
-        this.view = 'Card'; // Default view
-        this.permissions = [];
-        this.initialize();
-        return this.wrapper;
-    }
-    get_permissions(doctype) {
-        return new Promise((rslv, rjct) => {
-            frappe.call({
-                method: 'frappe_theme.api.get_permissions',
-                args: { doctype: doctype },
-                callback: function (response) {
-                    rslv(response.message)
-                },
-                error: (err) => {
-                    rjct(err);
-                }
-            });
-        });
-    }
-    async initialize() {
-        try {
-            if (!this.wrapper) {
-                console.error('Wrapper element is null');
-                return;
-            }
-            // Get permissions and store them
-            this.permissions = await this.get_permissions("File");
+	constructor(frm, wrapper) {
+		this.frm = frm;
+		this.wrapper = wrapper;
+		this.gallery_files = [];
+		this.selectedFiles = [];
+		this.view = "Card"; // Default view
+		this.permissions = [];
+		this.initialize();
+		return this.wrapper;
+	}
+	get_permissions(doctype) {
+		return new Promise((rslv, rjct) => {
+			frappe.call({
+				method: "frappe_theme.api.get_permissions",
+				args: { doctype: doctype },
+				callback: function (response) {
+					rslv(response.message);
+				},
+				error: (err) => {
+					rjct(err);
+				},
+			});
+		});
+	}
+	async initialize() {
+		try {
+			if (!this.wrapper) {
+				console.error("Wrapper element is null");
+				return;
+			}
+			// Get permissions and store them
+			this.permissions = await this.get_permissions("File");
 
-            // Initialize the wrapper with basic structure regardless of permissions
-            this.wrapper.innerHTML = `
+			// Initialize the wrapper with basic structure regardless of permissions
+			this.wrapper.innerHTML = `
                 <div class="gallery-wrapper">
                     <div class="gallery-header" id="gallery-header"></div>
                     <div class="gallery-body" id="gallery-body"></div>
                 </div>
             `;
 
-            // Check if user has at least read permission
-            if (!this.permissions.includes('read')) {
-                const noPermissionDiv = document.createElement('div');
-                noPermissionDiv.id = 'noPermissionPage';
-                noPermissionDiv.style.cssText = `
+			// Check if user has at least read permission
+			if (!this.permissions.includes("read")) {
+				const noPermissionDiv = document.createElement("div");
+				noPermissionDiv.id = "noPermissionPage";
+				noPermissionDiv.style.cssText = `
                     height: 100%;
                     display: flex;
                     align-items: center;
@@ -57,26 +56,27 @@ class SVAGalleryComponent {
                     padding: 50px;
                     color: var(--gray-600);
                 `;
-                noPermissionDiv.textContent = "You do not have permission through role permission to access this resource.";
+				noPermissionDiv.textContent =
+					"You do not have permission through role permission to access this resource.";
 
-                // Clear the gallery body and append the no permission message
-                const galleryBody = this.wrapper.querySelector('#gallery-body');
-                galleryBody.innerHTML = '';
-                galleryBody.appendChild(noPermissionDiv);
-                return;
-            }
+				// Clear the gallery body and append the no permission message
+				const galleryBody = this.wrapper.querySelector("#gallery-body");
+				galleryBody.innerHTML = "";
+				galleryBody.appendChild(noPermissionDiv);
+				return;
+			}
 
-            // Continue with initialization only if read permission exists
-            this.appendGalleryStyles();
-            await this.fetchGalleryFiles();
-            this.renderHeader();
-            this.updateGallery();
-            this.attachEventListeners();
-        } catch (error) {
-            console.error('Error in initialize:', error);
-            const errorDiv = document.createElement('div');
-            errorDiv.id = 'errorPage';
-            errorDiv.style.cssText = `
+			// Continue with initialization only if read permission exists
+			this.appendGalleryStyles();
+			await this.fetchGalleryFiles();
+			this.renderHeader();
+			this.updateGallery();
+			this.attachEventListeners();
+		} catch (error) {
+			console.error("Error in initialize:", error);
+			const errorDiv = document.createElement("div");
+			errorDiv.id = "errorPage";
+			errorDiv.style.cssText = `
                 height: 100%;
                 display: flex;
                 align-items: center;
@@ -86,17 +86,17 @@ class SVAGalleryComponent {
                 padding: 50px;
                 color: var(--gray-600);
             `;
-            errorDiv.textContent = `Failed to initialize gallery: ${error.message || error}`;
+			errorDiv.textContent = `Failed to initialize gallery: ${error.message || error}`;
 
-            const galleryBody = this.wrapper.querySelector('#gallery-body');
-            galleryBody.innerHTML = '';
-            galleryBody.appendChild(errorDiv);
-        }
-    }
+			const galleryBody = this.wrapper.querySelector("#gallery-body");
+			galleryBody.innerHTML = "";
+			galleryBody.appendChild(errorDiv);
+		}
+	}
 
-    appendGalleryStyles() {
-        const style = document.createElement('style');
-        style.innerHTML = `
+	appendGalleryStyles() {
+		const style = document.createElement("style");
+		style.innerHTML = `
             .gallery-wrapper {
                 height: calc(100vh - 270px);
                 min-height: 400px;
@@ -138,11 +138,11 @@ class SVAGalleryComponent {
             }
             ${this.getCommonStyles()}
         `;
-        document.head.appendChild(style);
-    }
+		document.head.appendChild(style);
+	}
 
-    getCommonStyles() {
-        return `
+	getCommonStyles() {
+		return `
             .gallery-wrapper .gallery {
                 margin-bottom: 20px;
             }
@@ -331,99 +331,106 @@ class SVAGalleryComponent {
                 }
             }
         `;
-    }
+	}
 
-async fetchGalleryFiles() {
-    const loader = new Loader(this.wrapper.querySelector('.gallery-wrapper'), 'gallery-fetch-loader');
-    try {
-        loader.show();
-        if (!this.frm || !this.frm.doc) {
-            console.error('Form or document not initialized');
-            return;
-        }
+	async fetchGalleryFiles() {
+		const loader = new Loader(
+			this.wrapper.querySelector(".gallery-wrapper"),
+			"gallery-fetch-loader"
+		);
+		try {
+			loader.show();
+			if (!this.frm || !this.frm.doc) {
+				console.error("Form or document not initialized");
+				return;
+			}
 
-        // Call your custom API instead of frappe.db.get_list
-        const { message: files } = await frappe.call({
-            method: 'frappe_theme.api.get_files',
-            type: 'GET',
-            args: {
-                doctype: this.frm.doc.doctype,
-                docname: this.frm.doc.name
-            }
-        });
+			// Call your custom API instead of frappe.db.get_list
+			const { message: files } = await frappe.call({
+				method: "frappe_theme.api.get_files",
+				type: "GET",
+				args: {
+					doctype: this.frm.doc.doctype,
+					docname: this.frm.doc.name,
+				},
+			});
 
-        this.gallery_files = files || [];
+			this.gallery_files = files || [];
 
-        // Extract unique owners
-        const uniqueOwners = [...new Set(this.gallery_files.map(file => file.owner))];
+			// Extract unique owners
+			const uniqueOwners = [...new Set(this.gallery_files.map((file) => file.owner))];
 
-        if (uniqueOwners.length > 0) {
-            const { message: ownerNames } = await frappe.call({
-                method: 'frappe.client.get_list',
-                args: {
-                    doctype: 'User',
-                    filters: { name: ['in', uniqueOwners] },
-                    fields: ['name', 'full_name']
-                }
-            });
+			if (uniqueOwners.length > 0) {
+				const { message: ownerNames } = await frappe.call({
+					method: "frappe.client.get_list",
+					args: {
+						doctype: "User",
+						filters: { name: ["in", uniqueOwners] },
+						fields: ["name", "full_name"],
+					},
+				});
 
-            // Create a map of user names to full names
-            const ownerFullNames = {};
-            ownerNames.forEach(user => {
-                ownerFullNames[user.name] = user.full_name;
-            });
-            this.gallery_files = this.gallery_files.map(file => ({
-                ...file,
-                owner_full_name: ownerFullNames[file.owner]
-            }));
-        }
+				// Create a map of user names to full names
+				const ownerFullNames = {};
+				ownerNames.forEach((user) => {
+					ownerFullNames[user.name] = user.full_name;
+				});
+				this.gallery_files = this.gallery_files.map((file) => ({
+					...file,
+					owner_full_name: ownerFullNames[file.owner],
+				}));
+			}
 
-        this.updateGallery();
-    } catch (error) {
-        console.error('Error fetching files:', error);
-        frappe.msgprint({
-            title: __('Error'),
-            indicator: 'red',
-            message: __('Error fetching files: ') + (error.message || error)
-        });
-    } finally {
-        loader.hide();
-    }
-}
+			this.updateGallery();
+		} catch (error) {
+			console.error("Error fetching files:", error);
+			frappe.msgprint({
+				title: __("Error"),
+				indicator: "red",
+				message: __("Error fetching files: ") + (error.message || error),
+			});
+		} finally {
+			loader.hide();
+		}
+	}
 
-    render() {
-        this.wrapper.innerHTML = ''; // Clear existing content
+	render() {
+		this.wrapper.innerHTML = ""; // Clear existing content
 
-        // Create wrapper with fixed height and scrollable content
-        this.wrapper.innerHTML = `
+		// Create wrapper with fixed height and scrollable content
+		this.wrapper.innerHTML = `
             <div class="gallery-wrapper">
                 <div class="gallery-header" id="gallery-header"></div>
                 <div class="gallery-body" id="gallery-body"></div>
             </div>
         `;
 
-        this.renderHeader();
-        this.updateGallery();
-    }
+		this.renderHeader();
+		this.updateGallery();
+	}
 
-    renderHeader() {
-        const canCreate = this.permissions.includes('create');
-        const canDelete = this.permissions.includes('delete');
+	renderHeader() {
+		const canCreate = this.permissions.includes("create");
+		const canDelete = this.permissions.includes("delete");
 
-        const headerHTML = `
+		const headerHTML = `
             <div class="row" style="display: flex; justify-content: space-between; align-items: center; margin: 0;">
                 <div style="display: flex; align-items: center; gap: 16px;">
                     <span class="text-muted">Total records: ${this.gallery_files.length}</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    ${canDelete ? `
+                    ${
+						canDelete
+							? `
                         <button class="btn btn-danger btn-sm" style="display:none;" id="deleteSelectedButton">
                             <i class="fa fa-trash"></i> Delete Selected
                         </button>
-                    ` : ''}
+                    `
+							: ""
+					}
                     <div class="btn-group">
                         <button class="btn btn-default btn-sm dropdown-toggle" type="button" data-toggle="dropdown">
-                            <i class="fa ${this.view === 'Card' ? 'fa-th-large' : 'fa-list'}"></i>
+                            <i class="fa ${this.view === "Card" ? "fa-th-large" : "fa-list"}"></i>
                             <span id="viewNameButton">${this.view} View</span>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-right">
@@ -431,72 +438,76 @@ async fetchGalleryFiles() {
                             <li><a class="dropdown-item" id="listViewBtn"><i class="fa fa-list"></i> List View</a></li>
                         </ul>
                     </div>
-                    ${canCreate ? `
+                    ${
+						canCreate
+							? `
                         <button class="btn btn-primary btn-sm" id="customUploadButton">
                             <i class="fa fa-upload"></i> Upload
                         </button>
-                    ` : ''}
+                    `
+							: ""
+					}
                 </div>
             </div>
         `;
-        this.wrapper.querySelector('#gallery-header').innerHTML = headerHTML;
-    }
+		this.wrapper.querySelector("#gallery-header").innerHTML = headerHTML;
+	}
 
-    renderEmptyState() {
-        return `
+	renderEmptyState() {
+		return `
             <div class="empty-state">
                 <i class="fa fa-file-o"></i>
                 <p>No files uploaded yet</p>
             </div>
         `;
-    }
-    preview_file(frm) {
-        // return console.log(frm)
-        let file_extension = frm?.file_url?.split(".").pop();
-        let show_file = new frappe.ui.Dialog({
-            title: __('Preview File'),
-            size: 'large',
-            fields: [
-                {
-                    fieldtype: 'HTML',
-                    fieldname: 'preview_html',
-                    options: ""
-                }
-            ],
-            primary_action_label: __('Download'),
-            primary_action() {
-                let link = document.createElement('a');
-                link.href = frm.file_url;
-                link.download = frm.file_name;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            },
-            secondary_action_label: __('Close'),
-            secondary_action() {
-                show_file.hide();
-            }
-        });
-        let $preview = "";
-        // if(!frappe.utils.is_image_file(frm.file_url)){
-        //     show_file.get_primary_btn().hide();
-        // }
-        if (frappe.utils.is_image_file(frm.file_url)) {
-            $preview = $(`<div class="img_preview position-relative">
-				<img style="width: 100%; max-height:75vh;object-fit: contain;" 
+	}
+	preview_file(frm) {
+		// return console.log(frm)
+		let file_extension = frm?.file_url?.split(".").pop();
+		let show_file = new frappe.ui.Dialog({
+			title: __("Preview File"),
+			size: "large",
+			fields: [
+				{
+					fieldtype: "HTML",
+					fieldname: "preview_html",
+					options: "",
+				},
+			],
+			primary_action_label: __("Download"),
+			primary_action() {
+				let link = document.createElement("a");
+				link.href = frm.file_url;
+				link.download = frm.file_name;
+				document.body.appendChild(link);
+				link.click();
+				document.body.removeChild(link);
+			},
+			secondary_action_label: __("Close"),
+			secondary_action() {
+				show_file.hide();
+			},
+		});
+		let $preview = "";
+		// if(!frappe.utils.is_image_file(frm.file_url)){
+		//     show_file.get_primary_btn().hide();
+		// }
+		if (frappe.utils.is_image_file(frm.file_url)) {
+			$preview = $(`<div class="img_preview position-relative">
+				<img style="width: 100%; max-height:75vh;object-fit: contain;"
 					class="img-responsive"
 					src="${frappe.utils.escape_html(frm.file_url)}"
 				/>
 			</div>`);
-        } else if (frappe.utils.is_video_file(frm.file_url)) {
-            $preview = $(`<div class="img_preview d-flex justify-content-center">
+		} else if (frappe.utils.is_video_file(frm.file_url)) {
+			$preview = $(`<div class="img_preview d-flex justify-content-center">
 				<video style="width:100%" height="320" controls>
 					<source src="${frappe.utils.escape_html(frm.file_url)}">
 					${__("Your browser does not support the video element.")}
 				</video>
 			</div>`);
-        } else if (file_extension === "pdf") {
-            $preview = $(`<div class="img_preview">
+		} else if (file_extension === "pdf") {
+			$preview = $(`<div class="img_preview">
 				<object style="background:#323639;" width="100%">
 					<embed
 						style="background:#323639;"
@@ -506,155 +517,183 @@ async fetchGalleryFiles() {
 					>
 				</object>
 			</div>`);
-        } else if (file_extension === "mp3") {
-            $preview = $(`<div class="img_preview d-flex justify-content-center">
+		} else if (file_extension === "mp3") {
+			$preview = $(`<div class="img_preview d-flex justify-content-center">
 				<audio width="480" height="60" controls>
 					<source src="${frappe.utils.escape_html(frm.file_url)}" type="audio/mpeg">
 					${__("Your browser does not support the audio element.")}
 				</audio >
 			</div>`);
-        } else {
-            $preview = $(`<div class="img_preview d-flex justify-content-center">
+		} else {
+			$preview = $(`<div class="img_preview d-flex justify-content-center">
 				<p class="text-muted">Preview not available for this file type</p>
 			</div>`);
-        }
+		}
 
-        if ($preview) {
-            show_file.show();
-            show_file.get_field("preview_html").$wrapper.html($preview);
-        }
-    }
-    convertTofileSize(size) {
-        if (size < 1024) {
-            return size + ' Bytes';
-        } else if (size < 1048576) {
-            return (size / 1024).toFixed(2) + ' KB';
-        } else if (size < 1073741824) {
-            return (size / 1048576).toFixed(2) + ' MB';
-        }
-    }
-    renderCardView() {
-        if (!this.gallery_files.length) {
-            return this.renderEmptyState();
-        }
+		if ($preview) {
+			show_file.show();
+			show_file.get_field("preview_html").$wrapper.html($preview);
+		}
+	}
+	convertTofileSize(size) {
+		if (size < 1024) {
+			return size + " Bytes";
+		} else if (size < 1048576) {
+			return (size / 1024).toFixed(2) + " KB";
+		} else if (size < 1073741824) {
+			return (size / 1048576).toFixed(2) + " MB";
+		}
+	}
+	renderCardView() {
+		if (!this.gallery_files.length) {
+			return this.renderEmptyState();
+		}
 
-        const canWrite = this.permissions.includes('write');
-        const canDelete = this.permissions.includes('delete');
+		const canWrite = this.permissions.includes("write");
+		const canDelete = this.permissions.includes("delete");
 
-        return `
+		return `
             <div class="row">
-                ${this.gallery_files.map(file => {
-            let extension = file?.file_url?.split('.').pop()?.toLowerCase();
-            return `
+                ${this.gallery_files
+					.map((file) => {
+						let extension = file?.file_url?.split(".").pop()?.toLowerCase();
+						return `
                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
                             <div class="image-card">
                                 <div class="image-container">
                                     ${this.getFilePreview(file, extension)}
-                                    ${canDelete ? `
+                                    ${
+										canDelete
+											? `
                                         <div class="checkbox-container">
                                             <input type="checkbox" data-id="${file.name}" class="toggleCheckbox"/>
                                         </div>
-                                    ` : ''}
+                                    `
+											: ""
+									}
                                     <div class="image-cover">
-                                        ${(canWrite || canDelete) ? `
+                                        ${
+											canWrite || canDelete
+												? `
                                             <div class="cover-header">
                                                 <div class="dropdown">
                                                     <button class="action-button" data-toggle="dropdown">
                                                         <i class="fa fa-ellipsis-v"></i>
                                                     </button>
                                                     <div class="dropdown-menu dropdown-menu-right">
-                                                        ${canWrite ? `
+                                                        ${
+															canWrite
+																? `
                                                             <a class="dropdown-item edit-btn" data-id="${file.name}">
                                                                 <i class="fa fa-edit"></i> Edit
                                                             </a>
-                                                        ` : ''}
-                                                        ${canDelete ? `
+                                                        `
+																: ""
+														}
+                                                        ${
+															canDelete
+																? `
                                                             <a class="dropdown-item delete-btn" data-id="${file.name}">
                                                                 <i class="fa fa-trash"></i> Delete
                                                             </a>
-                                                        ` : ''}
+                                                        `
+																: ""
+														}
                                                     </div>
                                                 </div>
                                             </div>
-                                        ` : ''}
+                                        `
+												: ""
+										}
                                         <div class="cover-body">
-                                            <p class="view-button preview-btn" style="cursor: pointer;" data-file='${JSON.stringify(file)}'>
+                                            <p class="view-button preview-btn" style="cursor: pointer;" data-file='${JSON.stringify(
+												file
+											)}'>
                                                 <i class="fa fa-eye"></i>
                                             </p>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="file-name" style="white-space: nowrap;overflow: hidden;text-overflow: ellipsis;" title="${file.file_name}">${file.file_name}</div>
+                                <div class="file-name" style="white-space: nowrap;overflow: hidden;text-overflow: ellipsis;" title="${
+									file.file_name
+								}">${file.file_name}</div>
                                 <div class="d-flex justify-content-between">
-                                    <div class="file-date">${frappe.datetime.str_to_user(file.creation)?.split(' ')[0]}</div>
+                                    <div class="file-date">${
+										frappe.datetime.str_to_user(file.creation)?.split(" ")[0]
+									}</div>
                                     <div class="file-date">
                                         ${this.convertTofileSize(file.file_size)}
                                     </div>
                                 </div>
                                 <div class="d-flex justify-content-between">
                                     <div class="file-date" style="white-space: nowrap;overflow: hidden;text-overflow: ellipsis;"
-                                        title="by ${file.owner_full_name} ${file.owner != 'Administrator' ? `(${file.owner})` : ''}">
-                                        by ${file.owner_full_name} ${file.owner != 'Administrator' ? `(${file.owner})` : ''}
+                                        title="by ${file.owner_full_name} ${
+							file.owner != "Administrator" ? `(${file.owner})` : ""
+						}">
+                                        by ${file.owner_full_name} ${
+							file.owner != "Administrator" ? `(${file.owner})` : ""
+						}
                                     </div>
                                 </div>
                             </div>
                         </div>
                     `;
-        }).join('')}
+					})
+					.join("")}
             </div>
         `;
-    }
+	}
 
-    getFileIcon(extension) {
-        const iconMap = {
-            // Documents
-            'pdf': 'fa fa-file-pdf-o',
-            'doc': 'fa fa-file-word-o',
-            'docx': 'fa fa-file-word-o',
-            'txt': 'fa fa-file-text-o',
-            // Spreadsheets
-            'xls': 'fa fa-file-excel-o',
-            'xlsx': 'fa fa-file-excel-o',
-            'csv': 'fa fa-file-excel-o',
-            // Presentations
-            'ppt': 'fa fa-file-powerpoint-o',
-            'pptx': 'fa fa-file-powerpoint-o',
-            // Images
-            'jpg': 'fa fa-file-image-o',
-            'jpeg': 'fa fa-file-image-o',
-            'png': 'fa fa-file-image-o',
-            'gif': 'fa fa-file-image-o',
-            'bmp': 'fa fa-file-image-o',
-            // Video
-            'mp4': 'fa fa-file-video-o',
-            'avi': 'fa fa-file-video-o',
-            'mov': 'fa fa-file-video-o',
-            'wmv': 'fa fa-file-video-o',
-            // Audio
-            'mp3': 'fa fa-file-audio-o',
-            'wav': 'fa fa-file-audio-o',
-            // Archives
-            'zip': 'fa fa-file-archive-o',
-            'rar': 'fa fa-file-archive-o',
-            '7z': 'fa fa-file-archive-o',
-            // Code
-            'js': 'fa fa-file-code-o',
-            'css': 'fa fa-file-code-o',
-            'html': 'fa fa-file-code-o',
-            'py': 'fa fa-file-code-o',
-        };
+	getFileIcon(extension) {
+		const iconMap = {
+			// Documents
+			pdf: "fa fa-file-pdf-o",
+			doc: "fa fa-file-word-o",
+			docx: "fa fa-file-word-o",
+			txt: "fa fa-file-text-o",
+			// Spreadsheets
+			xls: "fa fa-file-excel-o",
+			xlsx: "fa fa-file-excel-o",
+			csv: "fa fa-file-excel-o",
+			// Presentations
+			ppt: "fa fa-file-powerpoint-o",
+			pptx: "fa fa-file-powerpoint-o",
+			// Images
+			jpg: "fa fa-file-image-o",
+			jpeg: "fa fa-file-image-o",
+			png: "fa fa-file-image-o",
+			gif: "fa fa-file-image-o",
+			bmp: "fa fa-file-image-o",
+			// Video
+			mp4: "fa fa-file-video-o",
+			avi: "fa fa-file-video-o",
+			mov: "fa fa-file-video-o",
+			wmv: "fa fa-file-video-o",
+			// Audio
+			mp3: "fa fa-file-audio-o",
+			wav: "fa fa-file-audio-o",
+			// Archives
+			zip: "fa fa-file-archive-o",
+			rar: "fa fa-file-archive-o",
+			"7z": "fa fa-file-archive-o",
+			// Code
+			js: "fa fa-file-code-o",
+			css: "fa fa-file-code-o",
+			html: "fa fa-file-code-o",
+			py: "fa fa-file-code-o",
+		};
 
-        return iconMap[extension?.toLowerCase()] || 'fa fa-file-o';
-    }
+		return iconMap[extension?.toLowerCase()] || "fa fa-file-o";
+	}
 
-    getFilePreview(file, extension) {
-        const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp'];
+	getFilePreview(file, extension) {
+		const imageExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "svg", "webp"];
 
-        if (imageExtensions.includes(extension)) {
-            return `<img src="${file.file_url}" class="card-img-top" alt="${file.file_name}">`;
-        } else {
-            const iconClass = this.getFileIcon(extension);
-            return `
+		if (imageExtensions.includes(extension)) {
+			return `<img src="${file.file_url}" class="card-img-top" alt="${file.file_name}">`;
+		} else {
+			const iconClass = this.getFileIcon(extension);
+			return `
                 <div class="card-img-top d-flex align-items-center justify-content-center" style="height: 200px; background-color: #f8f9fa;">
                     <div class="file-icon text-center">
                         <i class="${iconClass}" style="font-size: 48px; color: #6c757d;"></i>
@@ -662,292 +701,337 @@ async fetchGalleryFiles() {
                         </div>
                         </div>
                         `;
-        }
-    }
+		}
+	}
 
-    async renderForm(mode, fileId = null) {
-        const self = this;
-        let fields = [
-            {
-                label: 'File',
-                fieldname: 'file',
-                fieldtype: mode === 'create' ? 'Attach' : 'Data',
-                reqd: mode === 'create' ? 1 : 0,
-                read_only: mode === 'edit' ? 1 : 0,
-                options: {
-                    allow_multiple: mode === 'create' ? true : false,
-                    doctype: this.frm?.doctype,
-                    docname: this.frm?.docname,
-                    on_success: function (file_doc) {
-                        if (file_doc) {
-                            fileDialog.hide();
-                            self.gallery_files.unshift(file_doc);
-                            self.render();
-                            self.updateGallery();
-                        }
-                    }
-                }
-            },
-            {
-                label: 'File Name',
-                fieldname: 'file_name',
-                fieldtype: 'Data',
-                reqd: mode === 'create' ? 0 : 1,
-                hidden: mode === 'create' ? 1 : 0,
-                description: 'Enter a name for your file'
-            }
-        ];
+	async renderForm(mode, fileId = null) {
+		const self = this;
+		let fields = [
+			{
+				label: "File",
+				fieldname: "file",
+				fieldtype: mode === "create" ? "Attach" : "Data",
+				reqd: mode === "create" ? 1 : 0,
+				read_only: mode === "edit" ? 1 : 0,
+				options: {
+					allow_multiple: mode === "create" ? true : false,
+					doctype: this.frm?.doctype,
+					docname: this.frm?.docname,
+					on_success: function (file_doc) {
+						if (file_doc) {
+							fileDialog.hide();
+							self.gallery_files.unshift(file_doc);
+							self.render();
+							self.updateGallery();
+						}
+					},
+				},
+			},
+			{
+				label: "File Name",
+				fieldname: "file_name",
+				fieldtype: "Data",
+				reqd: mode === "create" ? 0 : 1,
+				hidden: mode === "create" ? 1 : 0,
+				description: "Enter a name for your file",
+			},
+		];
 
-        if (mode === 'edit' && fileId) {
-            try {
-                let doc = await frappe.db.get_doc('File', fileId);
-                fields = fields.map(f => {
-                    if (f.fieldname === 'file' && doc.file_url) {
-                        f.default = doc.file_url;
-                        return f;
-                    }
-                    if (doc[f.fieldname]) {
-                        f.default = doc[f.fieldname];
-                    }
-                    return f;
-                });
-            } catch (error) {
-                console.error('Error fetching file:', error);
-                frappe.msgprint(__('Error fetching file details. Please try again.'));
-                return;
-            }
-        }
-        const fileDialog = new frappe.ui.Dialog({
-            title: mode === "create" ? __("Upload Files") : __("Edit File"),
-            fields: fields,
-            primary_action_label: mode === "create" ? __("Upload") : __("Save"),
-            async primary_action(values) {
-                try {
-                    if (!values.file) {
-                        frappe.msgprint(__('Please select a file to upload'));
-                        return;
-                    }
+		if (mode === "edit" && fileId) {
+			try {
+				let doc = await frappe.db.get_doc("File", fileId);
+				fields = fields.map((f) => {
+					if (f.fieldname === "file" && doc.file_url) {
+						f.default = doc.file_url;
+						return f;
+					}
+					if (doc[f.fieldname]) {
+						f.default = doc[f.fieldname];
+					}
+					return f;
+				});
+			} catch (error) {
+				console.error("Error fetching file:", error);
+				frappe.msgprint(__("Error fetching file details. Please try again."));
+				return;
+			}
+		}
+		const fileDialog = new frappe.ui.Dialog({
+			title: mode === "create" ? __("Upload Files") : __("Edit File"),
+			fields: fields,
+			primary_action_label: mode === "create" ? __("Upload") : __("Save"),
+			async primary_action(values) {
+				try {
+					if (!values.file) {
+						frappe.msgprint(__("Please select a file to upload"));
+						return;
+					}
 
-                    if (!values.file_name) {
-                        values.file_name = values.file.split('/').pop().split('?')[0];
-                    }
-                    if (mode === 'edit' && fileId) {
-                        values['file_url'] = values.file
-                        delete values.file
-                        let updated_file = await frappe.db.set_value('File', fileId, values);
-                        if (updated_file?.message) {
-                            self.gallery_files = self.gallery_files.map(file =>
-                                file.name === fileId ? updated_file.message : file
-                            );
-                            await self.fetchGalleryFiles();
-                            frappe.show_alert({
-                                message: __('File updated successfully'),
-                                indicator: 'green'
-                            });
-                        }
-                    }
+					if (!values.file_name) {
+						values.file_name = values.file.split("/").pop().split("?")[0];
+					}
+					if (mode === "edit" && fileId) {
+						values["file_url"] = values.file;
+						delete values.file;
+						let updated_file = await frappe.db.set_value("File", fileId, values);
+						if (updated_file?.message) {
+							self.gallery_files = self.gallery_files.map((file) =>
+								file.name === fileId ? updated_file.message : file
+							);
+							await self.fetchGalleryFiles();
+							frappe.show_alert({
+								message: __("File updated successfully"),
+								indicator: "green",
+							});
+						}
+					}
 
-                    self.updateGallery();
-                    this.hide();
-                } catch (error) {
-                    console.error('Error handling file:', error);
-                    frappe.msgprint(`Error ${mode === 'create' ? 'uploading' : 'updating'} file: ${error.message || error}`);
-                }
-            }
-        });
+					self.updateGallery();
+					this.hide();
+				} catch (error) {
+					console.error("Error handling file:", error);
+					frappe.msgprint(
+						`Error ${mode === "create" ? "uploading" : "updating"} file: ${
+							error.message || error
+						}`
+					);
+				}
+			},
+		});
 
-        fileDialog.show();
-        this.dialog = fileDialog;
-    }
+		fileDialog.show();
+		this.dialog = fileDialog;
+	}
 
-    attachEventListeners() {
-        const self = this;
+	attachEventListeners() {
+		const self = this;
 
-        if (this.permissions.includes('create')) {
-            $('#customUploadButton').off('click').on('click', async () => {
-                await self.renderForm('create');
-            });
-        }
+		if (this.permissions.includes("create")) {
+			$("#customUploadButton")
+				.off("click")
+				.on("click", async () => {
+					await self.renderForm("create");
+				});
+		}
 
-        if (this.permissions.includes('delete')) {
-            $('#deleteSelectedButton').off('click').on('click', async () => {
-                if (self.selectedFiles.length === 0) {
-                    frappe.msgprint(__('Please select files to delete'));
-                    return;
-                }
+		if (this.permissions.includes("delete")) {
+			$("#deleteSelectedButton")
+				.off("click")
+				.on("click", async () => {
+					if (self.selectedFiles.length === 0) {
+						frappe.msgprint(__("Please select files to delete"));
+						return;
+					}
 
-                frappe.confirm('Are you sure you want to delete the selected files?', async () => {
-                    try {
-                        for (const fileId of self.selectedFiles) {
-                            await frappe.db.delete_doc('File', fileId);
-                        }
-                        self.gallery_files = self.gallery_files.filter(file => !self.selectedFiles.includes(file.name));
-                        self.selectedFiles = [];
-                        self.render();
-                        self.updateSelectedFilesUI();
-                        frappe.show_alert({
-                            message: __('Files deleted successfully'),
-                            indicator: 'green'
-                        });
-                    } catch (error) {
-                        console.error("Error deleting files:", error);
-                        frappe.msgprint(__('Error deleting files. Please try again.'));
-                    } finally {
-                        loader.hide();
-                    }
-                });
-            });
-        }
+					frappe.confirm(
+						"Are you sure you want to delete the selected files?",
+						async () => {
+							try {
+								for (const fileId of self.selectedFiles) {
+									await frappe.db.delete_doc("File", fileId);
+								}
+								self.gallery_files = self.gallery_files.filter(
+									(file) => !self.selectedFiles.includes(file.name)
+								);
+								self.selectedFiles = [];
+								self.render();
+								self.updateSelectedFilesUI();
+								frappe.show_alert({
+									message: __("Files deleted successfully"),
+									indicator: "green",
+								});
+							} catch (error) {
+								console.error("Error deleting files:", error);
+								frappe.msgprint(__("Error deleting files. Please try again."));
+							} finally {
+								loader.hide();
+							}
+						}
+					);
+				});
+		}
 
-        // View switching remains accessible to all users with read permission
-        $('#cardViewBtn').off('click').on('click', () => {
-            self.view = 'Card';
-            self.selectedFiles = [];
-            $('#viewNameButton').text('Card View');
-            self.updateSelectedFilesUI();
-            self.updateGallery();
-        });
+		// View switching remains accessible to all users with read permission
+		$("#cardViewBtn")
+			.off("click")
+			.on("click", () => {
+				self.view = "Card";
+				self.selectedFiles = [];
+				$("#viewNameButton").text("Card View");
+				self.updateSelectedFilesUI();
+				self.updateGallery();
+			});
 
-        $('#listViewBtn').off('click').on('click', () => {
-            self.view = 'List';
-            self.selectedFiles = [];
-            $('#viewNameButton').text('List View');
-            self.updateSelectedFilesUI();
-            self.updateGallery();
-        });
+		$("#listViewBtn")
+			.off("click")
+			.on("click", () => {
+				self.view = "List";
+				self.selectedFiles = [];
+				$("#viewNameButton").text("List View");
+				self.updateSelectedFilesUI();
+				self.updateGallery();
+			});
 
-        this.attachGalleryItemEventListeners();
-    }
+		this.attachGalleryItemEventListeners();
+	}
 
-    attachGalleryItemEventListeners() {
-        const self = this;
+	attachGalleryItemEventListeners() {
+		const self = this;
 
-        $('.delete-btn').off('click').on('click', async function () {  // Remove previous handlers
-            const fileId = $(this).data('id');
-            if (fileId) {
-                try {
-                    frappe.confirm('Are you sure you want to delete this file?', async () => {
-                        await frappe.db.delete_doc('File', fileId);
-                        self.gallery_files = self.gallery_files.filter(file => file.name !== fileId);
-                        self.render();
-                    });
-                } catch (error) {
-                    console.error(error);
-                }
-            }
-        });
+		$(".delete-btn")
+			.off("click")
+			.on("click", async function () {
+				// Remove previous handlers
+				const fileId = $(this).data("id");
+				if (fileId) {
+					try {
+						frappe.confirm("Are you sure you want to delete this file?", async () => {
+							await frappe.db.delete_doc("File", fileId);
+							self.gallery_files = self.gallery_files.filter(
+								(file) => file.name !== fileId
+							);
+							self.render();
+						});
+					} catch (error) {
+						console.error(error);
+					}
+				}
+			});
 
-        $('.preview-btn').off('click').on('click', function () {
-            const fileData = $(this).data('file');
-            if (fileData) {
-                self.preview_file(fileData);
-            }
-        });
+		$(".preview-btn")
+			.off("click")
+			.on("click", function () {
+				const fileData = $(this).data("file");
+				if (fileData) {
+					self.preview_file(fileData);
+				}
+			});
 
-        $('.edit-btn').off('click').on('click', async function () { // Remove previous handlers
-            const fileId = $(this).data('id');
-            await self.renderForm('edit', fileId); // Use self here
-        });
+		$(".edit-btn")
+			.off("click")
+			.on("click", async function () {
+				// Remove previous handlers
+				const fileId = $(this).data("id");
+				await self.renderForm("edit", fileId); // Use self here
+			});
 
-        $('.toggleCheckbox').off('change').on('change', function () { // Remove previous handlers
-            const fileId = $(this).data('id');
-            const checkboxContainer = $(this).closest('.checkbox-container');
+		$(".toggleCheckbox")
+			.off("change")
+			.on("change", function () {
+				// Remove previous handlers
+				const fileId = $(this).data("id");
+				const checkboxContainer = $(this).closest(".checkbox-container");
 
-            if (this.checked) {
-                self.selectedFiles.push(fileId);
-                checkboxContainer.addClass('selected');
-            } else {
-                self.selectedFiles = self.selectedFiles.filter((fid) => fid != fileId);
-                checkboxContainer.removeClass('selected');
-            }
-            self.updateSelectedFilesUI();
-        });
+				if (this.checked) {
+					self.selectedFiles.push(fileId);
+					checkboxContainer.addClass("selected");
+				} else {
+					self.selectedFiles = self.selectedFiles.filter((fid) => fid != fileId);
+					checkboxContainer.removeClass("selected");
+				}
+				self.updateSelectedFilesUI();
+			});
 
-        $('#selectAllCheckBox').off('change').on('change', function () {
-            const isChecked = this.checked;
-            self.selectedFiles = isChecked ? self.gallery_files.map(file => file.name) : [];
-            $('.toggleCheckbox').prop('checked', isChecked);
-            if (isChecked) {
-                $('.checkbox-container').addClass('selected');
-            } else {
-                $('.checkbox-container').removeClass('selected');
-            }
-            self.updateSelectedFilesUI();
-        });
-    }
+		$("#selectAllCheckBox")
+			.off("change")
+			.on("change", function () {
+				const isChecked = this.checked;
+				self.selectedFiles = isChecked ? self.gallery_files.map((file) => file.name) : [];
+				$(".toggleCheckbox").prop("checked", isChecked);
+				if (isChecked) {
+					$(".checkbox-container").addClass("selected");
+				} else {
+					$(".checkbox-container").removeClass("selected");
+				}
+				self.updateSelectedFilesUI();
+			});
+	}
 
-    updateSelectedFilesUI() {
-        const deleteSelectedButton = document.getElementById('deleteSelectedButton');
+	updateSelectedFilesUI() {
+		const deleteSelectedButton = document.getElementById("deleteSelectedButton");
 
-        // Only update delete button if it exists (user has delete permission)
-        if (deleteSelectedButton) {
-            if (this.selectedFiles.length > 0) {
-                deleteSelectedButton.style.display = 'block';
-            } else {
-                deleteSelectedButton.style.display = 'none';
-            }
-        }
+		// Only update delete button if it exists (user has delete permission)
+		if (deleteSelectedButton) {
+			if (this.selectedFiles.length > 0) {
+				deleteSelectedButton.style.display = "block";
+			} else {
+				deleteSelectedButton.style.display = "none";
+			}
+		}
 
-        // Update select all checkbox if it exists
-        const selectAllCheckbox = document.getElementById('selectAllCheckBox');
-        if (selectAllCheckbox) {
-            if (this.selectedFiles.length === this.gallery_files.length) {
-                selectAllCheckbox.checked = true;
-            } else {
-                selectAllCheckbox.checked = false;
-            }
-        }
-    }
+		// Update select all checkbox if it exists
+		const selectAllCheckbox = document.getElementById("selectAllCheckBox");
+		if (selectAllCheckbox) {
+			if (this.selectedFiles.length === this.gallery_files.length) {
+				selectAllCheckbox.checked = true;
+			} else {
+				selectAllCheckbox.checked = false;
+			}
+		}
+	}
 
-    updateGallery() {
-        const bodyWrapper = this.wrapper.querySelector('#gallery-body');
-        if (this.view === 'Card') {
-            bodyWrapper.innerHTML = this.renderCardView();
-        } else {
-            bodyWrapper.innerHTML = this.renderListView();
-        }
-        bodyWrapper.style.height = '75vh';
-        // bodyWrapper.style.minHeight = '500px';
-        bodyWrapper.style.overflow = 'auto';
-        this.attachGalleryItemEventListeners(); // Attach event listeners to gallery items
-        this.attachEventListeners();
-    }
+	updateGallery() {
+		const bodyWrapper = this.wrapper.querySelector("#gallery-body");
+		if (this.view === "Card") {
+			bodyWrapper.innerHTML = this.renderCardView();
+		} else {
+			bodyWrapper.innerHTML = this.renderListView();
+		}
+		bodyWrapper.style.height = "75vh";
+		// bodyWrapper.style.minHeight = '500px';
+		bodyWrapper.style.overflow = "auto";
+		this.attachGalleryItemEventListeners(); // Attach event listeners to gallery items
+		this.attachEventListeners();
+	}
 
-    renderListView() {
-        if (!this.gallery_files.length) {
-            return this.renderEmptyState();
-        }
+	renderListView() {
+		if (!this.gallery_files.length) {
+			return this.renderEmptyState();
+		}
 
-        const canWrite = this.permissions.includes('write');
-        const canDelete = this.permissions.includes('delete');
+		const canWrite = this.permissions.includes("write");
+		const canDelete = this.permissions.includes("delete");
 
-        return `
+		return `
             <div class="frappe-list">
                 <div class="frappe-list-header">
                     <div class="frappe-list-row">
-                        ${canDelete ? `
+                        ${
+							canDelete
+								? `
                             <div class="frappe-list-col frappe-list-col-checkbox">
                                 <input type="checkbox" class="list-row-checkbox" id="selectAllCheckBox">
                             </div>
-                        ` : ''}
+                        `
+								: ""
+						}
                         <div class="frappe-list-col frappe-list-col-subject">File Name</div>
                         <div class="frappe-list-col frappe-list-col-creation">Upload Date</div>
                         <div class="frappe-list-col frappe-list-col-preview">Preview</div>
-                        ${(canWrite || canDelete) ? `
+                        ${
+							canWrite || canDelete
+								? `
                             <div class="frappe-list-col frappe-list-col-actions"></div>
-                        ` : ''}
+                        `
+								: ""
+						}
                     </div>
                 </div>
                 <div class="frappe-list-body">
-                    ${this.gallery_files.map(file => {
-            let extension = file?.file_url?.split('.').pop()?.toLowerCase();
-            return `
+                    ${this.gallery_files
+						.map((file) => {
+							let extension = file?.file_url?.split(".").pop()?.toLowerCase();
+							return `
                             <div class="frappe-list-row">
-                                ${canDelete ? `
+                                ${
+									canDelete
+										? `
                                     <div class="frappe-list-col frappe-list-col-checkbox">
                                         <input type="checkbox" class="list-row-checkbox toggleCheckbox" data-id="${file.name}">
                                     </div>
-                                ` : ''}
+                                `
+										: ""
+								}
                                 <div class="frappe-list-col frappe-list-col-subject">
                                     <a href="${file.file_url}" target="_blank" class="text-muted">
                                         <i class="${this.getFileIcon(extension)} mr-2"></i>
@@ -958,11 +1042,15 @@ async fetchGalleryFiles() {
                                     ${frappe.datetime.str_to_user(file.creation)}
                                 </div>
                                 <div class="frappe-list-col frappe-list-col-preview">
-                                    <p class="preview-btn" style="cursor: pointer;" data-file='${JSON.stringify(file)}'>
+                                    <p class="preview-btn" style="cursor: pointer;" data-file='${JSON.stringify(
+										file
+									)}'>
                                         <i class="fa fa-eye"></i>
                                     </p>
                                 </div>
-                                ${(canWrite || canDelete) ? `
+                                ${
+									canWrite || canDelete
+										? `
                                     <div class="frappe-list-col frappe-list-col-actions">
                                         <div class="list-actions">
                                             <div class="dropdown">
@@ -970,28 +1058,39 @@ async fetchGalleryFiles() {
                                                     <i class="fa fa-ellipsis-v text-muted"></i>
                                                 </button>
                                                 <div class="dropdown-menu dropdown-menu-right">
-                                                    ${canWrite ? `
+                                                    ${
+														canWrite
+															? `
                                                         <a class="dropdown-item edit-btn" data-id="${file.name}">
                                                             <i class="fa fa-edit text-muted"></i> Edit
                                                         </a>
-                                                    ` : ''}
-                                                    ${canDelete ? `
+                                                    `
+															: ""
+													}
+                                                    ${
+														canDelete
+															? `
                                                         <a class="dropdown-item delete-btn" data-id="${file.name}">
                                                             <i class="fa fa-trash text-muted"></i> Delete
                                                         </a>
-                                                    ` : ''}
+                                                    `
+															: ""
+													}
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                ` : ''}
+                                `
+										: ""
+								}
                             </div>
                         `;
-        }).join('')}
+						})
+						.join("")}
                 </div>
             </div>
         `;
-    }
+	}
 }
 
 export default SVAGalleryComponent;

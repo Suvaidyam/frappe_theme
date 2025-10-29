@@ -43,11 +43,14 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 										(f) => f.fieldname == field.fieldname
 									);
 									if (field.fieldtype === "Table") {
-										let fields = await frappe.xcall('frappe_theme.dt_api.get_meta_fields', {
-											doctype: field.options,
-											_type: "Direct",
-										});
-										field_obj['fields'] = fields;
+										let fields = await frappe.xcall(
+											"frappe_theme.dt_api.get_meta_fields",
+											{
+												doctype: field.options,
+												_type: "Direct",
+											}
+										);
+										field_obj["fields"] = fields;
 									}
 									let field_data = me.frm.doc[field.fieldname];
 									let _field = {
@@ -76,8 +79,9 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 										) {
 											_field.label = "";
 											_field.fieldtype = "HTML";
-											_field.options = `${field.label} :  <a href="${window.location.origin + field_data
-												}" target="_blank"><i>${field_data}</i></a>`;
+											_field.options = `${field.label} :  <a href="${
+												window.location.origin + field_data
+											}" target="_blank"><i>${field_data}</i></a>`;
 											_field.default = "";
 											_field.read_only = true;
 											_field.reqd = 0;
@@ -106,7 +110,7 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 							try {
 								// Resolve all field promises before proceeding
 								const resolvedFields = await Promise.all(fields);
-								
+
 								let workflow_state_bg = await frappe.db.get_list(
 									"Workflow State",
 									{
@@ -122,8 +126,9 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 										label: "Action Test",
 										fieldname: "action_test",
 										fieldtype: "HTML",
-										options: `<p>Action:  <span style="padding: 4px 8px; border-radius: 100px; color:white;  font-size: 12px; font-weight: 400;" class="bg-${bg?.style?.toLowerCase() || "secondary"
-											}">${action}</span></p>`,
+										options: `<p>Action:  <span style="padding: 4px 8px; border-radius: 100px; color:white;  font-size: 12px; font-weight: 400;" class="bg-${
+											bg?.style?.toLowerCase() || "secondary"
+										}">${action}</span></p>`,
 									},
 									...(resolvedFields ? resolvedFields : []),
 								];
