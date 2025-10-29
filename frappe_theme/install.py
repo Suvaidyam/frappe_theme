@@ -10,7 +10,7 @@ def after_install():
 
 def check_esbuild_dependencies():
 	"""
-	Frappe Theme depends on esbuild2020 to build frontend assets.
+	Frappe Theme depends on esbuild with es2020 target to build frontend assets.
 	This function checks that configuration is present in common_site_config.json if not present adds it.
 	"""
 	common_site_config = frappe.get_common_site_config(cached=False)
