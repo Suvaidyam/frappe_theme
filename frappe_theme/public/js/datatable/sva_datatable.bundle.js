@@ -997,12 +997,15 @@ class SvaDataTable {
 		) {
 			wrapper.querySelector("div#footer-element").appendChild(buttonContainer);
 		}
-
+		let is_addable = this.connection?.disable_add_depends_on
+				? !frappe.utils.custom_eval(this.connection?.disable_add_depends_on, this?.frm?.doc || {})
+				: true;
 		if (
 			this.crud.create &&
 			(this.frm ? this.frm?.doc?.docstatus == 0 : true) &&
 			this.conf_perms.length &&
-			this.conf_perms.includes("create")
+			this.conf_perms.includes("create") &&
+			is_addable
 		) {
 			if (this.permissions?.length && this.permissions.includes("create")) {
 				if (
@@ -2356,6 +2359,7 @@ class SvaDataTable {
 								method: "frappe.model.workflow.get_transitions",
 								doc: { ...row, doctype: this.doctype },
 							});
+							el.disabled = el.disabled || transitions.length === 0 || (this.connection?.disable_workflow_depends_on ? frappe.utils.custom_eval(this.connection?.disable_workflow_depends_on, row) : false);
 							// const titleText = transitions
 							// 	.map((e) => `&#x2022; ${e.action} by ${e.allowed}`)
 							// 	.join("<br>");
