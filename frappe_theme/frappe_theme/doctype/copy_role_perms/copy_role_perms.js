@@ -109,7 +109,7 @@ frappe.ui.form.on("Copy Role Perms", {
 	},
 	apps: function (frm) {
 		set_all_doctypes_in_permissions(frm);
-	}
+	},
 });
 
 function set_app_select_options(frm) {
@@ -121,7 +121,6 @@ function set_app_select_options(frm) {
 			}
 		},
 	});
-
 }
 
 function set_all_doctypes_in_permissions(frm) {
@@ -164,7 +163,6 @@ function set_all_doctypes_in_permissions(frm) {
 	});
 }
 
-
 function check_duplicate_perms(frm) {
 	if (!frm.doc.permissions?.length) return false;
 	const seen = new Set();
@@ -182,12 +180,9 @@ function check_duplicate_perms(frm) {
 		frappe.throw({
 			title: __("Duplicate Permissions Found"),
 			indicator: "red",
-			message:
-				__("The following permissions are duplicated:") + " " + duplicates.join(""),
+			message: __("The following permissions are duplicated:") + " " + duplicates.join(""),
 		});
 	}
-
-
 }
 
 frappe.ui.form.on("Copy Role Perms Child", {
@@ -199,9 +194,4 @@ frappe.ui.form.on("Copy Role Perms Child", {
 			frappe.throw(__(`Value of Level cannot exceed 9 in  row ${row.idx}`));
 		}
 	},
-
 });
-
-
-
-
