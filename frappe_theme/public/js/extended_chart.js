@@ -1,20 +1,28 @@
 frappe.Chart = class _Chart extends frappe.Chart {
-    constructor(wrapper, data) {
-        super(wrapper, data);
-        setTimeout(() => {
-            if(this.legendArea){
-                let s = this.legendArea.ownerSVGElement, b = this.legendArea.getBBox();
-                this.legendArea.setAttribute('transform', `translate(${(s.clientWidth - b.width) / 2}, ${this.legendArea.transform.baseVal.getItem(0).matrix.f})`);
-            }
-        }, 1000);
-    }
-}
+	constructor(wrapper, data) {
+		super(wrapper, data);
+		setTimeout(() => {
+			if (this.legendArea) {
+				let s = this.legendArea.ownerSVGElement,
+					b = this.legendArea.getBBox();
+				this.legendArea.setAttribute(
+					"transform",
+					`translate(${(s.clientWidth - b.width) / 2}, ${
+						this.legendArea.transform.baseVal.getItem(0).matrix.f
+					})`
+				);
+			}
+		}, 1000);
+	}
+};
 
-frappe.widget.widget_factory.chart = class ExtendedChart extends frappe.widget.widget_factory.chart {
-    constructor(opts) {
-        super(opts);
-    }
-    get_chart_args() {
+frappe.widget.widget_factory.chart = class ExtendedChart extends (
+	frappe.widget.widget_factory.chart
+) {
+	constructor(opts) {
+		super(opts);
+	}
+	get_chart_args() {
 		let colors = this.get_chart_colors();
 		let fieldtype, options;
 		const chart_type_map = {
@@ -51,9 +59,15 @@ frappe.widget.widget_factory.chart = class ExtendedChart extends frappe.widget.w
 			fieldtype = this.report_result.chart.fieldtype;
 			options = this.report_result.chart.options;
 		}
-        if(this.report_result?.columns?.find((x) => ['Currency', 'Float', 'Int', 'Percent'].includes(x.fieldtype))) {
-            fieldtype = this.report_result?.columns?.find((x) => ['Currency', 'Float', 'Int', 'Percent'].includes(x.fieldtype)).fieldtype;
-        }
+		if (
+			this.report_result?.columns?.find((x) =>
+				["Currency", "Float", "Int", "Percent"].includes(x.fieldtype)
+			)
+		) {
+			fieldtype = this.report_result?.columns?.find((x) =>
+				["Currency", "Float", "Int", "Percent"].includes(x.fieldtype)
+			).fieldtype;
+		}
 
 		if (this.chart_doc.chart_type == "Custom" && this.chart_doc.custom_options) {
 			let chart_options = JSON.parse(this.chart_doc.custom_options);
@@ -62,20 +76,20 @@ frappe.widget.widget_factory.chart = class ExtendedChart extends frappe.widget.w
 		}
 		chart_args.tooltipOptions = {
 			formatTooltipY: (value) => {
-                if (fieldtype == 'Currency') {
-                    return frappe.utils.format_currency(value);
-                } else if (fieldtype == 'Float' || fieldtype == 'Int') {
-                    return frappe.utils.shorten_number(value || 0,undefined,2);
-                }else if(fieldtype == 'Percent'){
-                    return `${frappe.utils.shorten_number(value || 0,undefined,2)}%`;
-                }else{
-                    return frappe.format(
-                        value,
-                        { fieldtype, options },
-                        { always_show_decimals: true, inline: true }
-                    )
-                }
-            }
+				if (fieldtype == "Currency") {
+					return frappe.utils.format_currency(value);
+				} else if (fieldtype == "Float" || fieldtype == "Int") {
+					return frappe.utils.shorten_number(value || 0, undefined, 2);
+				} else if (fieldtype == "Percent") {
+					return `${frappe.utils.shorten_number(value || 0, undefined, 2)}%`;
+				} else {
+					return frappe.format(
+						value,
+						{ fieldtype, options },
+						{ always_show_decimals: true, inline: true }
+					);
+				}
+			},
 		};
 
 		if (this.chart_doc.type == "Heatmap") {
@@ -112,4 +126,4 @@ frappe.widget.widget_factory.chart = class ExtendedChart extends frappe.widget.w
 
 		return chart_args;
 	}
-}
+};
