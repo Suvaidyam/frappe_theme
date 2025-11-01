@@ -141,7 +141,7 @@
    "fieldtype": "Select",
    "label": "Template",
    "mandatory_depends_on": "eval:doc.connection_type == \"Is Custom Design\"",
-   "options": "Tasks\nEmail\nTimeline\nGallery\nNotes\nLinked Users\nApproval Request\nExcel\nHTML View From API"
+   "options": "Tasks\nEmail\nTimeline\nGallery\nNotes\nLinked Users\nApproval Request\nHTML View From API"
   },
   {
    "depends_on": "eval:doc.connection_type !== \"Is Custom Design\"",
@@ -365,12 +365,12 @@
    "read_only": 1
   },
   {
-   "depends_on": "eval:[\"HTML View From API\",\"Excel\"].includes(doc.template)",
-   "description": "Ex:- module.api.test",
+   "depends_on": "eval:[\"HTML View From API\"].includes(doc.template)",
+   "description": "Ex:- module.api.test <br>\nAPI should return HTML string",
    "fieldname": "endpoint",
    "fieldtype": "Data",
    "label": "Endpoint",
-   "mandatory_depends_on": "eval:doc.type == \"API\""
+   "mandatory_depends_on": "eval:[\"HTML View From API\"].includes(doc.template)"
   },
   {
    "depends_on": "eval:![\"Report\"].includes(doc.connection_type)",
@@ -393,7 +393,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-11-01 07:27:57.132574",
+ "modified": "2025-11-01 13:00:30.342178",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "SVADatatable Configuration Child",
