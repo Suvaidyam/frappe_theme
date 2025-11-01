@@ -1,5 +1,5 @@
-frappe.ui.form.on('Web Form', {
-    add_get_fields_button(frm) {
+frappe.ui.form.on("Web Form", {
+	add_get_fields_button(frm) {
 		frm.add_custom_button(__("Custom Get Fields"), () => {
 			let webform_fieldtypes = frappe.meta
 				.get_field("Web Form Field", "fieldtype")
@@ -30,9 +30,9 @@ frappe.ui.form.on('Web Form', {
 							depends_on: df.depends_on,
 							mandatory_depends_on: df.mandatory_depends_on,
 							read_only_depends_on: df.read_only_depends_on,
-                            custom_fetch_from: df.fetch_from,
-                            custom_original_fieldtype: df.fieldtype,
-							custom_original_options: df.fieldtype === 'Link' ? df.options : ''
+							custom_fetch_from: df.fetch_from,
+							custom_original_fieldtype: df.fieldtype,
+							custom_original_options: df.fieldtype === "Link" ? df.options : "",
 						});
 					}
 				}
