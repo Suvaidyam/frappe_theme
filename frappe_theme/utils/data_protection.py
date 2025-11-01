@@ -55,7 +55,7 @@ def mask_doc_list_view(*args, **kwargs):
 						processing_fields.append((idx, cfg, fieldname))
 
 				for row in result["values"]:
-					for idx, cfg in processing_fields:
+					for idx, cfg, _ in processing_fields:
 						if idx < len(row) and row[idx]:
 							value = row[idx]
 							if cfg.get("encrypt") and is_encrypted(value):
