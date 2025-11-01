@@ -71,7 +71,7 @@ frappe.listview_settings["SVAFixture"] = {
 									listview.refresh();
 								} else {
 									frappe.msgprint(
-										__("Error importing fixtures: ") +
+										__("Error importing fixtures") +
 											(r.message?.message || "Unknown error")
 									);
 								}
