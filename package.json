@@ -4,15 +4,8 @@
   "description": "A custom app to customize color theme of frappe desk and web along with adding custom element inside the forms and workspaces",
   "main": "index.js",
   "dependencies": {
-    "@univerjs/preset-docs-core": "^0.10.5",
-    "@univerjs/preset-sheets-advanced": "^0.10.5",
-    "@univerjs/preset-sheets-data-validation": "^0.10.6",
-    "@univerjs/presets": "^0.10.5",
-    "@zwight/luckyexcel": "^1.1.6",
     "chart.js": "^4.1.1",
     "pinia": "^3.0.2",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
     "vue": "^3.5.13",
     "vue-chartjs": "^5.3.2",
     "vue-router": "^4.5.0"

@@ -1911,6 +1911,7 @@ class SvaDataTable {
 		if (this.options.serialNumberColumn) {
 			const serialTh = document.createElement("th");
 			serialTh.textContent = __("#");
+			serialTh.title = __("Serial Number");
 			serialTh.style =
 				"width:40px;text-align:center;position:sticky;left:0px;background-color:#F3F3F3;";
 			tr.appendChild(serialTh);
@@ -1928,6 +1929,7 @@ class SvaDataTable {
 					}px !important; white-space: nowrap;overflow: hidden;text-overflow:ellipsis;`;
 			}
 			th.textContent = __(column.label || column.name);
+			th.title = __(column.label || column.name);
 
 			if (column.sortable) {
 				this.createSortingIcon(th, column); // Create the sorting dropdown
@@ -1966,6 +1968,9 @@ class SvaDataTable {
 				addColumn.textContent = this.connection.action_label
 					? this.connection.action_label
 					: "Approval";
+				addColumn.title = this.connection.action_label
+					? this.connection.action_label
+					: "Approval";
 				addColumn.style =
 					"text-align:center;max-width: 120px !important; width: 120px !important;";
 				tr.appendChild(addColumn);
@@ -1978,6 +1983,7 @@ class SvaDataTable {
 		action_th.style =
 			"width:5px; text-align:center;position:sticky;right:0px;background-color:#F3F3F3;";
 		action_th.appendChild(this.createSettingsButton());
+		action_th.title = __("Settings");
 		tr.appendChild(action_th);
 		// ========================= Action Column End ======================
 		thead.appendChild(tr);
@@ -3002,7 +3008,7 @@ class SvaDataTable {
 					let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
-					td.innerHTML = `<span>${row[column.fieldname] || ""}</span>`;
+					td.innerHTML = `<span title="${row[column.fieldname] || ""}">${row[column.fieldname] || ""}</span>`;
 					if (col?.width) {
 						$(td).css({
 							width: `${Number(col?.width) * 50}px`,
@@ -3115,10 +3121,11 @@ class SvaDataTable {
 					let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
-					td.innerHTML = `<span>${formatCurrency(
+					let value = formatCurrency(
 						row[column.fieldname],
 						frappe.sys_defaults.currency
-					)}</span>`;
+					);
+					td.innerHTML = `<span title="${value}">${value}</span>`;
 					if (col?.width) {
 						$(td).css({
 							width: `${Number(col?.width) * 50}px`,
@@ -3155,7 +3162,7 @@ class SvaDataTable {
 			}
 			if (columnField.fieldtype === "Attach") {
 				if (row[column.fieldname]) {
-					td.innerHTML = `<a href = "${row[column.fieldname]}" target = "_blank" >${row[column.fieldname]
+					td.innerHTML = `<a title="${row[column.fieldname]}" href="${row[column.fieldname]}" target = "_blank" >${row[column.fieldname]
 						}</a> `;
 				} else {
 					td.innerHTML = "";
@@ -3187,7 +3194,7 @@ class SvaDataTable {
 			}
 			if (columnField.fieldtype === "Attach Image") {
 				if (row[column.fieldname]) {
-					td.innerHTML = `<img src = "${row[column.fieldname]
+					td.innerHTML = `<img title="${row[column.fieldname]}" alt="${row[column.fieldname]}" src="${row[column.fieldname]
 						}" style = "width:30px;border-radius:50%;height:30px;object-fit:cover;" /> `;
 					return;
 				}
@@ -3197,11 +3204,11 @@ class SvaDataTable {
 					let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
-					td.innerHTML = `<span>${row[column.fieldname].toLocaleString("en-US", {
+					let value = row[column.fieldname].toLocaleString("en-US", {
 						minimumFractionDigits: 0,
 						maximumFractionDigits: 2,
-					}) || 0
-						}</span>`;
+					}) || 0;
+					td.innerHTML = `<span title="${value}">${value}</span>`;
 					if (col?.width) {
 						$(td).css({
 							width: `${Number(col?.width) * 50}px`,
@@ -3241,11 +3248,11 @@ class SvaDataTable {
 					let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
-					td.innerHTML = `<span>${row[column.fieldname].toLocaleString("en-US", {
+					let value = row[column.fieldname].toLocaleString("en-US", {
 						minimumFractionDigits: 0,
 						maximumFractionDigits: 2,
-					}) || 0
-						}%</span>`;
+					}) || 0;
+					td.innerHTML = `<span title="${value}%">${value}%</span>`;
 					if (col?.width) {
 						$(td).css({
 							width: `${Number(col?.width) * 50}px`,
@@ -3285,8 +3292,7 @@ class SvaDataTable {
 					let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
-					td.innerHTML = `<span>${row[column.fieldname] ? formaDate(row[column.fieldname]) : ""
-						}</span>`;
+					td.innerHTML = `<span title="${row[column.fieldname] ? formaDate(row[column.fieldname]) : ""}">${row[column.fieldname] ? formaDate(row[column.fieldname]) : ""}</span>`;
 					if (col?.width) {
 						$(td).css({
 							width: `${Number(col?.width) * 50}px`,
@@ -3315,7 +3321,7 @@ class SvaDataTable {
 				return;
 			}
 			if (["name", this.meta?.title_field].includes(columnField.fieldname)) {
-				td.innerHTML = `<p style="cursor: pointer; text-decoration:underline;">${row[column.fieldname]
+				td.innerHTML = `<p title="${row[column.fieldname]}" style="cursor: pointer; text-decoration:underline;">${row[column.fieldname]
 					}</p>`;
 				td.querySelector("p").addEventListener("click", () => {
 					let route = frappe.get_route();
@@ -3388,7 +3394,7 @@ class SvaDataTable {
 				let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
 				td.innerHTML = formatter(row[column.fieldname], column, row, this);
 			} else {
-				td.innerHTML = `<span>${row[column.fieldname] || ""}</span>`;
+				td.innerHTML = `<span title="${row[column.fieldname] || ""}">${row[column.fieldname] || ""}</span>`;
 				if (col?.width) {
 					$(td).css({
 						width: `${Number(col?.width) * 50}px`,
