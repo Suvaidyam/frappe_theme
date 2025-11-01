@@ -108,7 +108,7 @@ def execute_number_card_query(report_name, filters=None):
 		# Get the report document
 		report_doc = frappe.get_doc("Report", report_name)
 		if not report_doc or not report_doc.query:
-			frappe.throw("Report not found or invalid")
+			frappe.throw(_("Report not found or invalid"))
 
 		# Get the base query from the report
 		base_query = report_doc.query
@@ -1235,7 +1235,7 @@ def _apply_customizations(custom_data: dict):
 	"""
 	# Ensure JSON contains main doctype key
 	if not custom_data.get("doctype"):
-		frappe.throw("Invalid JSON: 'doctype' missing.")
+		frappe.throw(_("Invalid JSON: 'doctype' missing."))
 
 	main_doctype = custom_data["doctype"]
 
@@ -1296,7 +1296,7 @@ def import_multiple_customizations(file_url: str):
 		data = json.loads(content)
 
 		if not isinstance(data, dict):
-			frappe.throw("Invalid JSON format. Expected dict of doctypes.")
+			frappe.throw(_("Invalid JSON format. Expected dict of doctypes."))
 
 		imported, errors = [], []
 

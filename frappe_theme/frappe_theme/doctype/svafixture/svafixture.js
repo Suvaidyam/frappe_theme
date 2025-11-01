@@ -71,7 +71,7 @@ frappe.ui.form.on("SVAFixture", {
 							frm.reload_doc();
 						} else {
 							frappe.msgprint(
-								__("Failed to import fixtures: ") + res.message.message
+								__("Failed to import fixtures:") + res.message.message
 							);
 						}
 					},

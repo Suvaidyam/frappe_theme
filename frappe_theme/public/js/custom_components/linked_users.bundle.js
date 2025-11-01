@@ -583,7 +583,7 @@ class SVALinkedUser {
 			primary_action: async function (values) {
 				let regex = /^[6-9]\d{9}$/;
 				if (values.mobile_number && !regex.test(values.mobile_number)) {
-					frappe.msgprint("Please enter valid mobile number");
+					frappe.msgprint(__("Please enter valid mobile number"));
 					return;
 				}
 				if (action === "New User") {

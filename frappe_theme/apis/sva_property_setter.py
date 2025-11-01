@@ -1,4 +1,5 @@
 import frappe
+from frappe import _
 
 
 @frappe.whitelist()
@@ -8,7 +9,7 @@ def save_field_data_protection(values):
 		if isinstance(values, str):
 			values = frappe.parse_json(values)
 		if not values["doc_type"] or not values["fname"]:
-			frappe.throw("Doctype and Fieldname is required.")
+			frappe.throw(_("Doctype and Fieldname is required."))
 
 		if not frappe.db.exists(
 			"SVAProperty Setter", {"doc_type": values["doc_type"], "fname": values["fname"]}

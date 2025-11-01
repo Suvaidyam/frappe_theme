@@ -387,7 +387,7 @@ class SVAGalleryComponent {
 			frappe.msgprint({
 				title: __("Error"),
 				indicator: "red",
-				message: __("Error fetching files: ") + (error.message || error),
+				message: __("Error fetching files:") + (error.message || error),
 			});
 		} finally {
 			loader.hide();

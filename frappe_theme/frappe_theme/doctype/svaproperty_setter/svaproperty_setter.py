@@ -4,6 +4,7 @@
 import json
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
 
 
@@ -14,7 +15,7 @@ class SVAPropertySetter(Document):
 	def sync_property_setter(self):
 		try:
 			if not self.doc_type or not self.fname:
-				frappe.throw("Doctype and Fieldname is required.")
+				frappe.throw(_("Doctype and Fieldname is required."))
 
 			ps = frappe.db.get_value(
 				"Property Setter",
