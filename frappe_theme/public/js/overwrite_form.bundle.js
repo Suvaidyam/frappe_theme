@@ -28,7 +28,7 @@ import SVANotesManager from "./custom_components/note.bundle.js";
 import SVAmGrantTask from "./custom_components/task.bundle.js";
 import SVATimelineGenerator from "./custom_components/timeline.bundle.js";
 import CustomApprovalRequest from "./custom_components/approval_request/approval_request.bundle.js";
-import SVAExcel from "./sva_excel/excel.bundle.js";
+import CustomDynamicHtml from "./custom_components/dynamic_html/dynamic_html.bundle.js";
 
 frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 	constructor(...args) {
@@ -632,7 +632,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			Notes: SVANotesManager,
 			"Linked Users": SVALinkedUser,
 			"Approval Request": CustomApprovalRequest,
-			Excel: SVAExcel,
+			"HTML View From API" : CustomDynamicHtml
 		};
 		return componentMap[template];
 	}
