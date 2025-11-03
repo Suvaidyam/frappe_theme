@@ -194,12 +194,12 @@ jobs:
           bench init --frappe-branch "${{ env.FRAPPE_BRANCH }}" --skip-assets --skip-redis-config-generation --python "python${{ env.PYTHON_VERSION }}" ci-bench
           echo "✓ Bench initialized successfully"
 
-      - name: Configure esbuild target globally
-        working-directory: ci-bench
-        run: |
-          echo "Setting esbuild target to es2022 for modern JS support..."
-          bench set-config -g esbuild_target "es2022"
-          echo "✓ esbuild_target configured"
+      # - name: Configure esbuild target globally
+      #   working-directory: ci-bench
+      #   run: |
+      #     echo "Setting esbuild target to es2022 for modern JS support..."
+      #     bench set-config -g esbuild_target "es2022"
+      #     echo "✓ esbuild_target configured"
 
       - name: Add app to bench
         working-directory: ci-bench
