@@ -1,10 +1,10 @@
-import SVAFilter from './filter.bundle.js';
+import SVAFilter from "./filter.bundle.js";
 
 class SVAFilterGroup {
 	constructor(opts) {
 		$.extend(this, opts);
 		this.filters = this.filters || [];
-		this.dt_filter_fields = opts.dt_filter_fields
+		this.dt_filter_fields = opts.dt_filter_fields;
 		if (!this.filter_button) {
 			this.wrapper = this.parent;
 			this.wrapper.append(this.get_filter_area_template());
@@ -227,7 +227,7 @@ class SVAFilterGroup {
 			parent: this.wrapper,
 			parent_doctype: this.doctype,
 			doctype: doctype,
-			dt_filter_fields:this.dt_filter_fields,
+			dt_filter_fields: this.dt_filter_fields,
 			_parent_doctype: this.parent_doctype,
 			fieldname: fieldname,
 			condition: condition,
@@ -368,6 +368,6 @@ class SVAFilterGroup {
 				refresh && this.list_view.refresh();
 			});
 	}
-};
+}
 
 export default SVAFilterGroup;

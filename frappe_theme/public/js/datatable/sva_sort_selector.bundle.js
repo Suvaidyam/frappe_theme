@@ -142,10 +142,10 @@ class SVASortSelector {
 		this.sort_order = this.args.sort_order = this.args.sort_order.toLowerCase();
 	}
 	get_meta_sort_field() {
-        return {
-            meta_sort_field: this.args.sort_by || "creation",
-            meta_sort_order: this.args.sort_order ? this.args.sort_order.toLowerCase() : "",
-        };
+		return {
+			meta_sort_field: this.args.sort_by || "creation",
+			meta_sort_order: this.args.sort_order ? this.args.sort_order.toLowerCase() : "",
+		};
 	}
 	get_label(fieldname) {
 		if (fieldname === "idx") {
@@ -165,6 +165,6 @@ class SVASortSelector {
 			return `${sort_by} ${this.sort_order}`;
 		}
 	}
-};
+}
 
 export default SVASortSelector;

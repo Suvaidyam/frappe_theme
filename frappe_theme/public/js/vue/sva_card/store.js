@@ -1,7 +1,7 @@
-import { reactive, ref } from 'vue';
+import { reactive, ref } from "vue";
 
-const loader = ref(false)
+const loader = ref(false);
 
 export const store = reactive({
-    loader: loader.value,
+	loader: loader.value,
 });

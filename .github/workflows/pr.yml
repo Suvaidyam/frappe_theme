@@ -1,0 +1,32 @@
+name: CI – deprecated (split into separate workflows)
+
+on:
+  workflow_dispatch:
+
+# Allow jobs to run independently - failure in one won't cancel others
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.11"
+  NODE_VERSION: "22"
+  APP_NAME: "frappe_theme"
+  SITE_NAME: "test.localhost"
+  FRAPPE_BRANCH: "develop" # Using latest development version of Frappe
+  DB_HOST: "127.0.0.1"
+  DB_ROOT_USER: "root"
+  DB_ROOT_PASSWORD: "root"
+
+jobs:
+  notice:
+    name: Workflow moved
+    runs-on: ubuntu-latest
+    steps:
+      - name: Show deprecation notice
+        run: |
+          echo "This workflow has been split into separate files:"
+          echo " - .github/workflows/pre-commit.yml"
+          echo " - .github/workflows/security.yml"
+          echo " - .github/workflows/frappe-tests.yml"
+          echo "Use those workflows; this one is kept only for manual triggering."

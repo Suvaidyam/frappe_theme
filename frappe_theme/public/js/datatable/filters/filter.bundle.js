@@ -1,4 +1,4 @@
-import SVAFieldSelect from './field_select.bundle.js';
+import SVAFieldSelect from "./field_select.bundle.js";
 
 class SVAFilter {
 	constructor(opts) {
@@ -6,7 +6,7 @@ class SVAFilter {
 		if (this.value === null || this.value === undefined) {
 			this.value = "";
 		}
-		this.dt_filter_fields = opts.dt_filter_fields || []
+		this.dt_filter_fields = opts.dt_filter_fields || [];
 		this.utils = frappe.ui.filter_utils;
 		this.get_filter_fields();
 		this.set_conditions();
@@ -113,9 +113,24 @@ class SVAFilter {
 		let { sva_dt, header } = this.dt_filter_fields;
 		if (sva_dt?.columns?.length) {
 			if (header?.length) {
-				this.fields = { [this.parent_doctype]: sva_dt?.columns?.filter(column => header?.includes(column.fieldname) && !["name", "creation", "modified", 'modified_by', 'owner'].includes(column.fieldname)) };
+				this.fields = {
+					[this.parent_doctype]: sva_dt?.columns?.filter(
+						(column) =>
+							header?.includes(column.fieldname) &&
+							!["name", "creation", "modified", "modified_by", "owner"].includes(
+								column.fieldname
+							)
+					),
+				};
 			} else {
-				this.fields = { [this.parent_doctype]: sva_dt?.columns?.filter(column => !["name", "creation", "modified", 'modified_by', 'owner'].includes(column.fieldname)) };
+				this.fields = {
+					[this.parent_doctype]: sva_dt?.columns?.filter(
+						(column) =>
+							!["name", "creation", "modified", "modified_by", "owner"].includes(
+								column.fieldname
+							)
+					),
+				};
 			}
 		} else {
 			this.fields = { [this.parent_doctype]: [] };
@@ -166,7 +181,7 @@ class SVAFilter {
 			) {
 				fieldtype = "MultiSelect";
 			}
-			console.log(this.field, 'this.field')
+			console.log(this.field, "this.field");
 			this.set_field(this.field.df.parent, this.field.df.fieldname, fieldtype, condition);
 		});
 	}
@@ -450,6 +465,6 @@ class SVAFilter {
 				.toggle(show_condition);
 		});
 	}
-};
+}
 
 export default SVAFilter;

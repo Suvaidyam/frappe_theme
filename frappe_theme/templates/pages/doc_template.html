@@ -11,32 +11,32 @@
             line-height: 1.4;
             color: #333;
         }
-        
+
         .header {
             text-align: center;
             margin-bottom: 30px;
             border-bottom: 2px solid #333;
             padding-bottom: 15px;
         }
-        
+
         .header h1 {
             margin: 0;
             color: #333;
             font-size: 24px;
             text-transform: uppercase;
         }
-        
+
         .header h2 {
             margin: 5px 0;
             color: #666;
             font-size: 16px;
             font-weight: normal;
         }
-        
+
         .main-info {
             margin-bottom: 30px;
         }
-        
+
         .section-title {
             font-size: 18px;
             font-weight: bold;
@@ -46,14 +46,14 @@
             padding-bottom: 5px;
             text-transform: uppercase;
         }
-        
+
         .info-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 15px;
             margin-bottom: 20px;
         }
-        
+
         .info-item {
             display: flex;
             padding: 10px;
@@ -61,25 +61,25 @@
             border-left: 4px solid #007bff;
             border-radius: 4px;
         }
-        
+
         .info-label {
             font-weight: bold;
             width: 45%;
             color: #495057;
             text-transform: capitalize;
         }
-        
+
         .info-value {
             width: 55%;
             color: #333;
             word-break: break-word;
         }
-        
+
         .table-section {
             margin-bottom: 35px;
             page-break-inside: avoid;
         }
-        
+
         .table-title {
             font-size: 16px;
             font-weight: bold;
@@ -92,13 +92,13 @@
             text-transform: uppercase;
             letter-spacing: 1px;
         }
-        
+
         .table-wrapper {
             overflow-x: auto;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             border-radius: 6px;
         }
-        
+
         table {
             width: 100%;
             border-collapse: collapse;
@@ -106,14 +106,14 @@
             font-size: 11px;
             background-color: white;
         }
-        
+
         th, td {
             border: 1px solid #dee2e6;
             padding: 10px 8px;
             text-align: left;
             vertical-align: top;
         }
-        
+
         th {
             background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
             font-weight: bold;
@@ -123,29 +123,29 @@
             position: sticky;
             top: 0;
         }
-        
+
         tr:nth-child(even) {
             background-color: #f8f9fa;
         }
-        
+
         tr:hover {
             background-color: #e8f4f8;
         }
-        
+
         .currency {
             text-align: right;
             font-weight: bold;
             color: #28a745;
         }
-        
+
         .number {
             text-align: right;
         }
-        
+
         .date {
             white-space: nowrap;
         }
-        
+
         .status {
             padding: 4px 8px;
             border-radius: 12px;
@@ -153,7 +153,7 @@
             font-weight: bold;
             text-align: center;
         }
-        
+
         .no-data {
             text-align: center;
             color: #6c757d;
@@ -163,7 +163,7 @@
             border-radius: 6px;
             border: 2px dashed #dee2e6;
         }
-        
+
         .footer {
             margin-top: 50px;
             text-align: center;
@@ -172,39 +172,39 @@
             border-top: 1px solid #dee2e6;
             padding-top: 20px;
         }
-        
+
         .record-count {
             font-size: 12px;
             color: #6c757d;
             margin-bottom: 10px;
             text-align: right;
         }
-        
+
         .field-name {
             text-transform: capitalize;
         }
-        
+
         @media print {
             body {
                 margin: 0;
                 font-size: 11px;
             }
-            
+
             .table-section {
                 page-break-inside: avoid;
             }
-            
+
             .header {
                 page-break-after: avoid;
             }
         }
-        
+
         /* Handle long text in cells */
         .text-wrap {
             word-wrap: break-word;
             max-width: 200px;
         }
-        
+
         /* Status indicators */
         .status-draft { background-color: #ffeaa7; color: #2d3436; }
         .status-approved { background-color: #00b894; color: white; }
@@ -242,7 +242,7 @@
     <!-- Main Document Information -->
     <div class="main-info">
         <div class="section-title">Document Information</div>
-        
+
         <div class="info-grid">
             {% set _layout_types = ['Section Break','Column Break','Tab Break','HTML'] %}
             {% set _table_types = ['Table','Table MultiSelect'] %}
@@ -312,13 +312,13 @@
                     ({{ table.html_field.title() }})
                     {% endif %}
                 </div>
-                
+
                 <!-- Check if table has data -->
                 {% if table.get('data') and table.data|length > 0 %}
                     <div class="record-count">
                         Total Records: {{ table.data|length }}
                     </div>
-                    
+
                     <div class="table-wrapper">
                         <table>
                             <thead>
@@ -449,8 +449,8 @@
     <!-- Footer -->
     <div class="footer">
         <p>
-            <strong>Generated:</strong> {{ frappe.utils.now_datetime().strftime('%d %B %Y at %I:%M %p') if frappe is defined else 'N/A' }} | 
-            <strong>Document:</strong> {{ _main_doc.get('name', 'N/A') }} | 
+            <strong>Generated:</strong> {{ frappe.utils.now_datetime().strftime('%d %B %Y at %I:%M %p') if frappe is defined else 'N/A' }} |
+            <strong>Document:</strong> {{ _main_doc.get('name', 'N/A') }} |
             <strong>Status:</strong> {{ _main_doc.get('application_status', _main_doc.get('wf_state', 'Unknown')) }}
         </p>
         <p style="margin-top: 10px; font-size: 9px; color: #adb5bd;">

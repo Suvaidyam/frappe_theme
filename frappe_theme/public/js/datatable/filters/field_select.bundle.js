@@ -1,5 +1,5 @@
 // <select> widget with all fields of a doctype as options
-class SVAFieldSelect{
+class SVAFieldSelect {
 	// opts parent, doctype, filter_fields, with_blank, select
 	constructor(opts) {
 		var me = this;
@@ -17,7 +17,7 @@ class SVAFieldSelect{
 			minChars: 0,
 			maxItems: 99,
 			autoFirst: true,
-			sort:false,
+			sort: false,
 			list: me.options,
 			item(item) {
 				return $(repl('<li class="filter-field-select"><p>%(label)s</p></li>', item))
@@ -115,12 +115,14 @@ class SVAFieldSelect{
 				value: "",
 			});
 		}
-		
-		let name_field = std_filters.find(f => (f.fieldname == 'name'))
-		let {sva_dt} = me.dt_filter_fields;
-		let _std_filters = std_filters.filter(f => ['creation','modified'].includes(f.fieldname))
-		if(sva_dt.connection.connection_type == 'Report'){
-			_std_filters = []
+
+		let name_field = std_filters.find((f) => f.fieldname == "name");
+		let { sva_dt } = me.dt_filter_fields;
+		let _std_filters = std_filters.filter((f) =>
+			["creation", "modified"].includes(f.fieldname)
+		);
+		if (sva_dt.connection.connection_type == "Report") {
+			_std_filters = [];
 		}
 		var main_table_fields = [name_field, ...me.fields[me.doctype], ..._std_filters];
 		$.each(main_table_fields, function (i, df) {
@@ -155,7 +157,8 @@ class SVAFieldSelect{
 	add_field_option(df) {
 		let me = this;
 		if (!df) return;
-		if (df.fieldname == "docstatus" && !frappe.boot.submittable_doctypes.includes(me.doctype)) return;
+		if (df.fieldname == "docstatus" && !frappe.boot.submittable_doctypes.includes(me.doctype))
+			return;
 
 		if (frappe.model.table_fields.includes(df.fieldtype)) {
 			me.table_fields.push(df);
@@ -187,6 +190,6 @@ class SVAFieldSelect{
 			me.fields_by_name[df.parent][df.fieldname] = df;
 		}
 	}
-};
+}
 
 export default SVAFieldSelect;

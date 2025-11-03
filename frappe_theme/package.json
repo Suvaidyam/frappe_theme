@@ -9,9 +9,14 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@univerjs/preset-docs-core": "^0.10.5",
+    "@univerjs/preset-sheets-advanced": "^0.10.5",
+    "@univerjs/preset-sheets-data-validation": "^0.10.6",
+    "@univerjs/presets": "^0.10.5",
+    "@zwight/luckyexcel": "^1.1.6",
+    "chart.js": "^4.1.1",
     "pinia": "^3.0.2",
     "vue": "^3.5.13",
-    "chart.js": "^4.1.1",
     "vue-chartjs": "^5.3.2",
     "vue-router": "^4.5.0"
   }

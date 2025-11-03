@@ -173,4 +173,3 @@ class SvaTestUtils:
 				if value is not None:
 					doc.set(field.fieldname, value)
 		return doc
-

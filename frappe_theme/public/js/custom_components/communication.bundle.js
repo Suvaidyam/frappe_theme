@@ -1,29 +1,33 @@
 class SVAEmailComponent {
-    constructor(frm, wrapper) {
-        this.frm = frm;
-        this.wrapper = wrapper;
-        this.communication_list = [];
-        this.currentEmailIndex = 0;
-        this.emailContainer = null;
-        this.emailSidebar = null;
-        this.emailList = null;
-        this.emailBodyContent = null;
-        this.setupStyles();
-        this.initialize();
-        return this.wrapper;
-    }
+	constructor(frm, wrapper) {
+		this.frm = frm;
+		this.wrapper = wrapper;
+		this.communication_list = [];
+		this.currentEmailIndex = 0;
+		this.emailContainer = null;
+		this.emailSidebar = null;
+		this.emailList = null;
+		this.emailBodyContent = null;
+		this.setupStyles();
+		this.initialize();
+		return this.wrapper;
+	}
 
-    async initialize() {
-        this.communication_list = await getDocList('Communication', [
-            ['Communication', 'reference_name', '=', this.frm.doc.name],
-            ['Communication', 'in_reply_to', '=', '']
-        ], ['*']);
-        this.render();
-        this.attachEventListeners();
-    }
-    setupStyles() {
-        const style = document.createElement('style');
-        style.innerHTML = `
+	async initialize() {
+		this.communication_list = await getDocList(
+			"Communication",
+			[
+				["Communication", "reference_name", "=", this.frm.doc.name],
+				["Communication", "in_reply_to", "=", ""],
+			],
+			["*"]
+		);
+		this.render();
+		this.attachEventListeners();
+	}
+	setupStyles() {
+		const style = document.createElement("style");
+		style.innerHTML = `
             .email-container {
                 display: flex;
                 height:785px;
@@ -38,7 +42,7 @@ class SVAEmailComponent {
                 flex-direction: column;
                 background: #fff;
             }
-        
+
             .top-header {
                 align-items: center;
                 padding: 8px 8px;
@@ -52,9 +56,9 @@ class SVAEmailComponent {
                 align-items: center;
                 gap: 8px;
                 justify-content: space-between;
-            
+
             }
-        
+
 
             .header-icon {
                 width: 24px;
@@ -200,7 +204,7 @@ class SVAEmailComponent {
 
             .email-body {
                 flex: 1;
-                padding: 0px 24px 10px 24px; 
+                padding: 0px 24px 10px 24px;
                 background: #fff;
                 overflow-y: auto;
             }
@@ -214,7 +218,7 @@ class SVAEmailComponent {
             .email-detail-subject {
                 font-size: 14px;
                 color: #333;
-                font-weight: 500 !important;    
+                font-weight: 500 !important;
                 margin: 0 ;
                 font-weight: normal;
             }
@@ -347,340 +351,373 @@ class SVAEmailComponent {
                 }
             }
         `;
-        document.head.appendChild(style);
-    }
+		document.head.appendChild(style);
+	}
 
-    formatDateGroup(emailDate) {
-        const today = new Date();
-        const yesterday = new Date();
-        today.setHours(0, 0, 0, 0);
-        yesterday.setDate(today.getDate() - 1);
-        yesterday.setHours(0, 0, 0, 0);
+	formatDateGroup(emailDate) {
+		const today = new Date();
+		const yesterday = new Date();
+		today.setHours(0, 0, 0, 0);
+		yesterday.setDate(today.getDate() - 1);
+		yesterday.setHours(0, 0, 0, 0);
 
-        const emailDateFormatted = new Date(emailDate);
-        emailDateFormatted.setHours(0, 0, 0, 0);
+		const emailDateFormatted = new Date(emailDate);
+		emailDateFormatted.setHours(0, 0, 0, 0);
 
-        if (emailDateFormatted.getTime() === today.getTime()) return "Today";
-        if (emailDateFormatted.getTime() === yesterday.getTime()) return "Yesterday";
-        return "Older";
-    }
+		if (emailDateFormatted.getTime() === today.getTime()) return "Today";
+		if (emailDateFormatted.getTime() === yesterday.getTime()) return "Yesterday";
+		return "Older";
+	}
 
-    getRandomColor() {
-        const letters = '0123456789ABCDEF';
-        let color = '#';
-        for (let i = 0; i < 6; i++) {
-            color += letters[Math.floor(Math.random() * 16)];
-        }
-        return color;
-    }
+	getRandomColor() {
+		const letters = "0123456789ABCDEF";
+		let color = "#";
+		for (let i = 0; i < 6; i++) {
+			color += letters[Math.floor(Math.random() * 16)];
+		}
+		return color;
+	}
 
-    timeAgo(timestamp) {
-        if (!timestamp) return '--:--';
-        const now = Date.now();
-        timestamp = new Date(timestamp);
-        const diff = now - timestamp;
-        const second = 1000;
-        const minute = second * 60;
-        const hour = minute * 60;
-        const day = hour * 24;
-        const week = day * 7;
-        const month = day * 30;
-        const year = day * 365;
+	timeAgo(timestamp) {
+		if (!timestamp) return "--:--";
+		const now = Date.now();
+		timestamp = new Date(timestamp);
+		const diff = now - timestamp;
+		const second = 1000;
+		const minute = second * 60;
+		const hour = minute * 60;
+		const day = hour * 24;
+		const week = day * 7;
+		const month = day * 30;
+		const year = day * 365;
 
-        if (diff < minute) {
-            const seconds = Math.round(diff / second);
-            return seconds === 1 ? "1 second ago" : `${seconds} seconds ago`;
-        }
-        if (diff < hour) {
-            const minutes = Math.round(diff / minute);
-            return minutes === 1 ? "1 minute ago" : `${minutes} minutes ago`;
-        }
-        if (diff < day) {
-            const hours = Math.round(diff / hour);
-            return hours === 1 ? "1 hour ago" : `${hours} hours ago`;
-        }
-        if (diff < day * 2) {
-            return "Yesterday";
-        }
-        if (diff < week) {
-            const days = Math.round(diff / day);
-            return days === 1 ? "1 day ago" : `${days} days ago`;
-        }
-        if (diff < month) {
-            const weeks = Math.round(diff / week);
-            return weeks === 1 ? "1 week ago" : `${weeks} weeks ago`;
-        }
-        if (diff < year) {
-            const months = Math.round(diff / month);
-            return months === 1 ? "1 month ago" : `${months} months ago`;
-        }
-        const years = Math.round(diff / year);
-        return years === 1 ? "1 year ago" : `${years} years ago`;
-    }
+		if (diff < minute) {
+			const seconds = Math.round(diff / second);
+			return seconds === 1 ? "1 second ago" : `${seconds} seconds ago`;
+		}
+		if (diff < hour) {
+			const minutes = Math.round(diff / minute);
+			return minutes === 1 ? "1 minute ago" : `${minutes} minutes ago`;
+		}
+		if (diff < day) {
+			const hours = Math.round(diff / hour);
+			return hours === 1 ? "1 hour ago" : `${hours} hours ago`;
+		}
+		if (diff < day * 2) {
+			return "Yesterday";
+		}
+		if (diff < week) {
+			const days = Math.round(diff / day);
+			return days === 1 ? "1 day ago" : `${days} days ago`;
+		}
+		if (diff < month) {
+			const weeks = Math.round(diff / week);
+			return weeks === 1 ? "1 week ago" : `${weeks} weeks ago`;
+		}
+		if (diff < year) {
+			const months = Math.round(diff / month);
+			return months === 1 ? "1 month ago" : `${months} months ago`;
+		}
+		const years = Math.round(diff / year);
+		return years === 1 ? "1 year ago" : `${years} years ago`;
+	}
 
-    createEmailItem(item) {
-        const emailItem = document.createElement('div');
-        emailItem.classList.add('email-item');
-        emailItem.dataset.emailId = item.name;
+	createEmailItem(item) {
+		const emailItem = document.createElement("div");
+		emailItem.classList.add("email-item");
+		emailItem.dataset.emailId = item.name;
 
-        const emailHeader = document.createElement('div');
-        emailHeader.classList.add('email-header');
+		const emailHeader = document.createElement("div");
+		emailHeader.classList.add("email-header");
 
-        const emailAvatar = document.createElement('div');
-        emailAvatar.classList.add('email-avatar');
-        emailAvatar.style.backgroundColor = this.getRandomColor();
-        emailAvatar.textContent = item?.sender[0]?.toUpperCase() || ""; // Handle cases where sender is null/undefined
+		const emailAvatar = document.createElement("div");
+		emailAvatar.classList.add("email-avatar");
+		emailAvatar.style.backgroundColor = this.getRandomColor();
+		emailAvatar.textContent = item?.sender[0]?.toUpperCase() || ""; // Handle cases where sender is null/undefined
 
-        const emailContent = document.createElement('div');
-        emailContent.classList.add('email-content');
+		const emailContent = document.createElement("div");
+		emailContent.classList.add("email-content");
 
-        const senderLine = document.createElement('div');
-        senderLine.classList.add('sender-line');
+		const senderLine = document.createElement("div");
+		senderLine.classList.add("sender-line");
 
-        const senderName = document.createElement('h4');
-        senderName.classList.add('sender-name');
-        senderName.textContent = item?.sender_full_name || "Unknown Sender"; // Handle cases where name is null/undefined
+		const senderName = document.createElement("h4");
+		senderName.classList.add("sender-name");
+		senderName.textContent = item?.sender_full_name || "Unknown Sender"; // Handle cases where name is null/undefined
 
-        const timeAgoSpan = document.createElement('span');
-        timeAgoSpan.classList.add('time-ago');
-        timeAgoSpan.textContent = this.timeAgo(item?.communication_date);
+		const timeAgoSpan = document.createElement("span");
+		timeAgoSpan.classList.add("time-ago");
+		timeAgoSpan.textContent = this.timeAgo(item?.communication_date);
 
-        const emailSubject = document.createElement('p');
-        emailSubject.classList.add('email-subject');
-        emailSubject.textContent = item?.subject || "No Subject";  // Handle cases where subject is null/undefined
+		const emailSubject = document.createElement("p");
+		emailSubject.classList.add("email-subject");
+		emailSubject.textContent = item?.subject || "No Subject"; // Handle cases where subject is null/undefined
 
-        const emailPreview = document.createElement('p');
-        emailPreview.classList.add('email-preview');
-        emailPreview.textContent = item?.preview || "No preview available"; // Handle cases where preview is null/undefined. Use actual preview if available.
+		const emailPreview = document.createElement("p");
+		emailPreview.classList.add("email-preview");
+		emailPreview.textContent = item?.preview || "No preview available"; // Handle cases where preview is null/undefined. Use actual preview if available.
 
-        senderLine.appendChild(senderName);
-        senderLine.appendChild(timeAgoSpan);
+		senderLine.appendChild(senderName);
+		senderLine.appendChild(timeAgoSpan);
 
-        emailContent.appendChild(senderLine);
-        emailContent.appendChild(emailSubject);
-        emailContent.appendChild(emailPreview);
+		emailContent.appendChild(senderLine);
+		emailContent.appendChild(emailSubject);
+		emailContent.appendChild(emailPreview);
 
-        if (item.attachments && item.attachments.length > 0) { // Check for attachments and if it is an array
-            const attachmentInfo = document.createElement('div');
-            attachmentInfo.classList.add('attachment-info');
-            const icon = document.createElement('i');
-            icon.classList.add('fa', 'fa-paperclip');
-            const text = document.createElement('span');
-            text.textContent = `${item.attachments.length} Attachment${item.attachments.length !== 1 ? 's' : ''}`; // Display number of attachments
-            attachmentInfo.appendChild(icon);
-            attachmentInfo.appendChild(text);
-            emailContent.appendChild(attachmentInfo);
-        }
+		if (item.attachments && item.attachments.length > 0) {
+			// Check for attachments and if it is an array
+			const attachmentInfo = document.createElement("div");
+			attachmentInfo.classList.add("attachment-info");
+			const icon = document.createElement("i");
+			icon.classList.add("fa", "fa-paperclip");
+			const text = document.createElement("span");
+			text.textContent = `${item.attachments.length} Attachment${
+				item.attachments.length !== 1 ? "s" : ""
+			}`; // Display number of attachments
+			attachmentInfo.appendChild(icon);
+			attachmentInfo.appendChild(text);
+			emailContent.appendChild(attachmentInfo);
+		}
 
-        emailHeader.appendChild(emailAvatar);
-        emailHeader.appendChild(emailContent);
-        emailItem.appendChild(emailHeader);
+		emailHeader.appendChild(emailAvatar);
+		emailHeader.appendChild(emailContent);
+		emailItem.appendChild(emailHeader);
 
-        return emailItem;
-    }
+		return emailItem;
+	}
 
-    render() {
-        this.emailContainer = document.createElement('div');
-        this.emailContainer.classList.add('email-container');
+	render() {
+		this.emailContainer = document.createElement("div");
+		this.emailContainer.classList.add("email-container");
 
-        this.emailSidebar = document.createElement('div');
-        this.emailSidebar.classList.add('email-sidebar');
+		this.emailSidebar = document.createElement("div");
+		this.emailSidebar.classList.add("email-sidebar");
 
-        const topHeader = document.createElement('div');
-        topHeader.classList.add('top-header');
+		const topHeader = document.createElement("div");
+		topHeader.classList.add("top-header");
 
-        const headerActions = document.createElement('div');
-        headerActions.classList.add('header-actions');
+		const headerActions = document.createElement("div");
+		headerActions.classList.add("header-actions");
 
-        const allEmailButton = document.createElement('span');
-        allEmailButton.id = 'allEmailButton';
-        allEmailButton.classList.add('tab-item', 'active_tab');
-        allEmailButton.textContent = 'All';
+		const allEmailButton = document.createElement("span");
+		allEmailButton.id = "allEmailButton";
+		allEmailButton.classList.add("tab-item", "active_tab");
+		allEmailButton.textContent = "All";
 
-        const inboxEmailButton = document.createElement('span');
-        inboxEmailButton.id = 'inboxEmailButton';
-        inboxEmailButton.classList.add('tab-item');
-        inboxEmailButton.textContent = 'Inbox';
+		const inboxEmailButton = document.createElement("span");
+		inboxEmailButton.id = "inboxEmailButton";
+		inboxEmailButton.classList.add("tab-item");
+		inboxEmailButton.textContent = "Inbox";
 
-        const sentEmailButton = document.createElement('span');
-        sentEmailButton.id = 'sentEmailButton';
-        sentEmailButton.classList.add('tab-item');
-        sentEmailButton.textContent = 'Sent';
+		const sentEmailButton = document.createElement("span");
+		sentEmailButton.id = "sentEmailButton";
+		sentEmailButton.classList.add("tab-item");
+		sentEmailButton.textContent = "Sent";
 
-        const refreshButton = document.createElement('button');
-        refreshButton.classList.add('text-muted', 'btn', 'btn-default', 'icon-btn');
-        refreshButton.id = 'refresh_email_list';
-        refreshButton.innerHTML = ` <svg class="es-icon es-line  icon-sm" style="" aria-hidden="true">
+		const refreshButton = document.createElement("button");
+		refreshButton.classList.add("text-muted", "btn", "btn-default", "icon-btn");
+		refreshButton.id = "refresh_email_list";
+		refreshButton.innerHTML = ` <svg class="es-icon es-line  icon-sm" style="" aria-hidden="true">
                 <use class="" href="#es-line-reload"></use>
             </svg>`;
 
-        const composeButton = document.createElement('button');
-        composeButton.classList.add('btn-primary', 'text-muted', 'btn', 'icon-btn', 'add-email-btn');
-        composeButton.innerHTML = `<svg  class="es-icon es-line icon-xs" aria-hidden="true"><use href="#es-line-add"></use></svg>`;
+		const composeButton = document.createElement("button");
+		composeButton.classList.add(
+			"btn-primary",
+			"text-muted",
+			"btn",
+			"icon-btn",
+			"add-email-btn"
+		);
+		composeButton.innerHTML = `<svg  class="es-icon es-line icon-xs" aria-hidden="true"><use href="#es-line-add"></use></svg>`;
 
+		headerActions.appendChild(allEmailButton);
+		headerActions.appendChild(inboxEmailButton);
+		headerActions.appendChild(sentEmailButton);
+		headerActions.appendChild(refreshButton);
+		headerActions.appendChild(composeButton);
+		topHeader.appendChild(headerActions);
 
-        headerActions.appendChild(allEmailButton);
-        headerActions.appendChild(inboxEmailButton);
-        headerActions.appendChild(sentEmailButton);
-        headerActions.appendChild(refreshButton);
-        headerActions.appendChild(composeButton);
-        topHeader.appendChild(headerActions);
+		this.emailList = document.createElement("div");
+		this.emailList.classList.add("email-list");
 
+		if (this.communication_list.length === 0) {
+			// ... (no data message - same as before)
+		} else {
+			const groupedEmails = this.communication_list.reduce((groups, email) => {
+				const group = this.formatDateGroup(email.communication_date);
+				groups[group] = groups[group] || [];
+				groups[group].push(email);
+				return groups;
+			}, {});
 
-        this.emailList = document.createElement('div');
-        this.emailList.classList.add('email-list');
+			const sortedGroups = Object.keys(groupedEmails).sort((a, b) => {
+				// ... (sorting logic - same as before)
+			});
 
-        if (this.communication_list.length === 0) {
-            // ... (no data message - same as before)
-        } else {
-            const groupedEmails = this.communication_list.reduce((groups, email) => {
-                const group = this.formatDateGroup(email.communication_date);
-                groups[group] = groups[group] || [];
-                groups[group].push(email);
-                return groups;
-            }, {});
+			sortedGroups.forEach((group) => {
+				const dateGroupDiv = document.createElement("div");
+				dateGroupDiv.classList.add("date-group");
+				dateGroupDiv.textContent = group;
+				this.emailList.appendChild(dateGroupDiv);
 
-            const sortedGroups = Object.keys(groupedEmails).sort((a, b) => {
-                // ... (sorting logic - same as before)
-            });
+				groupedEmails[group].forEach((item) => {
+					const emailItem = this.createEmailItem(item);
+					this.emailList.appendChild(emailItem);
+				});
+			});
+		}
 
-            sortedGroups.forEach(group => {
-                const dateGroupDiv = document.createElement('div');
-                dateGroupDiv.classList.add('date-group');
-                dateGroupDiv.textContent = group;
-                this.emailList.appendChild(dateGroupDiv);
+		this.emailSidebar.appendChild(topHeader);
+		this.emailSidebar.appendChild(this.emailList);
+		this.emailContainer.appendChild(this.emailSidebar);
 
-                groupedEmails[group].forEach(item => {
-                    const emailItem = this.createEmailItem(item);
-                    this.emailList.appendChild(emailItem);
-                });
-            });
-        }
+		this.emailBodyContent = document.createElement("div");
+		this.emailBodyContent.id = "emailBodyContent";
+		this.emailBodyContent.classList.add("email-body");
 
-        this.emailSidebar.appendChild(topHeader);
-        this.emailSidebar.appendChild(this.emailList);
-        this.emailContainer.appendChild(this.emailSidebar);
+		const defaultMessage = document.createElement("div");
+		defaultMessage.style.display = "flex";
+		defaultMessage.style.alignItems = "center";
+		defaultMessage.style.justifyContent = "center";
+		defaultMessage.style.height = "100%";
 
-        this.emailBodyContent = document.createElement('div');
-        this.emailBodyContent.id = 'emailBodyContent';
-        this.emailBodyContent.classList.add('email-body');
+		const messageContent = document.createElement("div");
+		messageContent.style.textAlign = "center";
 
-        const defaultMessage = document.createElement('div');
-        defaultMessage.style.display = "flex";
-        defaultMessage.style.alignItems = "center";
-        defaultMessage.style.justifyContent = "center";
-        defaultMessage.style.height = "100%";
+		const messageTitle = document.createElement("p");
+		messageTitle.style.fontSize = "19px";
+		messageTitle.style.color = "#333";
+		messageTitle.textContent = "Select an item to read";
 
-        const messageContent = document.createElement('div');
-        messageContent.style.textAlign = "center";
+		const messageSubtitle = document.createElement("p");
+		messageSubtitle.style.fontSize = "12px";
+		messageSubtitle.style.color = "#666";
+		messageSubtitle.textContent = "Nothing is selected";
 
-        const messageTitle = document.createElement('p');
-        messageTitle.style.fontSize = "19px";
-        messageTitle.style.color = "#333";
-        messageTitle.textContent = "Select an item to read";
+		messageContent.appendChild(messageTitle);
+		messageContent.appendChild(messageSubtitle);
+		defaultMessage.appendChild(messageContent);
+		this.emailBodyContent.appendChild(defaultMessage);
 
-        const messageSubtitle = document.createElement('p');
-        messageSubtitle.style.fontSize = "12px";
-        messageSubtitle.style.color = "#666";
-        messageSubtitle.textContent = "Nothing is selected";
+		this.emailContainer.appendChild(this.emailBodyContent);
+		this.wrapper.innerHTML = ""; // Clear any previous content
+		this.wrapper.appendChild(this.emailContainer);
 
-        messageContent.appendChild(messageTitle);
-        messageContent.appendChild(messageSubtitle);
-        defaultMessage.appendChild(messageContent);
-        this.emailBodyContent.appendChild(defaultMessage);
+		if (this.communication_list.length > 0) {
+			setTimeout(() => {
+				const latestEmail = this.emailList.querySelector(".email-item");
+				if (latestEmail) {
+					latestEmail.click();
+				}
+			}, 0);
+		}
+	}
 
-        this.emailContainer.appendChild(this.emailBodyContent);
-        this.wrapper.innerHTML = ""; // Clear any previous content
-        this.wrapper.appendChild(this.emailContainer);
+	attachEventListeners() {
+		const refreshButton = document.getElementById("refresh_email_list");
+		if (refreshButton) {
+			refreshButton.addEventListener("click", async () => {
+				try {
+					this.communication_list = await getDocList(
+						"Communication",
+						[
+							["Communication", "reference_name", "=", this.frm.doc.name],
+							["Communication", "in_reply_to", "=", ""],
+						],
+						["*"]
+					);
+					this.render();
+					this.attachEventListeners();
+				} catch (error) {
+					console.error(error);
+				}
+			});
+		}
 
+		["all", "inbox", "sent"].forEach((type) => {
+			const tabButton = document.getElementById(`${type}EmailButton`);
+			if (tabButton) {
+				tabButton.addEventListener("click", async (event) => {
+					try {
+						let filters = [
+							["Communication", "reference_name", "=", this.frm.doc.name],
+						];
+						if (type !== "all") {
+							filters.push([
+								"Communication",
+								"sent_or_received",
+								"=",
+								type === "inbox" ? "Received" : "Sent",
+							]);
+						}
+						filters.push(["Communication", "in_reply_to", "=", ""]);
 
-        if (this.communication_list.length > 0) {
-            setTimeout(() => {
-                const latestEmail = this.emailList.querySelector('.email-item');
-                if (latestEmail) {
-                    latestEmail.click();
-                }
-            }, 0);
-        }
-    }
+						this.communication_list = await getDocList("Communication", filters, [
+							"*",
+						]);
+						this.render();
+						this.attachEventListeners();
 
-    attachEventListeners() {
-        const refreshButton = document.getElementById('refresh_email_list');
-        if (refreshButton) {
-            refreshButton.addEventListener('click', async () => {
-                try {
-                    this.communication_list = await getDocList('Communication', [
-                        ['Communication', 'reference_name', '=', this.frm.doc.name],
-                        ['Communication', 'in_reply_to', '=', '']
-                    ], ['*']);
-                    this.render();
-                    this.attachEventListeners();
-                } catch (error) {
-                    console.error(error);
-                }
-            });
-        }
+						const tabs = document.querySelectorAll(".tab-item");
+						tabs.forEach((tab) => tab.classList.remove("active_tab"));
+						document.getElementById(`${type}EmailButton`).classList.add("active_tab");
+					} catch (error) {
+						console.error(error);
+					}
+				});
+			}
+		});
 
-        ['all', 'inbox', 'sent'].forEach(type => {
-            const tabButton = document.getElementById(`${type}EmailButton`);
-            if (tabButton) {
-                tabButton.addEventListener('click', async (event) => {
-                    try {
-                        let filters = [['Communication', 'reference_name', '=', this.frm.doc.name]];
-                        if (type !== 'all') {
-                            filters.push(['Communication', 'sent_or_received', '=', type === 'inbox' ? 'Received' : 'Sent']);
-                        }
-                        filters.push(['Communication', 'in_reply_to', '=', '']);
+		const composeButton = document.querySelector(".add-email-btn");
+		if (composeButton) {
+			composeButton.addEventListener("click", async () => {
+				cur_frm.email_doc("");
+			});
+		}
 
-                        this.communication_list = await getDocList('Communication', filters, ['*']);
-                        this.render();
-                        this.attachEventListeners();
+		// Email Item Click
+		this.emailList.addEventListener("click", async (event) => {
+			const emailItem = event.target.closest(".email-item");
+			if (emailItem) {
+				const docName = emailItem.dataset.emailId;
+				this.currentEmailIndex = this.communication_list.findIndex(
+					(item) => item.name === docName
+				);
 
-                        const tabs = document.querySelectorAll('.tab-item');
-                        tabs.forEach(tab => tab.classList.remove('active_tab'));
-                        document.getElementById(`${type}EmailButton`).classList.add('active_tab');
+				// ... (rest of email item click logic - fetching replies, setting values, rendering email body)
+				let replies = await getDocList(
+					"Communication",
+					[["Communication", "in_reply_to", "=", docName]],
+					["subject", "content", "communication_date"]
+				);
 
-                    } catch (error) {
-                        console.error(error);
-                    }
-                });
-            }
-        });
+				await set_value("Communication", docName);
+				let emailDoc = this.communication_list.find((item) => item.name === docName);
+				const emails = [...replies, emailDoc];
 
-        const composeButton = document.querySelector('.add-email-btn');
-        if (composeButton) {
-            composeButton.addEventListener('click', async () => {
-                cur_frm.email_doc("");
-            });
-        }
-
-        // Email Item Click
-        this.emailList.addEventListener('click', async (event) => {
-            const emailItem = event.target.closest('.email-item');
-            if (emailItem) {
-                const docName = emailItem.dataset.emailId;
-                this.currentEmailIndex = this.communication_list.findIndex(item => item.name === docName);
-
-                // ... (rest of email item click logic - fetching replies, setting values, rendering email body)
-                let replies = await getDocList('Communication', [
-                    ['Communication', 'in_reply_to', '=', docName]
-                ], ['subject', 'content', 'communication_date']);
-
-                await set_value("Communication", docName);
-                let emailDoc = this.communication_list.find(item => item.name === docName);
-                const emails = [...replies, emailDoc];
-
-                let emailBody = `
+				let emailBody = `
                     <div class="email-detail">
                         <div class="email-detail-header">
                             <div class="email-detail-subject-container">
-                                <span class="email-detail-subject">Subject: ${emailDoc?.subject}</span>
+                                <span class="email-detail-subject">Subject: ${
+									emailDoc?.subject
+								}</span>
                                 <div class="action-buttons" id="action_icon">
-                                    <span class="email-counter">${this.currentEmailIndex + 1} of ${this.communication_list.length}</span>
-                                    <button class="nav-button" id="prev-email" ${this.currentEmailIndex === 0 ? 'disabled' : ''}>
+                                    <span class="email-counter">${this.currentEmailIndex + 1} of ${
+					this.communication_list.length
+				}</span>
+                                    <button class="nav-button" id="prev-email" ${
+										this.currentEmailIndex === 0 ? "disabled" : ""
+									}>
                                         <i class="fa fa-chevron-left"></i>
                                     </button>
-                                    <button class="nav-button" id="next-email" ${this.currentEmailIndex === this.communication_list.length - 1 ? 'disabled' : ''}>
+                                    <button class="nav-button" id="next-email" ${
+										this.currentEmailIndex ===
+										this.communication_list.length - 1
+											? "disabled"
+											: ""
+									}>
                                         <i class="fa fa-chevron-right"></i>
                                     </button>
                                 </div>
@@ -690,7 +727,9 @@ class SVAEmailComponent {
                                     ${emailDoc?.sender[0]?.toUpperCase()}
                                 </div>
                                 <div class="meta-content">
-                                    <div class="meta-sender">${emailDoc?.sender_full_name} <${emailDoc?.sender}></div>
+                                    <div class="meta-sender">${emailDoc?.sender_full_name} <${
+					emailDoc?.sender
+				}></div>
                                     <div class="meta-recipient">To: ${emailDoc?.recipients}</div>
                                 </div>
                                 <div class="meta-time">
@@ -699,11 +738,17 @@ class SVAEmailComponent {
                             </div>
                         </div>
                         <div class="email-detail-body">
-                            ${emails.map((email) => `
+                            ${emails
+								.map(
+									(email) => `
                                 ${email?.content}
-                            `).join('')}
+                            `
+								)
+								.join("")}
                         </div>
-                        ${emailDoc?.attachments ? `
+                        ${
+							emailDoc?.attachments
+								? `
                             <div class="attachments">
                                 <h4 class="attachments-header">Attachments</h4>
                                 <div class="attachment-list">
@@ -713,49 +758,47 @@ class SVAEmailComponent {
                                     </span>
                                 </div>
                             </div>
-                        ` : ''}
+                        `
+								: ""
+						}
                     </div>
                 `;
-                this.emailBodyContent.innerHTML = emailBody;
-                this.setupNavigation();
+				this.emailBodyContent.innerHTML = emailBody;
+				this.setupNavigation();
 
-                const allEmailItems = this.emailList.querySelectorAll('.email-item');
-                allEmailItems.forEach(item => item.classList.remove('active'));
-                emailItem.classList.add('active');
-            }
+				const allEmailItems = this.emailList.querySelectorAll(".email-item");
+				allEmailItems.forEach((item) => item.classList.remove("active"));
+				emailItem.classList.add("active");
+			}
+		});
+	}
 
-        });
+	setupNavigation() {
+		const prevButton = document.getElementById("prev-email");
+		const nextButton = document.getElementById("next-email");
 
-    }
+		if (prevButton && nextButton) {
+			prevButton.addEventListener("click", () => {
+				this.navigateToEmail(-1);
+			});
 
-    setupNavigation() {
-        const prevButton = document.getElementById('prev-email');
-        const nextButton = document.getElementById('next-email');
+			nextButton.addEventListener("click", () => {
+				this.navigateToEmail(1);
+			});
+		}
+	}
 
-        if (prevButton && nextButton) {
-            prevButton.addEventListener('click', () => {
-                this.navigateToEmail(-1);
-            });
+	navigateToEmail(direction) {
+		const newIndex = this.currentEmailIndex + direction;
 
-            nextButton.addEventListener('click', () => {
-                this.navigateToEmail(1);
-            });
-        }
-    }
-
-
-    navigateToEmail(direction) {
-        const newIndex = this.currentEmailIndex + direction;
-
-        if (newIndex >= 0 && newIndex < this.communication_list.length) {
-            this.currentEmailIndex = newIndex;
-            const allEmailItems = this.emailList.querySelectorAll('.email-item');
-            if (allEmailItems[newIndex]) {
-                allEmailItems[newIndex].click();
-            }
-        }
-    }
-
+		if (newIndex >= 0 && newIndex < this.communication_list.length) {
+			this.currentEmailIndex = newIndex;
+			const allEmailItems = this.emailList.querySelectorAll(".email-item");
+			if (allEmailItems[newIndex]) {
+				allEmailItems[newIndex].click();
+			}
+		}
+	}
 }
 
 export default SVAEmailComponent;

@@ -1,7 +1,7 @@
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 import { store } from "./store.js";
-import App from "./App.vue"; 
+import App from "./App.vue";
 
 class SvaCard {
 	constructor({ wrapper, frm, numberCards, signal }) {
@@ -23,7 +23,7 @@ class SvaCard {
 				this.app.unmount();
 				this.app = null;
 			} catch (e) {
-				console.warn('Error during cleanup:', e);
+				console.warn("Error during cleanup:", e);
 			}
 		}
 	}
@@ -44,13 +44,13 @@ class SvaCard {
 		this.app.use(pinia);
 
 		// create a store
-		this.app.provide('store', store);
+		this.app.provide("store", store);
 
 		// mount the app only if wrapper exists
 		if (this.$wrapper && this.$wrapper.get(0)) {
 			this.app.mount(this.$wrapper.get(0));
 		} else {
-			console.warn('Wrapper element not found for mounting Vue app');
+			console.warn("Wrapper element not found for mounting Vue app");
 		}
 	}
 }

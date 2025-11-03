@@ -25,6 +25,7 @@
   "dt_reference_field",
   "dn_reference_field",
   "template",
+  "endpoint",
   "column_break_divo",
   "action_label",
   "add_row_button_label",
@@ -41,9 +42,11 @@
   "list_filters",
   "setup_list_filters",
   "section_break_nzmt",
+  "disable_add_depends_on",
   "disable_edit_depends_on",
   "column_break_zjxl",
   "disable_delete_depends_on",
+  "disable_workflow_depends_on",
   "section_break_gyve",
   "redirect_to_main_form",
   "keep_workflow_enabled_form_submission",
@@ -138,7 +141,7 @@
    "fieldtype": "Select",
    "label": "Template",
    "mandatory_depends_on": "eval:doc.connection_type == \"Is Custom Design\"",
-   "options": "Tasks\nEmail\nTimeline\nGallery\nNotes\nLinked Users\nApproval Request"
+   "options": "Tasks\nEmail\nTimeline\nGallery\nNotes\nLinked Users\nApproval Request\nHTML View From API"
   },
   {
    "depends_on": "eval:doc.connection_type !== \"Is Custom Design\"",
@@ -360,13 +363,37 @@
    "label": "List Filters",
    "max_height": "10rem",
    "read_only": 1
+  },
+  {
+   "depends_on": "eval:[\"HTML View From API\"].includes(doc.template)",
+   "description": "Ex:- module.api.test <br>\nAPI should return HTML string",
+   "fieldname": "endpoint",
+   "fieldtype": "Data",
+   "label": "Endpoint",
+   "mandatory_depends_on": "eval:[\"HTML View From API\"].includes(doc.template)"
+  },
+  {
+   "depends_on": "eval:![\"Report\"].includes(doc.connection_type)",
+   "fieldname": "disable_add_depends_on",
+   "fieldtype": "Code",
+   "label": "Disable Add Depends On (JS)",
+   "max_height": "3rem",
+   "options": "JS"
+  },
+  {
+   "depends_on": "eval:![\"Report\"].includes(doc.connection_type)",
+   "fieldname": "disable_workflow_depends_on",
+   "fieldtype": "Code",
+   "label": "Disable Workflow Depends On (JS)",
+   "max_height": "3rem",
+   "options": "JS"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-08-11 19:16:51.259163",
+ "modified": "2025-11-01 13:00:30.342178",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "SVADatatable Configuration Child",

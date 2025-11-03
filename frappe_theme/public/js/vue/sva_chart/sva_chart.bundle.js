@@ -1,10 +1,10 @@
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 import { store } from "./store.js";
-import App from "./App.vue"; 
+import App from "./App.vue";
 
 class SvaChart {
-	constructor({ wrapper, frm, charts ,signal}) {
+	constructor({ wrapper, frm, charts, signal }) {
 		this.$wrapper = $(wrapper);
 		this.frm = frm;
 		this.charts = charts;
@@ -15,7 +15,7 @@ class SvaChart {
 	init(refresh) {
 		!refresh && this.setup_app();
 	}
-	refresh(){
+	refresh() {
 		this.setup_app();
 	}
 	setup_app() {
@@ -29,13 +29,11 @@ class SvaChart {
 		app.use(pinia);
 
 		// create a store
-		app.provide('store', store);
+		app.provide("store", store);
 
 		// mount the app
-		this.$sva_chart= app.mount(this.$wrapper.get(0));
+		this.$sva_chart = app.mount(this.$wrapper.get(0));
 	}
-
-	
 }
 
 export default SvaChart;

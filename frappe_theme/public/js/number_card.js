@@ -1,287 +1,309 @@
 class SVANumberCard {
-    constructor({
-        wrapper,
-        frm,
-        numberCards = [],
-        filters={},
-        signal=null
-    }) {
-        this.wrapper = wrapper;
-        this.frm = frm;
-        this.numberCards = numberCards;
-        this.filters = filters;
-        this.signal = signal;
+	constructor({ wrapper, frm, numberCards = [], filters = {}, signal = null }) {
+		this.wrapper = wrapper;
+		this.frm = frm;
+		this.numberCards = numberCards;
+		this.filters = filters;
+		this.signal = signal;
 
-        this.sva_db = new SVAHTTP(this.signal);
-        this.cardDataCache = new Map(); // Cache for card data
-        this.linkedFieldsCache = new Map(); // Cache for linked fields
-        this.cardRefreshTimeouts = new Map(); // Track refresh timeouts
-        this.docTypeCache = new Map(); // Cache for document types
-        this.CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache duration
-        this.DEBOUNCE_DELAY = 300; // 300ms debounce delay
+		this.sva_db = new SVAHTTP(this.signal);
+		this.cardDataCache = new Map(); // Cache for card data
+		this.linkedFieldsCache = new Map(); // Cache for linked fields
+		this.cardRefreshTimeouts = new Map(); // Track refresh timeouts
+		this.docTypeCache = new Map(); // Cache for document types
+		this.CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache duration
+		this.DEBOUNCE_DELAY = 300; // 300ms debounce delay
 
-        // Bind methods to preserve context
-        this.debouncedRefresh = this.debounce(this.refresh.bind(this), this.DEBOUNCE_DELAY);
+		// Bind methods to preserve context
+		this.debouncedRefresh = this.debounce(this.refresh.bind(this), this.DEBOUNCE_DELAY);
 
-        // Initialize batch processor for network requests
-        this.batchProcessor = new BatchProcessor(1000); // 1 second batch window
-        // return this.wrapper;
-    }
+		// Initialize batch processor for network requests
+		this.batchProcessor = new BatchProcessor(1000); // 1 second batch window
+		// return this.wrapper;
+	}
 
-    debounce(func, wait) {
-        let timeout;
-        return function executedFunction(...args) {
-            const later = () => {
-                clearTimeout(timeout);
-                func(...args);
-            };
-            clearTimeout(timeout);
-            timeout = setTimeout(later, wait);
-        };
-    }
+	debounce(func, wait) {
+		let timeout;
+		return function executedFunction(...args) {
+			const later = () => {
+				clearTimeout(timeout);
+				func(...args);
+			};
+			clearTimeout(timeout);
+			timeout = setTimeout(later, wait);
+		};
+	}
 
-    async make() {
-        if (!this.wrapper) return;
+	async make() {
+		if (!this.wrapper) return;
 
-        this.wrapper.innerHTML = '';
-        if (!this.numberCards.length) {
-            this.showNoDataState();
-            return;
-        }
+		this.wrapper.innerHTML = "";
+		if (!this.numberCards.length) {
+			this.showNoDataState();
+			return;
+		}
 
-        // Show loading state
-        this.showLoadingState();
+		// Show loading state
+		this.showLoadingState();
 
-        const container = document.createElement('div');
-        container.className = 'sva-cards-container';
+		const container = document.createElement("div");
+		container.className = "sva-cards-container";
 
-        try {
-            const visibleCards = this.numberCards.filter(card => card.is_visible);
-            await this.processCardsInBatches(visibleCards, container);
-            // Remove loading state and append container
-            this.wrapper.innerHTML = '';
-            this.wrapper.appendChild(container);
-        } catch (error) {
-            console.error('Error creating number cards:', error);
-            this.showErrorState();
-        }
+		try {
+			const visibleCards = this.numberCards.filter((card) => card.is_visible);
+			await this.processCardsInBatches(visibleCards, container);
+			// Remove loading state and append container
+			this.wrapper.innerHTML = "";
+			this.wrapper.appendChild(container);
+		} catch (error) {
+			console.error("Error creating number cards:", error);
+			this.showErrorState();
+		}
 
-        this.lazyLoadStyles();
-    }
+		this.lazyLoadStyles();
+	}
 
-    async processCardsInBatches(cards, container) {
-        const batchSize = 3;
-        for (let i = 0; i < cards.length; i += batchSize) {
-            const batch = cards.slice(i, i + batchSize);
-            await Promise.all(batch.map(async cardConfig => {
-                try {
-                    const cardData = await this.getCardDataWithCache(cardConfig.number_card);
-                    if (cardData) {
-                        const card = this.createCard({
-                            cardName: cardConfig.number_card,
-                            title: cardConfig.card_label || cardData.label || cardData.name,
-                            value: cardData.result !== undefined ? cardData.result : '--',
-                            reportName: cardData.report_name,
-                            doctype: cardData.document_type,
-                            filters: cardData.filters_json ? JSON.parse(cardData.filters_json) : {},
-                            info: cardConfig.info || '',
-                            fieldtype: cardData.fieldtype,
-                            options: this.getCardOptions(cardConfig)
-                        });
-                        container.appendChild(card);
-                    } else {
-                        container.appendChild(this.createErrorCard(cardConfig.card_label || cardConfig.number_card));
-                    }
-                } catch (error) {
-                    console.error(`Error creating card ${cardConfig.number_card}:`, error);
-                    container.appendChild(this.createErrorCard(cardConfig.card_label || cardConfig.number_card));
-                }
-            }));
-        }
-    }
+	async processCardsInBatches(cards, container) {
+		const batchSize = 3;
+		for (let i = 0; i < cards.length; i += batchSize) {
+			const batch = cards.slice(i, i + batchSize);
+			await Promise.all(
+				batch.map(async (cardConfig) => {
+					try {
+						const cardData = await this.getCardDataWithCache(cardConfig.number_card);
+						if (cardData) {
+							const card = this.createCard({
+								cardName: cardConfig.number_card,
+								title: cardConfig.card_label || cardData.label || cardData.name,
+								value: cardData.result !== undefined ? cardData.result : "--",
+								reportName: cardData.report_name,
+								doctype: cardData.document_type,
+								filters: cardData.filters_json
+									? JSON.parse(cardData.filters_json)
+									: {},
+								info: cardConfig.info || "",
+								fieldtype: cardData.fieldtype,
+								options: this.getCardOptions(cardConfig),
+							});
+							container.appendChild(card);
+						} else {
+							container.appendChild(
+								this.createErrorCard(
+									cardConfig.card_label || cardConfig.number_card
+								)
+							);
+						}
+					} catch (error) {
+						console.error(`Error creating card ${cardConfig.number_card}:`, error);
+						container.appendChild(
+							this.createErrorCard(cardConfig.card_label || cardConfig.number_card)
+						);
+					}
+				})
+			);
+		}
+	}
 
-    async fetchNumberCardData(cardName) {
-        try {
-            const docResponse = await this.batchProcessor.add(() =>
+	async fetchNumberCardData(cardName) {
+		try {
+			const docResponse = await this.batchProcessor.add(() =>
+				this.sva_db.call({
+					method: "frappe.desk.form.load.getdoc",
+					doctype: "Number Card",
+					name: cardName,
+				})
+			);
 
-                this.sva_db.call({
-                    method: 'frappe.desk.form.load.getdoc',
-                    doctype: "Number Card",
-                    name: cardName
-                })
-            );
+			if (!docResponse.docs?.[0]) {
+				throw new Error("No document found");
+			}
 
-            if (!docResponse.docs?.[0]) {
-                throw new Error('No document found');
-            }
+			const doc = docResponse.docs[0];
+			const filters = await this.prepareFilters(doc);
 
-            const doc = docResponse.docs[0];
-            const filters = await this.prepareFilters(doc);
+			if (doc.report_name) {
+				return await this.handleReportCard(doc);
+			}
 
-            if (doc.report_name) {
-                return await this.handleReportCard(doc);
-            }
+			if (!doc.document_type) {
+				console.error("No document type found for card:", cardName);
+				return null;
+			}
 
-            if (!doc.document_type) {
-                console.error('No document type found for card:', cardName);
-                return null;
-            }
+			const resultResponse = await this.batchProcessor.add(() =>
+				this.sva_db.call({
+					method: "frappe.desk.doctype.number_card.number_card.get_result",
+					card: cardName,
+					doc: this.prepareDocArgs(doc),
+					filters: filters,
+				})
+			);
 
-            const resultResponse = await this.batchProcessor.add(() =>
-                this.sva_db.call({
-                    method: 'frappe.desk.doctype.number_card.number_card.get_result',
-                    card: cardName,
-                    doc: this.prepareDocArgs(doc),
-                    filters: filters,
-                })
-            );
+			return {
+				...doc,
+				result: resultResponse.message,
+			};
+		} catch (error) {
+			console.error("Error fetching number card data:", error, cardName);
+			return null;
+		}
+	}
 
-            return {
-                ...doc,
-                result: resultResponse.message
-            };
-        } catch (error) {
-            console.error('Error fetching number card data:', error, cardName);
-            return null;
-        }
-    }
+	async prepareFilters(doc) {
+		let filters_json =
+			typeof doc.filters_json === "string"
+				? JSON.parse(doc.filters_json)
+				: doc.filters_json || [];
 
-    async prepareFilters(doc) {
-        let filters_json = typeof doc.filters_json === 'string'
-            ? JSON.parse(doc.filters_json)
-            : doc.filters_json || [];
+		let filters = Array.isArray(filters_json)
+			? filters_json
+			: Object.entries(filters_json).map(([key, value]) => [
+					doc.document_type,
+					key,
+					"=",
+					value,
+			  ]);
 
-        let filters = Array.isArray(filters_json) ? filters_json :
-            Object.entries(filters_json).map(([key, value]) => [doc.document_type, key, '=', value]);
+		if (doc.document_type && this.frm.docname) {
+			const linkedFields = await this.getLinkedFieldsWithCache(
+				doc.document_type,
+				this.frm.doctype
+			);
+			if (linkedFields?.field) {
+				const field = linkedFields.field;
+				const fieldname =
+					field.options === "DocType" && linkedFields.final_field
+						? linkedFields.final_field.fieldname
+						: field.fieldname;
+				filters.push([doc.document_type, fieldname, "=", this.frm.docname]);
+			}
+		}
 
-        if (doc.document_type && this.frm.docname) {
-            const linkedFields = await this.getLinkedFieldsWithCache(doc.document_type, this.frm.doctype);
-            if (linkedFields?.field) {
-                const field = linkedFields.field;
-                const fieldname = field.options === 'DocType' && linkedFields.final_field
-                    ? linkedFields.final_field.fieldname
-                    : field.fieldname;
-                filters.push([doc.document_type, fieldname, '=', this.frm.docname]);
-            }
-        }
+		return filters;
+	}
 
-        return filters;
-    }
+	async handleReportCard(doc) {
+		try {
+			const reportDoc = await this.batchProcessor.add(() =>
+				this.sva_db.get_doc("Report", doc.report_name)
+			);
 
-    async handleReportCard(doc) {
-        try {
-            const reportDoc = await this.batchProcessor.add(() =>
-                this.sva_db.get_doc('Report', doc.report_name)
-            );
+			if (!reportDoc) return null;
 
-            if (!reportDoc) return null;
+			doc.document_type = reportDoc.ref_doctype;
+			const json_filters = this.prepareReportFilters(reportDoc);
 
-            doc.document_type = reportDoc.ref_doctype;
-            const json_filters = this.prepareReportFilters(reportDoc);
+			const response = await this.batchProcessor.add(() =>
+				this.sva_db.call({
+					method: "frappe_theme.api.execute_number_card_query",
+					report_name: doc.report_name,
+					filters: json_filters,
+				})
+			);
 
-            const response = await this.batchProcessor.add(() =>
-                this.sva_db.call({
-                    method: "frappe_theme.api.execute_number_card_query",
-                    report_name: doc.report_name,
-                    filters: json_filters
-                })
-            );
+			if (response?.message?.result?.[0] && doc.report_field) {
+				const fieldValue = response.message.result[0][doc.report_field];
+				const fieldType = response.message.column_types?.[doc.report_field];
 
-            if (response?.message?.result?.[0] && doc.report_field) {
-                const fieldValue = response.message.result[0][doc.report_field];
-                const fieldType = response.message.column_types?.[doc.report_field];
+				return {
+					...doc,
+					result: fieldValue,
+					fieldtype: fieldType?.toLowerCase().includes("decimal") ? "Currency" : null,
+				};
+			}
+			return null;
+		} catch (error) {
+			console.error("Error handling report card:", error);
+			return null;
+		}
+	}
 
-                return {
-                    ...doc,
-                    result: fieldValue,
-                    fieldtype: fieldType?.toLowerCase().includes('decimal') ? 'Currency' : null
-                };
-            }
-            return null;
-        } catch (error) {
-            console.error('Error handling report card:', error);
-            return null;
-        }
-    }
+	prepareReportFilters(reportDoc) {
+		const reportFilters = reportDoc.filters || [];
+		const whereConditions = [];
 
-    prepareReportFilters(reportDoc) {
-        const reportFilters = reportDoc.filters || [];
-        const whereConditions = [];
+		reportFilters.forEach((filter) => {
+			if (filter.fieldname === this.frm.doctype.toLowerCase()) {
+				whereConditions.push(`${filter.fieldname} = '${this.frm.docname}'`);
+			} else if (filter.default) {
+				whereConditions.push(
+					`${filter.fieldname} = ${
+						typeof filter.default === "string" ? `'${filter.default}'` : filter.default
+					}`
+				);
+			} else if (this.frm.doc?.[filter.fieldname] !== undefined) {
+				const value = this.frm.doc[filter.fieldname];
+				whereConditions.push(
+					`${filter.fieldname} = ${typeof value === "string" ? `'${value}'` : value}`
+				);
+			}
+		});
 
-        reportFilters.forEach(filter => {
-            if (filter.fieldname === this.frm.doctype.toLowerCase()) {
-                whereConditions.push(`${filter.fieldname} = '${this.frm.docname}'`);
-            } else if (filter.default) {
-                whereConditions.push(
-                    `${filter.fieldname} = ${typeof filter.default === 'string' ? `'${filter.default}'` : filter.default}`
-                );
-            } else if (this.frm.doc?.[filter.fieldname] !== undefined) {
-                const value = this.frm.doc[filter.fieldname];
-                whereConditions.push(
-                    `${filter.fieldname} = ${typeof value === 'string' ? `'${value}'` : value}`
-                );
-            }
-        });
+		return whereConditions.reduce((acc, condition) => {
+			const matches = condition.match(/([^=]+)\s*=\s*(.+)/);
+			if (matches) {
+				const [_, field, value] = matches;
+				acc[field.trim()] = value.trim().replace(/^['"]+|['"]+$/g, "");
+			}
+			return acc;
+		}, {});
+	}
 
-        return whereConditions.reduce((acc, condition) => {
-            const matches = condition.match(/([^=]+)\s*=\s*(.+)/);
-            if (matches) {
-                const [_, field, value] = matches;
-                acc[field.trim()] = value.trim().replace(/^['"]+|['"]+$/g, '');
-            }
-            return acc;
-        }, {});
-    }
+	prepareDocArgs(doc) {
+		return {
+			name: doc.name,
+			document_type: doc.document_type,
+			label: doc.label,
+			function: doc.function,
+			aggregate_function_based_on: doc.aggregate_function_based_on,
+			filters_json: doc.filters_json,
+			is_standard: doc.is_standard,
+			parent_document_type: doc.parent_document_type,
+			report_name: doc.report_name,
+			report_field: doc.report_field,
+			type: doc.type,
+		};
+	}
 
-    prepareDocArgs(doc) {
-        return {
-            name: doc.name,
-            document_type: doc.document_type,
-            label: doc.label,
-            function: doc.function,
-            aggregate_function_based_on: doc.aggregate_function_based_on,
-            filters_json: doc.filters_json,
-            is_standard: doc.is_standard,
-            parent_document_type: doc.parent_document_type,
-            report_name: doc.report_name,
-            report_field: doc.report_field,
-            type: doc.type
-        };
-    }
+	getCardOptions(cardConfig) {
+		return {
+			icon: cardConfig.icon_value,
+			subtitle: cardConfig.document_type,
+			backgroundColor: cardConfig.background_color,
+			textColor: cardConfig.text_color,
+			valueColor: cardConfig.value_color,
+			iconColor: cardConfig.icon_color,
+		};
+	}
 
-    getCardOptions(cardConfig) {
-        return {
-            icon: cardConfig.icon_value,
-            subtitle: cardConfig.document_type,
-            backgroundColor: cardConfig.background_color,
-            textColor: cardConfig.text_color,
-            valueColor: cardConfig.value_color,
-            iconColor: cardConfig.icon_color
-        };
-    }
+	createCard(config) {
+		const card = document.createElement("div");
+		card.className = "number-card";
+		card.innerHTML = this.getCardTemplate(config);
+		this.attachCardEventHandlers(card, config);
+		return card;
+	}
 
-    createCard(config) {
-        const card = document.createElement('div');
-        card.className = 'number-card';
-        card.innerHTML = this.getCardTemplate(config);
-        this.attachCardEventHandlers(card, config);
-        return card;
-    }
+	getCardTemplate(config) {
+		const options = this.getCardOptions(config);
+		const containerStyle = options.backgroundColor
+			? `background-color: ${options.backgroundColor}`
+			: "";
+		const titleStyle = options.textColor ? `color: ${options.textColor}` : "";
+		const valueStyle = options.valueColor ? `color: ${options.valueColor}` : "";
+		const iconHtml = options.icon ? this.getIconHTML(options) : "";
+		const infoHtml = config.info ? this.getInfoHTML(config.info) : "";
 
-    getCardTemplate(config) {
-        const options = this.getCardOptions(config);
-        const containerStyle = options.backgroundColor ? `background-color: ${options.backgroundColor}` : '';
-        const titleStyle = options.textColor ? `color: ${options.textColor}` : '';
-        const valueStyle = options.valueColor ? `color: ${options.valueColor}` : '';
-        const iconHtml = options.icon ? this.getIconHTML(options) : '';
-        const infoHtml = config.info ? this.getInfoHTML(config.info) : '';
-
-        return `
-            <div class="number-card-container" ${containerStyle ? `style="${containerStyle}"` : ''}>
+		return `
+            <div class="number-card-container" ${
+				containerStyle ? `style="${containerStyle}"` : ""
+			}>
                 <div class="number-card-content">
                     <div class="number-card-header">
                         <div class="number-card-title-section">
-                            <h3 class="number-card-title" ${titleStyle ? `style="${titleStyle}"` : ''}>${config.title || ''}</h3>
+                            <h3 class="number-card-title" ${
+								titleStyle ? `style="${titleStyle}"` : ""
+							}>${config.title || ""}</h3>
                             ${infoHtml}
                         </div>
                         <div class="number-card-actions">
@@ -298,7 +320,9 @@ class SVANumberCard {
                         </div>
                     </div>
                     <div class="number-card-main">
-                        <div class="number-card-value" ${valueStyle ? `style="${valueStyle}"` : ''}>
+                        <div class="number-card-value" ${
+							valueStyle ? `style="${valueStyle}"` : ""
+						}>
                             ${this.formatValue(config.value, config.fieldtype)}
                         </div>
                         ${iconHtml}
@@ -306,27 +330,29 @@ class SVANumberCard {
                 </div>
             </div>
         `;
-    }
+	}
 
-    getIconHTML(options) {
-        return `
-            <div class="number-card-icon" ${options.iconColor ? `style="background-color: ${options.iconColor}"` : ''}>
+	getIconHTML(options) {
+		return `
+            <div class="number-card-icon" ${
+				options.iconColor ? `style="background-color: ${options.iconColor}"` : ""
+			}>
                 <i class="${options.icon}"></i>
             </div>
         `;
-    }
+	}
 
-    getInfoHTML(info) {
-        return `
+	getInfoHTML(info) {
+		return `
             <div class="number-card-info">
                 <i class="fa fa-info-circle"></i>
                 <div class="number-card-tooltip">${frappe.utils.escape_html(info)}</div>
             </div>
         `;
-    }
+	}
 
-    createErrorCard(cardName) {
-        return `
+	createErrorCard(cardName) {
+		return `
             <div class="number-card">
                 <div class="number-card-container error">
                     <div class="number-card-content">
@@ -341,171 +367,179 @@ class SVANumberCard {
                 </div>
             </div>
         `;
-    }
+	}
 
-    formatValue(value, fieldtype) {
-        if (value === undefined || value === null || value === '--') return '--';
+	formatValue(value, fieldtype) {
+		if (value === undefined || value === null || value === "--") return "--";
 
-        if (typeof value === 'number') {
-            const absValue = Math.abs(value);
+		if (typeof value === "number") {
+			const absValue = Math.abs(value);
 
-            if (fieldtype === 'Currency') {
-                return format_currency(value, frappe.defaults.get_default("currency"));
-            }
+			if (fieldtype === "Currency") {
+				return format_currency(value, frappe.defaults.get_default("currency"));
+			}
 
-            if (absValue >= 10000000) {
-                return `${(value / 10000000).toFixed(2)} Cr`;
-            } else if (absValue >= 100000) {
-                return `${(value / 100000).toFixed(2)} L`;
-            } else if (absValue >= 1000) {
-                return `${(value / 1000).toFixed(2)} K`;
-            }
+			if (absValue >= 10000000) {
+				return `${(value / 10000000).toFixed(2)} Cr`;
+			} else if (absValue >= 100000) {
+				return `${(value / 100000).toFixed(2)} L`;
+			} else if (absValue >= 1000) {
+				return `${(value / 1000).toFixed(2)} K`;
+			}
 
-            return value % 1 !== 0 ? value.toFixed(2) : value.toString();
-        }
-        return value;
-    }
+			return value % 1 !== 0 ? value.toFixed(2) : value.toString();
+		}
+		return value;
+	}
 
-    attachCardEventHandlers(card, config) {
-        const menuBtn = card.querySelector('.number-card-menu-btn');
-        const menuDropdown = card.querySelector('.number-card-menu-dropdown');
-        const refreshBtn = card.querySelector('.refresh-card');
+	attachCardEventHandlers(card, config) {
+		const menuBtn = card.querySelector(".number-card-menu-btn");
+		const menuDropdown = card.querySelector(".number-card-menu-dropdown");
+		const refreshBtn = card.querySelector(".refresh-card");
 
-        document.addEventListener('click', (e) => {
-            if (!menuBtn.contains(e.target)) {
-                menuDropdown.classList.remove('show');
-            }
-        }, { passive: true });
+		document.addEventListener(
+			"click",
+			(e) => {
+				if (!menuBtn.contains(e.target)) {
+					menuDropdown.classList.remove("show");
+				}
+			},
+			{ passive: true }
+		);
 
-        menuBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            menuDropdown.classList.toggle('show');
-        }, { passive: true });
+		menuBtn.addEventListener(
+			"click",
+			(e) => {
+				e.stopPropagation();
+				menuDropdown.classList.toggle("show");
+			},
+			{ passive: true }
+		);
 
-        refreshBtn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            menuDropdown.classList.remove('show');
-            await this.handleCardRefresh(card, config);
-        });
-    }
+		refreshBtn.addEventListener("click", async (e) => {
+			e.stopPropagation();
+			menuDropdown.classList.remove("show");
+			await this.handleCardRefresh(card, config);
+		});
+	}
 
-    async handleCardRefresh(card, config) {
-        const cardContainer = card.querySelector('.number-card-container');
-        cardContainer.style.opacity = '0.5';
-        cardContainer.style.pointerEvents = 'none';
+	async handleCardRefresh(card, config) {
+		const cardContainer = card.querySelector(".number-card-container");
+		cardContainer.style.opacity = "0.5";
+		cardContainer.style.pointerEvents = "none";
 
-        try {
-            this.cardDataCache.delete(config.cardName);
-            const cardData = await this.fetchNumberCardData(config.cardName);
-            if (cardData) {
-                const valueElement = card.querySelector('.number-card-value');
-                valueElement.textContent = this.formatValue(cardData.result, cardData.fieldtype);
-            }
-        } catch (error) {
-            console.error('Error refreshing card:', error);
-            frappe.show_alert({
-                message: __('Error refreshing card'),
-                indicator: 'red'
-            });
-        } finally {
-            cardContainer.style.opacity = '';
-            cardContainer.style.pointerEvents = '';
-        }
-    }
+		try {
+			this.cardDataCache.delete(config.cardName);
+			const cardData = await this.fetchNumberCardData(config.cardName);
+			if (cardData) {
+				const valueElement = card.querySelector(".number-card-value");
+				valueElement.textContent = this.formatValue(cardData.result, cardData.fieldtype);
+			}
+		} catch (error) {
+			console.error("Error refreshing card:", error);
+			frappe.show_alert({
+				message: __("Error refreshing card"),
+				indicator: "red",
+			});
+		} finally {
+			cardContainer.style.opacity = "";
+			cardContainer.style.pointerEvents = "";
+		}
+	}
 
-    async getCardDataWithCache(cardName) {
-        const cachedData = this.cardDataCache.get(cardName);
-        if (cachedData && Date.now() - cachedData.timestamp < this.CACHE_DURATION) {
-            return cachedData.data;
-        }
+	async getCardDataWithCache(cardName) {
+		const cachedData = this.cardDataCache.get(cardName);
+		if (cachedData && Date.now() - cachedData.timestamp < this.CACHE_DURATION) {
+			return cachedData.data;
+		}
 
-        const data = await this.batchProcessor.add(() => this.fetchNumberCardData(cardName));
-        if (data) {
-            this.cardDataCache.set(cardName, {
-                data,
-                timestamp: Date.now()
-            });
-        }
-        return data;
-    }
+		const data = await this.batchProcessor.add(() => this.fetchNumberCardData(cardName));
+		if (data) {
+			this.cardDataCache.set(cardName, {
+				data,
+				timestamp: Date.now(),
+			});
+		}
+		return data;
+	}
 
-    async getLinkedFieldsWithCache(docType, frmDoctype) {
-        const cacheKey = `${docType}-${frmDoctype}`;
-        const cachedFields = this.linkedFieldsCache.get(cacheKey);
-        if (cachedFields && Date.now() - cachedFields.timestamp < this.CACHE_DURATION) {
-            return cachedFields.data;
-        }
+	async getLinkedFieldsWithCache(docType, frmDoctype) {
+		const cacheKey = `${docType}-${frmDoctype}`;
+		const cachedFields = this.linkedFieldsCache.get(cacheKey);
+		if (cachedFields && Date.now() - cachedFields.timestamp < this.CACHE_DURATION) {
+			return cachedFields.data;
+		}
 
-        try {
-            const result = await this.sva_db.call({
-                method: 'frappe_theme.api.get_linked_doctype_fields',
-                doc_type: docType,
-                frm_doctype: frmDoctype
-            });
+		try {
+			const result = await this.sva_db.call({
+				method: "frappe_theme.api.get_linked_doctype_fields",
+				doc_type: docType,
+				frm_doctype: frmDoctype,
+			});
 
-            if (result?.message) {
-                this.linkedFieldsCache.set(cacheKey, {
-                    data: result.message,
-                    timestamp: Date.now()
-                });
-                return result.message;
-            }
-        } catch (error) {
-            console.error('Error getting linked fields:', error);
-        }
-        return null;
-    }
+			if (result?.message) {
+				this.linkedFieldsCache.set(cacheKey, {
+					data: result.message,
+					timestamp: Date.now(),
+				});
+				return result.message;
+			}
+		} catch (error) {
+			console.error("Error getting linked fields:", error);
+		}
+		return null;
+	}
 
-    showNoDataState() {
-        this.wrapper.innerHTML = `
+	showNoDataState() {
+		this.wrapper.innerHTML = `
             <div class="no-data">
                 <i class="fa fa-info-circle fa-2x mb-2"></i>
                 <div>No cards available</div>
             </div>
         `;
-    }
+	}
 
-    showErrorState() {
-        this.wrapper.innerHTML = `
+	showErrorState() {
+		this.wrapper.innerHTML = `
             <div class="no-data">
                 <i class="fa fa-exclamation-circle fa-2x mb-2 text-danger"></i>
                 <div class="text-danger">Error loading cards</div>
             </div>
         `;
-    }
+	}
 
-    refresh(newCards) {
-        this.numberCards = newCards || this.numberCards;
-        this.cardDataCache.clear(); // Clear cache on refresh
-        this.make();
-    }
+	refresh(newCards) {
+		this.numberCards = newCards || this.numberCards;
+		this.cardDataCache.clear(); // Clear cache on refresh
+		this.make();
+	}
 
-    lazyLoadStyles() {
-        if (!document.getElementById('sva-number-card-styles')) {
-            const styleSheet = document.createElement('style');
-            styleSheet.id = 'sva-number-card-styles';
-            styleSheet.textContent = this.getStyles();
-            document.head.appendChild(styleSheet);
-        }
-    }
+	lazyLoadStyles() {
+		if (!document.getElementById("sva-number-card-styles")) {
+			const styleSheet = document.createElement("style");
+			styleSheet.id = "sva-number-card-styles";
+			styleSheet.textContent = this.getStyles();
+			document.head.appendChild(styleSheet);
+		}
+	}
 
-    showLoadingState() {
-        const loadingContainer = document.createElement('div');
-        loadingContainer.className = 'sva-cards-loading-container';
+	showLoadingState() {
+		const loadingContainer = document.createElement("div");
+		loadingContainer.className = "sva-cards-loading-container";
 
-        // Create skeleton cards
-        for (let i = 0; i < Math.min(this.numberCards.length, 3); i++) {
-            const skeletonCard = this.createSkeletonCard();
-            loadingContainer.appendChild(skeletonCard);
-        }
+		// Create skeleton cards
+		for (let i = 0; i < Math.min(this.numberCards.length, 3); i++) {
+			const skeletonCard = this.createSkeletonCard();
+			loadingContainer.appendChild(skeletonCard);
+		}
 
-        this.wrapper.appendChild(loadingContainer);
-    }
+		this.wrapper.appendChild(loadingContainer);
+	}
 
-    createSkeletonCard() {
-        const card = document.createElement('div');
-        card.className = 'number-card skeleton-card';
-        card.innerHTML = `
+	createSkeletonCard() {
+		const card = document.createElement("div");
+		card.className = "number-card skeleton-card";
+		card.innerHTML = `
             <div class="number-card-container">
                 <div class="number-card-content">
                     <div class="number-card-header">
@@ -518,11 +552,11 @@ class SVANumberCard {
                 </div>
             </div>
         `;
-        return card;
-    }
+		return card;
+	}
 
-    getStyles() {
-        return `
+	getStyles() {
+		return `
             @keyframes shimmer {
                 0% {
                     background-position: -1000px 0;
@@ -814,41 +848,41 @@ class SVANumberCard {
                 }
             }
         `;
-    }
+	}
 }
 
 // Batch processor for network requests
 class BatchProcessor {
-    constructor(batchWindow) {
-        this.batchWindow = batchWindow;
-        this.currentBatch = [];
-        this.batchPromise = null;
-        this.batchTimeout = null;
-    }
+	constructor(batchWindow) {
+		this.batchWindow = batchWindow;
+		this.currentBatch = [];
+		this.batchPromise = null;
+		this.batchTimeout = null;
+	}
 
-    add(request) {
-        if (!this.batchPromise) {
-            this.batchPromise = new Promise((resolve) => {
-                this.batchTimeout = setTimeout(() => {
-                    this.processBatch().then(resolve);
-                }, this.batchWindow);
-            });
-        }
+	add(request) {
+		if (!this.batchPromise) {
+			this.batchPromise = new Promise((resolve) => {
+				this.batchTimeout = setTimeout(() => {
+					this.processBatch().then(resolve);
+				}, this.batchWindow);
+			});
+		}
 
-        const requestPromise = new Promise((resolve) => {
-            this.currentBatch.push({ request, resolve });
-        });
+		const requestPromise = new Promise((resolve) => {
+			this.currentBatch.push({ request, resolve });
+		});
 
-        return requestPromise;
-    }
+		return requestPromise;
+	}
 
-    async processBatch() {
-        clearTimeout(this.batchTimeout);
-        const batch = this.currentBatch;
-        this.currentBatch = [];
-        this.batchPromise = null;
+	async processBatch() {
+		clearTimeout(this.batchTimeout);
+		const batch = this.currentBatch;
+		this.currentBatch = [];
+		this.batchPromise = null;
 
-        const results = await Promise.all(batch.map(({ request }) => request()));
-        batch.forEach(({ resolve }, index) => resolve(results[index]));
-    }
+		const results = await Promise.all(batch.map(({ request }) => request()));
+		batch.forEach(({ resolve }, index) => resolve(results[index]));
+	}
 }
