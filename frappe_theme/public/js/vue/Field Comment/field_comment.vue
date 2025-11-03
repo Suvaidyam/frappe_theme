@@ -1,11 +1,9 @@
 <template>
-    <div>
-        <h1>Field Comment</h1>
-    </div>
+	<div>
+		<h1>Field Comment</h1>
+	</div>
 </template>
 
-
-<script>
-</script>
+<script></script>
 
 <style scoped></style>

@@ -176,7 +176,7 @@ class DTConf:
 	def doc_type_list(
 		doctype, filters=None, fields=None, limit_page_length=None, order_by=None, limit_start=None
 	):
-		if filters is not None and not isinstance(filters, (dict, list)):
+		if filters is not None and not isinstance(filters, (dict | list)):
 			filters = {}
 		return frappe.get_list(
 			doctype,
@@ -209,7 +209,7 @@ class DTConf:
 			result = read_sql(final_sql, as_dict=1)
 			return result[0].get("count")
 		else:
-			if filters is not None and not isinstance(filters, (dict, list)):
+			if filters is not None and not isinstance(filters, (dict | list)):
 				filters = {}
 			cleaned_filters = [item[:-1] if item and item[-1] is False else item for item in filters]
 			return frappe.db.count(doctype, filters=cleaned_filters)
@@ -320,14 +320,14 @@ class DTConf:
 			doctype, field, operator, value = f[:4]
 			field_name = f"{table_alias}.{field}"
 
-			if operator.lower() == "between" and isinstance(value, (list, tuple)) and len(value) == 2:
+			if operator.lower() == "between" and isinstance(value, (list | tuple)) and len(value) == 2:
 				condition = f"{field_name} BETWEEN '{value[0]}' AND '{value[1]}'"
 			elif operator.lower() == "like":
 				condition = f"{field_name} LIKE '{value}'"
-			elif operator.lower() == "in" and isinstance(value, (list, tuple)):
+			elif operator.lower() == "in" and isinstance(value, (list | tuple)):
 				in_values = ", ".join(f"'{v}'" for v in value)
 				condition = f"{field_name} IN ({in_values})"
-			elif operator.lower() == "not in" and isinstance(value, (list, tuple)):
+			elif operator.lower() == "not in" and isinstance(value, (list | tuple)):
 				not_in_values = ", ".join(f"'{v}'" for v in value)
 				condition = f"{field_name} NOT IN ({not_in_values})"
 			elif operator.lower() == "is":

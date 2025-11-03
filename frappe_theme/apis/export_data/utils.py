@@ -2,7 +2,6 @@ import json
 
 import frappe
 
-
 # Constants
 EXCLUDED_FIELDTYPES = ["Column Break", "Section Break", "Tab Break", "Icon", "HTML", "Button"]
 TABLE_FIELDTYPES = ["Table", "Table MultiSelect"]
