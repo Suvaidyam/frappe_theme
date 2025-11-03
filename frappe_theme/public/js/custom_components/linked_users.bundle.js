@@ -51,6 +51,7 @@ class SVALinkedUser {
                         <th class="static-area ellipsis" style="color:#525252; font-size: 13px;">Full Name</th>
                         <th class="static-area ellipsis" style="color:#525252; font-size: 13px;">Role Profile</th>
                         <th class="static-area ellipsis" style="color:#525252; font-size: 13px;">Email</th>
+                        <th class="static-area ellipsis" style="color:#525252; font-size: 13px;">Phone Number</th>
                         <th class="static-area ellipsis" style="color:#525252; font-size: 13px;">Status</th>
                         ${
 							canWrite || canDelete
@@ -86,6 +87,7 @@ class SVALinkedUser {
                                 <td class="col grid-static-col col-xs-3 ">${user.full_name}</td>
                                 <td style="white-space: nowrap;"> ${user.role_profile}</td>
                                 <td style="white-space: nowrap;">${user.email}</td>
+                                <td style="white-space: nowrap;">${user.mobile_number || ""}</td>
                                 <td style="padding: 5px 8px !important;">
                                     <div class="dropdown" style="width: 100px; height: 26px; border-radius: 4px; background-color: #F1F1F1; color: #0E1116; font-weight: 400; font-size: 14px; line-height: 15.4px; letter-spacing: 0.25%; display: flex; align-items: center; justify-content: center; gap: 4px">
                                     ${
