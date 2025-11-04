@@ -27,7 +27,7 @@ jobs:
     if: github.event_name == 'pull_request'
     steps:
       - name: Check PR labels
-        uses: docker://agilepathway/pull-request-label-checker:v1.6.0
+        uses: docker://agilepathway/pull-request-label-checker:latest
         with:
           any_of: fix,feat,chore,refactor,test,docs,ci,perf,style,breaking,dependencies
           repo_token: ${{ secrets.GITHUB_TOKEN }}
@@ -71,18 +71,27 @@ jobs:
     name: Semgrep security scan
     runs-on: ubuntu-latest
     continue-on-error: true
-    container:
-      image: returntocorp/semgrep
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Run Semgrep
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Semgrep
+        run: pip install semgrep
+
+      - name: Download Frappe Semgrep rules
+        run: git clone --depth 1 https://github.com/frappe/semgrep-rules.git frappe-semgrep-rules
+
+      - name: Run Semgrep with Frappe rules
         run: |
           echo "=================================================="
-          echo "Running Semgrep security scan..."
+          echo "Running Semgrep security scan with Frappe rules..."
           echo "=================================================="
-          semgrep scan --config auto --error --sarif > semgrep.sarif || true
+          semgrep ci --config ./frappe-semgrep-rules/rules --config r/python.lang.correctness --sarif > semgrep.sarif || true
           echo "✓ Semgrep scan completed"
 
       - name: Upload SARIF file
@@ -91,11 +100,43 @@ jobs:
           sarif_file: semgrep.sarif
         if: always()
 
+  dependency-security:
+    name: Vulnerable dependency check
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/*requirements.txt', '**/pyproject.toml', '**/setup.py') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+            ${{ runner.os }}-
+
+      - name: Install and run pip-audit
+        run: |
+          echo "=================================================="
+          echo "Running pip-audit for vulnerable dependencies..."
+          echo "=================================================="
+          pip install pip-audit
+          cd ${GITHUB_WORKSPACE}
+          pip-audit --desc on .
+          echo "✓ Dependency security check completed"
+
   frappe-tests:
     name: Frappe unit tests
     runs-on: ubuntu-latest
     if: always()
-    needs: [pre-commit, semgrep, label-check]
+    needs: [pre-commit, semgrep, dependency-security, label-check]
     services:
       mariadb:
         image: mariadb:10.6
@@ -153,12 +194,12 @@ jobs:
           bench init --frappe-branch "${{ env.FRAPPE_BRANCH }}" --skip-assets --skip-redis-config-generation --python "python${{ env.PYTHON_VERSION }}" ci-bench
           echo "✓ Bench initialized successfully"
 
-      - name: Configure esbuild target globally
-        working-directory: ci-bench
-        run: |
-          echo "Setting esbuild target to es2022 for modern JS support..."
-          bench set-config -g esbuild_target "es2022"
-          echo "✓ esbuild_target configured"
+      # - name: Configure esbuild target globally
+      #   working-directory: ci-bench
+      #   run: |
+      #     echo "Setting esbuild target to es2022 for modern JS support..."
+      #     bench set-config -g esbuild_target "es2022"
+      #     echo "✓ esbuild_target configured"
 
       - name: Add app to bench
         working-directory: ci-bench
