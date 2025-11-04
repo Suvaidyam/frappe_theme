@@ -5,8 +5,8 @@ frappe.ui.form.on("Contact Us", {
 	// refresh(frm) {
 
 	// },
-    after_save: function(frm) {
-        let prev_route = frappe.get_prev_route();
-        frappe.set_route(prev_route);
-    }
+	after_save: function (frm) {
+		let prev_route = frappe.get_prev_route();
+		frappe.set_route(prev_route);
+	},
 });
