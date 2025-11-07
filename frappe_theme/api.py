@@ -821,7 +821,10 @@ def get_usr_type_roll():
 		else:
 			user_roll = frappe.db.get_value("User Role Profile", {"parent": frappe.session.user}, "role_profile")
 		try:
-			user_type = frappe.db.get_value("Role Profile", user_roll, "custom_belongs_to")
+			if user_roll:
+				user_type = frappe.db.get_value("Role Profile", user_roll, "custom_belongs_to")
+			else:
+				user_type = ''
 		except Exception as e:
 			frappe.log_error(f"Error in load_field_comments: {str(e)}")
 		return user_type
