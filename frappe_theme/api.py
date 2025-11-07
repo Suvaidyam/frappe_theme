@@ -814,9 +814,18 @@ def create_new_comment_thread(doctype_name, docname, field_name, field_label):
 def load_field_comments(doctype_name, docname, field_name):
 	"""Load all comment threads for a specific field"""
 	try:
+		user_roll = ''
+		user_type = ''
 		# Get all parent comment documents for the field
-		user_roll = frappe.db.get_value("SVA User", {"email": frappe.session.user}, "role_profile")
-		user_type = frappe.db.get_value("Role Profile", user_roll, "custom_belongs_to")
+		sva_usr_exists = frappe.db.exists("SVA User", {"email": frappe.session.user})
+		if sva_usr_exists:
+			user_roll = frappe.db.get_value("SVA User", {"email": frappe.session.user}, "role_profile")
+		else:
+			user_roll = frappe.db.get_value("User Role Profile", {"parent": frappe.session.user}, "role_profile")
+		try:
+			user_type = frappe.db.get_value("Role Profile", user_roll, "custom_belongs_to")
+		except Exception as e:
+			frappe.log_error(f"Error in load_field_comments: {str(e)}")
 		comment_docs = frappe.get_all(
 			"DocType Field Comment",
 			filters={"doctype_name": doctype_name, "docname": docname, "field_name": field_name},
@@ -861,8 +870,18 @@ def load_all_comments(doctype_name, docname):
 	"""Load all comments for a document"""
 	try:
 		# Get all parent comment documents for the document
-		user_roll = frappe.db.get_value("SVA User", {"email": frappe.session.user}, "role_profile")
-		user_type = frappe.db.get_value("Role Profile", user_roll, "custom_belongs_to")
+		user_roll = ''
+		user_type = ''
+		# Get all parent comment documents for the field
+		sva_usr_exists = frappe.db.exists("SVA User", {"email": frappe.session.user})
+		if sva_usr_exists:
+			user_roll = frappe.db.get_value("SVA User", {"email": frappe.session.user}, "role_profile")
+		else:
+			user_roll = frappe.db.get_value("User Role Profile", {"parent": frappe.session.user}, "role_profile")
+		try:
+			user_type = frappe.db.get_value("Role Profile", user_roll, "custom_belongs_to")
+		except Exception as e:
+			frappe.log_error(f"Error in load_all_comments: {str(e)}")
 		comment_docs = frappe.get_all(
 			"DocType Field Comment",
 			filters={"doctype_name": doctype_name, "docname": docname},
@@ -912,9 +931,18 @@ def get_all_field_comment_counts(doctype_name, docname):
 	"""Get comment counts for all fields in a document in a single call"""
 	try:
 		# Get user type for filtering
-		user_roll = frappe.db.get_value("SVA User", {"email": frappe.session.user}, "role_profile")
-		user_type = frappe.db.get_value("Role Profile", user_roll, "custom_belongs_to")
-
+		user_roll = ''
+		user_type = ''
+		# Get all parent comment documents for the field
+		sva_usr_exists = frappe.db.exists("SVA User", {"email": frappe.session.user})
+		if sva_usr_exists:
+			user_roll = frappe.db.get_value("SVA User", {"email": frappe.session.user}, "role_profile")
+		else:
+			user_roll = frappe.db.get_value("User Role Profile", {"parent": frappe.session.user}, "role_profile")
+		try:
+			user_type = frappe.db.get_value("Role Profile", user_roll, "custom_belongs_to")
+		except Exception as e:
+			frappe.log_error(f"Error in get_all_field_comment_counts: {str(e)}")
 		# Get all parent comment documents for the document
 		comment_docs = frappe.get_all(
 			"DocType Field Comment",
@@ -926,7 +954,6 @@ def get_all_field_comment_counts(doctype_name, docname):
 			fields=["name", "field_name"],
 			ignore_permissions=True,
 		)
-
 		if not comment_docs:
 			return {}
 
