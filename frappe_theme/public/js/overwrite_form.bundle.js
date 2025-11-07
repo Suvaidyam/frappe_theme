@@ -6,13 +6,13 @@ if (frappe.ui?.FileUploader) {
 			// Call parent constructor with modified options
 
 			/* Other available flags
-            make_attachments_public,
-            allow_web_link,
-            allow_take_photo,
-            allow_toggle_private,
-            allow_toggle_optimize,
+			make_attachments_public,
+			allow_web_link,
+			allow_take_photo,
+			allow_toggle_private,
+			allow_toggle_optimize,
 
-            */
+			*/
 			super(options);
 		}
 	};
@@ -28,6 +28,7 @@ import SVANotesManager from "./custom_components/note.bundle.js";
 import SVAmGrantTask from "./custom_components/task.bundle.js";
 import SVATimelineGenerator from "./custom_components/timeline.bundle.js";
 import CustomApprovalRequest from "./custom_components/approval_request/approval_request.bundle.js";
+import CustomDynamicHtml from "./custom_components/dynamic_html/dynamic_html.bundle.js";
 
 frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 	constructor(...args) {
@@ -118,14 +119,14 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 	}
 	async custom_refresh(frm) {
 		try {
-			frm.page.add_menu_item(__("Export Excel"),() => {
-				try {
-					let url = `/api/method/frappe_theme.apis.export_json.export_excel?doctype=${frm.doctype}&docname=${frm.docname}`;
-					window.open(url);
-				} catch (e) {
-					console.error(e);
-				}
-			});
+			// frm.page.add_menu_item(__("Export Excel"), () => {
+			// 	try {
+			// 		let url = `/api/method/frappe_theme.apis.export_json.export_excel?doctype=${frm.doctype}&docname=${frm.docname}`;
+			// 		window.open(url);
+			// 	} catch (e) {
+			// 		console.error(e);
+			// 	}
+			// });
 			setupFieldComments(frm);
 			this.goToCommentButton(frm);
 			if (frm.doctype == "DocType") {
@@ -572,7 +573,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 	}
 
 	async processDataTables(dtFields, frm, dts, signal) {
-		this.sva_tables = {};
+		// this.sva_tables = {};
 		for (const field of dtFields) {
 			try {
 				if (signal.aborted) break;
@@ -616,7 +617,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 		element?.querySelector("#form-not-saved")?.remove();
 
 		if (field?.connection_type === "Is Custom Design") {
-			await this.renderCustomComponent(frm, field.html_field, field.template, signal);
+			await this.renderCustomComponent(frm, field.html_field, field.template, field, signal);
 		} else {
 			await this.initializeSvaDataTable(field, frm, dts, signal);
 		}
@@ -631,6 +632,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			Notes: SVANotesManager,
 			"Linked Users": SVALinkedUser,
 			"Approval Request": CustomApprovalRequest,
+			"HTML View From API": CustomDynamicHtml,
 		};
 		return componentMap[template];
 	}
@@ -764,7 +766,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 		}
 	}
 
-	async renderCustomComponent(frm, fieldname, template, signal) {
+	async renderCustomComponent(frm, fieldname, template, conf, signal) {
 		const el = document.createElement("div");
 		const componentId = `custom-component-${fieldname}`;
 		el.id = componentId;
@@ -779,7 +781,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			loader.show();
 			if (signal.aborted) return;
 			const ComponentClass = this.getComponentClass(template);
-			let instance = new ComponentClass(frm, el, { signal });
+			let instance = new ComponentClass(frm, el, conf, { signal });
 			// Store cleanup function
 			this.mountedComponents.set(componentId, () => {
 				if (instance.cleanup) {
@@ -837,10 +839,10 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			onFieldClick: this.handleFieldEvent("onFieldClick"),
 			onFieldValueChange: this.handleFieldEvent("onFieldValueChange"),
 		});
-		this.sva_tables[
+		frm.sva_tables[
 			["Direct", "Unfiltered"].includes(field.connection_type)
 				? field.link_doctype
-				: field.referenced_link_doctype
+				: field.referenced_link_doctype || field.link_report
 		] = instance;
 		// Store cleanup function
 		this.mountedComponents.set(wrapperId, () => {

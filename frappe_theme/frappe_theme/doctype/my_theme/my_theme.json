@@ -21,6 +21,7 @@
   "login_box_position",
   "page_heading_text_color",
   "login_box_background_color",
+  "enable_usr_pass_login",
   "disable_usr_pass_login",
   "navbar_tab",
   "navbar_section",
@@ -82,6 +83,7 @@
   "hide_side_bar",
   "hide_form_comment",
   "import_file",
+  "cloud_assets",
   "change_logs_tab",
   "change_logs"
  ],
@@ -452,12 +454,6 @@
    "label": "Logo Height (px)"
   },
   {
-   "default": "1",
-   "fieldname": "disable_usr_pass_login",
-   "fieldtype": "Check",
-   "label": " Disable Username/Password Login"
-  },
-  {
    "fieldname": "features_tab",
    "fieldtype": "Tab Break",
    "label": "Features"
@@ -487,13 +483,31 @@
    "fieldname": "import_file",
    "fieldtype": "Attach",
    "label": "Last Imported File"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_usr_pass_login",
+   "fieldtype": "Check",
+   "label": "Enable Username/Password Login"
+  },
+  {
+   "fieldname": "cloud_assets",
+   "fieldtype": "Button",
+   "label": "Cloud Assets"
+  },
+  {
+   "default": "0",
+   "fieldname": "disable_usr_pass_login",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "disable_usr_pass_login"
   }
  ],
  "hide_toolbar": 1,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-08-29 18:14:43.008245",
+ "modified": "2025-10-30 14:02:06.151281",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "My Theme",

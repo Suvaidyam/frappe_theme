@@ -28,6 +28,10 @@ frappe.ui.form.on("SVADatatable Configuration", {
 				},
 			};
 		});
+		// This button will redirect to the Doctype list view this will help developer to quickly access the doctype
+		frm.add_custom_button(__(`Go to ${frm.doc.parent_doctype}`), function () {
+			frappe.set_route("List", frm.doc.parent_doctype);
+		});
 	},
 	update_sequences: function (frm) {
 		if (frm.doc.mapper_type === "Number Card" || frm.doc.mapper_type === "Both") {

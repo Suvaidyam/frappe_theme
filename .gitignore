@@ -6,3 +6,5 @@ tags
 dist
 node_modules
 __pycache__
+yarn.lock
+*.lock
