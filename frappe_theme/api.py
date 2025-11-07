@@ -811,26 +811,30 @@ def create_new_comment_thread(doctype_name, docname, field_name, field_label):
 
 
 def get_usr_type_roll():
-	user_roll = ''
-	user_type = ''
+	user_roll = ""
+	user_type = ""
 	try:
 		# Get all parent comment documents for the field
 		sva_usr_exists = frappe.db.exists("SVA User", {"email": frappe.session.user})
 		if sva_usr_exists:
 			user_roll = frappe.db.get_value("SVA User", {"email": frappe.session.user}, "role_profile")
 		else:
-			user_roll = frappe.db.get_value("User Role Profile", {"parent": frappe.session.user}, "role_profile")
+			user_roll = frappe.db.get_value(
+				"User Role Profile", {"parent": frappe.session.user}, "role_profile"
+			)
 		try:
 			if user_roll:
 				user_type = frappe.db.get_value("Role Profile", user_roll, "custom_belongs_to")
 			else:
-				user_type = ''
+				user_type = ""
 		except Exception as e:
 			frappe.log_error(f"Error in load_field_comments: {str(e)}")
 		return user_type
 	except Exception as e:
 		frappe.log_error(f"Error in get_usr_type_roll: {str(e)}")
-		return ''
+		return ""
+
+
 @frappe.whitelist()
 def load_field_comments(doctype_name, docname, field_name):
 	"""Load all comment threads for a specific field"""
@@ -881,7 +885,7 @@ def load_all_comments(doctype_name, docname):
 	try:
 		# Get all parent comment documents for the document
 		user_type = get_usr_type_roll()
-        
+
 		comment_docs = frappe.get_all(
 			"DocType Field Comment",
 			filters={"doctype_name": doctype_name, "docname": docname},
