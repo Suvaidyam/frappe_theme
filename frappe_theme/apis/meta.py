@@ -3,6 +3,56 @@ import frappe
 
 @frappe.whitelist()
 def get_possible_link_filters(doctype, parent_doctype):
+	# Input validation for doctype and parent_doctype
+	if not doctype or not isinstance(doctype, str):
+		frappe.throw("Parameter 'doctype' is required and must be a valid DocType name.", frappe.ValidationError)
+	if not parent_doctype or not isinstance(parent_doctype, str):
+		frappe.throw("Parameter 'parent_doctype' is required and must be a valid DocType name.", frappe.ValidationError)
+	if not frappe.db.exists("DocType", doctype):
+		frappe.throw(f"DocType '{doctype}' does not exist.", frappe.DoesNotExistError)
+	if not frappe.db.exists("DocType", parent_doctype):
+		frappe.throw(f"DocType '{parent_doctype}' does not exist.", frappe.DoesNotExistError)
+	"""
+	Determine possible link relationships between a given doctype and its parent doctype.
+
+	This function analyzes the fields of both the specified `doctype` and `parent_doctype` to identify
+	possible link relationships, such as "One to One" and "Many to One", based on field types and options.
+
+	Parameters:
+	    doctype (str): The name of the child doctype to analyze for link relationships.
+	    parent_doctype (str): The name of the parent doctype to analyze against.
+
+	Returns:
+	    list[dict]: A list of dictionaries, each representing a possible link relationship. Each dictionary may contain:
+	        - foreign_fieldname (str): The fieldname in the child doctype that links to the parent.
+	        - label (str): The label of the field in the child doctype.
+	        - local_fieldname (str): The fieldname in the parent doctype that links to the child (if applicable).
+	        - type (str): The type of relationship ("One to One", "Many to One", etc.).
+	        - doctype (str): The name of the child doctype.
+	        - description (str): A description of the relationship.
+	        - primary_key (str, optional): The fieldname in a child table that acts as a primary key (for "Many to One" relationships).
+
+	Example return value:
+	    [
+	        {
+	            "foreign_fieldname": "customer",
+	            "label": "Customer",
+	            "local_fieldname": "customer",
+	            "type": "One to One",
+	            "doctype": "Sales Invoice",
+	            "description": "Parent Single Link"
+	        },
+	        {
+	            "foreign_fieldname": "item_code",
+	            "label": "Item Code",
+	            "primary_key": "item_code",
+	            "local_fieldname": "items",
+	            "doctype": "Sales Invoice",
+	            "type": "Many to One",
+	            "description": "Parent Many, Child Single Link"
+	        }
+	    ]
+	"""
 	meta = frappe.get_meta(doctype)
 	parent_meta = frappe.get_meta(parent_doctype)
 	link_fields = []
