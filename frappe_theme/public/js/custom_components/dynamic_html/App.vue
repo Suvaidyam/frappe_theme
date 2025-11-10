@@ -204,7 +204,6 @@ export default {
 .dynamic-html-wrapper {
 	position: relative;
 	width: 100%;
-	min-height: 200px;
 }
 
 .dh-iframe {
