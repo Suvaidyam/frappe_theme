@@ -164,27 +164,28 @@ def get_possible_link_filters(doctype, parent_doctype):
 									),
 									None,
 								)
-								relevant_primary_key_field = next(
-									(
-										f
-										for f in child_meta.fields
-										if f.fieldtype == "Link"
-										and f.options == relevant_parent_link_field.options
-										and not f.hidden
-									),
-									None,
-								)
-								foreign_fieldname = child_field.fieldname
-								if relevant_parent_link_field and relevant_primary_key_field:
-									link_fields.append(
-										{
-											"foreign_fieldname": foreign_fieldname,
-											"label": child_field.label,
-											"local_fieldname": relevant_parent_link_field.fieldname,
-											"primary_key": relevant_primary_key_field.fieldname,
-											"doctype": field.options,
-											"type": "One to Many",
-											"description": "Parent Single, Child Many Link",
-										}
+								if relevant_parent_link_field:
+									relevant_primary_key_field = next(
+										(
+											f
+											for f in child_meta.fields
+											if f.fieldtype == "Link"
+											and f.options == relevant_parent_link_field.options
+											and not f.hidden
+										),
+										None,
 									)
+									foreign_fieldname = child_field.fieldname
+									if relevant_parent_link_field and relevant_primary_key_field:
+										link_fields.append(
+											{
+												"foreign_fieldname": foreign_fieldname,
+												"label": child_field.label,
+												"local_fieldname": relevant_parent_link_field.fieldname,
+												"primary_key": relevant_primary_key_field.fieldname,
+												"doctype": field.options,
+												"type": "One to Many",
+												"description": "Parent Single, Child Many Link",
+											}
+										)
 	return link_fields
