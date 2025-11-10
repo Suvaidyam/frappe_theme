@@ -3,15 +3,6 @@ import frappe
 
 @frappe.whitelist()
 def get_possible_link_filters(doctype, parent_doctype):
-	# Input validation for doctype and parent_doctype
-	if not doctype or not isinstance(doctype, str):
-		frappe.throw("Parameter 'doctype' is required and must be a valid DocType name.", frappe.ValidationError)
-	if not parent_doctype or not isinstance(parent_doctype, str):
-		frappe.throw("Parameter 'parent_doctype' is required and must be a valid DocType name.", frappe.ValidationError)
-	if not frappe.db.exists("DocType", doctype):
-		frappe.throw(f"DocType '{doctype}' does not exist.", frappe.DoesNotExistError)
-	if not frappe.db.exists("DocType", parent_doctype):
-		frappe.throw(f"DocType '{parent_doctype}' does not exist.", frappe.DoesNotExistError)
 	"""
 	Determine possible link relationships between a given doctype and its parent doctype.
 
@@ -53,6 +44,20 @@ def get_possible_link_filters(doctype, parent_doctype):
 	        }
 	    ]
 	"""
+	# Input validation for doctype and parent_doctype
+	if not doctype or not isinstance(doctype, str):
+		frappe.throw(
+			"Parameter 'doctype' is required and must be a valid DocType name.", frappe.ValidationError
+		)
+	if not parent_doctype or not isinstance(parent_doctype, str):
+		frappe.throw(
+			"Parameter 'parent_doctype' is required and must be a valid DocType name.", frappe.ValidationError
+		)
+	if not frappe.db.exists("DocType", doctype):
+		frappe.throw(f"DocType '{doctype}' does not exist.", frappe.DoesNotExistError)
+	if not frappe.db.exists("DocType", parent_doctype):
+		frappe.throw(f"DocType '{parent_doctype}' does not exist.", frappe.DoesNotExistError)
+
 	meta = frappe.get_meta(doctype)
 	parent_meta = frappe.get_meta(parent_doctype)
 	link_fields = []
@@ -182,5 +187,4 @@ def get_possible_link_filters(doctype, parent_doctype):
 											"description": "Parent Single, Child Many Link",
 										}
 									)
-
 	return link_fields
