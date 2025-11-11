@@ -632,7 +632,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			Notes: SVANotesManager,
 			"Linked Users": SVALinkedUser,
 			"Approval Request": CustomApprovalRequest,
-			"HTML View From API" : CustomDynamicHtml
+			"HTML View From API": CustomDynamicHtml,
 		};
 		return componentMap[template];
 	}
