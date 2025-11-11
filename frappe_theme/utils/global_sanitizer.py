@@ -68,6 +68,11 @@ def sanitize_all_fields(doc, method=None):
 		"Attach Image",
 		"Text Editor",
 		"Code",
+		"Long Text",
+		"Small Text",
+		"Markdown Editor",
+		"JSON",
+		"Text",
 	}
 
 	for df in meta.fields:
