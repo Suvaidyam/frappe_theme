@@ -86,6 +86,6 @@ def sanitize_all_fields(doc, method=None):
 			sanitized_value = sanitize_func(value)
 			if sanitized_value != value:
 				frappe.throw(
-					_("HTML is not allowed in field <b>{0}</b>.").format(df.label or fieldname),
+					_("HTML is not allowed in field {0}.").format(df.label or fieldname),
 					exc=frappe.ValidationError,
 				)
