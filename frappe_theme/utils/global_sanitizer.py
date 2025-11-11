@@ -49,7 +49,6 @@ def sanitize_all_fields(doc, method=None):
 			theme_flag = bool(theme.get("sanitize_all_fields"))
 	except Exception:
 		# get_single not available or doctype missing — ignore
-		theme = None
 
 	if not (site_flag or theme_flag):
 		# sanitizer not enabled for this site/theme — do nothing
