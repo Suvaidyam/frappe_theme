@@ -48,6 +48,7 @@ def sanitize_all_fields(doc, method=None):
 		if theme:
 			theme_flag = bool(theme.get("sanitize_all_fields"))
 	except Exception:
+		frappe.log_error("Failed to get single 'My Theme' doctype for sanitization flag.")
 		# get_single not available or doctype missing — ignore
 
 	if not (site_flag or theme_flag):
