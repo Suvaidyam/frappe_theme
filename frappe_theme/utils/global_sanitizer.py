@@ -49,7 +49,6 @@ def sanitize_all_fields(doc, method=None):
 			theme_flag = bool(theme.get("sanitize_all_fields"))
 	except Exception:
 		# get_single not available or doctype missing — ignore
-		theme = None
 
 	if not (site_flag or theme_flag):
 		# sanitizer not enabled for this site/theme — do nothing
@@ -68,6 +67,11 @@ def sanitize_all_fields(doc, method=None):
 		"Attach Image",
 		"Text Editor",
 		"Code",
+		"Long Text",
+		"Small Text",
+		"Markdown Editor",
+		"JSON",
+		"Text",
 	}
 
 	for df in meta.fields:
@@ -81,6 +85,6 @@ def sanitize_all_fields(doc, method=None):
 			sanitized_value = sanitize_func(value)
 			if sanitized_value != value:
 				frappe.throw(
-					_("HTML is not allowed in field <b>{0}</b>.").format(df.label or fieldname),
+					_("HTML is not allowed in field {0}.").format(df.label or fieldname),
 					exc=frappe.ValidationError,
 				)
