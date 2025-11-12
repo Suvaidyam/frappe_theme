@@ -149,6 +149,7 @@ jinja = {"methods": "frappe_theme.utils.jinja_methods"}
 
 doc_events = {
 	"*": {
+		"validate": "frappe_theme.utils.global_sanitizer.sanitize_all_fields",
 		"before_insert": "frappe_theme.utils.data_protection.encrypt_doc_fields",
 		"before_save": "frappe_theme.utils.data_protection.encrypt_doc_fields",
 		"onload": "frappe_theme.utils.data_protection.decrypt_doc_fields",
