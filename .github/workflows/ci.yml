@@ -29,7 +29,7 @@ jobs:
       - name: Check PR labels
         uses: docker://agilepathway/pull-request-label-checker:latest
         with:
-          any_of: fix,feat,chore,refactor,test,docs,ci,perf,style,breaking,dependencies
+          any_of: "accessibility,bug,build,chore,ci,docs,discussion,duplicate,enhancement,feat,fix,good-first-issue,help-wanted,hotfix,infra,invalid,maintenance,perf,question,refactor,release,release:major,release:minor,release:patch,security,style,test,wip,wontfix,dependencies"
           repo_token: ${{ secrets.GITHUB_TOKEN }}
 
   pre-commit:
@@ -194,12 +194,12 @@ jobs:
           bench init --frappe-branch "${{ env.FRAPPE_BRANCH }}" --skip-assets --skip-redis-config-generation --python "python${{ env.PYTHON_VERSION }}" ci-bench
           echo "✓ Bench initialized successfully"
 
-      - name: Configure esbuild target globally
-        working-directory: ci-bench
-        run: |
-          echo "Setting esbuild target to es2022 for modern JS support..."
-          bench set-config -g esbuild_target "es2022"
-          echo "✓ esbuild_target configured"
+      # - name: Configure esbuild target globally
+      #   working-directory: ci-bench
+      #   run: |
+      #     echo "Setting esbuild target to es2022 for modern JS support..."
+      #     bench set-config -g esbuild_target "es2022"
+      #     echo "✓ esbuild_target configured"
 
       - name: Add app to bench
         working-directory: ci-bench

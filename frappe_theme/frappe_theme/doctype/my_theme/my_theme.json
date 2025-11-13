@@ -22,6 +22,7 @@
   "page_heading_text_color",
   "login_box_background_color",
   "enable_usr_pass_login",
+  "disable_usr_pass_login",
   "navbar_tab",
   "navbar_section",
   "navbar_color",
@@ -83,6 +84,8 @@
   "hide_form_comment",
   "import_file",
   "cloud_assets",
+  "section_break_cxrk",
+  "sanitize_all_fields",
   "change_logs_tab",
   "change_logs"
  ],
@@ -493,13 +496,31 @@
    "fieldname": "cloud_assets",
    "fieldtype": "Button",
    "label": "Cloud Assets"
+  },
+  {
+   "default": "0",
+   "fieldname": "disable_usr_pass_login",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "disable_usr_pass_login"
+  },
+  {
+   "fieldname": "section_break_cxrk",
+   "fieldtype": "Section Break",
+   "label": "Security"
+  },
+  {
+   "default": "0",
+   "fieldname": "sanitize_all_fields",
+   "fieldtype": "Check",
+   "label": "Sanitize all fields"
   }
  ],
  "hide_toolbar": 1,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-10-06 12:32:17.308993",
+ "modified": "2025-11-11 23:29:01.723763",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "My Theme",
