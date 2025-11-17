@@ -297,7 +297,6 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			for (const trigger of this.dts.triggers) {
 				let targets = JSON.parse(trigger.targets || "[]");
 				if (!targets.length) continue;
-				// console.log(trigger, 'trigger')
 				if (trigger.table_type == "Custom Design") {
 					this.bindCustomDesignActionEvents(frm, trigger, targets);
 				} else {
@@ -460,7 +459,6 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 		const signal = controller.signal;
 		try {
 			const tab_fields = this.getTabFields(frm, tab_field);
-
 			const { dtFields, vm_fields, vm_all_fields } = this.processConfigurationFields(
 				this.dts,
 				tab_fields
@@ -484,6 +482,13 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 	}
 
 	getTabFields(frm, tab_field) {
+		if (!tab_field) {
+			return (
+				frm?.meta?.fields
+					?.filter((f) => f.fieldtype === "HTML")
+					?.map((f) => f.fieldname) || []
+			);
+		}
 		const tab_fields = [];
 		const tab_field_index = frm?.meta?.fields?.findIndex((f) => f.fieldname === tab_field);
 
@@ -573,7 +578,9 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 	}
 
 	async processDataTables(dtFields, frm, dts, signal) {
-		// this.sva_tables = {};
+		if (!this.sva_tables) {
+			this.sva_tables = {};
+		}
 		for (const field of dtFields) {
 			try {
 				if (signal.aborted) break;
@@ -812,7 +819,6 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 
 		let loader = new Loader(wrapper);
 		loader.show();
-		// console.log("loader show", loader);
 
 		// Register component
 		this.activeComponents.add(wrapperId);
