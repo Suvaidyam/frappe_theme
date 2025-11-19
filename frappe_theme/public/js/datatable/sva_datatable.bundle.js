@@ -1458,7 +1458,7 @@ class SvaDataTable {
 						!doc[f.fieldname]
 					) {
 						if (!f.depends_on) {
-							f.depends_on = `eval:(doc?.${f.fieldname} != null || doc?.${f.fieldname} != undefined)`;
+							f.depends_on = `eval:(doc?.${f.fieldname} !== null || doc?.${f.fieldname} !== undefined || doc?.${f.fieldname} !== "")`;
 						} else {
 							f.hidden = 1;
 						}
@@ -1596,7 +1596,7 @@ class SvaDataTable {
 						!f.default
 					) {
 						if (!f.depends_on) {
-							f.depends_on = `eval:(doc?.${f.fieldname} != null || doc?.${f.fieldname} != undefined)`;
+							f.depends_on = `eval:(doc?.${f.fieldname} !== null || doc?.${f.fieldname} !== undefined || doc?.${f.fieldname} !== "")`;
 						} else {
 							f.hidden = 1;
 						}
@@ -1676,7 +1676,7 @@ class SvaDataTable {
 					!doc[f.fieldname]
 				) {
 					if (!f.depends_on) {
-						f.depends_on = `eval:(doc?.${f.fieldname} != null || doc?.${f.fieldname} != undefined)`;
+						f.depends_on = `eval:(doc?.${f.fieldname} !== null || doc?.${f.fieldname} !== undefined || doc?.${f.fieldname} !== "")`;
 					} else {
 						f.hidden = 1;
 					}
@@ -3261,7 +3261,7 @@ class SvaDataTable {
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
 					let value =
-						row[column.fieldname].toLocaleString("en-US", {
+						row[column.fieldname]?.toLocaleString("en-US", {
 							minimumFractionDigits: 0,
 							maximumFractionDigits: 2,
 						}) || 0;
