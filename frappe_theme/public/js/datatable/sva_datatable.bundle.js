@@ -1453,7 +1453,7 @@ class SvaDataTable {
 						};
 					}
 					if (
-						!["Check", "Button", "Table", "Table MultiSelect"].includes(f.fieldtype) &&
+						!["Check", "Button", "Table", "Table MultiSelect","Currency"].includes(f.fieldtype) &&
 						f.read_only &&
 						!doc[f.fieldname]
 					) {
@@ -1591,7 +1591,7 @@ class SvaDataTable {
 						continue;
 					}
 					if (
-						!["Check", "Button", "Table", "Table MultiSelect"].includes(f.fieldtype) &&
+						!["Check", "Button", "Table", "Table MultiSelect","Currency"].includes(f.fieldtype) &&
 						f.read_only &&
 						!f.default
 					) {
@@ -1671,7 +1671,7 @@ class SvaDataTable {
 					continue;
 				}
 				if (
-					!["Check", "Button", "Table", "Table MultiSelect"].includes(f.fieldtype) &&
+					!["Check", "Button", "Table", "Table MultiSelect","Currency"].includes(f.fieldtype) &&
 					f.read_only &&
 					!doc[f.fieldname]
 				) {
@@ -3261,7 +3261,7 @@ class SvaDataTable {
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
 					let value =
-						row[column.fieldname]?.toLocaleString("en-US", {
+						row[column.fieldname].toLocaleString("en-US", {
 							minimumFractionDigits: 0,
 							maximumFractionDigits: 2,
 						}) || 0;
