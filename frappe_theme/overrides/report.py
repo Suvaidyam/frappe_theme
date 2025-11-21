@@ -44,8 +44,6 @@ class CustomReport(Report):
         # 3. Append permission filters to SQL safely
         sql_with_permissions = self.apply_permission_filter(self.query, user_perm_conditions)
 
-        print("\n\nFINAL SQL:\n", sql_with_permissions, "\n\n")
-
         # 4. Execute SQL
         result = [list(t) for t in frappe.db.sql(sql_with_permissions, filters)]
 
