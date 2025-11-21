@@ -29,7 +29,7 @@ jobs:
       - name: Check PR labels
         uses: docker://agilepathway/pull-request-label-checker:latest
         with:
-          any_of: fix,feat,chore,refactor,test,docs,ci,perf,style,breaking,dependencies
+          any_of: "accessibility,bug,build,chore,ci,docs,discussion,duplicate,enhancement,feat,fix,good-first-issue,help-wanted,hotfix,infra,invalid,maintenance,perf,question,refactor,release,release:major,release:minor,release:patch,security,style,test,wip,wontfix,dependencies"
           repo_token: ${{ secrets.GITHUB_TOKEN }}
 
   pre-commit:
