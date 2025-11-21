@@ -173,7 +173,9 @@ frappe.ui.form.on("DocType", {
 													field.default = values[field.fieldname];
 												}
 											}
-										} catch (error) {}
+										} catch (error) {
+											console.log("Exception in Custom Property Setter");
+										}
 									}
 
 									let dialog = new frappe.ui.Dialog({

@@ -33,7 +33,7 @@ app_include_js = [
 	f"/assets/frappe_theme/js/custom_import.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/sva_dt_utils.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/customizations.js?ver={time.time()}",
-	f"/assets/frappe_theme/js/doctype/global_doctype.js?ver={time.time()}"
+	f"/assets/frappe_theme/js/doctype/global_doctype.js?ver={time.time()}",
 ]
 extend_bootinfo = "frappe_theme.boot.boot_theme"
 # include js, css files in header of web template
@@ -140,9 +140,7 @@ jinja = {"methods": "frappe_theme.utils.jinja_methods"}
 # ---------------
 # Override standard doctype classes
 
-override_doctype_class = {
-	   "Report": "frappe_theme.overrides.report.CustomReport"
-}
+override_doctype_class = {"Report": "frappe_theme.overrides.report.CustomReport"}
 
 # Document Events
 # ---------------
