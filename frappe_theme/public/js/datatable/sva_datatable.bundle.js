@@ -1453,7 +1453,9 @@ class SvaDataTable {
 						};
 					}
 					if (
-						!["Check", "Button", "Table", "Table MultiSelect","Currency"].includes(f.fieldtype) &&
+						!["Check", "Button", "Table", "Table MultiSelect", "Currency"].includes(
+							f.fieldtype
+						) &&
 						f.read_only &&
 						!doc[f.fieldname]
 					) {
@@ -1591,7 +1593,9 @@ class SvaDataTable {
 						continue;
 					}
 					if (
-						!["Check", "Button", "Table", "Table MultiSelect","Currency"].includes(f.fieldtype) &&
+						!["Check", "Button", "Table", "Table MultiSelect", "Currency"].includes(
+							f.fieldtype
+						) &&
 						f.read_only &&
 						!f.default
 					) {
@@ -1671,7 +1675,9 @@ class SvaDataTable {
 					continue;
 				}
 				if (
-					!["Check", "Button", "Table", "Table MultiSelect","Currency"].includes(f.fieldtype) &&
+					!["Check", "Button", "Table", "Table MultiSelect", "Currency"].includes(
+						f.fieldtype
+					) &&
 					f.read_only &&
 					!doc[f.fieldname]
 				) {
