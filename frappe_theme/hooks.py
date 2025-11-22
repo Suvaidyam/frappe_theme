@@ -158,7 +158,7 @@ doc_events = {
 		# "on_cancel": "method",
 		# "on_trash": "method"
 	},
-	"Report":{
+	"Report": {
 		"before_save": "frappe_theme.overrides.report.before_save",
 	},
 	"File": {
