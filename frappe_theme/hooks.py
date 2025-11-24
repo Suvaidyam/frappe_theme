@@ -158,6 +158,9 @@ doc_events = {
 		# "on_cancel": "method",
 		# "on_trash": "method"
 	},
+	"Report": {
+		"before_save": "frappe_theme.overrides.report.before_save",
+	},
 	"File": {
 		"after_insert": "frappe_theme.controllers.sva_integrations.cloud_assets.file_upload_to_cloud",
 		"on_trash": "frappe_theme.controllers.sva_integrations.cloud_assets.delete_from_cloud",
