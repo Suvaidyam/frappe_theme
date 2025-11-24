@@ -18,6 +18,8 @@ def sanitize_all_fields(doc, method=None):
 	Excluded fieldtypes: HTML, Table, Table MultiSelect, Image, Attach, Attach Image,
 	Text Editor, Code.
 	"""
+	if doc.doctype in ["Email Queue"]:
+		return
 
 	# site config flag: set `sanitize_all_fields` in site_config.json or via bench config
 	# Try to use frappe's sanitize_html if available; otherwise fall back to
