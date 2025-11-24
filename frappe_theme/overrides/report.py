@@ -7,23 +7,24 @@ from frappe.utils.safe_exec import check_safe_sql_query
 from frappe_theme.utils.permission_engine import get_permission_query_conditions_custom
 
 
-class CustomReport(Report):
-	def on_update(self):
-		super().on_update()
-		if self.custom_create_view:
-			if self.custom_view_type == "Logical":
-				sql = f"""
-                    CREATE OR REPLACE VIEW `{self.custom_view_name}` AS
-                    ({self.query})
-                    """
-				frappe.db.sql_ddl(sql)
-			# elif self.custom_view_type == "Materialized":
-			#     sql = f"""
-			#         CREATE MATERIALIZED VIEW IF NOT EXISTS `{self.custom_view_name}` AS ({self.query})
-			#         """
-			#     print('\n\n\n'*5,sql,'\n\n\n'*5)
-			#     frappe.db.sql_ddl(sql)
+def before_save(doc, method=None):
+	if doc.custom_create_view:
+		if doc.custom_view_type == "Logical":
+			sql = f"""
+                CREATE OR REPLACE VIEW `{doc.custom_view_name}` AS
+                ({doc.query})
+            """
+		# elif doc.custom_view_type == "Materialized":
+		#     sql = f"""
+		#         CREATE MATERIALIZED VIEW IF NOT EXISTS `{doc.custom_view_name}` AS ({doc.query})
+		#         """
+		try:
+			frappe.db.sql_ddl(sql)
+		except Exception as e:
+			frappe.throw(f"Error in creating view: {e}")
 
+
+class CustomReport(Report):
 	# -------------------------------
 	# ✨ Main overridden Query Executor
 	# -------------------------------
