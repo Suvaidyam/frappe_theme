@@ -19,6 +19,7 @@ app_include_css = [
 ]
 app_include_js = [
 	"https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
+	"global_exporter.bundle.js",
 	"sva_workspace.bundle.js",
 	"overwrite_form.bundle.js",
 	"overwrite_workflow.bundle.js",
@@ -139,9 +140,7 @@ jinja = {"methods": "frappe_theme.utils.jinja_methods"}
 # ---------------
 # Override standard doctype classes
 
-# override_doctype_class = {
-# 	"ToDo": "custom_app.overrides.CustomToDo"
-# }
+override_doctype_class = {"Report": "frappe_theme.overrides.report.CustomReport"}
 
 # Document Events
 # ---------------
@@ -158,6 +157,9 @@ doc_events = {
 		"validate": "frappe_theme.controllers.timeline.validate",
 		# "on_cancel": "method",
 		# "on_trash": "method"
+	},
+	"Report": {
+		"before_save": "frappe_theme.overrides.report.before_save",
 	},
 	"File": {
 		"after_insert": "frappe_theme.controllers.sva_integrations.cloud_assets.file_upload_to_cloud",

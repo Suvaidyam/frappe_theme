@@ -1,0 +1,86 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-11-18 00:41:49.975711",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "fieldname",
+  "column_break_fdbn",
+  "fieldtype",
+  "column_break_knvb",
+  "section_break_hevv",
+  "html_block",
+  "column_break_yoee",
+  "column_break_wmoh"
+ ],
+ "fields": [
+  {
+   "fieldname": "fieldname",
+   "fieldtype": "Data",
+   "label": "Fieldname",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_fdbn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "fieldtype",
+   "fieldtype": "Data",
+   "label": "Fieldtype",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_knvb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.fieldtype=='HTML'",
+   "fieldname": "section_break_hevv",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "html_block",
+   "fieldtype": "Link",
+   "label": "HTML Block",
+   "options": "Custom HTML Block"
+  },
+  {
+   "fieldname": "column_break_yoee",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_wmoh",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_virtual": 1,
+ "links": [],
+ "modified": "2025-11-18 00:46:35.804293",
+ "modified_by": "Administrator",
+ "module": "Frappe Theme",
+ "name": "Custom Property Setter",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
