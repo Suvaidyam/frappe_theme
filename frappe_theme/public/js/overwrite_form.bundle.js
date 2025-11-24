@@ -511,9 +511,12 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 				(f) => tab_fields.includes(f.html_field) && !f.hide_table
 			) || [];
 
-		const cards_fields =
-			dts.number_cards?.filter((f) => tab_fields.includes(f.html_field)) || [];
-		const charts_fields = dts.charts?.filter((f) => tab_fields.includes(f.html_field)) || [];
+		const cards_fields = (
+			dts?.number_cards?.filter((f) => tab_fields.includes(f.html_field)) || []
+		).map((f) => f.html_field);
+		const charts_fields = (
+			dts?.charts?.filter((f) => tab_fields.includes(f.html_field)) || []
+		).map((f) => f.html_field);
 		const vm_fields = [...cards_fields, ...charts_fields];
 		const vm_all_fields = [
 			...(dts?.number_cards?.map((f) => f.html_field) || []),
