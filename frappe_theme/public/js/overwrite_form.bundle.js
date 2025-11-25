@@ -464,8 +464,8 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 				tab_fields
 			);
 			const relevant_html_fields = [...dtFields.map((f) => f.html_field), ...vm_fields];
-
 			this.clearOtherMappedFields(this.dts, relevant_html_fields, vm_all_fields, frm);
+			await this.handleCustomHTMLBlock(frm, tab_fields);
 			await this.initializeDashboards(this.dts, frm, tab_fields, signal);
 			await this.processDataTables(dtFields, frm, this.dts, signal);
 		} catch (error) {
@@ -511,20 +511,17 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 				(f) => tab_fields.includes(f.html_field) && !f.hide_table
 			) || [];
 
-		const vm_fields = [
-			...(dts?.number_cards?.filter((f) => tab_fields.includes(f.html_field)) || []).map(
-				(f) => f.html_field
-			),
-			...(dts?.charts?.filter((f) => tab_fields.includes(f.html_field)) || []).map(
-				(f) => f.html_field
-			),
-		];
-
+		const cards_fields = (
+			dts?.number_cards?.filter((f) => tab_fields.includes(f.html_field)) || []
+		).map((f) => f.html_field);
+		const charts_fields = (
+			dts?.charts?.filter((f) => tab_fields.includes(f.html_field)) || []
+		).map((f) => f.html_field);
+		const vm_fields = [...cards_fields, ...charts_fields];
 		const vm_all_fields = [
 			...(dts?.number_cards?.map((f) => f.html_field) || []),
 			...(dts?.charts?.map((f) => f.html_field) || []),
 		];
-
 		return { dtFields, vm_fields, vm_all_fields };
 	}
 
@@ -541,7 +538,36 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			frm.set_df_property(field, "options", "");
 		});
 	}
+	async handleCustomHTMLBlock(frm, tab_fields) {
+		const custom_html_blocks = frm.meta.fields
+			.filter((f) => tab_fields.includes(f.fieldname))
+			?.filter((f) => f.sva_ft)
+			?.filter((f) => {
+				try {
+					return JSON.parse(f.sva_ft).html_block;
+				} catch (error) {
+					return false;
+				}
+			});
 
+		let promises = [];
+		for (const field of custom_html_blocks) {
+			let f = { ...field, sva_ft: JSON.parse(field.sva_ft) };
+			promises.push(this.renderCustomHTMLBlock(frm, f));
+		}
+		await Promise.all(promises);
+	}
+	renderCustomHTMLBlock = async (frm, field) => {
+		let html = await frappe.db.get_doc("Custom HTML Block", field.sva_ft.html_block);
+		if (html) {
+			frappe.create_shadow_element(
+				frm.fields_dict[field.fieldname].$wrapper[0],
+				html.html,
+				html.style,
+				html.script
+			);
+		}
+	};
 	async initializeDashboards(dts, frm, currentTabFields, signal) {
 		const initDashboard = async (item, type) => {
 			if (!currentTabFields.includes(item.html_field)) return;
