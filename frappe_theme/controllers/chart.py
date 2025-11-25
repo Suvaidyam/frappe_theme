@@ -12,10 +12,9 @@ class Chart:
 		updated_charts = []
 
 		for chart in visible_charts:
-			if not frappe.db.exists("Dashboard Chart", chart.chart_label):
+			if not frappe.db.exists("Dashboard Chart", chart.dashboard_chart):
 				continue
-
-			chart_details = frappe.get_cached_doc("Dashboard Chart", chart.chart_label)
+			chart_details = frappe.get_cached_doc("Dashboard Chart", chart.dashboard_chart)
 			chart["details"] = chart_details
 
 			if chart.details.chart_type == "Report":
