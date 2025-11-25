@@ -3268,7 +3268,7 @@ class SvaDataTable {
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
 					let value =
-						row[column.fieldname].toLocaleString("en-US", {
+						row[column.fieldname]?.toLocaleString("en-US", {
 							minimumFractionDigits: 0,
 							maximumFractionDigits: 2,
 						}) || 0;
