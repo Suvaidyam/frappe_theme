@@ -60,9 +60,18 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			let header_html_block = frm.meta.header_html;
 			if (header_html_block) {
 				let html = await frappe.db.get_doc("Custom HTML Block", header_html_block);
-				let wrapper = frm.$wrapper.find(".page-head");
+				let wrapper = $(
+					document.querySelector(
+						`#page-${frm.meta.name.replace(/ /g, "\\ ")} .page-head`
+					)
+				);
 				if (wrapper.length && html) {
-					frappe.create_shadow_element(wrapper[0], html.html, html.style, html.script);
+					frappe.create_shadow_element(
+						wrapper.get(0),
+						html.html,
+						html.style,
+						html.script
+					);
 				}
 			}
 		} catch (error) {
