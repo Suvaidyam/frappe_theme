@@ -18,6 +18,8 @@ def sanitize_all_fields(doc, method=None):
 	Excluded fieldtypes: HTML, Table, Table MultiSelect, Image, Attach, Attach Image,
 	Text Editor, Code.
 	"""
+	if doc.doctype in ["Email Queue"]:
+		return
 
 	# site config flag: set `sanitize_all_fields` in site_config.json or via bench config
 	# Try to use frappe's sanitize_html if available; otherwise fall back to
@@ -44,7 +46,7 @@ def sanitize_all_fields(doc, method=None):
 	# Read the single theme doctype `My Theme` if available (issingle = 1)
 	theme_flag = False
 	try:
-		theme = frappe.get_single_value("My Theme", "sanitize_all_fields")
+		theme = frappe.db.get_single_value("My Theme", "sanitize_all_fields")
 		if theme:
 			theme_flag = bool(theme)
 	except Exception:

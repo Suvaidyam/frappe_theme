@@ -124,5 +124,7 @@ frappe.ui.form.on("DocType", {
 			sva_dt_instance.setTitle("Property Setter");
 			d.show();
 		});
+		// listen to element class '.control-data'; if it is visible the console log the element
+		customPropertySetter(frm);
 	},
 });
