@@ -55,6 +55,20 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			});
 		}
 	}
+	async handleDTHeader(frm) {
+		try {
+			let header_html_block = frm.meta.header_html;
+			if (header_html_block) {
+				let html = await frappe.db.get_doc("Custom HTML Block", header_html_block);
+				let wrapper = frm.$wrapper.find(".page-head");
+				if (wrapper.length && html) {
+					frappe.create_shadow_element(wrapper[0], html.html, html.style, html.script);
+				}
+			}
+		} catch (error) {
+			console.error("Error in handleDTHeader:", error);
+		}
+	}
 	setupHandlers() {
 		if (!frappe.ui.form.handlers[this.doctype]) {
 			frappe.ui.form.handlers[this.doctype] = {
@@ -127,6 +141,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			// 		console.error(e);
 			// 	}
 			// });
+			this.handleDTHeader(frm);
 			setupFieldComments(frm);
 			this.goToCommentButton(frm);
 			if (frm.doctype == "DocType") {
