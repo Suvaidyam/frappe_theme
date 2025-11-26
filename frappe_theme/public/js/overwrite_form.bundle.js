@@ -60,9 +60,18 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			let header_html_block = frm.meta.header_html;
 			if (header_html_block) {
 				let html = await frappe.db.get_doc("Custom HTML Block", header_html_block);
-				let wrapper = frm.$wrapper.find(".page-head");
+				let wrapper = $(
+					document.querySelector(
+						`#page-${frm.meta.name.replace(/ /g, "\\ ")} .page-head`
+					)
+				);
 				if (wrapper.length && html) {
-					frappe.create_shadow_element(wrapper[0], html.html, html.style, html.script);
+					frappe.create_shadow_element(
+						wrapper.get(0),
+						html.html,
+						html.style,
+						html.script
+					);
 				}
 			}
 		} catch (error) {
@@ -505,7 +514,10 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			);
 		}
 		const tab_fields = [];
-		const tab_field_index = frm?.meta?.fields?.findIndex((f) => f.fieldname === tab_field);
+		const tab_field_index =
+			tab_field === "__details"
+				? 0
+				: frm?.meta?.fields?.findIndex((f) => f.fieldname === tab_field);
 
 		if (tab_field_index === -1 || tab_field_index + 1 > frm?.meta?.fields.length) {
 			return tab_fields;
@@ -516,7 +528,6 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			if (f.fieldtype === "Tab Break") break;
 			if (f.fieldtype === "HTML") tab_fields.push(f.fieldname);
 		}
-
 		return tab_fields;
 	}
 
@@ -564,7 +575,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					return false;
 				}
 			});
-
+		// debugger;
 		let promises = [];
 		for (const field of custom_html_blocks) {
 			let f = { ...field, sva_ft: JSON.parse(field.sva_ft) };
@@ -575,12 +586,9 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 	renderCustomHTMLBlock = async (frm, field) => {
 		let html = await frappe.db.get_doc("Custom HTML Block", field.sva_ft.html_block);
 		if (html) {
-			frappe.create_shadow_element(
-				frm.fields_dict[field.fieldname].$wrapper[0],
-				html.html,
-				html.style,
-				html.script
-			);
+			let my_wrapper = document.createElement("div");
+			frm.set_df_property(field.fieldname, "options", my_wrapper);
+			frappe.create_shadow_element(my_wrapper, html.html, html.style, html.script);
 		}
 	};
 	async initializeDashboards(dts, frm, currentTabFields, signal) {

@@ -56,8 +56,8 @@ webform_include_js = {
 doctype_js = {
 	"Workflow": "public/js/doctype/workflow.js",
 	"Web Form": "public/js/doctype/web_form.js",
-	"Customize Form": "public/js/download_customizations.js",
-	"DocType": "public/js/doctype/doctype.js",
+	"Customize Form": ["public/js/doctype/property_setter.js", "public/js/doctype/customize_form.js"],
+	"DocType": ["public/js/doctype/property_setter.js", "public/js/doctype/doctype.js"],
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
