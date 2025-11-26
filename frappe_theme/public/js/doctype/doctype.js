@@ -1,6 +1,5 @@
 frappe.ui.form.on("DocType", {
 	refresh: async function (frm) {
-		console.log("refresh", frm.meta.name);
 		frm.add_custom_button(__("Configure Data Protection & Properties"), async () => {
 			let fields = await frappe.call({
 				method: "frappe_theme.api.get_meta_fields",
