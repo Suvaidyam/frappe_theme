@@ -46,7 +46,7 @@ def sanitize_all_fields(doc, method=None):
 	# Read the single theme doctype `My Theme` if available (issingle = 1)
 	theme_flag = False
 	try:
-		theme = frappe.get_single_value("My Theme", "sanitize_all_fields")
+		theme = frappe.db.get_single_value("My Theme", "sanitize_all_fields")
 		if theme:
 			theme_flag = bool(theme)
 	except Exception:
