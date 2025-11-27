@@ -1341,9 +1341,10 @@ class SvaDataTable {
 						if (this.frm?.["dt_events"]?.[f.options]?.["customize_form_fields"]) {
 							let customize =
 								this.frm?.["dt_events"]?.[f.options]?.["customize_form_fields"];
+							let has_additional_action = additional_action ? true : false;
 							let customizedTableFields = this.isAsync(customize)
-								? await customize(this, tableFields, mode)
-								: customize(this, tableFields, mode);
+								? await customize(this, tableFields, mode, has_additional_action)
+								: customize(this, tableFields, mode, has_additional_action);
 							if (customizedTableFields) {
 								tableFields = customizedTableFields;
 							}
@@ -3267,7 +3268,7 @@ class SvaDataTable {
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
 					let value =
-						row[column.fieldname].toLocaleString("en-US", {
+						row[column.fieldname]?.toLocaleString("en-US", {
 							minimumFractionDigits: 0,
 							maximumFractionDigits: 2,
 						}) || 0;
