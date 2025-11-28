@@ -1,4 +1,5 @@
 import json
+import re
 from hashlib import md5
 
 import frappe
@@ -169,6 +170,8 @@ class DTConf:
 		# return conditions
 		data = frappe.get_doc("Report", doctype)
 		query = data.get("query")
+		sub_query = re.sub(r";\s*\)", ")", query)
+		query = sub_query.rstrip(";")
 		final_sql = f"SELECT * FROM ({query}) AS t WHERE 1=1 {conditions}"
 		result = read_sql(final_sql, as_dict=1)
 		return result
@@ -205,6 +208,8 @@ class DTConf:
 			# return conditions
 			data = frappe.get_doc("Report", doctype)
 			query = data.get("query")
+			sub_query = re.sub(r";\s*\)", ")", query)
+			query = sub_query.rstrip(";")
 			final_sql = f"SELECT COUNT(*) AS count FROM ({query}) AS t WHERE 1=1 {conditions}"
 			result = read_sql(final_sql, as_dict=1)
 			return result[0].get("count")
