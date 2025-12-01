@@ -196,7 +196,7 @@ def log_permission_change(role, doctype, permlevel, action, old_perms, new_perms
 				"content": f"Permission {action} for {doctype} (Level {permlevel})",
 			}
 		).insert(ignore_permissions=True)
-	except:
+	except Exception:
 		pass
 
 
