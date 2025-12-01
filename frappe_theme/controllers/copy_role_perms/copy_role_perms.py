@@ -74,9 +74,23 @@ def copy_all_permissions(doc):
 @frappe.whitelist()
 def get_all_permissions(role_from):
 	all_fields = [
-		"name", "parent", "permlevel", "select", "read", "write", "create",
-		"delete", "submit", "cancel", "amend", "report", "export",
-		"import", "share", "print", "email",
+		"name",
+		"parent",
+		"permlevel",
+		"select",
+		"read",
+		"write",
+		"create",
+		"delete",
+		"submit",
+		"cancel",
+		"amend",
+		"report",
+		"export",
+		"import",
+		"share",
+		"print",
+		"email",
 	]
 	perms_from = frappe.get_all("Custom DocPerm", {"role": role_from}, all_fields, ignore_permissions=True)
 	return {"permissions": perms_from}
@@ -85,63 +99,103 @@ def get_all_permissions(role_from):
 @frappe.whitelist()
 def compare_role_permissions(role1, role2, show_only_diff=False):
 	show_only_diff = cint(show_only_diff)
-	all_fields = ["parent", "permlevel", "select", "read", "write", "create",
-		"delete", "submit", "cancel", "amend", "report", "export",
-		"import", "share", "print", "email"]
-	
-	perms1 = {f"{p.parent}::{p.permlevel}": p for p in frappe.get_all(
-		"Custom DocPerm", {"role": role1}, all_fields, ignore_permissions=True)}
-	perms2 = {f"{p.parent}::{p.permlevel}": p for p in frappe.get_all(
-		"Custom DocPerm", {"role": role2}, all_fields, ignore_permissions=True)}
-	
+	all_fields = [
+		"parent",
+		"permlevel",
+		"select",
+		"read",
+		"write",
+		"create",
+		"delete",
+		"submit",
+		"cancel",
+		"amend",
+		"report",
+		"export",
+		"import",
+		"share",
+		"print",
+		"email",
+	]
+
+	perms1 = {
+		f"{p.parent}::{p.permlevel}": p
+		for p in frappe.get_all("Custom DocPerm", {"role": role1}, all_fields, ignore_permissions=True)
+	}
+	perms2 = {
+		f"{p.parent}::{p.permlevel}": p
+		for p in frappe.get_all("Custom DocPerm", {"role": role2}, all_fields, ignore_permissions=True)
+	}
+
 	result = []
 	all_keys = set(perms1.keys()) | set(perms2.keys())
-	
+
 	for key in all_keys:
 		p1 = perms1.get(key, {})
 		p2 = perms2.get(key, {})
-		
+
 		has_diff = any(p1.get(f) != p2.get(f) for f in all_fields[2:])
-		
+
 		if not show_only_diff or has_diff:
 			perm = p1 if p1 else p2
-			result.append({
-				"reference_doctype": perm.get("parent"),
-				"permlevel": perm.get("permlevel", 0),
-				"has_difference": 1 if has_diff else 0,
-				"select": p1.get("select", 0) if p1 else 0,
-				"read": p1.get("read", 0) if p1 else 0,
-				"write": p1.get("write", 0) if p1 else 0,
-				"create": p1.get("create", 0) if p1 else 0,
-				"delete_to": p1.get("delete", 0) if p1 else 0,
-				"submit_to": p1.get("submit", 0) if p1 else 0,
-				"cancel_to": p1.get("cancel", 0) if p1 else 0,
-				"amend": p1.get("amend", 0) if p1 else 0,
-				"report": p1.get("report", 0) if p1 else 0,
-				"export": p1.get("export", 0) if p1 else 0,
-				"import_to": p1.get("import", 0) if p1 else 0,
-				"share": p1.get("share", 0) if p1 else 0,
-				"print": p1.get("print", 0) if p1 else 0,
-				"email": p1.get("email", 0) if p1 else 0,
-			})
-	
+			result.append(
+				{
+					"reference_doctype": perm.get("parent"),
+					"permlevel": perm.get("permlevel", 0),
+					"has_difference": 1 if has_diff else 0,
+					"select": p1.get("select", 0) if p1 else 0,
+					"read": p1.get("read", 0) if p1 else 0,
+					"write": p1.get("write", 0) if p1 else 0,
+					"create": p1.get("create", 0) if p1 else 0,
+					"delete_to": p1.get("delete", 0) if p1 else 0,
+					"submit_to": p1.get("submit", 0) if p1 else 0,
+					"cancel_to": p1.get("cancel", 0) if p1 else 0,
+					"amend": p1.get("amend", 0) if p1 else 0,
+					"report": p1.get("report", 0) if p1 else 0,
+					"export": p1.get("export", 0) if p1 else 0,
+					"import_to": p1.get("import", 0) if p1 else 0,
+					"share": p1.get("share", 0) if p1 else 0,
+					"print": p1.get("print", 0) if p1 else 0,
+					"email": p1.get("email", 0) if p1 else 0,
+				}
+			)
+
 	return result
 
 
 def get_perm_dict(doc):
-	return {f: doc.get(f) for f in ["select", "read", "write", "create", "delete",
-		"submit", "cancel", "amend", "report", "export", "import", "share", "print", "email"]}
+	return {
+		f: doc.get(f)
+		for f in [
+			"select",
+			"read",
+			"write",
+			"create",
+			"delete",
+			"submit",
+			"cancel",
+			"amend",
+			"report",
+			"export",
+			"import",
+			"share",
+			"print",
+			"email",
+		]
+	}
 
 
 def log_permission_change(role, doctype, permlevel, action, old_perms, new_perms):
 	try:
-		frappe.get_doc({
-			"doctype": "Comment",
-			"comment_type": "Info",
-			"reference_doctype": "Role",
-			"reference_name": role,
-			"content": f"Permission {action} for {doctype} (Level {permlevel})"
-		}).insert(ignore_permissions=True)
+		frappe.get_doc(
+			{
+				"doctype": "Comment",
+				"comment_type": "Info",
+				"reference_doctype": "Role",
+				"reference_name": role,
+				"content": f"Permission {action} for {doctype} (Level {permlevel})",
+			}
+		).insert(ignore_permissions=True)
 	except:
 		pass
 
