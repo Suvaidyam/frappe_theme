@@ -489,7 +489,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			);
 			const relevant_html_fields = [...dtFields.map((f) => f.html_field), ...vm_fields];
 			this.clearOtherMappedFields(this.dts, relevant_html_fields, vm_all_fields, frm);
-			await this.handleCustomHTMLBlock(frm, tab_fields);
+			await this.handleBlocks(frm, tab_fields, signal);
 			await this.initializeDashboards(this.dts, frm, tab_fields, signal);
 			await this.processDataTables(dtFields, frm, this.dts, signal);
 		} catch (error) {
@@ -564,31 +564,50 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			frm.set_df_property(field, "options", "");
 		});
 	}
-	async handleCustomHTMLBlock(frm, tab_fields) {
-		const custom_html_blocks = frm.meta.fields
+	async handleBlocks(frm, tab_fields, signal = null) {
+		const custom_blocks = frm.meta.fields
 			.filter((f) => tab_fields.includes(f.fieldname))
 			?.filter((f) => f.sva_ft)
 			?.filter((f) => {
 				try {
-					return JSON.parse(f.sva_ft).html_block;
+					return JSON.parse(f.sva_ft);
 				} catch (error) {
 					return false;
 				}
 			});
 		// debugger;
 		let promises = [];
-		for (const field of custom_html_blocks) {
+		for (const field of custom_blocks) {
 			let f = { ...field, sva_ft: JSON.parse(field.sva_ft) };
-			promises.push(this.renderCustomHTMLBlock(frm, f));
+			promises.push(this.renderCustomBlock(frm, f, signal));
 		}
 		await Promise.all(promises);
 	}
-	renderCustomHTMLBlock = async (frm, field) => {
-		let html = await frappe.db.get_doc("Custom HTML Block", field.sva_ft.html_block);
-		if (html) {
-			let my_wrapper = document.createElement("div");
-			frm.set_df_property(field.fieldname, "options", my_wrapper);
-			frappe.create_shadow_element(my_wrapper, html.html, html.style, html.script);
+	renderCustomBlock = async (frm, field, signal = null) => {
+		let wrapper = document.createElement("div");
+		if (["Custom HTML Block", "Number Card"].includes(field.sva_ft.property_type)) {
+			frm.set_df_property(field.fieldname, "options", wrapper);
+			if (field.sva_ft.property_type === "Custom HTML Block" && field.sva_ft.html_block) {
+				let html = await frappe.db.get_doc("Custom HTML Block", field.sva_ft.html_block);
+				if (html) {
+					frappe.create_shadow_element(wrapper, html.html, html.style, html.script);
+				}
+			}
+			if (field.sva_ft.property_type === "Number Card" && field.sva_ft.number_card) {
+				console.log("number_card:", field.sva_ft.number_card);
+				let item = {
+					...field.sva_ft,
+					fetch_from: "Number Card",
+				};
+				let { _wrapper, ref } = new SVADashboardManager({
+					wrapper,
+					frm,
+					numberCards: [item],
+					signal,
+				});
+				frm.sva_cards[item] = ref;
+				wrapper._dashboard = _wrapper;
+			}
 		}
 	};
 	async initializeDashboards(dts, frm, currentTabFields, signal) {

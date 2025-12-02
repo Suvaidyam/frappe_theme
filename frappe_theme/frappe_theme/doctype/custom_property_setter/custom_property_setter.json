@@ -12,22 +12,19 @@
   "section_break_hevv",
   "column_break_yoee",
   "property_type",
-  "doc_type",
   "connection_type",
+  "doc_type",
   "report",
   "number_card",
   "doc_field",
   "chart",
   "html_block",
-  "column_break_vafi",
-  "label",
-  "column_break_fwyn",
-  "info",
-  "column_break_wmoh",
-  "column_break_dvrk",
-  "column_break_ehvl",
   "show_legend",
   "card_sequence",
+  "column_break_vafi",
+  "label",
+  "info",
+  "column_break_fwyn",
   "card_styling_section",
   "card_icon_column",
   "icon",
@@ -82,10 +79,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "column_break_wmoh",
-   "fieldtype": "Column Break"
-  },
-  {
    "fieldname": "property_type",
    "fieldtype": "Select",
    "label": "Property Type",
@@ -111,14 +104,6 @@
    "fieldname": "label",
    "fieldtype": "Data",
    "label": "Label"
-  },
-  {
-   "fieldname": "column_break_dvrk",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "column_break_ehvl",
-   "fieldtype": "Column Break"
   },
   {
    "depends_on": "eval:doc.property_type=='DocType'",
@@ -172,8 +157,7 @@
   },
   {
    "fieldname": "card_icon_column",
-   "fieldtype": "Column Break",
-   "label": "Icon"
+   "fieldtype": "Column Break"
   },
   {
    "fieldname": "card_hover_effect_column",
@@ -253,7 +237,7 @@
  "index_web_pages_for_search": 1,
  "is_virtual": 1,
  "links": [],
- "modified": "2025-11-27 10:17:24.342416",
+ "modified": "2025-11-27 21:52:19.896541",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Custom Property Setter",
