@@ -575,7 +575,6 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					return false;
 				}
 			});
-		// debugger;
 		let promises = [];
 		for (const field of custom_html_blocks) {
 			let f = { ...field, sva_ft: JSON.parse(field.sva_ft) };
