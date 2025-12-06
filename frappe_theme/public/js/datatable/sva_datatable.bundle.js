@@ -2998,6 +2998,7 @@ class SvaDataTable {
 					parent: td,
 					df: {
 						...column,
+						read_only: column?.read_only || (column?.read_only_depends_on ? frappe.utils.custom_eval(column.read_only_depends_on, row) : false),
 						onchange: async function () {
 							let changedValue = control.get_input_value();
 							if (row[column.fieldname] && row[column.fieldname] != changedValue) {
