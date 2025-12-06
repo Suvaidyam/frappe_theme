@@ -1318,9 +1318,9 @@ class SvaDataTable {
 					if (this.frm?.["dt_events"]?.[doctype]?.[f.fieldname]) {
 						let change = this.frm["dt_events"][doctype][f.fieldname];
 						if (f.fieldtype === "Button") {
-							f.click = change.bind(this, this, mode, f);
+							f.click = change.bind(this, this, mode, f, name);
 						} else {
-							f.onchange = change.bind(this, this, mode, f);
+							f.onchange = change.bind(this, this, mode, f, name);
 						}
 					}
 					if (f.set_only_once) {
@@ -1484,9 +1484,9 @@ class SvaDataTable {
 					if (this.frm?.["dt_events"]?.[doctype]?.[f.fieldname]) {
 						let change = this.frm["dt_events"][doctype][f.fieldname];
 						if (f.fieldtype === "Button") {
-							f.click = change.bind(this, this, mode, f);
+							f.click = change.bind(this, this, mode, f, name);
 						} else {
-							f.onchange = change.bind(this, this, mode, f);
+							f.onchange = change.bind(this, this, mode, f, name);
 						}
 					}
 					if (this.frm?.parentRow) {
