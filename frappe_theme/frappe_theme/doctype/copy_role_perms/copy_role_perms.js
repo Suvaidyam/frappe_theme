@@ -18,6 +18,76 @@ frappe.ui.form.on("Copy Role Perms", {
 		});
 
 		frm.set_value("perms_type", "Get & Update Perms");
+
+		// Redirect to Bulk Role Profile Permissions
+		frm.add_custom_button(__("Bulk Role Profile Permissions"), () => {
+			frappe.set_route("Form", "Bulk Role Profile Permissions");
+		});
+
+		// Bulk operations
+		frm.add_custom_button(
+			__("Select All"),
+			() => toggle_all_perms(frm, true),
+			__("Bulk Actions")
+		);
+		frm.add_custom_button(
+			__("Deselect All"),
+			() => toggle_all_perms(frm, false),
+			__("Bulk Actions")
+		);
+		frm.add_custom_button(
+			__("Enable Read"),
+			() => set_bulk_perms(frm, { read: 1 }),
+			__("Bulk Actions")
+		);
+		frm.add_custom_button(
+			__("Enable Write"),
+			() => set_bulk_perms(frm, { write: 1 }),
+			__("Bulk Actions")
+		);
+		frm.add_custom_button(
+			__("Enable Read & Write"),
+			() => set_bulk_perms(frm, { read: 1, write: 1 }),
+			__("Bulk Actions")
+		);
+
+		// Quick Presets
+		frm.add_custom_button(
+			__("Read Only"),
+			() => apply_preset(frm, "read_only"),
+			__("Quick Presets")
+		);
+		frm.add_custom_button(
+			__("Full Access"),
+			() => apply_preset(frm, "full_access"),
+			__("Quick Presets")
+		);
+		frm.add_custom_button(
+			__("Report Only"),
+			() => apply_preset(frm, "report_only"),
+			__("Quick Presets")
+		);
+		frm.add_custom_button(
+			__("Data Entry"),
+			() => apply_preset(frm, "data_entry"),
+			__("Quick Presets")
+		);
+
+		// Export/Import
+		frm.add_custom_button(
+			__("Export Permissions"),
+			() => export_permissions(frm),
+			__("Tools")
+		);
+		frm.add_custom_button(
+			__("Import Permissions"),
+			() => import_permissions(frm),
+			__("Tools")
+		);
+
+		frm.trigger("set_button_label");
+
+		// Main action button
 		if (!frm.custom_btn) {
 			frm.custom_btn = frm.add_custom_button(__("Create Permissions"), function () {
 				if (!frm.doc.role_to || !frm.doc.permissions || frm.doc.permissions.length === 0) {
@@ -49,8 +119,8 @@ frappe.ui.form.on("Copy Role Perms", {
 					freeze_message: freeze_msg,
 				});
 			});
+			frm.custom_btn.addClass("btn-primary");
 		}
-		frm.trigger("set_button_label");
 	},
 	perms_type: function (frm) {
 		frm.set_value("role_from", null);
@@ -195,3 +265,163 @@ frappe.ui.form.on("Copy Role Perms Child", {
 		}
 	},
 });
+
+function toggle_all_perms(frm, enable) {
+	frm.doc.permissions.forEach((row) => {
+		if (row.permlevel === 0) {
+			row.select = enable ? 1 : 0;
+			row.create = enable ? 1 : 0;
+			row.delete_to = enable ? 1 : 0;
+			row.submit_to = enable ? 1 : 0;
+			row.cancel_to = enable ? 1 : 0;
+			row.amend = enable ? 1 : 0;
+			row.report = enable ? 1 : 0;
+			row.export = enable ? 1 : 0;
+			row.import_to = enable ? 1 : 0;
+			row.share = enable ? 1 : 0;
+			row.print = enable ? 1 : 0;
+			row.email = enable ? 1 : 0;
+		}
+		row.read = enable ? 1 : 0;
+		row.write = enable ? 1 : 0;
+	});
+	frm.refresh_field("permissions");
+}
+
+function set_bulk_perms(frm, perms) {
+	frm.doc.permissions.forEach((row) => {
+		Object.assign(row, perms);
+	});
+	frm.refresh_field("permissions");
+}
+
+function apply_preset(frm, preset) {
+	const presets = {
+		read_only: {
+			read: 1,
+			write: 0,
+			create: 0,
+			delete_to: 0,
+			submit_to: 0,
+			cancel_to: 0,
+			amend: 0,
+			report: 0,
+			export: 0,
+			share: 0,
+			print: 0,
+			email: 0,
+			select: 0,
+			import_to: 0,
+		},
+		full_access: {
+			read: 1,
+			write: 1,
+			create: 1,
+			delete_to: 1,
+			submit_to: 1,
+			cancel_to: 1,
+			amend: 1,
+			report: 1,
+			export: 1,
+			share: 1,
+			print: 1,
+			email: 1,
+			select: 1,
+			import_to: 1,
+		},
+		report_only: {
+			read: 1,
+			write: 0,
+			create: 0,
+			delete_to: 0,
+			submit_to: 0,
+			cancel_to: 0,
+			amend: 0,
+			report: 1,
+			export: 1,
+			share: 0,
+			print: 1,
+			email: 0,
+			select: 0,
+			import_to: 0,
+		},
+		data_entry: {
+			read: 1,
+			write: 1,
+			create: 1,
+			delete_to: 0,
+			submit_to: 0,
+			cancel_to: 0,
+			amend: 0,
+			report: 1,
+			export: 1,
+			share: 0,
+			print: 1,
+			email: 1,
+			select: 0,
+			import_to: 0,
+		},
+	};
+
+	frm.doc.permissions.forEach((row) => {
+		Object.keys(presets[preset]).forEach((key) => {
+			if (row.permlevel === 0 || key === "read" || key === "write") {
+				row[key] = presets[preset][key];
+			}
+		});
+	});
+	frm.refresh_field("permissions");
+	frappe.show_alert({ message: __("Preset applied"), indicator: "green" });
+}
+
+function export_permissions(frm) {
+	if (!frm.doc.permissions || !frm.doc.permissions.length) {
+		frappe.msgprint(__("No permissions to export"));
+		return;
+	}
+	const data = {
+		role: frm.doc.role_to,
+		perms_type: frm.doc.perms_type,
+		exported_at: frappe.datetime.now_datetime(),
+		permissions: frm.doc.permissions,
+	};
+	const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+	const url = URL.createObjectURL(blob);
+	const a = document.createElement("a");
+	a.href = url;
+	a.download = `permissions_${frm.doc.role_to}_${frappe.datetime.now_date()}.json`;
+	a.click();
+	frappe.show_alert({ message: __("Permissions exported"), indicator: "green" });
+}
+
+function import_permissions(frm) {
+	const input = document.createElement("input");
+	input.type = "file";
+	input.accept = ".json";
+	input.onchange = (e) => {
+		const file = e.target.files[0];
+		const reader = new FileReader();
+		reader.onload = (event) => {
+			try {
+				const data = JSON.parse(event.target.result);
+				if (data.permissions) {
+					frm.clear_table("permissions");
+					const seen = new Set();
+					data.permissions.forEach((perm) => {
+						const key = `${perm.reference_doctype}::${perm.permlevel}`;
+						if (!seen.has(key)) {
+							frm.add_child("permissions", perm);
+							seen.add(key);
+						}
+					});
+					frm.refresh_field("permissions");
+					frappe.show_alert({ message: __("Permissions imported"), indicator: "green" });
+				}
+			} catch (err) {
+				frappe.msgprint(__("Invalid JSON file"));
+			}
+		};
+		reader.readAsText(file);
+	};
+	input.click();
+}
