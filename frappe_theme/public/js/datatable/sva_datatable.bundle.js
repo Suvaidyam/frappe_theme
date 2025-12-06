@@ -2216,6 +2216,12 @@ class SvaDataTable {
 		// Child Links
 		if (this.childLinks?.length) {
 			this.childLinks.forEach(async (link) => {
+				let can_be_visible = link?.display_depends_on
+					? frappe.utils.custom_eval(link.display_depends_on, row)
+					: true;
+				if (!can_be_visible) {
+					return;
+				}
 				appendDropdownOption(
 					`${frappe.utils.icon("external-link", "sm")} ${__(
 						link?.title || link.link_doctype
