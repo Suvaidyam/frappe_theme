@@ -1343,8 +1343,14 @@ class SvaDataTable {
 								this.frm?.["dt_events"]?.[f.options]?.["customize_form_fields"];
 							let has_additional_action = additional_action ? true : false;
 							let customizedTableFields = this.isAsync(customize)
-								? await customize(this, tableFields, mode, has_additional_action)
-								: customize(this, tableFields, mode, has_additional_action);
+								? await customize(
+										this,
+										tableFields,
+										mode,
+										has_additional_action,
+										name
+								  )
+								: customize(this, tableFields, mode, has_additional_action, name);
 							if (customizedTableFields) {
 								tableFields = customizedTableFields;
 							}
@@ -1374,7 +1380,9 @@ class SvaDataTable {
 							}
 							if (this.frm?.["dt_events"]?.[f.options]?.[tf.fieldname]) {
 								let change = this.frm["dt_events"][f.options][tf.fieldname];
-								tf.onchange = change.bind(this, this, mode, tf);
+								tf.onchange = this.isAsync(change)
+									? await change.bind(this, this, mode, tf, name)
+									: change.bind(this, this, mode, tf, name);
 							}
 						}
 						f.fields = tableFields;
