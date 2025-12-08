@@ -1299,9 +1299,10 @@ class SvaDataTable {
 		}
 		if (this.frm?.["dt_events"]?.[doctype]?.["customize_form_fields"]) {
 			let customize = this.frm?.["dt_events"]?.[doctype]?.["customize_form_fields"];
+			let has_additional_action = additional_action ? true : false;
 			let customized_fields = this.isAsync(customize)
-				? await customize(this, fields, mode)
-				: customize(this, fields, mode);
+				? await customize(this, fields, mode, has_additional_action, name)
+				: customize(this, fields, mode, has_additional_action, name);
 			if (customized_fields) {
 				fields = customized_fields;
 			}
@@ -1318,9 +1319,9 @@ class SvaDataTable {
 					if (this.frm?.["dt_events"]?.[doctype]?.[f.fieldname]) {
 						let change = this.frm["dt_events"][doctype][f.fieldname];
 						if (f.fieldtype === "Button") {
-							f.click = change.bind(this, this, mode, f);
+							f.click = change.bind(this, this, mode, f, name);
 						} else {
-							f.onchange = change.bind(this, this, mode, f);
+							f.onchange = change.bind(this, this, mode, f, name);
 						}
 					}
 					if (f.set_only_once) {
@@ -1343,8 +1344,14 @@ class SvaDataTable {
 								this.frm?.["dt_events"]?.[f.options]?.["customize_form_fields"];
 							let has_additional_action = additional_action ? true : false;
 							let customizedTableFields = this.isAsync(customize)
-								? await customize(this, tableFields, mode, has_additional_action)
-								: customize(this, tableFields, mode, has_additional_action);
+								? await customize(
+										this,
+										tableFields,
+										mode,
+										has_additional_action,
+										name
+								  )
+								: customize(this, tableFields, mode, has_additional_action, name);
 							if (customizedTableFields) {
 								tableFields = customizedTableFields;
 							}
@@ -1374,7 +1381,9 @@ class SvaDataTable {
 							}
 							if (this.frm?.["dt_events"]?.[f.options]?.[tf.fieldname]) {
 								let change = this.frm["dt_events"][f.options][tf.fieldname];
-								tf.onchange = change.bind(this, this, mode, tf);
+								tf.onchange = this.isAsync(change)
+									? await change.bind(this, this, mode, tf, name)
+									: change.bind(this, this, mode, tf, name);
 							}
 						}
 						f.fields = tableFields;
@@ -1484,9 +1493,9 @@ class SvaDataTable {
 					if (this.frm?.["dt_events"]?.[doctype]?.[f.fieldname]) {
 						let change = this.frm["dt_events"][doctype][f.fieldname];
 						if (f.fieldtype === "Button") {
-							f.click = change.bind(this, this, mode, f);
+							f.click = change.bind(this, this, mode, f, name);
 						} else {
-							f.onchange = change.bind(this, this, mode, f);
+							f.onchange = change.bind(this, this, mode, f, name);
 						}
 					}
 					if (this.frm?.parentRow) {
@@ -1555,9 +1564,10 @@ class SvaDataTable {
 						if (this.frm?.["dt_events"]?.[f.options]?.["customize_form_fields"]) {
 							let customize =
 								this.frm?.["dt_events"]?.[f.options]?.["customize_form_fields"];
+							let has_additional_action = additional_action ? true : false;
 							let customizedTableFields = this.isAsync(customize)
-								? await customize(this, tableFields, mode)
-								: customize(this, tableFields, mode);
+								? await customize(this, tableFields, mode, has_additional_action)
+								: customize(this, tableFields, mode, has_additional_action);
 							if (customizedTableFields) {
 								tableFields = customizedTableFields;
 							}
@@ -1628,9 +1638,10 @@ class SvaDataTable {
 					if (this.frm?.["dt_events"]?.[f.options]?.["customize_form_fields"]) {
 						let customize =
 							this.frm?.["dt_events"]?.[f.options]?.["customize_form_fields"];
+						let has_additional_action = additional_action ? true : false;
 						let customizedTableFields = this.isAsync(customize)
-							? await customize(this, tableFields, mode)
-							: customize(this, tableFields, mode);
+							? await customize(this, tableFields, mode, has_additional_action, name)
+							: customize(this, tableFields, mode, has_additional_action, name);
 						if (customizedTableFields) {
 							tableFields = customizedTableFields;
 						}
