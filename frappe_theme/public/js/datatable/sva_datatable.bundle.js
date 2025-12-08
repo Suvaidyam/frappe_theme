@@ -1300,8 +1300,8 @@ class SvaDataTable {
 		if (this.frm?.["dt_events"]?.[doctype]?.["customize_form_fields"]) {
 			let customize = this.frm?.["dt_events"]?.[doctype]?.["customize_form_fields"];
 			let customized_fields = this.isAsync(customize)
-				? await customize(this, fields, mode)
-				: customize(this, fields, mode);
+				? await customize(this, fields, mode, name)
+				: customize(this, fields, mode, name);
 			if (customized_fields) {
 				fields = customized_fields;
 			}
