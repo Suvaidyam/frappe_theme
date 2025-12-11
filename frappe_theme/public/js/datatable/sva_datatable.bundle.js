@@ -1973,8 +1973,8 @@ class SvaDataTable {
 					Number(col?.width) * 50
 				}px !important; white-space: nowrap;overflow: hidden;text-overflow:ellipsis;`;
 			}
-			th.textContent = __(column.label || column.name);
-			th.title = __(column.label || column.name);
+			th.textContent = __(strip_html(column.label) || column.fieldname);
+			th.title = __(strip_html(column.label) || column.fieldname);
 
 			if (column.sortable) {
 				this.createSortingIcon(th, column); // Create the sorting dropdown
