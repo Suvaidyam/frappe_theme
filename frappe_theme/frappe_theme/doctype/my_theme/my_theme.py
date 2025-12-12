@@ -6,6 +6,8 @@ import re
 import frappe
 from frappe.model.document import Document
 
+from frappe_theme.dt_api import get_number_card_count
+
 
 class MyTheme(Document):
 	def before_save(self):
@@ -17,18 +19,18 @@ class MyTheme(Document):
 				pass
 
 	@frappe.whitelist()
-	def eval_number_card(self, number_card):
-		try:
-			if not number_card:
-				return 0
-			number_card_doc = frappe.get_cached_doc("Number Card", number_card)
-			result = frappe.call(
-				"frappe.desk.doctype.number_card.number_card.get_result",
-				doc=number_card_doc,
-				filters=number_card_doc.filters_json or [],
-			)
-			return result
+	def eval_number_card(self, numbercard, doctype, docname):
+		details = None
+		if frappe.db.exists("Number Card", numbercard):
+			details = frappe.get_doc("Number Card", numbercard).as_dict()
 
-		except Exception:
-			frappe.log_error(frappe.get_traceback(), "Number Card Eval Error")
+		if not details:
+			return 0
+		report = None
+		if details.get("type") == "Report":
+			report = frappe.get_doc("Report", details.get("report_name"))
+		res = get_number_card_count(details.get("type"), details, report, doctype, docname)
+		if res.get("count"):
+			return res.get("count")
+		else:
 			return 0
