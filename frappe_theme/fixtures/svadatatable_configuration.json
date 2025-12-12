@@ -1,0 +1,69 @@
+[
+ {
+  "charts": [],
+  "child_confs": [],
+  "child_doctypes": [],
+  "docstatus": 0,
+  "doctype": "SVADatatable Configuration",
+  "modified": "2025-12-12 15:16:04.773765",
+  "name": "Approval Tracker",
+  "number_cards": [
+   {
+    "background_color": null,
+    "card_label": "TOTAL REQUESTS",
+    "fetch_from": "Number Card",
+    "field": null,
+    "hover_background_color": null,
+    "hover_text_color": null,
+    "hover_value_color": null,
+    "html_field": "total_requests",
+    "icon_color": null,
+    "icon_value": null,
+    "info": null,
+    "is_visible": 1,
+    "number_card": "Total Requests (Approval Tracker)",
+    "sequence": 0,
+    "text_color": null,
+    "value_color": null
+   },
+   {
+    "background_color": null,
+    "card_label": "APPROVED",
+    "fetch_from": "Number Card",
+    "field": null,
+    "hover_background_color": null,
+    "hover_text_color": null,
+    "hover_value_color": null,
+    "html_field": "approved_requests",
+    "icon_color": null,
+    "icon_value": null,
+    "info": null,
+    "is_visible": 1,
+    "number_card": "Approved Requests (Approval Tracker)",
+    "sequence": 0,
+    "text_color": null,
+    "value_color": null
+   },
+   {
+    "background_color": null,
+    "card_label": "REJECTED",
+    "fetch_from": "Number Card",
+    "field": null,
+    "hover_background_color": null,
+    "hover_text_color": null,
+    "hover_value_color": null,
+    "html_field": "rejected_requests",
+    "icon_color": null,
+    "icon_value": null,
+    "info": null,
+    "is_visible": 1,
+    "number_card": "Rejected Requests (Approval Tracker)",
+    "sequence": 0,
+    "text_color": null,
+    "value_color": null
+   }
+  ],
+  "parent_doctype": "Approval Tracker",
+  "triggers": []
+ }
+]
