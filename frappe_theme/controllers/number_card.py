@@ -55,8 +55,10 @@ class NumberCard:
 	) -> dict:
 		"""Get count based on card type."""
 		try:
-			details = json.loads(details)
-			report = json.loads(report) if report else None
+			if isinstance(details, str):
+				details = json.loads(details)
+			if isinstance(report, str):
+				report = json.loads(report)
 
 			if type == "Report":
 				return NumberCard.card_type_report(details, report, doctype, docname)
@@ -73,17 +75,64 @@ class NumberCard:
 	) -> dict:
 		"""Handle report type number cards."""
 		try:
+			if report.get("report_type") == "Script Report":
+				from frappe.desk.query_report import run
+				report_data = run(report.get("name"), filters={}, ignore_prepared_report=True)
+				if report_data and report_data.get("result"):
+					if details.get("report_function"):
+						function = NumberCard.AGGREGATE_FUNCTIONS.get(details.get("report_function"))
+						field_name = details.get("report_field")
+
+						matching_link_field = None
+						if doctype and docname:
+							if doctype != docname and report_data.get("columns"):
+								matching_link_field = next(
+									(col for col in report_data.get("columns") if col.get("fieldtype") == "Link" and col.get("options") == doctype),
+									None,
+								)
+        
+						values = []
+						for row in report_data.get("result"):
+							if isinstance(row, dict):
+								if matching_link_field:
+									if row.get(matching_link_field.get("fieldname")) != docname:
+										continue
+								values.append(row.get(field_name))
+							else:
+								if matching_link_field:
+									if row[report_data.get("columns").index(matching_link_field)] != docname:
+										continue
+								index = report_data.get("columns").index(
+									next(col for col in report_data.get("columns") if col.get("fieldname") == field_name)
+								)
+								values.append(row[index])
+        
+						if function == "SUM":
+							count = sum(values) or 0
+						elif function == "AVG":
+							count = sum(values) / len(values) if values else 0
+						elif function == "MIN":
+							count = min(values) if values else 0
+						elif function == "MAX":
+							count = max(values) if values else 0
+						elif function == "COUNT":
+							count = len(values) or 0
+						else:
+							return {"count": 0, "message": "Invalid function", "field_type": None}
+				return {"count": count, "message": "Invalid doctype or docname", "field_type": None}
+
 			if not report or not report.get("query"):
-				return {"count": 0, "message": "Report", "field_type": None}
+				return {"count": 0, "message": "Report type is not query report", "field_type": None}
 
 			conditions = "WHERE 1=1"
 			field_type = None
 
 			# Build conditions
-			for f in report.get("columns", []):
-				if f.get("fieldtype") == "Link" and f.get("options") == doctype:
-					conditions += f" AND t.{f.get('fieldname')} = '{docname}'"
-				field_type = f.get("fieldtype")
+			if doctype != docname:
+				for f in report.get("columns", []):
+					if f.get("fieldtype") == "Link" and f.get("options") == doctype:
+						conditions += f" AND t.{f.get('fieldname')} = '{docname}'"
+					field_type = f.get("fieldtype")
 
 			field_name = details.get("report_field")
 			function = NumberCard.AGGREGATE_FUNCTIONS.get(details.get("report_function"))

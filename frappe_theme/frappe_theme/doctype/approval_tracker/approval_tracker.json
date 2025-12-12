@@ -5,6 +5,12 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "total_requests",
+  "column_break_yohh",
+  "approved_requests",
+  "column_break_lyqf",
+  "rejected_requests",
+  "section_break_ozza",
   "module",
   "column_break_odrq",
   "document_type",
@@ -53,6 +59,30 @@
    "fieldname": "approval_tracker",
    "fieldtype": "HTML",
    "label": "Approval Tracker"
+  },
+  {
+   "fieldname": "total_requests",
+   "fieldtype": "HTML"
+  },
+  {
+   "fieldname": "section_break_ozza",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "approved_requests",
+   "fieldtype": "HTML"
+  },
+  {
+   "fieldname": "rejected_requests",
+   "fieldtype": "HTML"
+  },
+  {
+   "fieldname": "column_break_yohh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_lyqf",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
@@ -60,7 +90,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-08-05 16:15:04.324706",
+ "modified": "2025-12-12 15:10:07.451415",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Approval Tracker",
