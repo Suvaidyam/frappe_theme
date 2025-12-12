@@ -77,6 +77,7 @@ class NumberCard:
 		try:
 			if report.get("report_type") == "Script Report":
 				from frappe.desk.query_report import run
+
 				report_data = run(report.get("name"), filters={}, ignore_prepared_report=True)
 				if report_data and report_data.get("result"):
 					if details.get("report_function"):
@@ -87,10 +88,14 @@ class NumberCard:
 						if doctype and docname:
 							if doctype != docname and report_data.get("columns"):
 								matching_link_field = next(
-									(col for col in report_data.get("columns") if col.get("fieldtype") == "Link" and col.get("options") == doctype),
+									(
+										col
+										for col in report_data.get("columns")
+										if col.get("fieldtype") == "Link" and col.get("options") == doctype
+									),
 									None,
 								)
-        
+
 						values = []
 						for row in report_data.get("result"):
 							if isinstance(row, dict):
@@ -103,10 +108,14 @@ class NumberCard:
 									if row[report_data.get("columns").index(matching_link_field)] != docname:
 										continue
 								index = report_data.get("columns").index(
-									next(col for col in report_data.get("columns") if col.get("fieldname") == field_name)
+									next(
+										col
+										for col in report_data.get("columns")
+										if col.get("fieldname") == field_name
+									)
 								)
 								values.append(row[index])
-        
+
 						if function == "SUM":
 							count = sum(values) or 0
 						elif function == "AVG":

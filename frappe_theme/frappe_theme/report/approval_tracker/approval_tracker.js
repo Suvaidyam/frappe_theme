@@ -4,10 +4,10 @@
 frappe.query_reports["APPROVAL TRACKER"] = {
 	filters: [
 		{
-			"fieldname": "module",
-			"label": __("Document Type"),
-			"fieldtype": "Link",
-			"options": "DocType"
+			fieldname: "module",
+			label: __("Document Type"),
+			fieldtype: "Link",
+			options: "DocType",
 		},
 	],
 };

@@ -608,7 +608,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 				signal,
 			});
 			if (item.parentfield == "number_cards") {
-				if(!frm.sva_cards){
+				if (!frm.sva_cards) {
 					frm.sva_cards = {};
 				}
 				frm.sva_cards[item.number_card] = ref;
