@@ -82,6 +82,7 @@ class SvaDataTable {
 		this.workflow = null;
 		this.wf_positive_closure = "";
 		this.wf_negative_closure = "";
+		this.workflow_state_map = {};
 		this.wf_editable_allowed = false;
 		this.wf_transitions_allowed = false;
 		this.skip_workflow_confirmation = false;
@@ -116,6 +117,14 @@ class SvaDataTable {
 		this.showSkeletonLoader(reLoad);
 		if (this.frm?.["dt_events"]?.[this.doctype ?? this.link_report]?.["before_load"]) {
 			let change = this.frm["dt_events"][this.doctype ?? this.link_report]["before_load"];
+			if (this.isAsync(change)) {
+				await change(this);
+			} else {
+				change(this);
+			}
+		}
+		if (this.frm?.["dt_global_events"]?.["before_load"]) {
+			let change = this.frm["dt_global_events"]["before_load"];
 			if (this.isAsync(change)) {
 				await change(this);
 			} else {
@@ -210,6 +219,23 @@ class SvaDataTable {
 					} else {
 						this.columns = [...columns.filter((f) => f.in_list_view)];
 					}
+					if (this.frm?.["dt_events"]?.[this.doctype]?.["before_table_load"]) {
+						let change = this.frm["dt_events"][this.doctype]["before_table_load"];
+						if (this.isAsync(change)) {
+							await change(this);
+						} else {
+							change(this);
+						}
+					}
+					if (this.frm?.["dt_global_events"]?.["before_table_load"]) {
+						let change = this.frm["dt_global_events"]["before_table_load"];
+						if (this.isAsync(change)) {
+							await change(this);
+						} else {
+							change(this);
+						}
+					}
+
 					this.rows = await this.getDocList();
 					this.table_element = this.createTable();
 					if (!this.table_wrapper.querySelector("div#sva_table_wrapper") && !reset) {
@@ -251,6 +277,14 @@ class SvaDataTable {
 		this.hideSkeletonLoader(reLoad);
 		if (this.frm?.["dt_events"]?.[this.doctype]?.["after_load"]) {
 			let change = this.frm["dt_events"][this.doctype]["after_load"];
+			if (this.isAsync(change)) {
+				await change(this);
+			} else {
+				change(this);
+			}
+		}
+		if (this.frm?.["dt_global_events"]?.["after_load"]) {
+			let change = this.frm["dt_global_events"]["after_load"];
 			if (this.isAsync(change)) {
 				await change(this);
 			} else {
@@ -327,6 +361,14 @@ class SvaDataTable {
 				// Trigger any after row update events
 				if (this.frm?.["dt_events"]?.[this.doctype]?.["after_row_update"]) {
 					let change = this.frm["dt_events"][this.doctype]["after_row_update"];
+					if (this.isAsync(change)) {
+						await change(this, updated_doc, rowIndex);
+					} else {
+						change(this, updated_doc, rowIndex);
+					}
+				}
+				if (this.frm?.["dt_global_events"]?.["after_row_update"]) {
+					let change = this.frm["dt_global_events"]["after_row_update"];
 					if (this.isAsync(change)) {
 						await change(this, updated_doc, rowIndex);
 					} else {
@@ -1307,6 +1349,16 @@ class SvaDataTable {
 				fields = customized_fields;
 			}
 		}
+		if (this.frm?.["dt_global_events"]?.["customize_form_fields"]) {
+			let customize = this.frm?.["dt_global_events"]?.["customize_form_fields"];
+			let has_additional_action = additional_action ? true : false;
+			let customized_fields = this.isAsync(customize)
+				? await customize(this, fields, mode, has_additional_action, name)
+				: customize(this, fields, mode, has_additional_action, name);
+			if (customized_fields) {
+				fields = customized_fields;
+			}
+		}
 		if (mode === "create" || mode === "write") {
 			if (name) {
 				let doc = await this.sva_db.get_doc(doctype, name);
@@ -1318,6 +1370,14 @@ class SvaDataTable {
 					f.onchange = this.onFieldValueChange?.bind(this);
 					if (this.frm?.["dt_events"]?.[doctype]?.[f.fieldname]) {
 						let change = this.frm["dt_events"][doctype][f.fieldname];
+						if (f.fieldtype === "Button") {
+							f.click = change.bind(this, this, mode, f, name);
+						} else {
+							f.onchange = change.bind(this, this, mode, f, name);
+						}
+					}
+					if (this.frm?.["dt_global_events"]?.[f.fieldname]) {
+						let change = this.frm["dt_global_events"][f.fieldname];
 						if (f.fieldtype === "Button") {
 							f.click = change.bind(this, this, mode, f, name);
 						} else {
@@ -1342,6 +1402,23 @@ class SvaDataTable {
 						if (this.frm?.["dt_events"]?.[f.options]?.["customize_form_fields"]) {
 							let customize =
 								this.frm?.["dt_events"]?.[f.options]?.["customize_form_fields"];
+							let has_additional_action = additional_action ? true : false;
+							let customizedTableFields = this.isAsync(customize)
+								? await customize(
+										this,
+										tableFields,
+										mode,
+										has_additional_action,
+										name
+								  )
+								: customize(this, tableFields, mode, has_additional_action, name);
+							if (customizedTableFields) {
+								tableFields = customizedTableFields;
+							}
+						}
+						if (this.frm?.["dt_global_events"]?.["customize_form_fields"]) {
+							let customize =
+								this.frm?.["dt_global_events"]?.["customize_form_fields"];
 							let has_additional_action = additional_action ? true : false;
 							let customizedTableFields = this.isAsync(customize)
 								? await customize(
@@ -1381,6 +1458,12 @@ class SvaDataTable {
 							}
 							if (this.frm?.["dt_events"]?.[f.options]?.[tf.fieldname]) {
 								let change = this.frm["dt_events"][f.options][tf.fieldname];
+								tf.onchange = this.isAsync(change)
+									? await change.bind(this, this, mode, tf, name)
+									: change.bind(this, this, mode, tf, name);
+							}
+							if (this.frm?.["dt_global_events"]?.[tf.fieldname]) {
+								let change = this.frm["dt_global_events"][tf.fieldname];
 								tf.onchange = this.isAsync(change)
 									? await change.bind(this, this, mode, tf, name)
 									: change.bind(this, this, mode, tf, name);
@@ -1498,6 +1581,14 @@ class SvaDataTable {
 							f.onchange = change.bind(this, this, mode, f, name);
 						}
 					}
+					if (this.frm?.["dt_global_events"]?.[f.fieldname]) {
+						let change = this.frm["dt_global_events"][f.fieldname];
+						if (f.fieldtype === "Button") {
+							f.click = change.bind(this, this, mode, f, name);
+						} else {
+							f.onchange = change.bind(this, this, mode, f, name);
+						}
+					}
 					if (this.frm?.parentRow) {
 						if (this.frm?.parentRow[f.fieldname]) {
 							if (f.fieldname == "workflow_state") {
@@ -1572,6 +1663,16 @@ class SvaDataTable {
 								tableFields = customizedTableFields;
 							}
 						}
+						if (this.frm?.["dt_global_events"]?.["customize_form_fields"]) {
+							let customize = this.frm["dt_global_events"]["customize_form_fields"];
+							let has_additional_action = additional_action ? true : false;
+							let customizedTableFields = this.isAsync(customize)
+								? await customize(this, tableFields, mode, has_additional_action)
+								: customize(this, tableFields, mode, has_additional_action);
+							if (customizedTableFields) {
+								tableFields = customizedTableFields;
+							}
+						}
 						for (let tf of tableFields) {
 							if (tf.fieldtype === "Link") {
 								tf.get_query = () => {
@@ -1597,6 +1698,10 @@ class SvaDataTable {
 							}
 							if (this.frm?.["dt_events"]?.[f.options]?.[tf.fieldname]) {
 								let change = this.frm["dt_events"][f.options][tf.fieldname];
+								tf.onchange = change.bind(this, this, mode, tf);
+							}
+							if (this.frm?.["dt_global_events"]?.[tf.fieldname]) {
+								let change = this.frm["dt_global_events"][tf.fieldname];
 								tf.onchange = change.bind(this, this, mode, tf);
 							}
 						}
@@ -1638,6 +1743,16 @@ class SvaDataTable {
 					if (this.frm?.["dt_events"]?.[f.options]?.["customize_form_fields"]) {
 						let customize =
 							this.frm?.["dt_events"]?.[f.options]?.["customize_form_fields"];
+						let has_additional_action = additional_action ? true : false;
+						let customizedTableFields = this.isAsync(customize)
+							? await customize(this, tableFields, mode, has_additional_action, name)
+							: customize(this, tableFields, mode, has_additional_action, name);
+						if (customizedTableFields) {
+							tableFields = customizedTableFields;
+						}
+					}
+					if (this.frm?.["dt_global_events"]?.["customize_form_fields"]) {
+						let customize = this.frm["dt_global_events"]["customize_form_fields"];
 						let has_additional_action = additional_action ? true : false;
 						let customizedTableFields = this.isAsync(customize)
 							? await customize(this, tableFields, mode, has_additional_action, name)
@@ -1737,6 +1852,17 @@ class SvaDataTable {
 								values = dialog.get_values(true, false);
 							}
 						}
+						if (this.frm?.["dt_global_events"]?.["validate"]) {
+							let change = this.frm["dt_global_events"]["validate"];
+							let has_aditional_action = additional_action ? true : false;
+							if (this.isAsync(change)) {
+								await change(this, mode, values, has_aditional_action);
+								values = dialog.get_values(true, false);
+							} else {
+								change(this, mode, values, has_aditional_action);
+								values = dialog.get_values(true, false);
+							}
+						}
 						if (!name) {
 							let response = await frappe.xcall("frappe.client.insert", {
 								doc: {
@@ -1759,6 +1885,14 @@ class SvaDataTable {
 								});
 								if (this.frm?.["dt_events"]?.[doctype]?.["after_insert"]) {
 									let change = this.frm["dt_events"][doctype]["after_insert"];
+									if (this.isAsync(change)) {
+										await change(this, response);
+									} else {
+										change(this, response);
+									}
+								}
+								if (this.frm?.["dt_global_events"]?.["after_insert"]) {
+									let change = this.frm["dt_global_events"]["after_insert"];
 									if (this.isAsync(change)) {
 										await change(this, response);
 									} else {
@@ -1814,10 +1948,26 @@ class SvaDataTable {
 										change(this, response);
 									}
 								}
+								if (this.frm?.["dt_global_events"]?.["after_update"]) {
+									let change = this.frm["dt_global_events"]["after_update"];
+									if (this.isAsync(change)) {
+										await change(this, response);
+									} else {
+										change(this, response);
+									}
+								}
 							}
 						}
 						if (this.frm?.["dt_events"]?.[doctype]?.["after_save"]) {
 							let change = this.frm["dt_events"][doctype]["after_save"];
+							if (this.isAsync(change)) {
+								await change(this, mode, values);
+							} else {
+								change(this, mode, values);
+							}
+						}
+						if (this.frm?.["dt_global_events"]?.["after_save"]) {
+							let change = this.frm["dt_global_events"]["after_save"];
 							if (this.isAsync(change)) {
 								await change(this, mode, values);
 							} else {
@@ -1897,6 +2047,15 @@ class SvaDataTable {
 				change(this, mode, has_aditional_action, name);
 			}
 		}
+		if (this.frm?.["dt_global_events"]?.["after_render"]) {
+			let change = this.frm["dt_global_events"]["after_render"];
+			let has_aditional_action = additional_action ? true : false;
+			if (this.isAsync(change)) {
+				await change(this, mode, has_aditional_action, name);
+			} else {
+				change(this, mode, has_aditional_action, name);
+			}
+		}
 	}
 	async deleteRecord(doctype, name) {
 		frappe.confirm(
@@ -1912,6 +2071,14 @@ class SvaDataTable {
 				});
 				if (this.frm?.["dt_events"]?.[doctype]?.["after_delete"]) {
 					let change = this.frm["dt_events"][doctype]["after_delete"];
+					if (this.isAsync(change)) {
+						await change(this, name);
+					} else {
+						change(this, name);
+					}
+				}
+				if (this.frm?.["dt_global_events"]?.["after_delete"]) {
+					let change = this.frm["dt_global_events"]["after_delete"];
 					if (this.isAsync(change)) {
 						await change(this, name);
 					} else {
@@ -2264,6 +2431,25 @@ class SvaDataTable {
 				});
 			}
 		}
+		if (this.frm?.["dt_global_events"]?.["additional_row_actions"]) {
+			let actions = this.frm["dt_global_events"]["additional_row_actions"];
+			for (let action of Object.keys(actions)) {
+				let action_obj = actions[action];
+				if (action_obj.condition) {
+					if (!this.checkCondition(action_obj.condition, row, primaryKey)) {
+						continue;
+					}
+				}
+				appendDropdownOption(`${action_obj.icon} ${action_obj.label}`, async () => {
+					let fn = action_obj.action;
+					if (this.isAsync(fn)) {
+						await fn(this, row, primaryKey);
+					} else {
+						fn(this, row, primaryKey);
+					}
+				});
+			}
+		}
 		// ========================= Integration Button End ======================
 
 		dropdown.appendChild(dropdownBtn);
@@ -2403,9 +2589,16 @@ class SvaDataTable {
 						if (isClosed) {
 							el.disabled = true;
 							el.classList.add("ellipsis");
-							el.setAttribute("title", row[workflow_state_field]);
+							el.setAttribute(
+								"title",
+								this.workflow_state_map?.[row[workflow_state_field]] ||
+									row[workflow_state_field]
+							);
 							// frappe.utils.make_popover(el, "Closed : ", row[workflow_state_field]);
-							el.innerHTML = `<option value="" style="color:black" selected disabled">${row[workflow_state_field]}</option>`;
+							el.innerHTML = `<option value="" style="color:black" selected disabled">${
+								this.workflow_state_map?.[row[workflow_state_field]] ||
+								row[workflow_state_field]
+							}</option>`;
 							el.style["-webkit-appearance"] = "none";
 							el.style["-moz-appearance"] = "none";
 							el.style["appearance"] = "none";
@@ -2440,9 +2633,16 @@ class SvaDataTable {
 							// 	.map((e) => `&#x2022; ${e.action} by ${e.allowed}`)
 							// 	.join("<br>");
 							// frappe.utils.make_popover(el, `CS : ${row[workflow_state_field]}`, titleText);
-							el.setAttribute("title", row[workflow_state_field]);
+							el.setAttribute(
+								"title",
+								this.workflow_state_map?.[row[workflow_state_field]] ||
+									row[workflow_state_field]
+							);
 							el.innerHTML =
-								`<option value="" style="color:black" selected disabled class="ellipsis">${row[workflow_state_field]}</option>` +
+								`<option value="" style="color:black" selected disabled class="ellipsis">${
+									this.workflow_state_map?.[row[workflow_state_field]] ||
+									row[workflow_state_field]
+								}</option>` +
 								[...new Set(transitions?.map((e) => e.action))]
 									?.map(
 										(action) =>
@@ -2555,6 +2755,14 @@ class SvaDataTable {
 				change(me, selected_state_info, docname, prevState, doc);
 			}
 		}
+		if (this.frm?.["dt_global_events"]?.["before_workflow_action"]) {
+			let change = this.frm["dt_global_events"]["before_workflow_action"];
+			if (this.isAsync(change)) {
+				await change(me, selected_state_info, docname, prevState, doc);
+			} else {
+				change(me, selected_state_info, docname, prevState, doc);
+			}
+		}
 
 		const bg = me.workflow_state_bg?.find(
 			(bg) => bg.name === selected_state_info.next_state && bg?.style
@@ -2645,6 +2853,10 @@ class SvaDataTable {
 						this.frm["dt_events"][this.doctype]["after_workflow_dialog_render"];
 					change(me, selected_state_info, docname, prevState);
 				}
+				if (this.frm?.["dt_global_events"]?.["after_workflow_dialog_render"]) {
+					let change = this.frm["dt_global_events"]["after_workflow_dialog_render"];
+					change(me, selected_state_info, docname, prevState);
+				}
 			});
 		}
 		async function take_action(values = undefined) {
@@ -2695,6 +2907,14 @@ class SvaDataTable {
 						}
 						if (me?.frm?.["dt_events"]?.[me.doctype]?.["after_workflow_action"]) {
 							let change = me.frm["dt_events"][me.doctype]["after_workflow_action"];
+							if (me.isAsync(change)) {
+								await change(me, selected_state_info, docname, prevState, doc);
+							} else {
+								change(me, selected_state_info, docname, prevState, doc);
+							}
+						}
+						if (me?.frm?.["dt_global_events"]?.["after_workflow_action"]) {
+							let change = me.frm["dt_global_events"]["after_workflow_action"];
 							if (me.isAsync(change)) {
 								await change(me, selected_state_info, docname, prevState, doc);
 							} else {
@@ -2764,6 +2984,7 @@ class SvaDataTable {
 				doc: { name: primaryKeyValue, docstatus: parentRow.docstatus },
 				parentRow,
 				dt_events: this.frm?.dt_events,
+				dt_global_events: this.frm?.dt_global_events,
 			},
 			options: {
 				serialNumberColumn: true,
