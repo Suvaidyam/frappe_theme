@@ -17,23 +17,26 @@ frappe.ui.form.on("Approval Tracker", {
 		frm.doc.__unsaved = 0; // Marks the document as saved
 	},
 	pending_on_me: async (frm) => {
-		if (frm.doc?.pending_on_me){
-			const result = await frappe.xcall("frappe_theme.api.get_documents_with_available_transitions", {
-				doctype: frm.doc.document_type || "Fund Request",
-			});
-			if (result?.length){
+		if (frm.doc?.pending_on_me) {
+			const result = await frappe.xcall(
+				"frappe_theme.api.get_documents_with_available_transitions",
+				{
+					doctype: frm.doc.document_type || "Fund Request",
+				}
+			);
+			if (result?.length) {
 				frm.sva_dt_instance.connection.extend_condition = 1;
 				frm.sva_dt_instance.connection.extended_condition = JSON.stringify([
 					[frm.doc.document_type || "Fund Request", "name", "in", result],
-				])
-			}else{
+				]);
+			} else {
 				frm.sva_dt_instance.connection.extend_condition = 1;
 				frm.sva_dt_instance.connection.extended_condition = JSON.stringify([
 					[frm.doc.document_type || "Fund Request", "name", "in", [""]],
-				])
+				]);
 			}
 			await frm.sva_dt_instance.reloadTable();
-		}else{
+		} else {
 			frm.sva_dt_instance.connection.extend_condition = 0;
 			frm.sva_dt_instance.connection.extended_condition = "[]";
 			await frm.sva_dt_instance.reloadTable();
