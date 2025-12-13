@@ -4,7 +4,10 @@ import re
 import frappe
 from frappe import _
 from frappe.custom.doctype.custom_field.custom_field import create_custom_field
+from frappe.model.workflow import get_transitions
 from frappe.utils import cint
+
+from frappe_theme.utils import get_state_closure_by_type
 
 
 @frappe.whitelist(allow_guest=True)
@@ -1493,3 +1496,25 @@ def import_fixtures_runtime(file_url):
 	except Exception as e:
 		frappe.log_error(frappe.get_traceback(), "Fixture Import Error")
 		return {"status": "error", "message": str(e)}
+
+
+@frappe.whitelist()
+def get_documents_with_available_transitions(doctype):
+	exists_wf = frappe.db.exists("Workflow", {"is_active": 1, "document_type": doctype}, True)
+	if not exists_wf:
+		return []
+	wf = frappe.get_doc("Workflow", exists_wf)
+	positive_closure = get_state_closure_by_type(doctype)
+	negative_closure = get_state_closure_by_type(doctype, "Negative")
+	doc_lists = frappe.get_all(
+		wf.document_type,
+		filters={wf.workflow_state_field: ["not in", [positive_closure, negative_closure]]},
+		pluck="name",
+	)
+	result = []
+	for doc in doc_lists:
+		doc = frappe.get_doc(wf.document_type, doc)
+		transitions = get_transitions(doc)
+		if len(transitions) > 0:
+			result.append(doc.name)
+	return result
