@@ -3,8 +3,8 @@
 
 import frappe
 from frappe import _
-
 from frappe_theme.utils import get_state_closure_by_type
+from frappe.model.workflow import get_transitions
 
 
 def execute(filters: dict | None = None):
@@ -32,7 +32,7 @@ def get_columns() -> list[dict]:
 		{"label": _("Total Requests"), "fieldname": "total_requests", "fieldtype": "Int", "width": 200},
 		{"label": _("Approved Requests"), "fieldname": "approved_requests", "fieldtype": "Int", "width": 200},
 		{
-			"label": _("Pending Requests"),
+			"label": _("Pending on Me Requests"),
 			"fieldname": "pending_on_me_requests",
 			"fieldtype": "Int",
 			"width": 200,
@@ -62,12 +62,18 @@ def get_data() -> list[list]:
 			if negative_closure
 			else 0
 		)
-		pending_on_me_count = frappe.db.count(
+		pending_on_me_count = 0
+		doc_lists = frappe.get_all(
 			wf.document_type,
-			{
-				wf.workflow_state_field: ["not in", [positive_closure, negative_closure]],
-			},
+			filters={wf.workflow_state_field: ["not in", [positive_closure, negative_closure]]},
+			pluck="name",
 		)
+		for doc in doc_lists:
+			doc = frappe.get_doc(wf.document_type, doc)
+			transitions = get_transitions(doc)
+			if len(transitions) > 0:
+				pending_on_me_count += 1
+
 		data.append(
 			{
 				"module": wf.document_type,

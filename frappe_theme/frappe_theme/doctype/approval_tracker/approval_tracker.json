@@ -8,13 +8,17 @@
   "total_requests",
   "column_break_yohh",
   "approved_requests",
+  "column_break_xoar",
+  "pending_on_me_requests",
   "column_break_lyqf",
   "rejected_requests",
   "section_break_ozza",
   "module",
   "column_break_odrq",
+  "pending_on",
   "document_type",
   "column_break_yuwk",
+  "pending_on_me",
   "section_break_cxyu",
   "state_card",
   "section_break_fmyh",
@@ -36,6 +40,7 @@
    "fetch_from": "module.document_type",
    "fieldname": "document_type",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "Document Type"
   },
   {
@@ -83,6 +88,26 @@
   {
    "fieldname": "column_break_lyqf",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "pending_on_me_requests",
+   "fieldtype": "HTML"
+  },
+  {
+   "fieldname": "column_break_xoar",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "pending_on_me",
+   "fieldtype": "Check",
+   "label": "Pending On Me"
+  },
+  {
+   "fieldname": "pending_on",
+   "fieldtype": "Link",
+   "label": "Pending On",
+   "options": "User"
   }
  ],
  "grid_page_length": 50,
@@ -90,7 +115,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-12-12 15:10:07.451415",
+ "modified": "2025-12-13 15:05:02.046681",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Approval Tracker",
