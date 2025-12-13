@@ -40,7 +40,6 @@
    "fetch_from": "module.document_type",
    "fieldname": "document_type",
    "fieldtype": "Data",
-   "hidden": 1,
    "label": "Document Type"
   },
   {
@@ -106,6 +105,7 @@
   {
    "fieldname": "pending_on",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Pending On",
    "options": "User"
   }
@@ -115,7 +115,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-12-13 15:05:02.046681",
+ "modified": "2025-12-13 17:53:44.046076",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Approval Tracker",
