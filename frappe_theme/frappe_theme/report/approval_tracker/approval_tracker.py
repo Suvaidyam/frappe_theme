@@ -3,8 +3,9 @@
 
 import frappe
 from frappe import _
-from frappe_theme.utils import get_state_closure_by_type
 from frappe.model.workflow import get_transitions
+
+from frappe_theme.utils import get_state_closure_by_type
 
 
 def execute(filters: dict | None = None):
