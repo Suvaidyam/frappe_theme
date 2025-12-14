@@ -3,15 +3,15 @@
 let module_options = [];
 frappe.ui.form.on("Approval Tracker", {
 	async refresh(frm) {
-		module_options = await frappe.xcall('frappe_theme.api.get_approval_trakcer_module_options');
-		if(module_options.length){
+		module_options = await frappe.xcall(
+			"frappe_theme.api.get_approval_trakcer_module_options"
+		);
+		if (module_options.length) {
 			frm.fields_dict.module.set_data(module_options);
-			frm.set_value('module', module_options[0].value);
+			frm.set_value("module", module_options[0].value);
 		}
 		let wrapper = $(
-			document.querySelector(
-				`#page-${frm.meta.name.replace(/ /g, "\\ ")} .page-head`
-			)
+			document.querySelector(`#page-${frm.meta.name.replace(/ /g, "\\ ")} .page-head`)
 		);
 		if (wrapper.length) {
 			frappe.create_shadow_element(
@@ -40,7 +40,7 @@ frappe.ui.form.on("Approval Tracker", {
 							margin-left: 8px;
 						">${__("")}</span>
 					</div>
-				</div>`,
+				</div>`
 			);
 		}
 		show_table(frm, frm.doc.module);
@@ -57,16 +57,16 @@ frappe.ui.form.on("Approval Tracker", {
 		apply_pending_on_filter(frm);
 	},
 	module: async function (frm) {
-		if (frm.doc.module){
+		if (frm.doc.module) {
 			await set_pending_on_options(frm);
 			show_table(frm, frm.doc.module);
 			setTimeout(() => {
 				apply_pending_on_filter(frm);
 			}, 400);
-		}else{
-			if(module_options.length){
+		} else {
+			if (module_options.length) {
 				frm.fields_dict.module.set_data(module_options);
-				frm.set_value('module', module_options[0].value);
+				frm.set_value("module", module_options[0].value);
 			}
 		}
 	},
@@ -173,17 +173,15 @@ const show_table = async (frm, document_type) => {
 };
 
 const set_pending_on_options = async (frm) => {
-	let pending_on_options = [
-		{ label: "Me", value: "me" },
-	];
-	let response = await frappe.xcall('frappe_theme.api.get_workflow_based_users', {
+	let pending_on_options = [{ label: "Me", value: "me" }];
+	let response = await frappe.xcall("frappe_theme.api.get_workflow_based_users", {
 		doctype: frm.doc.module,
 	});
 	if (response && response.length) {
 		pending_on_options = pending_on_options.concat(response);
 	}
 	frm.fields_dict.pending_on.set_data(pending_on_options);
-}
+};
 const apply_pending_on_filter = async (frm) => {
 	if (frm.doc?.pending_on) {
 		const result = await frappe.xcall(
@@ -210,4 +208,4 @@ const apply_pending_on_filter = async (frm) => {
 		frm.sva_dt_instance.connection.extended_condition = "[]";
 		await frm.sva_dt_instance.reloadTable();
 	}
-}
+};
