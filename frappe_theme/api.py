@@ -1,10 +1,13 @@
 import json
 import re
+from typing import Union
 
 import frappe
 from frappe import _
 from frappe.custom.doctype.custom_field.custom_field import create_custom_field
 from frappe.utils import cint
+
+from frappe_theme.utils import get_state_closure_by_type
 
 
 @frappe.whitelist(allow_guest=True)
@@ -1493,3 +1496,104 @@ def import_fixtures_runtime(file_url):
 	except Exception as e:
 		frappe.log_error(frappe.get_traceback(), "Fixture Import Error")
 		return {"status": "error", "message": str(e)}
+
+
+from frappe.model.document import Document
+from frappe.model.workflow import WorkflowStateError, get_workflow, is_transition_condition_satisfied
+
+
+@frappe.whitelist()
+def get_user_wise_transitions(doc: Union["Document", str, dict], user=None) -> list[dict]:
+	"""Return list of possible transitions for the given doc"""
+	if not isinstance(doc, Document):
+		doc = frappe.get_doc(frappe.parse_json(doc))
+		doc.load_from_db()
+
+	if doc.is_new():
+		return []
+
+	doc.check_permission("read")
+
+	workflow = get_workflow(doc.doctype)
+	current_state = doc.get(workflow.workflow_state_field)
+
+	if not current_state:
+		frappe.throw(_("Workflow State not set"), WorkflowStateError)
+
+	transitions = []
+	roles = frappe.get_roles(username=user) if user else frappe.get_roles()
+	for transition in workflow.transitions:
+		if transition.state == current_state and transition.allowed in roles:
+			if not is_transition_condition_satisfied(transition, doc):
+				continue
+			transitions.append(transition.as_dict())
+
+	return transitions
+
+
+@frappe.whitelist()
+def get_documents_with_available_transitions(doctype, user=None):
+	exists_wf = frappe.db.exists("Workflow", {"is_active": 1, "document_type": doctype}, True)
+	if not exists_wf:
+		return []
+	wf = frappe.get_doc("Workflow", exists_wf)
+	positive_closure = get_state_closure_by_type(doctype)
+	negative_closure = get_state_closure_by_type(doctype, "Negative")
+	doc_lists = frappe.get_all(
+		wf.document_type,
+		filters={wf.workflow_state_field: ["not in", [positive_closure, negative_closure]]},
+		pluck="name",
+	)
+	result = []
+	for doc in doc_lists:
+		doc = frappe.get_doc(wf.document_type, doc)
+		transitions = get_user_wise_transitions(doc, user=user)
+		if len(transitions) > 0:
+			result.append(doc.name)
+	return result
+
+
+@frappe.whitelist()
+def get_workflow_based_users(doctype):
+	check_existing_workflow = frappe.db.exists("Workflow", {"is_active": 1, "document_type": doctype}, True)
+	if not check_existing_workflow:
+		return []
+	workflow = frappe.get_doc("Workflow", check_existing_workflow).as_dict()
+	transitions = workflow.get("transitions", [])
+
+	transition_roles = set()
+	for transition in transitions:
+		role = transition.get("allowed", None)
+		if role:
+			transition_roles.add(role)
+	users = []
+	role_users = frappe.get_all(
+		"Has Role",
+		filters={
+			"role": ["in", list(transition_roles)],
+			"parenttype": "User",
+			"parent": ["!=", frappe.session.user],
+		},
+		pluck="parent",
+	)
+
+	users = frappe.get_all(
+		"User", filters={"name": ["in", role_users]}, fields=["email as value", "full_name as label"]
+	)
+
+	return list(users)
+
+
+@frappe.whitelist()
+def get_approval_trakcer_module_options():
+	data = frappe.get_all(
+		"Workflow",
+		filters=[
+			["Workflow", "is_active", "=", 1],
+			["Workflow Transition", "allowed", "in", frappe.get_roles()],
+		],
+		distinct=True,
+		fields=["document_type as value", "workflow_name as label"],
+		order_by="workflow_name asc",
+	)
+	return data
