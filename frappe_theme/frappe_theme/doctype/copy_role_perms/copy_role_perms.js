@@ -24,6 +24,11 @@ frappe.ui.form.on("Copy Role Perms", {
 			frappe.set_route("Form", "Bulk Role Profile Permissions");
 		});
 
+		// Redirect to Bulk Workspace Permissions
+		frm.add_custom_button(__("Bulk Workspace Permissions"), () => {
+			frappe.set_route("Form", "Bulk Workspace Permissions");
+		});
+
 		// Bulk operations
 		frm.add_custom_button(
 			__("Select All"),
@@ -48,6 +53,11 @@ frappe.ui.form.on("Copy Role Perms", {
 		frm.add_custom_button(
 			__("Enable Read & Write"),
 			() => set_bulk_perms(frm, { read: 1, write: 1 }),
+			__("Bulk Actions")
+		);
+		frm.add_custom_button(
+			__("Enable Read & Select"),
+			() => set_bulk_perms(frm, { read: 1, select: 1 }),
 			__("Bulk Actions")
 		);
 
