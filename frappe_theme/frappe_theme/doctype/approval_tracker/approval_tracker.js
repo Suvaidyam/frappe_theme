@@ -75,7 +75,7 @@ frappe.ui.form.on("Approval Tracker", {
 const show_table = async (frm, document_type) => {
 	let card_wrapper = document.createElement("div");
 	frm.set_df_property("state_card", "options", card_wrapper);
-	if(!document_type || document_type == "N/A"){
+	if (!document_type || document_type == "N/A") {
 		card_wrapper.innerHTML = `
 		<div style="height: 150px; gap: 10px;" id="form-not-saved" class="d-flex flex-column justify-content-center align-items-center p-3 card rounded my-3">
 			<svg class="icon icon-xl" style="stroke: var(--text-light);">
@@ -183,7 +183,7 @@ const show_table = async (frm, document_type) => {
 };
 
 const set_pending_on_options = async (frm) => {
-	if (frm.doc.module && frm.doc.module !== "N/A"){
+	if (frm.doc.module && frm.doc.module !== "N/A") {
 		let pending_on_options = [{ label: "Me", value: "me" }];
 		let response = await frappe.xcall("frappe_theme.api.get_workflow_based_users", {
 			doctype: frm.doc.module,
@@ -195,7 +195,7 @@ const set_pending_on_options = async (frm) => {
 	}
 };
 const apply_pending_on_filter = async (frm) => {
-	if(frm.doc.module && frm.doc.module !== "N/A"){
+	if (frm.doc.module && frm.doc.module !== "N/A") {
 		if (frm.doc?.pending_on) {
 			const result = await frappe.xcall(
 				"frappe_theme.api.get_documents_with_available_transitions",
