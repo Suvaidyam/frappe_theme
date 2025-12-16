@@ -75,6 +75,16 @@ frappe.ui.form.on("Approval Tracker", {
 const show_table = async (frm, document_type) => {
 	let card_wrapper = document.createElement("div");
 	frm.set_df_property("state_card", "options", card_wrapper);
+	if(!document_type || document_type == "N/A"){
+		card_wrapper.innerHTML = `
+		<div style="height: 150px; gap: 10px;" id="form-not-saved" class="d-flex flex-column justify-content-center align-items-center p-3 card rounded my-3">
+			<svg class="icon icon-xl" style="stroke: var(--text-light);">
+				<use href="#icon-small-file"></use>
+			</svg>
+			${__("Please select a valid Module to view Approval Tracker.")}
+		</div>`;
+		return;
+	}
 	await frappe.require("approval_tracker.bundle.js");
 
 	frm["number_table_instance"] = new frappe.ui.CustomApprovalTracker({
@@ -173,39 +183,43 @@ const show_table = async (frm, document_type) => {
 };
 
 const set_pending_on_options = async (frm) => {
-	let pending_on_options = [{ label: "Me", value: "me" }];
-	let response = await frappe.xcall("frappe_theme.api.get_workflow_based_users", {
-		doctype: frm.doc.module,
-	});
-	if (response && response.length) {
-		pending_on_options = pending_on_options.concat(response);
+	if (frm.doc.module && frm.doc.module !== "N/A"){
+		let pending_on_options = [{ label: "Me", value: "me" }];
+		let response = await frappe.xcall("frappe_theme.api.get_workflow_based_users", {
+			doctype: frm.doc.module,
+		});
+		if (response && response.length) {
+			pending_on_options = pending_on_options.concat(response);
+		}
+		frm.fields_dict.pending_on.set_data(pending_on_options);
 	}
-	frm.fields_dict.pending_on.set_data(pending_on_options);
 };
 const apply_pending_on_filter = async (frm) => {
-	if (frm.doc?.pending_on) {
-		const result = await frappe.xcall(
-			"frappe_theme.api.get_documents_with_available_transitions",
-			{
-				doctype: frm.doc.module,
-				user: frm.doc?.pending_on != "me" ? frm.doc?.pending_on : null,
+	if(frm.doc.module && frm.doc.module !== "N/A"){
+		if (frm.doc?.pending_on) {
+			const result = await frappe.xcall(
+				"frappe_theme.api.get_documents_with_available_transitions",
+				{
+					doctype: frm.doc.module,
+					user: frm.doc?.pending_on != "me" ? frm.doc?.pending_on : null,
+				}
+			);
+			if (result?.length) {
+				frm.sva_dt_instance.connection.extend_condition = 1;
+				frm.sva_dt_instance.connection.extended_condition = JSON.stringify([
+					[frm.doc.module, "name", "in", result],
+				]);
+			} else {
+				frm.sva_dt_instance.connection.extend_condition = 1;
+				frm.sva_dt_instance.connection.extended_condition = JSON.stringify([
+					[frm.doc.module, "name", "in", [""]],
+				]);
 			}
-		);
-		if (result?.length) {
-			frm.sva_dt_instance.connection.extend_condition = 1;
-			frm.sva_dt_instance.connection.extended_condition = JSON.stringify([
-				[frm.doc.module, "name", "in", result],
-			]);
+			await frm.sva_dt_instance.reloadTable();
 		} else {
-			frm.sva_dt_instance.connection.extend_condition = 1;
-			frm.sva_dt_instance.connection.extended_condition = JSON.stringify([
-				[frm.doc.module, "name", "in", [""]],
-			]);
+			frm.sva_dt_instance.connection.extend_condition = 0;
+			frm.sva_dt_instance.connection.extended_condition = "[]";
+			await frm.sva_dt_instance.reloadTable();
 		}
-		await frm.sva_dt_instance.reloadTable();
-	} else {
-		frm.sva_dt_instance.connection.extend_condition = 0;
-		frm.sva_dt_instance.connection.extended_condition = "[]";
-		await frm.sva_dt_instance.reloadTable();
 	}
 };
