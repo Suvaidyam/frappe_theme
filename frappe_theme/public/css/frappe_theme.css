@@ -1,60 +1,59 @@
 .layout-main {
-    max-width: 2100px !important;
+	max-width: 2100px !important;
 }
 
 .page-head.container {
-    max-width: 2100px !important;
-    padding-left: 0px 0px !important;
-    padding-right: 0px 0px !important;
+	max-width: 2100px !important;
+	padding-left: 0px 0px !important;
+	padding-right: 0px 0px !important;
 }
 
 .page-head .container {
-    max-width: 2100px !important;
-    padding-left: 0px 0px !important;
-    padding-right: 0px 0px !important;
+	max-width: 2100px !important;
+	padding-left: 0px 0px !important;
+	padding-right: 0px 0px !important;
 }
 
 .section-body {
-    max-width: 2100px !important;
-    padding-left: 0px 0px !important;
-    padding-right: 0px 0px !important;
+	max-width: 2100px !important;
+	padding-left: 0px 0px !important;
+	padding-right: 0px 0px !important;
 }
 
-
 .section-head {
-    max-width: 2100px !important;
-    padding-left: 0px 0px !important;
-    padding-right: 0px 0px !important;
+	max-width: 2100px !important;
+	padding-left: 0px 0px !important;
+	padding-right: 0px 0px !important;
 }
 
 .page-title {
-    padding-left: 0px 0px !important;
-    padding-right: 0px 0px !important;
+	padding-left: 0px 0px !important;
+	padding-right: 0px 0px !important;
 }
 
 .form-section.card-section {
-    padding-left: 0px 0px !important;
-    padding-right: 0px 0px !important;
+	padding-left: 0px 0px !important;
+	padding-right: 0px 0px !important;
 }
 
 .form-section {
-    padding-top: 0px !important;
-    padding-bottom: 0px !important;
+	padding-top: 0px !important;
+	padding-bottom: 0px !important;
 }
 
 .custom-logo {
-    display: flex;
-    align-items: center;
-    margin-right: 15px;
+	display: flex;
+	align-items: center;
+	margin-right: 15px;
 }
 
 .custom-logo img {
-    width: auto;
-    object-fit: contain;
+	width: auto;
+	object-fit: contain;
 }
 
 @media (max-width: 768px) {
-    .custom-logo {
-        display: none;
-    }
+	.custom-logo {
+		display: none;
+	}
 }
