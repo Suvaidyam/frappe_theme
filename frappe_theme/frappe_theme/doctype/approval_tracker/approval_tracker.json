@@ -5,6 +5,7 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "section_break_agwj",
   "total_requests",
   "column_break_yohh",
   "approved_requests",
@@ -16,9 +17,8 @@
   "module",
   "column_break_odrq",
   "pending_on",
-  "document_type",
   "column_break_yuwk",
-  "pending_on_me",
+  "column_break_pegk",
   "section_break_cxyu",
   "state_card",
   "section_break_fmyh",
@@ -27,21 +27,13 @@
  "fields": [
   {
    "fieldname": "module",
-   "fieldtype": "Link",
+   "fieldtype": "Autocomplete",
    "label": "Module",
-   "link_filters": "[[\"Workflow\",\"is_active\",\"=\",1]]",
-   "options": "Workflow"
+   "options": "N/A"
   },
   {
    "fieldname": "column_break_odrq",
    "fieldtype": "Column Break"
-  },
-  {
-   "fetch_from": "module.document_type",
-   "fieldname": "document_type",
-   "fieldtype": "Data",
-   "hidden": 1,
-   "label": "Document Type"
   },
   {
    "fieldname": "column_break_yuwk",
@@ -49,7 +41,8 @@
   },
   {
    "fieldname": "section_break_cxyu",
-   "fieldtype": "Section Break"
+   "fieldtype": "Section Break",
+   "hide_border": 1
   },
   {
    "fieldname": "state_card",
@@ -71,7 +64,8 @@
   },
   {
    "fieldname": "section_break_ozza",
-   "fieldtype": "Section Break"
+   "fieldtype": "Section Break",
+   "hide_border": 1
   },
   {
    "fieldname": "approved_requests",
@@ -98,17 +92,18 @@
    "fieldtype": "Column Break"
   },
   {
-   "default": "0",
-   "fieldname": "pending_on_me",
-   "fieldtype": "Check",
-   "label": "Pending On Me"
+   "fieldname": "pending_on",
+   "fieldtype": "Autocomplete",
+   "label": "Pending On"
   },
   {
-   "fieldname": "pending_on",
-   "fieldtype": "Link",
-   "hidden": 1,
-   "label": "Pending On",
-   "options": "User"
+   "fieldname": "section_break_agwj",
+   "fieldtype": "Section Break",
+   "hide_border": 1
+  },
+  {
+   "fieldname": "column_break_pegk",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
@@ -116,7 +111,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-12-13 17:53:44.046076",
+ "modified": "2025-12-14 16:36:08.017448",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Approval Tracker",

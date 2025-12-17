@@ -1,52 +1,73 @@
 // Copyright (c) 2025, Suvaidyam and contributors
 // For license information, please see license.txt
-
+let module_options = [];
 frappe.ui.form.on("Approval Tracker", {
-	refresh(frm) {
-		if (frm.doc.document_type) {
-			show_table(frm, frm.doc.document_type);
-		} else {
-			show_table(frm, "Fund Request");
+	async refresh(frm) {
+		module_options = await frappe.xcall(
+			"frappe_theme.api.get_approval_trakcer_module_options"
+		);
+		if (module_options.length) {
+			frm.fields_dict.module.set_data(module_options);
+			frm.set_value("module", module_options[0].value);
 		}
+		let wrapper = $(
+			document.querySelector(`#page-${frm.meta.name.replace(/ /g, "\\ ")} .page-head`)
+		);
+		if (wrapper.length) {
+			frappe.create_shadow_element(
+				wrapper.get(0),
+				`<div style="
+					background: white;
+					padding: 0 20px;
+					height: 50px;
+					display: flex;
+					align-items: center;
+					justify-content: space-between;
+					position: sticky;
+					top: 0;
+					z-index: 100;
+					box-shadow: none;
+				">
+					<div>
+						<span style="
+							font-size: 20px;
+							font-weight: 600;
+							color: #1f272e;
+						">${__("Approval Tracker")}</span>
+						<span style="
+							font-size: 13px;
+							color: #6c7680;
+							margin-left: 8px;
+						">${__("")}</span>
+					</div>
+				</div>`
+			);
+		}
+		show_table(frm, frm.doc.module);
 		frm.disable_save();
 		setTimeout(() => {
 			frm.remove_custom_button("Comments", "");
 		}, 500);
+		set_pending_on_options(frm);
 	},
 	onload: function (frm) {
 		frm.doc.__unsaved = 0; // Marks the document as saved
 	},
-	pending_on_me: async (frm) => {
-		if (frm.doc?.pending_on_me) {
-			const result = await frappe.xcall(
-				"frappe_theme.api.get_documents_with_available_transitions",
-				{
-					doctype: frm.doc.document_type || "Fund Request",
-				}
-			);
-			if (result?.length) {
-				frm.sva_dt_instance.connection.extend_condition = 1;
-				frm.sva_dt_instance.connection.extended_condition = JSON.stringify([
-					[frm.doc.document_type || "Fund Request", "name", "in", result],
-				]);
-			} else {
-				frm.sva_dt_instance.connection.extend_condition = 1;
-				frm.sva_dt_instance.connection.extended_condition = JSON.stringify([
-					[frm.doc.document_type || "Fund Request", "name", "in", [""]],
-				]);
-			}
-			await frm.sva_dt_instance.reloadTable();
-		} else {
-			frm.sva_dt_instance.connection.extend_condition = 0;
-			frm.sva_dt_instance.connection.extended_condition = "[]";
-			await frm.sva_dt_instance.reloadTable();
-		}
+	pending_on: (frm) => {
+		apply_pending_on_filter(frm);
 	},
-	module: function (frm) {
-		if (frm.doc.document_type) {
-			show_table(frm, frm.doc.document_type);
+	module: async function (frm) {
+		if (frm.doc.module) {
+			await set_pending_on_options(frm);
+			show_table(frm, frm.doc.module);
+			setTimeout(() => {
+				apply_pending_on_filter(frm);
+			}, 400);
 		} else {
-			show_table(frm, "Fund Request");
+			if (module_options.length) {
+				frm.fields_dict.module.set_data(module_options);
+				frm.set_value("module", module_options[0].value);
+			}
 		}
 	},
 });
@@ -54,6 +75,16 @@ frappe.ui.form.on("Approval Tracker", {
 const show_table = async (frm, document_type) => {
 	let card_wrapper = document.createElement("div");
 	frm.set_df_property("state_card", "options", card_wrapper);
+	if (!document_type || document_type == "N/A") {
+		card_wrapper.innerHTML = `
+		<div style="height: 150px; gap: 10px;" id="form-not-saved" class="d-flex flex-column justify-content-center align-items-center p-3 card rounded my-3">
+			<svg class="icon icon-xl" style="stroke: var(--text-light);">
+				<use href="#icon-small-file"></use>
+			</svg>
+			${__("Please select a valid Module to view Approval Tracker.")}
+		</div>`;
+		return;
+	}
 	await frappe.require("approval_tracker.bundle.js");
 
 	frm["number_table_instance"] = new frappe.ui.CustomApprovalTracker({
@@ -149,4 +180,46 @@ const show_table = async (frm, document_type) => {
 			}
 		}
 	});
+};
+
+const set_pending_on_options = async (frm) => {
+	if (frm.doc.module && frm.doc.module !== "N/A") {
+		let pending_on_options = [{ label: "Me", value: "me" }];
+		let response = await frappe.xcall("frappe_theme.api.get_workflow_based_users", {
+			doctype: frm.doc.module,
+		});
+		if (response && response.length) {
+			pending_on_options = pending_on_options.concat(response);
+		}
+		frm.fields_dict.pending_on.set_data(pending_on_options);
+	}
+};
+const apply_pending_on_filter = async (frm) => {
+	if (frm.doc.module && frm.doc.module !== "N/A") {
+		if (frm.doc?.pending_on) {
+			const result = await frappe.xcall(
+				"frappe_theme.api.get_documents_with_available_transitions",
+				{
+					doctype: frm.doc.module,
+					user: frm.doc?.pending_on != "me" ? frm.doc?.pending_on : null,
+				}
+			);
+			if (result?.length) {
+				frm.sva_dt_instance.connection.extend_condition = 1;
+				frm.sva_dt_instance.connection.extended_condition = JSON.stringify([
+					[frm.doc.module, "name", "in", result],
+				]);
+			} else {
+				frm.sva_dt_instance.connection.extend_condition = 1;
+				frm.sva_dt_instance.connection.extended_condition = JSON.stringify([
+					[frm.doc.module, "name", "in", [""]],
+				]);
+			}
+			await frm.sva_dt_instance.reloadTable();
+		} else {
+			frm.sva_dt_instance.connection.extend_condition = 0;
+			frm.sva_dt_instance.connection.extended_condition = "[]";
+			await frm.sva_dt_instance.reloadTable();
+		}
+	}
 };
