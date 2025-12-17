@@ -19,39 +19,15 @@ frappe.ui.form.on("Copy Role Perms", {
 
 		frm.set_value("perms_type", "Get & Update Perms");
 
-		// Main action button
-		if (!frm.custom_btn) {
-			frm.custom_btn = frm.add_custom_button(__("Create Permissions"), function () {
-				if (!frm.doc.role_to || !frm.doc.permissions || frm.doc.permissions.length === 0) {
-					let msg = frm.doc.perms_type === "Create Perms" ? "Role" : "Role To";
-					frappe.throw(__("Select '{0}' and add permissions first.", [msg]));
-				}
-				check_duplicate_perms(frm);
-				let btn_label = frm.custom_btn.text().trim();
-				let freeze_msg =
-					btn_label === "Create Permissions"
-						? "Creating Permissions..."
-						: "Updating Permissions...";
-				frappe.call({
-					method: "frappe_theme.controllers.copy_role_perms.copy_role_perms.copy_all_permissions",
-					args: {
-						doc: frm.doc,
-					},
-					callback: function (r) {
-						if (r.message) {
-							frappe.show_alert({
-								message: __(
-									`Permissions  Created: ${r.message.message.Created}, Updated: ${r.message.message.Updated}`
-								),
-								indicator: "green",
-							});
-						}
-					},
-					freeze: true,
-					freeze_message: freeze_msg,
-				});
-			});
-		}
+		// Redirect to Bulk Role Profile Permissions
+		frm.add_custom_button(__("Bulk Role Profile Permissions"), () => {
+			frappe.set_route("Form", "Bulk Role Profile Permissions");
+		});
+
+		// Redirect to Bulk Workspace Permissions
+		frm.add_custom_button(__("Bulk Workspace Permissions"), () => {
+			frappe.set_route("Form", "Bulk Workspace Permissions");
+		});
 
 		// Bulk operations
 		frm.add_custom_button(
@@ -77,6 +53,11 @@ frappe.ui.form.on("Copy Role Perms", {
 		frm.add_custom_button(
 			__("Enable Read & Write"),
 			() => set_bulk_perms(frm, { read: 1, write: 1 }),
+			__("Bulk Actions")
+		);
+		frm.add_custom_button(
+			__("Enable Read & Select"),
+			() => set_bulk_perms(frm, { read: 1, select: 1 }),
 			__("Bulk Actions")
 		);
 
@@ -115,6 +96,41 @@ frappe.ui.form.on("Copy Role Perms", {
 		);
 
 		frm.trigger("set_button_label");
+
+		// Main action button
+		if (!frm.custom_btn) {
+			frm.custom_btn = frm.add_custom_button(__("Create Permissions"), function () {
+				if (!frm.doc.role_to || !frm.doc.permissions || frm.doc.permissions.length === 0) {
+					let msg = frm.doc.perms_type === "Create Perms" ? "Role" : "Role To";
+					frappe.throw(__("Select '{0}' and add permissions first.", [msg]));
+				}
+				check_duplicate_perms(frm);
+				let btn_label = frm.custom_btn.text().trim();
+				let freeze_msg =
+					btn_label === "Create Permissions"
+						? "Creating Permissions..."
+						: "Updating Permissions...";
+				frappe.call({
+					method: "frappe_theme.controllers.copy_role_perms.copy_role_perms.copy_all_permissions",
+					args: {
+						doc: frm.doc,
+					},
+					callback: function (r) {
+						if (r.message) {
+							frappe.show_alert({
+								message: __(
+									`Permissions  Created: ${r.message.message.Created}, Updated: ${r.message.message.Updated}`
+								),
+								indicator: "green",
+							});
+						}
+					},
+					freeze: true,
+					freeze_message: freeze_msg,
+				});
+			});
+			frm.custom_btn.addClass("btn-primary");
+		}
 	},
 	perms_type: function (frm) {
 		frm.set_value("role_from", null);
