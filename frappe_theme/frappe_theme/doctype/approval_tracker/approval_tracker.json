@@ -5,16 +5,20 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "section_break_agwj",
   "total_requests",
   "column_break_yohh",
   "approved_requests",
+  "column_break_xoar",
+  "pending_on_me_requests",
   "column_break_lyqf",
   "rejected_requests",
   "section_break_ozza",
   "module",
   "column_break_odrq",
-  "document_type",
+  "pending_on",
   "column_break_yuwk",
+  "column_break_pegk",
   "section_break_cxyu",
   "state_card",
   "section_break_fmyh",
@@ -23,20 +27,13 @@
  "fields": [
   {
    "fieldname": "module",
-   "fieldtype": "Link",
+   "fieldtype": "Autocomplete",
    "label": "Module",
-   "link_filters": "[[\"Workflow\",\"is_active\",\"=\",1]]",
-   "options": "Workflow"
+   "options": "N/A"
   },
   {
    "fieldname": "column_break_odrq",
    "fieldtype": "Column Break"
-  },
-  {
-   "fetch_from": "module.document_type",
-   "fieldname": "document_type",
-   "fieldtype": "Data",
-   "label": "Document Type"
   },
   {
    "fieldname": "column_break_yuwk",
@@ -44,7 +41,8 @@
   },
   {
    "fieldname": "section_break_cxyu",
-   "fieldtype": "Section Break"
+   "fieldtype": "Section Break",
+   "hide_border": 1
   },
   {
    "fieldname": "state_card",
@@ -66,7 +64,8 @@
   },
   {
    "fieldname": "section_break_ozza",
-   "fieldtype": "Section Break"
+   "fieldtype": "Section Break",
+   "hide_border": 1
   },
   {
    "fieldname": "approved_requests",
@@ -83,6 +82,28 @@
   {
    "fieldname": "column_break_lyqf",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "pending_on_me_requests",
+   "fieldtype": "HTML"
+  },
+  {
+   "fieldname": "column_break_xoar",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "pending_on",
+   "fieldtype": "Autocomplete",
+   "label": "Pending On"
+  },
+  {
+   "fieldname": "section_break_agwj",
+   "fieldtype": "Section Break",
+   "hide_border": 1
+  },
+  {
+   "fieldname": "column_break_pegk",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
@@ -90,7 +111,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-12-12 15:10:07.451415",
+ "modified": "2025-12-14 16:36:08.017448",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Approval Tracker",
