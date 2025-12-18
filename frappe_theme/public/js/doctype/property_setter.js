@@ -1,4 +1,4 @@
-const customPropertySetter = async function (frm) {
+async function customPropertySetter(frm) {
 	setTimeout(() => {
 		let fields = frm.$wrapper.find(".field");
 		fields.each(function () {
@@ -134,4 +134,4 @@ const customPropertySetter = async function (frm) {
 			});
 		});
 	}, 1000);
-};
+}

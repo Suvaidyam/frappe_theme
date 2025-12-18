@@ -1,7 +1,7 @@
 # Copyright (c) 2025, Suvaidyam and contributors
 # For license information, please see license.txt
 
-# import frappe
+import frappe
 from frappe.model.document import Document
 
 
@@ -10,7 +10,7 @@ class CustomPropertySetter(Document):
 		raise NotImplementedError
 
 	def load_from_db(self, *args, **kwargs):
-		raise NotImplementedError
+		return frappe.throw("This is a virtual doctype. You cannot load it from the database.");
 
 	def db_update(self, *args, **kwargs):
 		raise NotImplementedError

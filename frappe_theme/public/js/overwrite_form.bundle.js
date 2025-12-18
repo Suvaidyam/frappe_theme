@@ -489,7 +489,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			);
 			const relevant_html_fields = [...dtFields.map((f) => f.html_field), ...vm_fields];
 			this.clearOtherMappedFields(this.dts, relevant_html_fields, vm_all_fields, frm);
-			await this.handleCustomHTMLBlock(frm, tab_fields);
+			await this.handleBlocks(frm, tab_fields, signal);
 			await this.initializeDashboards(this.dts, frm, tab_fields, signal);
 			await this.processDataTables(dtFields, frm, this.dts, signal);
 		} catch (error) {
@@ -564,30 +564,101 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			frm.set_df_property(field, "options", "");
 		});
 	}
-	async handleCustomHTMLBlock(frm, tab_fields) {
-		const custom_html_blocks = frm.meta.fields
+	async handleBlocks(frm, tab_fields, signal = null) {
+		const custom_blocks = frm.meta.fields
 			.filter((f) => tab_fields.includes(f.fieldname))
 			?.filter((f) => f.sva_ft)
 			?.filter((f) => {
 				try {
-					return JSON.parse(f.sva_ft).html_block;
+					return JSON.parse(f.sva_ft);
 				} catch (error) {
 					return false;
 				}
 			});
 		let promises = [];
-		for (const field of custom_html_blocks) {
+		for (const field of custom_blocks) {
 			let f = { ...field, sva_ft: JSON.parse(field.sva_ft) };
-			promises.push(this.renderCustomHTMLBlock(frm, f));
+			promises.push(this.renderCustomBlock(frm, f, signal));
 		}
 		await Promise.all(promises);
 	}
-	renderCustomHTMLBlock = async (frm, field) => {
-		let html = await frappe.db.get_doc("Custom HTML Block", field.sva_ft.html_block);
-		if (html) {
-			let my_wrapper = document.createElement("div");
-			frm.set_df_property(field.fieldname, "options", my_wrapper);
-			frappe.create_shadow_element(my_wrapper, html.html, html.style, html.script);
+	renderCustomBlock = async (frm, field, signal = null) => {
+		let wrapper = document.createElement("div");
+		frm.set_df_property(field.fieldname, "options", wrapper);
+
+		switch (field.sva_ft.property_type) {
+			case "Custom HTML Block":
+				if (field.sva_ft.html_block) {
+					let html = await frappe.db.get_doc(
+						"Custom HTML Block",
+						field.sva_ft.html_block
+					);
+					if (html) {
+						frappe.create_shadow_element(wrapper, html.html, html.style, html.script);
+					}
+				}
+				break;
+
+			case "Number Card":
+				if (field.sva_ft.number_card) {
+					let card_doc = await frappe.db.get_doc(
+						"Number Card",
+						field.sva_ft.number_card
+					);
+					let item = {
+						fetch_from: "Number Card",
+						number_card: field.sva_ft.number_card,
+						card_label: field.sva_ft.label || card_doc.label || "Untitled",
+						details: card_doc,
+						report: card_doc.report
+							? await frappe.db.get_doc("Report", card_doc.report)
+							: null,
+						icon_value: field.sva_ft.icon || null,
+						icon_color: field.sva_ft.icon_color || null,
+						background_color: field.sva_ft.background_color || null,
+						text_color: field.sva_ft.text_color || null,
+						value_color: field.sva_ft.value_color || null,
+						border_color: field.sva_ft.border_color || null,
+					};
+					let { _wrapper, ref } = new SVADashboardManager({
+						wrapper,
+						frm,
+						numberCards: [item],
+						signal,
+					});
+					frm.sva_cards[field.sva_ft.number_card] = ref;
+					wrapper._dashboard = _wrapper;
+				}
+				break;
+
+			case "Dashboard Chart":
+				if (field.sva_ft.chart) {
+					let chart_doc = await frappe.db.get_doc("Dashboard Chart", field.sva_ft.chart);
+					let report_doc = null;
+					if (chart_doc.chart_type === "Report" && chart_doc.report_name) {
+						report_doc = await frappe.db.get_doc("Report", chart_doc.report_name);
+					}
+					let item = {
+						...field.sva_ft,
+						fetch_from: "Dashboard Chart",
+						chart_label: field.sva_ft.label || chart_doc.chart_name,
+						details: chart_doc,
+						report: report_doc,
+					};
+					let { _wrapper, ref } = new SVADashboardManager({
+						wrapper,
+						frm,
+						charts: [item],
+						signal,
+					});
+					frm.sva_charts[field.sva_ft.chart] = ref;
+					wrapper._dashboard = _wrapper;
+				}
+				break;
+			case "Report":
+				break;
+			case "DocType":
+				break;
 		}
 	};
 	async initializeDashboards(dts, frm, currentTabFields, signal) {
