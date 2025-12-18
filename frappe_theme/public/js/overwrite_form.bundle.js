@@ -575,7 +575,6 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					return false;
 				}
 			});
-		// debugger;
 		let promises = [];
 		for (const field of custom_blocks) {
 			let f = { ...field, sva_ft: JSON.parse(field.sva_ft) };
@@ -680,9 +679,15 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 				signal,
 			});
 			if (item.parentfield == "number_cards") {
+				if (!frm.sva_cards) {
+					frm.sva_cards = {};
+				}
 				frm.sva_cards[item.number_card] = ref;
 			}
 			if (item.parentfield == "charts") {
+				if (!frm.sva_charts) {
+					frm.sva_charts = {};
+				}
 				frm.sva_charts[item.chart] = ref;
 			}
 			wrapper._dashboard = _wrapper;
