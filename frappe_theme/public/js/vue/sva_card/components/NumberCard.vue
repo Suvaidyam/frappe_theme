@@ -38,13 +38,17 @@ const getCount = async () => {
 	let type = "Report";
 	let details = {};
 	let report = {};
-	if (props.card.report) {
+	if (props?.card?.details?.type == "Report") {
 		type = "Report";
 		details = props.card.details;
 		report = props.card.report;
-	} else {
+	} else if (props?.card?.details?.type == "Document Type") {
 		type = "Document Type";
 		details = props.card.details;
+	}else{
+		data.value["count"] = 0;
+		loading.value = false;
+		return;
 	}
 	try {
 		loading.value = true;

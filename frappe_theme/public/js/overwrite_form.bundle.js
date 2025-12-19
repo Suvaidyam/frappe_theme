@@ -213,10 +213,11 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					method: "frappe_theme.dt_api.get_sva_dt_settings",
 					doctype: frm.doc.doctype,
 				});
-				if (!message) return;
-				this.dts = message;
-				window.sva_datatable_configuration = {
-					[frm.doc.doctype]: this.dts,
+				if (message){
+					this.dts = message;
+					window.sva_datatable_configuration = {
+						[frm.doc.doctype]: this.dts,
+					};
 				};
 			} else {
 				this.dts = window.sva_datatable_configuration?.[frm.doc.doctype];
@@ -565,6 +566,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 		});
 	}
 	async handleBlocks(frm, tab_fields, signal = null) {
+		frm.sva_ft_instances = {};
 		const custom_blocks = frm.meta.fields
 			.filter((f) => tab_fields.includes(f.fieldname))
 			?.filter((f) => f.sva_ft)
@@ -585,6 +587,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 	renderCustomBlock = async (frm, field, signal = null) => {
 		let wrapper = document.createElement("div");
 		frm.set_df_property(field.fieldname, "options", wrapper);
+		
 
 		switch (field.sva_ft.property_type) {
 			case "Custom HTML Block":
@@ -626,7 +629,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 						numberCards: [item],
 						signal,
 					});
-					frm.sva_cards[field.sva_ft.number_card] = ref;
+					frm.sva_ft_instances[field.fieldname] = ref;
 					wrapper._dashboard = _wrapper;
 				}
 				break;
@@ -651,7 +654,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 						charts: [item],
 						signal,
 					});
-					frm.sva_charts[field.sva_ft.chart] = ref;
+					frm.sva_ft_instances[field.fieldname] = ref;
 					wrapper._dashboard = _wrapper;
 				}
 				break;
