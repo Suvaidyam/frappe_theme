@@ -53,7 +53,18 @@ def custom_apply_workflow(doc, action):
 	data_doc = frappe.get_doc(doc.doctype, doc.name)
 	meta = frappe.get_meta(doc.doctype)
 	updated = False
-
+	comment_fields = ["custom_comment", "custom_wf_comment", "wf_comment", "comment"]
+	wf_action_data = {
+		"workflow_action": action,
+		"comment": "",
+		"action_data": [],
+		"reference_doctype": doc.doctype,
+		"reference_name": doc.get("name"),
+		"workflow_state_previous": selected_transition.get("state"),
+		"workflow_state_current": selected_transition.get("next_state"),
+		"role": selected_transition.get("allowed"),
+		"user": frappe.session.user,
+	}
 	for fieldname, value in wf_dialog_fields.items():
 		if value is None:
 			continue
@@ -74,10 +85,17 @@ def custom_apply_workflow(doc, action):
 				frappe.throw(f"Invalid value for field {fieldname}")
 
 		data_doc.set(fieldname, value)
+		if fieldname not in comment_fields:
+			wf_action_data["action_data"].append(
+				{"fieldname": fieldname, "fieldtype": field.fieldtype, "value": value}
+			)
+		if fieldname in comment_fields:
+			wf_action_data["comment"] = value
 		updated = True
-
 	if updated:
 		data_doc.save()
+	wf_action_doc = frappe.new_doc("SVA Workflow Action")
+	wf_action_doc.update(wf_action_data)
+	wf_action_doc.insert(ignore_permissions=True)
 
-	# Call original workflow function
 	return original_apply_workflow(frappe.as_json(doc), action)
