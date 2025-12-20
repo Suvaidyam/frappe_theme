@@ -1,0 +1,147 @@
+{
+ "actions": [],
+ "autoname": "format:{reference_name}-{###}",
+ "creation": "2025-12-20 13:46:14.470762",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "reference_doctype",
+  "column_break_iwke",
+  "reference_name",
+  "column_break_cslx",
+  "user",
+  "column_break_yenb",
+  "role",
+  "section_break_xrna",
+  "workflow_state_previous",
+  "column_break_oybi",
+  "workflow_action",
+  "column_break_5",
+  "workflow_state_current",
+  "section_break_hxnp",
+  "comment",
+  "action_data"
+ ],
+ "fields": [
+  {
+   "fieldname": "reference_name",
+   "fieldtype": "Dynamic Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Reference Name",
+   "options": "reference_doctype",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reference_doctype",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Reference Document Type",
+   "options": "DocType",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "User",
+   "options": "User",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "section_break_hxnp",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "action_data",
+   "fieldtype": "Table",
+   "label": "Action Data",
+   "options": "SVA Workflow Action Data Child",
+   "read_only": 1
+  },
+  {
+   "fieldname": "workflow_action",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Workflow Action",
+   "options": "Workflow Action Master",
+   "read_only": 1
+  },
+  {
+   "fieldname": "comment",
+   "fieldtype": "Small Text",
+   "label": "Comment",
+   "read_only": 1
+  },
+  {
+   "fieldname": "role",
+   "fieldtype": "Link",
+   "label": "Role",
+   "options": "Role",
+   "read_only": 1
+  },
+  {
+   "fieldname": "workflow_state_current",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Workflow State (Current)",
+   "options": "Workflow State",
+   "read_only": 1
+  },
+  {
+   "fieldname": "workflow_state_previous",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Workflow State (Previous)",
+   "options": "Workflow State",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_iwke",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_cslx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_yenb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_xrna",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_oybi",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "grid_page_length": 50,
+ "links": [],
+ "modified": "2025-12-20 15:11:11.592370",
+ "modified_by": "Administrator",
+ "module": "Frappe Theme",
+ "name": "SVA Workflow Action",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "delete": 1,
+   "read": 1,
+   "role": "Desk User"
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "reference_name",
+ "track_changes": 1
+}
