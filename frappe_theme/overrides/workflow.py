@@ -64,7 +64,7 @@ def custom_apply_workflow(doc, action):
 		"workflow_state_current": selected_transition.get("next_state"),
 		"role": selected_transition.get("allowed"),
 		"user": frappe.session.user,
-	}	
+	}
 	for fieldname, value in wf_dialog_fields.items():
 		if value is None:
 			continue
@@ -86,8 +86,9 @@ def custom_apply_workflow(doc, action):
 
 		data_doc.set(fieldname, value)
 		if fieldname not in comment_fields:
-			wf_action_data["action_data"].append({
-				"fieldname": fieldname,"fieldtype": field.fieldtype,"value": value})
+			wf_action_data["action_data"].append(
+				{"fieldname": fieldname, "fieldtype": field.fieldtype, "value": value}
+			)
 		if fieldname in comment_fields:
 			wf_action_data["comment"] = value
 		updated = True
@@ -96,5 +97,5 @@ def custom_apply_workflow(doc, action):
 	wf_action_doc = frappe.new_doc("SVA Workflow Action")
 	wf_action_doc.update(wf_action_data)
 	wf_action_doc.insert(ignore_permissions=True)
-    
+
 	return original_apply_workflow(frappe.as_json(doc), action)
