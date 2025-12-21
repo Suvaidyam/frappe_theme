@@ -3,13 +3,13 @@ import { createPinia } from "pinia";
 import App from "./App.vue";
 
 class CustomApprovalTimeline {
-    constructor({ wrapper, doctype, referenceName, documentTitle, frm }) {
+    constructor({ wrapper, doctype, referenceName, documentTitle, wf_state }) {
         this.$wrapper = $(wrapper);
         this.app = null;
         this.doctype = doctype;
         this.referenceName = referenceName;
         this.documentTitle = documentTitle;
-        this.frm = frm;
+        this.wf_state = wf_state;
         this.init();
     }
 
@@ -42,6 +42,7 @@ class CustomApprovalTimeline {
             doctype: this.doctype,
             referenceName: this.referenceName,
             documentTitle: this.documentTitle,
+            wf_state: this.wf_state,
             autoLoad: true
         });
 

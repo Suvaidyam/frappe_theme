@@ -25,17 +25,23 @@
         :class="[
           'progress-step', 
           getProgressStepClass(step, index),
-          { 'step-approved': step.isApproved, 'step-rejected': step.isRejected }
+          { 'step-success': step.isSuccess, 'step-rejected': step.isRejected }
         ]"
       >
         <div class="progress-dot">
-          <!-- Show cross icon for rejected, checkmark for others -->
+          <!-- Show cross icon for rejected -->
           <svg v-if="step.isRejected" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
             <line x1="18" y1="6" x2="6" y2="18"/>
             <line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
-          <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+          <!-- Show checkmark for completed -->
+          <svg v-else-if="step.completed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
             <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          <!-- Show clock for active/pending (not completed) -->
+          <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
           </svg>
         </div>
         <div class="progress-label">{{ step.label }}</div>
@@ -60,6 +66,16 @@
 
     <!-- Timeline Items -->
     <div v-else class="timeline-container">
+      <!-- No actions message -->
+      <div v-if="timelineItems.length === 0" class="no-actions-message">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+        <p>Awaiting action</p>
+      </div>
+      
+      <!-- Timeline items -->
       <div 
         v-for="(item, index) in timelineItems" 
         :key="item.name"
@@ -74,22 +90,24 @@
             <span :class="['state-badge', getStateConfig(item.workflow_state_current).stateClass]">
               {{ item.workflow_state_current }}
             </span>
-            <div class="action-label">
-              {{ item.workflow_action || 'Action Performed' }}
-              <span class="role-badge">{{ item.role || 'N/A' }}</span>
-            </div>
-            <div class="user-info">
-              <div :class="['user-avatar', getRoleAvatar(item.role)]">
-                {{ getInitials(item.user) }}
+            <template v-if="!item.isPlaceholder">
+              <div class="action-label">
+                {{ item.workflow_action || 'Action Performed' }}
+                <span class="role-badge">{{ item.role || 'N/A' }}</span>
               </div>
-              <div class="user-details">
-                <div class="user-name">{{ getUserName(item.user) }}</div>
-                <div class="user-role">{{ item.role || 'User' }}</div>
+              <div class="user-info">
+                <div :class="['user-avatar', getRoleAvatar(item.role)]">
+                  {{ getInitials(item.user) }}
+                </div>
+                <div class="user-details">
+                  <div class="user-name">{{ getUserName(item.user) }}</div>
+                  <div class="user-role">{{ item.role || 'User' }}</div>
+                </div>
               </div>
-            </div>
-            <div class="timestamp">
-              {{ formatDate(item.creation) }}
-            </div>
+              <div class="timestamp">
+                {{ formatDate(item.creation) }}
+              </div>
+            </template>
           </div>
         </div>
 
@@ -166,6 +184,10 @@ const props = defineProps({
     type: String,
     default: ''
   },
+  workflowState: {
+    type: String,
+    default: null
+  },
   autoLoad: {
     type: Boolean,
     default: true
@@ -179,44 +201,89 @@ const error = ref(null);
 const currentState = ref(null);
 const documentId = computed(() => props.referenceName || props.doctype);
 
-// Timeline Items
+// Timeline Items - Show minimal placeholder if no actions
 const timelineItems = computed(() => {
-  if (!workflowData.value.actions) return [];
-  return workflowData.value.actions;
+  const actions = workflowData.value.actions || [];
+  const currentDocState = props.workflowState || workflowData.value.current_doc_state;
+  
+  // If no actions and we have current state, show minimal placeholder
+  if (actions.length === 0 && currentDocState) {
+    return [{
+      workflow_state_current: currentDocState,
+      isPlaceholder: true
+    }];
+  }
+  
+  return actions;
 });
 
-// Progress Steps - Show ALL states in chronological order (including duplicates)
+// Progress Steps - Show only executed states from actions
 const progressSteps = computed(() => {
-  if (!timelineItems.value.length) return [];
+  const actions = timelineItems.value || [];
+  const currentDocState = props.workflowState || workflowData.value.current_doc_state;
+  
+  if (actions.length === 0) {
+    // No actions yet, show only current state if we have it
+    if (currentDocState) {
+      const normalizedState = currentDocState.trim().toLowerCase();
+      return [{
+        label: currentDocState,
+        completed: false,
+        active: true,
+        timestamp: new Date().toISOString(),
+        index: 0,
+        isSuccess: normalizedState === 'approved' || normalizedState === 'accepted' || normalizedState === 'receipt confirmed',
+        isRejected: normalizedState === 'rejected',
+        isFinalState: normalizedState === 'approved' || normalizedState === 'accepted' || normalizedState === 'receipt confirmed' || normalizedState === 'rejected'
+      }];
+    }
+    return [];
+  }
   
   const steps = [];
+  const stateMap = new Map();
   
-  // Process in reverse chronological order (oldest first)
-  [...timelineItems.value].reverse().forEach((item, index) => {
-    const state = item.workflow_state_current;
-    if (state) {
-      const normalizedState = state.trim().toLowerCase();
-      // Exact match only for Approved and Rejected
-      const isApproved = normalizedState === 'approved';
-      const isRejected = normalizedState === 'rejected';
-      const isFinalState = isApproved || isRejected;
-      
-      steps.push({
-        label: state,
+  // Process actions in chronological order (oldest first)
+  [...actions].reverse().forEach((item, index) => {
+    const previousState = item.workflow_state_previous;
+    const currentState = item.workflow_state_current;
+    
+    // Add previous state if this is the first action
+    if (index === 0 && previousState && !stateMap.has(previousState)) {
+      const normalizedPrevState = previousState.trim().toLowerCase();
+      stateMap.set(previousState, {
+        label: previousState,
         completed: true,
         timestamp: item.creation,
-        index: index,
-        isApproved: isApproved,
-        isRejected: isRejected,
-        isFinalState: isFinalState
+        index: steps.length,
+        isSuccess: normalizedPrevState === 'approved' || normalizedPrevState === 'accepted' || normalizedPrevState === 'receipt confirmed',
+        isRejected: normalizedPrevState === 'rejected',
+        isFinalState: normalizedPrevState === 'approved' || normalizedPrevState === 'accepted' || normalizedPrevState === 'receipt confirmed' || normalizedPrevState === 'rejected'
       });
+      steps.push(stateMap.get(previousState));
+    }
+    
+    // Add current state (allow duplicates for loops like: submitted -> under review -> submitted)
+    if (currentState) {
+      const normalizedState = currentState.trim().toLowerCase();
+      const stateKey = `${currentState}_${index}`; // Allow same state multiple times
+      
+      stateMap.set(stateKey, {
+        label: currentState,
+        completed: true,
+        timestamp: item.creation,
+        index: steps.length,
+        isSuccess: normalizedState === 'approved' || normalizedState === 'accepted' || normalizedState === 'receipt confirmed',
+        isRejected: normalizedState === 'rejected',
+        isFinalState: normalizedState === 'approved' || normalizedState === 'accepted' || normalizedState === 'receipt confirmed' || normalizedState === 'rejected'
+      });
+      steps.push(stateMap.get(stateKey));
     }
   });
   
-  // Mark the last step as active (current state)
+  // Mark the last step as active (not completed) if it's not a final state
   if (steps.length > 0) {
     const lastStep = steps[steps.length - 1];
-    // If final state (Approved/Rejected), keep it as completed
     if (!lastStep.isFinalState) {
       lastStep.completed = false;
       lastStep.active = true;
@@ -239,14 +306,18 @@ const loadWorkflowData = async () => {
         reference_name: props.referenceName,
       }
     });
-    console.log('Workflow Audit Response:', response);
     
     if (response.message && response.message.success) {
       workflowData.value = response.message;
       
-      // Set current state from the most recent action
-      if (response.message.actions && response.message.actions.length > 0) {
-        currentState.value = response.message.actions[0].workflow_state_current;
+      if (response.message.type === "no_action") {
+        // Set current state from workflowState prop or current_doc_state
+        currentState.value = props.workflowState || response.message.current_doc_state;
+      } else {
+        // Set current state from the most recent action
+        if (response.message.actions && response.message.actions.length > 0) {
+          currentState.value = response.message.actions[0].workflow_state_current;
+        }
       }
     } else {
       error.value = response.message?.message || 'Failed to load workflow data';
@@ -261,97 +332,58 @@ const loadWorkflowData = async () => {
 
 // Helper Functions
 const getStateConfig = (state) => {
-  // Standard workflow states with specific colors
+  // Normalize state for matching
+  const normalizedState = state?.trim().toLowerCase() || '';
+  
+  // Bootstrap-style color mapping
   const stateMap = {
-    // Initial States
-    'Draft': { 
-      statusClass: 'status-draft', 
-      stateClass: 'state-draft', 
-      nodeClass: 'node-draft' 
+    // Success states (Green)
+    'approved': { 
+      statusClass: 'status-success', 
+      stateClass: 'state-success', 
+      nodeClass: 'node-success' 
     },
-    'Pending': { 
-      statusClass: 'status-pending', 
-      stateClass: 'state-pending', 
-      nodeClass: 'node-pending' 
+    'accepted': { 
+      statusClass: 'status-success', 
+      stateClass: 'state-success', 
+      nodeClass: 'node-success' 
     },
-    
-    // Submission States
-    'Submitted': { 
-      statusClass: 'status-submitted', 
-      stateClass: 'state-submitted', 
-      nodeClass: 'node-submitted' 
-    },
-    'Proposal Submitted': { 
-      statusClass: 'status-proposal-submitted', 
-      stateClass: 'state-proposal-submitted', 
-      nodeClass: 'node-proposal-submitted' 
+    'receipt confirmed': { 
+      statusClass: 'status-success', 
+      stateClass: 'state-success', 
+      nodeClass: 'node-success' 
     },
     
-    // Review States
-    'Review': { 
-      statusClass: 'status-review', 
-      stateClass: 'state-review', 
-      nodeClass: 'node-review' 
-    },
-    'Proposal Under Review': { 
-      statusClass: 'status-proposal-review', 
-      stateClass: 'state-proposal-review', 
-      nodeClass: 'node-proposal-review' 
-    },
-    'Under Review': { 
-      statusClass: 'status-proposal-review', 
-      stateClass: 'state-proposal-review', 
-      nodeClass: 'node-proposal-review' 
+    // Danger state (Red)
+    'rejected': { 
+      statusClass: 'status-danger', 
+      stateClass: 'state-danger', 
+      nodeClass: 'node-danger' 
     },
     
-    // Approval States
-    'Approved': { 
-      statusClass: 'status-approved', 
-      stateClass: 'state-approved', 
-      nodeClass: 'node-approved' 
+    // Info states (Blue)
+    'draft': { 
+      statusClass: 'status-info', 
+      stateClass: 'state-info', 
+      nodeClass: 'node-info' 
     },
-    
-    // Rejection States
-    'Rejected': { 
-      statusClass: 'status-rejected', 
-      stateClass: 'state-rejected', 
-      nodeClass: 'node-rejected' 
-    },
-    
-    // Send Back States
-    'Sent Back': { 
-      statusClass: 'status-sent-back', 
-      stateClass: 'state-sent-back', 
-      nodeClass: 'node-sent-back' 
-    },
-    'Sent Back to NGO': { 
-      statusClass: 'status-sent-back-ngo', 
-      stateClass: 'state-sent-back-ngo', 
-      nodeClass: 'node-sent-back-ngo' 
+    'disbursed': { 
+      statusClass: 'status-info', 
+      stateClass: 'state-info', 
+      nodeClass: 'node-info' 
     },
   };
   
-  // Normalize state for matching
-  const normalizedState = state?.trim() || '';
-  
-  // Exact match first
+  // Exact match (case-insensitive)
   if (stateMap[normalizedState]) {
     return stateMap[normalizedState];
   }
   
-  // Partial match (case-insensitive)
-  const lowerState = normalizedState.toLowerCase();
-  for (const [key, value] of Object.entries(stateMap)) {
-    if (lowerState.includes(key.toLowerCase()) || key.toLowerCase().includes(lowerState)) {
-      return value;
-    }
-  }
-  
-  // Default for custom/client-specific states
+  // Default gray for all other states
   return { 
-    statusClass: 'status-custom', 
-    stateClass: 'state-custom', 
-    nodeClass: 'node-custom' 
+    statusClass: 'status-default', 
+    stateClass: 'state-default', 
+    nodeClass: 'node-default' 
   };
 };
 
@@ -367,7 +399,15 @@ const getProgressStepClass = (step, index) => {
 };
 
 const getRoleAvatar = (role) => {
-  // Standard product roles with specific colors
+  // Check if theme colors are available
+  const hasThemeColors = frappe?.boot?.my_theme?.navbar_color && frappe?.boot?.my_theme?.navbar_text_color;
+  
+  // If theme colors exist, return dynamic class, otherwise use role-based colors
+  if (hasThemeColors) {
+    return 'avatar-theme';
+  }
+  
+  // Standard product roles with specific colors (fallback)
   const roleMap = {
     // Admin Roles
     'Administrator': 'avatar-red',
@@ -502,8 +542,14 @@ const getIconComponent = (item) => {
 };
 
 // Lifecycle
-onMounted(() => {
-  console.log("ApprovalTimeline mounted with doctype:", props.doctype, "and referenceName:", props.referenceName);
+onMounted(() => {  
+  // Set theme colors from frappe.boot if available
+  if (frappe?.boot?.my_theme?.navbar_color && frappe?.boot?.my_theme?.navbar_text_color) {
+    const root = document.documentElement;
+    root.style.setProperty('--navbar-bg-color', frappe.boot.my_theme.navbar_color);
+    root.style.setProperty('--navbar-text-color', frappe.boot.my_theme.navbar_text_color);
+  }
+  
   if (props.autoLoad) {
     loadWorkflowData();
   }
@@ -568,243 +614,96 @@ defineExpose({
    STATUS COLORS - Current State Badge (Header)
    ======================================== */
 
-/* Draft State - Gray */
-.status-draft { 
-  background: #f1f5f9; 
-  color: #475569; 
-}
-
-/* Pending State - Amber */
-.status-pending { 
-  background: #fef3c7; 
-  color: #92400e; 
-}
-
-/* Submitted State - Blue */
-.status-submitted { 
-  background: #dbeafe; 
-  color: #1e40af; 
-}
-
-/* Proposal Submitted - Sky Blue */
-.status-proposal-submitted { 
-  background: #e0f2fe; 
-  color: #075985; 
-}
-
-/* Review State - Indigo */
-.status-review { 
-  background: #e0e7ff; 
-  color: #3730a3; 
-}
-
-/* Proposal Under Review - Purple */
-.status-proposal-review { 
-  background: #ede9fe; 
-  color: #6d28d9; 
-}
-
-/* Approved State - Green */
-.status-approved { 
+/* Success States (Green) - Approved, Accepted, Receipt Confirmed */
+.status-success { 
   background: #d1fae5; 
   color: #065f46; 
 }
 
-/* Rejected State - Red */
-.status-rejected { 
+/* Danger State (Red) - Rejected */
+.status-danger { 
   background: #fee2e2; 
   color: #991b1b; 
 }
 
-/* Sent Back - Orange */
-.status-sent-back { 
-  background: #ffedd5; 
-  color: #9a3412; 
+/* Info States (Blue) - Draft, Disbursed */
+.status-info { 
+  background: #dbeafe; 
+  color: #1e40af; 
 }
 
-/* Sent Back to NGO - Deep Orange */
-.status-sent-back-ngo { 
-  background: #fed7aa; 
-  color: #7c2d12; 
-}
-
-/* Custom/Client States - Teal (Standard for all custom states) */
-.status-custom { 
-  background: #ccfbf1; 
-  color: #115e59; 
+/* Default/Other States (Gray) */
+.status-default { 
+  background: #f1f5f9; 
+  color: #475569; 
 }
 
 /* ========================================
    STATE BADGES - Timeline Left Panel
    ======================================== */
 
-/* Draft State - Gray */
-.state-draft { 
-  background: #f1f5f9; 
-  color: #475569; 
-}
-
-/* Pending State - Amber */
-.state-pending { 
-  background: #fef3c7; 
-  color: #92400e; 
-}
-
-/* Submitted State - Blue */
-.state-submitted { 
-  background: #dbeafe; 
-  color: #1e40af; 
-}
-
-/* Proposal Submitted - Sky Blue */
-.state-proposal-submitted { 
-  background: #e0f2fe; 
-  color: #075985; 
-}
-
-/* Review State - Indigo */
-.state-review { 
-  background: #e0e7ff; 
-  color: #3730a3; 
-}
-
-/* Proposal Under Review - Purple */
-.state-proposal-review { 
-  background: #ede9fe; 
-  color: #6d28d9; 
-}
-
-/* Approved State - Green */
-.state-approved { 
+/* Success States (Green) - Approved, Accepted, Receipt Confirmed */
+.state-success { 
   background: #d1fae5; 
   color: #065f46; 
 }
 
-/* Rejected State - Red */
-.state-rejected { 
+/* Danger State (Red) - Rejected */
+.state-danger { 
   background: #fee2e2; 
   color: #991b1b; 
 }
 
-/* Sent Back - Orange */
-.state-sent-back { 
-  background: #ffedd5; 
-  color: #9a3412; 
+/* Info States (Blue) - Draft, Disbursed */
+.state-info { 
+  background: #dbeafe; 
+  color: #1e40af; 
 }
 
-/* Sent Back to NGO - Deep Orange */
-.state-sent-back-ngo { 
-  background: #fed7aa; 
-  color: #7c2d12; 
-}
-
-/* Custom/Client States - Teal (Standard for all custom states) */
-.state-custom { 
-  background: #ccfbf1; 
-  color: #115e59; 
+/* Default/Other States (Gray) */
+.state-default { 
+  background: #f1f5f9; 
+  color: #475569; 
 }
 
 /* ========================================
    TIMELINE NODES - Timeline Dots
    ======================================== */
 
-/* Draft Node - Gray */
-.node-draft { 
-  border-color: #94a3b8; 
-  background: #f1f5f9; 
-}
-.node-draft svg { 
-  color: #64748b; 
-}
-
-/* Pending Node - Amber */
-.node-pending { 
-  border-color: #f59e0b; 
-  background: #fffbeb; 
-}
-.node-pending svg { 
-  color: #f59e0b; 
-}
-
-/* Submitted Node - Blue */
-.node-submitted { 
-  border-color: #3b82f6; 
-  background: #eff6ff; 
-}
-.node-submitted svg { 
-  color: #3b82f6; 
-}
-
-/* Proposal Submitted Node - Sky Blue */
-.node-proposal-submitted { 
-  border-color: #0ea5e9; 
-  background: #f0f9ff; 
-}
-.node-proposal-submitted svg { 
-  color: #0369a1; 
-}
-
-/* Review Node - Indigo */
-.node-review { 
-  border-color: #6366f1; 
-  background: #eef2ff; 
-}
-.node-review svg { 
-  color: #4f46e5; 
-}
-
-/* Proposal Under Review Node - Purple */
-.node-proposal-review { 
-  border-color: #8b5cf6; 
-  background: #f5f3ff; 
-}
-.node-proposal-review svg { 
-  color: #7c3aed; 
-}
-
-/* Approved Node - Green */
-.node-approved { 
+/* Success States (Green) - Approved, Accepted, Receipt Confirmed */
+.node-success { 
   border-color: #10b981; 
   background: #ecfdf5; 
 }
-.node-approved svg { 
+.node-success svg { 
   color: #10b981; 
 }
 
-/* Rejected Node - Red */
-.node-rejected { 
+/* Danger State (Red) - Rejected */
+.node-danger { 
   border-color: #ef4444; 
   background: #fef2f2; 
 }
-.node-rejected svg { 
+.node-danger svg { 
   color: #ef4444; 
 }
 
-/* Sent Back Node - Orange */
-.node-sent-back { 
-  border-color: #f97316; 
-  background: #fff7ed; 
+/* Info States (Blue) - Draft, Disbursed */
+.node-info { 
+  border-color: #3b82f6; 
+  background: #eff6ff; 
 }
-.node-sent-back svg { 
-  color: #f97316; 
-}
-
-/* Sent Back to NGO Node - Deep Orange */
-.node-sent-back-ngo { 
-  border-color: #ea580c; 
-  background: #ffedd5; 
-}
-.node-sent-back-ngo svg { 
-  color: #c2410c; 
+.node-info svg { 
+  color: #3b82f6; 
 }
 
-/* Custom/Client States Node - Teal (Standard for all custom states) */
-.node-custom { 
-  border-color: #14b8a6; 
-  background: #f0fdfa; 
+/* Default/Other States (Gray) */
+.node-default { 
+  border-color: #94a3b8; 
+  background: #f1f5f9; 
 }
-.node-custom svg { 
-  color: #0f766e; 
+.node-default svg { 
+  color: #64748b; 
 }
 
 /* Workflow Progress Bar */
@@ -874,18 +773,18 @@ defineExpose({
   color: #fff;
 }
 
-/* Approved State - Orange */
-.progress-step.step-approved .progress-dot {
-  background: #f97316;
-  border-color: #f97316;
+/* Success States (Green) - Approved, Accepted, Receipt Confirmed */
+.progress-step.step-success .progress-dot {
+  background: #10b981;
+  border-color: #10b981;
   color: #fff;
 }
 
-.progress-step.step-approved.completed:not(:last-child)::after {
-  background: #f97316;
+.progress-step.step-success.completed:not(:last-child)::after {
+  background: #10b981;
 }
 
-/* Rejected State - Red */
+/* Rejected State (Red) */
 .progress-step.step-rejected .progress-dot {
   background: #dc2626;
   border-color: #dc2626;
@@ -896,22 +795,11 @@ defineExpose({
   background: #dc2626;
 }
 
-/* Active State (non-final states) - White circle with pulsing violet border */
+/* Active State (non-final states) - Gray border (no pulsing) */
 .progress-step.active .progress-dot {
   background: #fff;
-  border-color: #c026d3;
-  color: #c026d3;
-  box-shadow: 0 0 0 4px rgba(192, 38, 211, 0.25);
-  animation: pulse-violet 2s ease-in-out infinite;
-}
-
-@keyframes pulse-violet {
-  0%, 100% {
-    box-shadow: 0 0 0 4px rgba(192, 38, 211, 0.25);
-  }
-  50% {
-    box-shadow: 0 0 0 6px rgba(192, 38, 211, 0.15);
-  }
+  border-color: #94a3b8;
+  color: #64748b;
 }
 
 .progress-label {
@@ -928,8 +816,8 @@ defineExpose({
   font-weight: 500; 
 }
 
-.progress-step.step-approved .progress-label { 
-  color: #c2410c; 
+.progress-step.step-success .progress-label { 
+  color: #059669; 
   font-weight: 600; 
 }
 
@@ -939,13 +827,33 @@ defineExpose({
 }
 
 .progress-step.active .progress-label { 
-  color: #a21caf; 
+  color: #64748b; 
   font-weight: 600; 
 }
 
 /* Timeline Container */
 .timeline-container {
   position: relative;
+}
+
+/* No Actions Message */
+.no-actions-message {
+  text-align: center;
+  padding: 40px 20px;
+  color: #94a3b8;
+}
+
+.no-actions-message svg {
+  width: 48px;
+  height: 48px;
+  color: #cbd5e1;
+  margin: 0 auto 12px;
+}
+
+.no-actions-message p {
+  font-size: 13px;
+  font-style: italic;
+  margin: 0;
 }
 
 /* Timeline Item */
@@ -1067,6 +975,12 @@ defineExpose({
 /* ========================================
    USER AVATAR COLORS - Role-based
    ======================================== */
+
+/* Theme-based avatar (dynamic from frappe.boot.my_theme) */
+.avatar-theme {
+  background: var(--navbar-bg-color, linear-gradient(135deg, #64748b 0%, #475569 100%));
+  color: var(--navbar-text-color, #fff);
+}
 
 /* Administrator - Red */
 .avatar-red { 

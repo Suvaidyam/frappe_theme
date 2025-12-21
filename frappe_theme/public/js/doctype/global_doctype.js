@@ -1,7 +1,7 @@
-function open_approval_timeline_dialog(frm) {
+function open_approval_timeline_dialog(doctype, referenceName, documentTitle) {
 	const dialog = new frappe.ui.Dialog({
 		title: __("Approval Timeline"),
-		size: "large",
+		size: "extra-large",
 		fields: [
 			{
 				fieldname: "approval_timeline",
@@ -21,10 +21,9 @@ function open_approval_timeline_dialog(frm) {
 	frappe.require("approval_timeline.bundle.js").then(() => {
 		new frappe.ui.CustomApprovalTimeline({
 			wrapper: approval_timeline_html,
-			frm: frm,
-			doctype: frm.doctype,
-			referenceName: frm.doc.name,
-			documentTitle: frm.doc.title || ''
+			doctype: doctype,
+			referenceName: referenceName,
+			documentTitle: documentTitle
 		});
 	});
 
@@ -94,7 +93,7 @@ frappe.ui.form.on("*", {
 
 		if (hasWorkflow) {
 			frm.page.add_menu_item(__("Approval Timeline"), () => {
-				open_approval_timeline_dialog(frm);
+				open_approval_timeline_dialog(frm.doctype, frm.doc.name, frm.doc.title || frm.doc.name);
 			});
 		}
 	},
