@@ -213,12 +213,12 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					method: "frappe_theme.dt_api.get_sva_dt_settings",
 					doctype: frm.doc.doctype,
 				});
-				if (message){
+				if (message) {
 					this.dts = message;
 					window.sva_datatable_configuration = {
 						[frm.doc.doctype]: this.dts,
 					};
-				};
+				}
 			} else {
 				this.dts = window.sva_datatable_configuration?.[frm.doc.doctype];
 			}
@@ -587,7 +587,6 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 	renderCustomBlock = async (frm, field, signal = null) => {
 		let wrapper = document.createElement("div");
 		frm.set_df_property(field.fieldname, "options", wrapper);
-		
 
 		switch (field.sva_ft.property_type) {
 			case "Custom HTML Block":
@@ -658,9 +657,22 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					wrapper._dashboard = _wrapper;
 				}
 				break;
+			case "DocType (Direct)":
+			case "DocType (Indirect)":
+			case "DocType (Referenced)":
+			case "DocType (Unfiltered)":
 			case "Report":
-				break;
-			case "DocType":
+			case "Is Custom Design":
+				if (field.sva_ft.property_type === "Is Custom Design") {
+					field.sva_ft["connection_type"] = "Is Custom Design";
+				}
+				if (!field.sva_ft.connection_type) break;
+				field.sva_ft["html_field"] = field.fieldname;
+				if (frm.is_new()) {
+					await this.renderLocalFormMessage(field, frm);
+				} else {
+					await this.renderSavedFormContent(field.sva_ft, frm, field.sva_ft, signal);
+				}
 				break;
 		}
 	};
@@ -940,7 +952,8 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 	}
 
 	async initializeSvaDataTable(field, frm, dts, signal) {
-		const childLinks = dts.child_confs.filter((f) => f.parent_doctype === field.link_doctype);
+		const childLinks =
+			dts?.child_confs?.filter((f) => f.parent_doctype === field.link_doctype) || [];
 		const wrapper = document.createElement("div");
 		const wrapperId = `sva-datatable-wrapper-${field.html_field}`;
 		wrapper.id = wrapperId;
@@ -973,6 +986,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			onFieldClick: this.handleFieldEvent("onFieldClick"),
 			onFieldValueChange: this.handleFieldEvent("onFieldValueChange"),
 		});
+		frm.sva_ft_instances[field.html_field] = instance;
 		frm.sva_tables[
 			["Direct", "Unfiltered"].includes(field.connection_type)
 				? field.link_doctype

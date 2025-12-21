@@ -37,11 +37,11 @@ class SVADashboardManager {
 		// Create container instances with memoization
 		this.containers = {};
 		if (this.numberCards.length) {
-			this.containers['cards'] = this.createContainer("sva-dashboard-cards");
+			this.containers["cards"] = this.createContainer("sva-dashboard-cards");
 		}
 
 		if (this.charts.length) {
-			this.containers['charts'] = this.createContainer("sva-dashboard-charts");
+			this.containers["charts"] = this.createContainer("sva-dashboard-charts");
 		}
 		// Bind methods to preserve context
 		this.renderDashboard = this.renderDashboard.bind(this);
@@ -146,10 +146,10 @@ class SVADashboardManager {
 		if (this.isDestroyed) return;
 
 		this.wrapper.innerHTML = "";
-		if (this.containers.cards){
+		if (this.containers.cards) {
 			this.wrapper.appendChild(this.containers.cards);
 		}
-		if (this.containers.charts){
+		if (this.containers.charts) {
 			this.wrapper.appendChild(this.containers.charts);
 		}
 		await this.initializeStyles();

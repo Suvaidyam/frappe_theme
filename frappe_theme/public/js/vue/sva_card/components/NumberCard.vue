@@ -45,7 +45,7 @@ const getCount = async () => {
 	} else if (props?.card?.details?.type == "Document Type") {
 		type = "Document Type";
 		details = props.card.details;
-	}else{
+	} else {
 		data.value["count"] = 0;
 		loading.value = false;
 		return;
