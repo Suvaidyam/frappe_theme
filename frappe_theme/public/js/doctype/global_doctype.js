@@ -90,8 +90,9 @@ frappe.ui.form.on("*", {
 	async refresh(frm) {
 		// Check if doctype has an active workflow before adding the menu item
 		const hasWorkflow = await has_active_workflow(frm.doctype);
+		const hasPermission = frappe.has_perm("SVA Workflow Action", 0, "read");
 
-		if (hasWorkflow) {
+		if (hasWorkflow && hasPermission) {
 			frm.page.add_menu_item(__("Approval Timeline"), () => {
 				open_approval_timeline_dialog(
 					frm.doctype,
