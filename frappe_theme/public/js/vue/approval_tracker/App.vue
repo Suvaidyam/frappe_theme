@@ -62,7 +62,7 @@
 	</div>
 </template>
 <script setup>
-import { ref, computed } from "vue";
+import { ref } from "vue";
 
 const selectedStates = ref([]); // ✅ multiple selection
 
@@ -88,11 +88,15 @@ const data = ref([]);
 const props = defineProps({ doctype: { required: true } });
 
 const get_data = async () => {
-	const res = await frappe.call({
-		method: "frappe_theme.api.get_workflow_count",
-		args: { doctype: props.doctype },
-	});
-	if (res) data.value = res.message;
+	if (props.doctype && props.doctype !== "N/A") {
+		const res = await frappe.call({
+			method: "frappe_theme.api.get_workflow_count",
+			args: { doctype: props.doctype },
+		});
+		if (res) data.value = res.message;
+	} else {
+		data.value = [];
+	}
 };
 get_data();
 

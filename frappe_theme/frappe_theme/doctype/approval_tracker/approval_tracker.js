@@ -75,6 +75,16 @@ frappe.ui.form.on("Approval Tracker", {
 const show_table = async (frm, document_type) => {
 	let card_wrapper = document.createElement("div");
 	frm.set_df_property("state_card", "options", card_wrapper);
+	if (!document_type || document_type == "N/A") {
+		card_wrapper.innerHTML = `
+		<div style="height: 150px; gap: 10px;" id="form-not-saved" class="d-flex flex-column justify-content-center align-items-center p-3 card rounded my-3">
+			<svg class="icon icon-xl" style="stroke: var(--text-light);">
+				<use href="#icon-small-file"></use>
+			</svg>
+			${__("Please select a valid Module to view Approval Tracker.")}
+		</div>`;
+		return;
+	}
 	await frappe.require("approval_tracker.bundle.js");
 
 	frm["number_table_instance"] = new frappe.ui.CustomApprovalTracker({
