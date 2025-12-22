@@ -1,8 +1,8 @@
-const after_child_dialog_render = async (dialog, _frm, mode="create") => {
+const after_child_dialog_render = async (dialog, _frm, mode = "create") => {
 	let parent_doc = _frm.config_dialog.get_values(true, false);
 	let parent_doctype = parent_doc?.link_doctype || parent_doc?.referenced_link_doctype;
-	if (parent_doctype){
-		if (mode === "create"){
+	if (parent_doctype) {
+		if (mode === "create") {
 			await dialog.set_value("parent_doctype", parent_doctype);
 			dialog.set_df_property("parent_doctype", "read_only", 1);
 		}
@@ -18,12 +18,14 @@ const after_child_dialog_render = async (dialog, _frm, mode="create") => {
 		});
 		dialog.fields_dict.link_doctype.get_query = () => {
 			return {
-				filters: dts.message.length ? { name: ["IN", dts.message], istable: 0, issingle: 0 } : { name: "No direct connections found." },
+				filters: dts.message.length
+					? { name: ["IN", dts.message], istable: 0, issingle: 0 }
+					: { name: "No direct connections found." },
 				limit_page_length: 1000,
 				limit: 1000,
 			};
 		};
-	}else{
+	} else {
 		dialog.fields_dict.link_doctype.get_query = () => {
 			return {
 				filters: { name: "Parent doctype not specified." },
@@ -118,51 +120,53 @@ after_render_control = async function (dialog, _frm) {
 		add_button.off("click");
 		// add new click handler
 		add_button.on("click", function () {
-			let mode = 'create'
+			let mode = "create";
 			if (dialog.fields_dict?.child_confs?.df?.fields.length) {
-				let rows = dialog.get_value('child_confs') || [];
+				let rows = dialog.get_value("child_confs") || [];
 				let fields = dialog.fields_dict.child_confs.df.fields.map((f) => {
-					return { 
+					return {
 						...f,
-						[f.fieldtype == "Button" ? "click" : "onchange"]: child_table_field_changes?.[f.fieldname]
-							? child_table_field_changes[f.fieldname].bind(this, _frm)
-							: undefined,
+						[f.fieldtype == "Button" ? "click" : "onchange"]:
+							child_table_field_changes?.[f.fieldname]
+								? child_table_field_changes[f.fieldname].bind(this, _frm)
+								: undefined,
 						default: f.default,
 					};
-
 				});
 				let child_dialog = new frappe.ui.Dialog({
 					title: __("Child Configuration"),
 					fields: fields,
-					size: 'large',
+					size: "large",
 					primary_action_label: __("Save"),
 					primary_action: async function () {
 						let values = this.get_values();
-						if (mode === 'create') {
+						if (mode === "create") {
 							rows.push(values);
 							bind_edit_buttons_event(dialog);
-						}else{
+						} else {
 							// edit mode
-							console.log(values,'values')
+							console.log(values, "values");
 						}
-						dialog.set_df_property('child_confs','data',rows);
+						dialog.set_df_property("child_confs", "data", rows);
 						child_dialog.hide();
 					},
 				});
-				_frm['child_dialog'] = child_dialog;
+				_frm["child_dialog"] = child_dialog;
 				child_dialog.show();
 				dialog.wrapper.append(`<div class="modal-backdrop fade show"></div>`);
 				child_dialog.on_hide = () => {
-					dialog.wrapper.find('.modal-backdrop').remove();
+					dialog.wrapper.find(".modal-backdrop").remove();
 				};
-				after_child_dialog_render(_frm['child_dialog'],_frm);
+				after_child_dialog_render(_frm["child_dialog"], _frm);
 			}
 		});
 	}
 	const bind_edit_buttons_event = (dialog) => {
-		let edit_button = dialog.fields_dict?.child_confs?.$wrapper.find('[data-original-title="Edit"]');
-		console.log(edit_button,'edit_button');
-	}
+		let edit_button = dialog.fields_dict?.child_confs?.$wrapper.find(
+			'[data-original-title="Edit"]'
+		);
+		console.log(edit_button, "edit_button");
+	};
 	bind_edit_buttons_event(dialog);
 };
 const field_changes = {
@@ -172,7 +176,7 @@ const field_changes = {
 			"DocType (Direct)": "Direct",
 			"DocType (Unfiltered)": "Unfiltered",
 			"DocType (Referenced)": "Referenced",
-			"Report": "Report",
+			Report: "Report",
 		};
 		let property_type = frm?.config_dialog?.get_value("property_type");
 		if (property_type in connecttion_type_map) {
@@ -386,9 +390,11 @@ const set_list_settings = async (dialog) => {
 			doctype:
 				row.connection_type == "Report"
 					? row.link_report
-					: ["Direct", "Unfiltered", "Indirect"].includes(row?.connection_type || "Direct")
-						? row.link_doctype
-						: row.referenced_link_doctype ?? row.link_doctype,
+					: ["Direct", "Unfiltered", "Indirect"].includes(
+							row?.connection_type || "Direct"
+					  )
+					? row.link_doctype
+					: row.referenced_link_doctype ?? row.link_doctype,
 			_type: row?.connection_type || "Direct",
 		},
 	});
@@ -398,16 +404,13 @@ const set_list_settings = async (dialog) => {
 				row.connection_type == "Report"
 					? row.link_report
 					: ["Direct", "Unfiltered", "Indirect"].includes(row.connection_type)
-						? row.link_doctype
-						: row.referenced_link_doctype ?? row.link_doctype,
+					? row.link_doctype
+					: row.referenced_link_doctype ?? row.link_doctype,
 			meta: dtmeta.message,
 			connection_type: row.connection_type,
 			settings: row,
 			dialog_primary_action: async (listview_settings) => {
-				dialog.set_value(
-					"listview_settings",
-					JSON.stringify(listview_settings)
-				);
+				dialog.set_value("listview_settings", JSON.stringify(listview_settings));
 				frappe.show_alert({
 					message: __("Listview settings updated"),
 					indicator: "green",
@@ -416,7 +419,7 @@ const set_list_settings = async (dialog) => {
 		});
 		dialog.wrapper.append(`<div class="modal-backdrop fade show"></div>`);
 		d.dialog.on_hide = () => {
-			dialog.wrapper.find('.modal-backdrop').remove();
+			dialog.wrapper.find(".modal-backdrop").remove();
 		};
 	});
 };
@@ -428,9 +431,11 @@ const set_list_filters = async (dialog) => {
 			doctype:
 				row.connection_type == "Report"
 					? row.link_report
-					: ["Direct", "Unfiltered", "Indirect"].includes(row?.connection_type || "Direct")
-						? row.link_doctype
-						: row.referenced_link_doctype ?? row.link_doctype,
+					: ["Direct", "Unfiltered", "Indirect"].includes(
+							row?.connection_type || "Direct"
+					  )
+					? row.link_doctype
+					: row.referenced_link_doctype ?? row.link_doctype,
 			_type: row.connection_type,
 		},
 	});
@@ -441,9 +446,11 @@ const set_list_filters = async (dialog) => {
 			doctype:
 				row.connection_type == "Report"
 					? row.link_report
-					: ["Direct", "Unfiltered", "Indirect"].includes(row?.connection_type || "Direct")
-						? row.link_doctype
-						: row.referenced_link_doctype ?? row.link_doctype,
+					: ["Direct", "Unfiltered", "Indirect"].includes(
+							row?.connection_type || "Direct"
+					  )
+					? row.link_doctype
+					: row.referenced_link_doctype ?? row.link_doctype,
 			meta: fields,
 			only_list_settings: true,
 			connection_type: row?.connection_type || "Direct",
@@ -455,7 +462,7 @@ const set_list_filters = async (dialog) => {
 		});
 		dialog.wrapper.append(`<div class="modal-backdrop fade show"></div>`);
 		d.dialog.on_hide = () => {
-			dialog.wrapper.find('.modal-backdrop').remove();
+			dialog.wrapper.find(".modal-backdrop").remove();
 		};
 	});
 };
@@ -507,7 +514,7 @@ const set_crud_permissiions = (dialog) => {
 	permissions_dialog.show();
 	dialog.wrapper.append(`<div class="modal-backdrop fade show"></div>`);
 	permissions_dialog.on_hide = () => {
-		dialog.wrapper.find('.modal-backdrop').remove();
+		dialog.wrapper.find(".modal-backdrop").remove();
 	};
 };
 
@@ -603,17 +610,17 @@ async function customPropertySetter(frm) {
 												[field.fieldtype == "Button"
 													? "click"
 													: "onchange"]: field_changes?.[field.fieldname]
-														? field_changes[field.fieldname].bind(
+													? field_changes[field.fieldname].bind(
 															this,
 															frm
-														)
-														: undefined,
+													  )
+													: undefined,
 												default:
 													field.fieldname == "fieldtype"
 														? fieldtype
 														: field.fieldname == "fieldname"
-															? fieldname
-															: field.default,
+														? fieldname
+														: field.default,
 											};
 										})
 									);
