@@ -4,7 +4,6 @@ const after_child_dialog_render = async (dialog, _frm, mode = "create") => {
 	if (parent_doctype) {
 		if (mode === "create") {
 			await dialog.set_value("parent_doctype", parent_doctype);
-			dialog.set_df_property("parent_doctype", "read_only", 1);
 		}
 		child_response_dts = await frappe.db.get_list("DocField", {
 			filters: [
@@ -115,58 +114,72 @@ after_render_control = async function (dialog, _frm) {
 			};
 		};
 	}
-	let add_button = dialog.$wrapper.find(".grid-add-row");
-	if (add_button.length) {
-		add_button.off("click");
-		// add new click handler
-		add_button.on("click", function () {
-			let mode = "create";
-			if (dialog.fields_dict?.child_confs?.df?.fields.length) {
-				let rows = dialog.get_value("child_confs") || [];
-				let fields = dialog.fields_dict.child_confs.df.fields.map((f) => {
-					return {
-						...f,
-						[f.fieldtype == "Button" ? "click" : "onchange"]:
-							child_table_field_changes?.[f.fieldname]
-								? child_table_field_changes[f.fieldname].bind(this, _frm)
-								: undefined,
-						default: f.default,
-					};
-				});
-				let child_dialog = new frappe.ui.Dialog({
-					title: __("Child Configuration"),
-					fields: fields,
-					size: "large",
-					primary_action_label: __("Save"),
-					primary_action: async function () {
-						let values = this.get_values();
-						if (mode === "create") {
-							rows.push(values);
-							bind_edit_buttons_event(dialog);
-						} else {
-							// edit mode
-							console.log(values, "values");
-						}
-						dialog.set_df_property("child_confs", "data", rows);
-						child_dialog.hide();
-					},
-				});
-				_frm["child_dialog"] = child_dialog;
-				child_dialog.show();
-				dialog.wrapper.append(`<div class="modal-backdrop fade show"></div>`);
-				child_dialog.on_hide = () => {
-					dialog.wrapper.find(".modal-backdrop").remove();
+	const render_child_form = async (dialog, mode = "create", data = {}) => {
+		if (dialog.fields_dict?.child_confs?.df?.fields.length) {
+			let rows = dialog.get_value("child_confs") || [];
+			let fields = dialog.fields_dict.child_confs.df.fields.map((f) => {
+				if (["link_doctype"].includes(f.fieldname)) {
+					f.read_only = 0;
+				}
+				return {
+					...f,
+					[f.fieldtype == "Button" ? "click" : "onchange"]: child_table_field_changes?.[
+						f.fieldname
+					]
+						? child_table_field_changes[f.fieldname].bind(this, _frm)
+						: undefined,
+					default: data[f.fieldname] || f.default,
 				};
-				after_child_dialog_render(_frm["child_dialog"], _frm);
-			}
-		});
-	}
+			});
+			let child_dialog = new frappe.ui.Dialog({
+				title: __("Child Configuration"),
+				fields: fields,
+				size: "large",
+				primary_action_label: __("Save"),
+				primary_action: async function () {
+					let values = this.get_values();
+					if (mode == "create") {
+						rows.push(values);
+					} else {
+						let idx = rows.findIndex((r) => r.name == data.name);
+						if (idx !== -1) {
+							rows[idx] = values;
+						}
+					}
+					dialog.set_df_property("child_confs", "data", rows);
+					child_dialog.hide();
+					bind_edit_buttons_event(dialog);
+				},
+			});
+			_frm["child_dialog"] = child_dialog;
+			child_dialog.show();
+			dialog.wrapper.append(`<div class="modal-backdrop fade show"></div>`);
+			child_dialog.on_hide = () => {
+				dialog.wrapper.find(".modal-backdrop").remove();
+			};
+			after_child_dialog_render(_frm["child_dialog"], _frm);
+		}
+	};
 	const bind_edit_buttons_event = (dialog) => {
 		let edit_button = dialog.fields_dict?.child_confs?.$wrapper.find(
 			'[data-original-title="Edit"]'
 		);
-		console.log(edit_button, "edit_button");
+		let rows = dialog.get_value("child_confs") || [];
+		edit_button.off("click");
+		edit_button.on("click", function (e) {
+			let $row = $(this).closest(".grid-row");
+			let idx = cint($row.attr("data-idx")) - 1;
+			let row = rows[idx];
+			render_child_form(dialog, "write", row);
+		});
 	};
+	let add_button = dialog.$wrapper.find(".grid-add-row");
+	if (add_button.length) {
+		add_button.off("click");
+		add_button.on("click", function () {
+			render_child_form(dialog, "create");
+		});
+	}
 	bind_edit_buttons_event(dialog);
 };
 const field_changes = {

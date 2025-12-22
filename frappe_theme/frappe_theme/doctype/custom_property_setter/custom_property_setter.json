@@ -12,8 +12,6 @@
   "section_break_hevv",
   "column_break_yoee",
   "property_type",
-  "doc_type",
-  "report",
   "number_card",
   "doc_field",
   "chart",
@@ -150,22 +148,6 @@
    "fieldname": "label",
    "fieldtype": "Data",
    "label": "Label"
-  },
-  {
-   "depends_on": "eval:doc.property_type=='DocType'",
-   "fieldname": "doc_type",
-   "fieldtype": "Link",
-   "label": "DocType",
-   "mandatory_depends_on": "eval:doc.property_type=='DocType'",
-   "options": "DocType"
-  },
-  {
-   "depends_on": "eval:doc.property_type=='Report'",
-   "fieldname": "report",
-   "fieldtype": "Link",
-   "label": "Report",
-   "mandatory_depends_on": "eval:doc.property_type=='Report'",
-   "options": "Report"
   },
   {
    "depends_on": "eval:doc.property_type=='DocField'",
@@ -608,7 +590,7 @@
  "index_web_pages_for_search": 1,
  "is_virtual": 1,
  "links": [],
- "modified": "2025-12-22 11:44:40.690946",
+ "modified": "2025-12-22 16:39:06.443664",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Custom Property Setter",

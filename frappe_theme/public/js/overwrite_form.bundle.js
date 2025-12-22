@@ -666,7 +666,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 				if (field.sva_ft.property_type === "Is Custom Design") {
 					field.sva_ft["connection_type"] = "Is Custom Design";
 				}
-				if (!field.sva_ft.connection_type) break;
+				if (!field.sva_ft?.connection_type || field.sva_ft?.hide_table) break;
 				field.sva_ft["html_field"] = field.fieldname;
 				if (frm.is_new()) {
 					await this.renderLocalFormMessage(field, frm);

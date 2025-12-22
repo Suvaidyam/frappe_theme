@@ -143,7 +143,10 @@ class SvaDataTable {
 					}
 				}
 				// ================================ Workflow Logic  ================================
-				if (!this.connection?.disable_workflow) {
+				if (
+					!this.connection?.disable_workflow &&
+					this.connection.connection_type !== "Report"
+				) {
 					let workflow = await this.sva_db.get_value("Workflow", {
 						document_type: this.doctype,
 						is_active: 1,
@@ -2184,7 +2187,7 @@ class SvaDataTable {
 			tr.appendChild(th);
 		});
 		// ========================= Workflow Logic ======================
-		if (!this.connection?.disable_workflow) {
+		if (!this.connection?.disable_workflow && this.connection.connection_type !== "Report") {
 			if (this.workflow && (this.wf_editable_allowed || this.wf_transitions_allowed)) {
 				const addColumn = document.createElement("th");
 				addColumn.textContent = this.connection.action_label
@@ -2580,7 +2583,10 @@ class SvaDataTable {
 				});
 
 				// ========================= Workflow Logic ===================
-				if (!this.connection?.disable_workflow) {
+				if (
+					!this.connection?.disable_workflow &&
+					this.connection.connection_type !== "Report"
+				) {
 					if (
 						this.workflow &&
 						(this.wf_editable_allowed || this.wf_transitions_allowed)
