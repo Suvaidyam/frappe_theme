@@ -2383,9 +2383,9 @@ class SvaDataTable {
 			}
 		}
 
-		if (this.workflow) {
+		if (this.workflow && this.frm?.has_permission_for_workflow_action_log) {
 			appendDropdownOption(
-				`${frappe.utils.icon("workflow", "sm")} ${__("Approval Actions")}`,
+				`${frappe.utils.icon("workflow", "sm")} ${__("Approval Timeline")}`,
 				async () => {
 					open_approval_timeline_dialog(
 						this.doctype,

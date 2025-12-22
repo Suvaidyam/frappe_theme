@@ -125,7 +125,7 @@
  ],
  "grid_page_length": 50,
  "links": [],
- "modified": "2025-12-20 15:11:11.592370",
+ "modified": "2025-12-22 14:49:59.182135",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "SVA Workflow Action",
@@ -133,9 +133,11 @@
  "owner": "Administrator",
  "permissions": [
   {
+   "create": 1,
    "delete": 1,
    "read": 1,
-   "role": "Desk User"
+   "role": "System Manager",
+   "write": 1
   }
  ],
  "row_format": "Dynamic",
