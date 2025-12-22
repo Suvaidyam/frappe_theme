@@ -97,6 +97,7 @@ class SvaDataTable {
 		this.footer_element = null;
 		this.skeletonLoader = null;
 		this.standard_filters_fields_dict = {};
+		this.title_field = null;
 		// Initialize crud permissions before reloadTable so crudHandler can modify them
 		this.crud = {
 			read: true,
@@ -185,6 +186,9 @@ class SvaDataTable {
 					});
 					let columns = response.fields;
 					this.meta = response.meta;
+					if (this.meta?.title_field) {
+						this.title_field = this.meta.title_field;
+					}
 					if (this.filter_area) {
 						this.filter_area.make_standard_filters();
 					}
@@ -2377,6 +2381,19 @@ class SvaDataTable {
 					);
 				}
 			}
+		}
+
+		if (this.workflow) {
+			appendDropdownOption(
+				`${frappe.utils.icon("workflow", "sm")} ${__("Approval Actions")}`,
+				async () => {
+					open_approval_timeline_dialog(
+						this.doctype,
+						primaryKey,
+						this.title_field ? row[this.title_field] : ""
+					);
+				}
+			);
 		}
 		// ========================= Print Button ======================
 		if (this.permissions.includes("print")) {
