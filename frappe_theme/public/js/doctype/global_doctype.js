@@ -7,12 +7,12 @@ function open_approval_timeline_dialog(doctype, referenceName, documentTitle) {
 				fieldname: "approval_timeline",
 				fieldtype: "HTML",
 				options: "",
-			}
+			},
 		],
 		primary_action_label: __("Close"),
 		primary_action() {
 			dialog.hide();
-		}
+		},
 	});
 
 	let approval_timeline_html = document.createElement("div");
@@ -23,7 +23,7 @@ function open_approval_timeline_dialog(doctype, referenceName, documentTitle) {
 			wrapper: approval_timeline_html,
 			doctype: doctype,
 			referenceName: referenceName,
-			documentTitle: documentTitle
+			documentTitle: documentTitle,
 		});
 	});
 
@@ -34,21 +34,21 @@ function open_approval_timeline_dialog(doctype, referenceName, documentTitle) {
 async function has_active_workflow(doctype) {
 	try {
 		const result = await frappe.call({
-			method: 'frappe.client.get_list',
+			method: "frappe.client.get_list",
 			args: {
-				doctype: 'Workflow',
+				doctype: "Workflow",
 				filters: {
 					document_type: doctype,
-					is_active: 1
+					is_active: 1,
 				},
-				fields: ['name'],
-				limit_page_length: 1
-			}
+				fields: ["name"],
+				limit_page_length: 1,
+			},
 		});
 
 		return result.message && result.message.length > 0;
 	} catch (error) {
-		console.error('Error checking workflow:', error);
+		console.error("Error checking workflow:", error);
 		return false;
 	}
 }
@@ -93,7 +93,11 @@ frappe.ui.form.on("*", {
 
 		if (hasWorkflow) {
 			frm.page.add_menu_item(__("Approval Timeline"), () => {
-				open_approval_timeline_dialog(frm.doctype, frm.doc.name, frm.doc.title || frm.doc.name);
+				open_approval_timeline_dialog(
+					frm.doctype,
+					frm.doc.name,
+					frm.doc.title || frm.doc.name
+				);
 			});
 		}
 	},
