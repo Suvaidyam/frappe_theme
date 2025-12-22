@@ -189,7 +189,7 @@ const field_changes = {
 			"DocType (Direct)": "Direct",
 			"DocType (Unfiltered)": "Unfiltered",
 			"DocType (Referenced)": "Referenced",
-			Report: "Report",
+			"Report": "Report",
 		};
 		let property_type = frm?.config_dialog?.get_value("property_type");
 		if (property_type in connecttion_type_map) {
