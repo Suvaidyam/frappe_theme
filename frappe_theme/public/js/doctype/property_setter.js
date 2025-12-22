@@ -1,3 +1,38 @@
+const after_child_dialog_render = async (dialog, _frm, mode="create") => {
+	let parent_doc = _frm.config_dialog.get_values(true, false);
+	let parent_doctype = parent_doc?.link_doctype || parent_doc?.referenced_link_doctype;
+	if (parent_doctype){
+		if (mode === "create"){
+			await dialog.set_value("parent_doctype", parent_doctype);
+			dialog.set_df_property("parent_doctype", "read_only", 1);
+		}
+		child_response_dts = await frappe.db.get_list("DocField", {
+			filters: [
+				["DocField", "options", "=", parent_doctype],
+				["DocField", "parenttype", "=", "DocType"],
+			],
+			fields: ["parent", "fieldname", "label"],
+		});
+		let dts = await frappe.call("frappe_theme.dt_api.get_direct_connection_dts", {
+			dt: parent_doctype,
+		});
+		dialog.fields_dict.link_doctype.get_query = () => {
+			return {
+				filters: dts.message.length ? { name: ["IN", dts.message], istable: 0, issingle: 0 } : { name: "No direct connections found." },
+				limit_page_length: 1000,
+				limit: 1000,
+			};
+		};
+	}else{
+		dialog.fields_dict.link_doctype.get_query = () => {
+			return {
+				filters: { name: "Parent doctype not specified." },
+				limit_page_length: 1000,
+				limit: 1000,
+			};
+		};
+	}
+};
 after_render_control = async function (dialog, _frm) {
 	let row = dialog.get_values(true, false);
 	let doctype = _frm.docname == "Customize Form" ? _frm.doc.doc_type : _frm.docname;
@@ -78,6 +113,57 @@ after_render_control = async function (dialog, _frm) {
 			};
 		};
 	}
+	let add_button = dialog.$wrapper.find(".grid-add-row");
+	if (add_button.length) {
+		add_button.off("click");
+		// add new click handler
+		add_button.on("click", function () {
+			let mode = 'create'
+			if (dialog.fields_dict?.child_confs?.df?.fields.length) {
+				let rows = dialog.get_value('child_confs') || [];
+				let fields = dialog.fields_dict.child_confs.df.fields.map((f) => {
+					return { 
+						...f,
+						[f.fieldtype == "Button" ? "click" : "onchange"]: child_table_field_changes?.[f.fieldname]
+							? child_table_field_changes[f.fieldname].bind(this, _frm)
+							: undefined,
+						default: f.default,
+					};
+
+				});
+				let child_dialog = new frappe.ui.Dialog({
+					title: __("Child Configuration"),
+					fields: fields,
+					size: 'large',
+					primary_action_label: __("Save"),
+					primary_action: async function () {
+						let values = this.get_values();
+						if (mode === 'create') {
+							rows.push(values);
+							bind_edit_buttons_event(dialog);
+						}else{
+							// edit mode
+							console.log(values,'values')
+						}
+						dialog.set_df_property('child_confs','data',rows);
+						child_dialog.hide();
+					},
+				});
+				_frm['child_dialog'] = child_dialog;
+				child_dialog.show();
+				dialog.wrapper.append(`<div class="modal-backdrop fade show"></div>`);
+				child_dialog.on_hide = () => {
+					dialog.wrapper.find('.modal-backdrop').remove();
+				};
+				after_child_dialog_render(_frm['child_dialog'],_frm);
+			}
+		});
+	}
+	const bind_edit_buttons_event = (dialog) => {
+		let edit_button = dialog.fields_dict?.child_confs?.$wrapper.find('[data-original-title="Edit"]');
+		console.log(edit_button,'edit_button');
+	}
+	bind_edit_buttons_event(dialog);
 };
 const field_changes = {
 	property_type: async function (frm) {
@@ -86,7 +172,7 @@ const field_changes = {
 			"DocType (Direct)": "Direct",
 			"DocType (Unfiltered)": "Unfiltered",
 			"DocType (Referenced)": "Referenced",
-			Report: "Report",
+			"Report": "Report",
 		};
 		let property_type = frm?.config_dialog?.get_value("property_type");
 		if (property_type in connecttion_type_map) {
@@ -119,11 +205,12 @@ const field_changes = {
 	},
 	link_doctype: async function (frm) {
 		let row = frm.config_dialog.get_values(true, false);
+		let doctype = frm.docname == "Customize Form" ? frm.doc.doc_type : frm.docname;
 		if (row.connection_type == "Direct") {
 			if (row.link_doctype) {
 				let fields = await frappe.call(
 					"frappe_theme.dt_api.get_direct_connection_fields",
-					{ dt: frm.doc.parent_doctype, link_dt: row.link_doctype }
+					{ dt: doctype, link_dt: row.link_doctype }
 				);
 				let field = fields.message[0];
 				if (field) {
@@ -213,10 +300,10 @@ const field_changes = {
 		}
 	},
 	setup_list_settings: function (frm) {
-		set_list_settings(frm);
+		set_list_settings(frm.config_dialog);
 	},
 	setup_crud_permissions: function (frm) {
-		set_crud_permissiions(frm);
+		set_crud_permissiions(frm.config_dialog);
 	},
 	setup_action_list: function (frm) {
 		let row = frm.config_dialog.get_values(true, false);
@@ -263,49 +350,61 @@ const field_changes = {
 		});
 		dialog.show();
 	},
-	async setup_list_filters(frm, cdt, cdn) {
-		await set_list_filters(frm, cdt, cdn);
+	async setup_list_filters(frm) {
+		await set_list_filters(frm.config_dialog);
 	},
 };
+var child_response_dts = [];
 const child_table_field_changes = {
-	setup_list_settings: function (frm, cdt, cdn) {
-		set_list_settings(frm, cdt, cdn);
+	link_doctype: async function (frm) {
+		let row = frm?.child_dialog?.get_values(true, false);
+		if (row.link_doctype) {
+			let field = child_response_dts.find((d) => d.parent === row.link_doctype);
+			if (field) {
+				frm?.child_dialog.set_value("link_fieldname", field.fieldname);
+			}
+		} else {
+			frm?.child_dialog.set_value("link_fieldname", "");
+		}
 	},
-	setup_crud_permissions: function (frm, cdt, cdn) {
-		set_crud_permissiions(frm, cdt, cdn);
+	setup_list_settings: function (frm) {
+		set_list_settings(frm.child_dialog);
 	},
-	setup_list_filters: function (frm, cdt, cdn) {
-		set_list_filters(frm, cdt, cdn);
+	setup_crud_permissions: function (frm) {
+		set_crud_permissiions(frm.child_dialog);
+	},
+	setup_list_filters: function (frm) {
+		set_list_filters(frm.child_dialog);
 	},
 };
 
-const set_list_settings = async (frm) => {
-	let row = frm.config_dialog.get_values(true, false);
+const set_list_settings = async (dialog) => {
+	let row = dialog.get_values(true, false);
 	let dtmeta = await frappe.call({
 		method: "frappe_theme.dt_api.get_meta_fields",
 		args: {
 			doctype:
 				row.connection_type == "Report"
 					? row.link_report
-					: ["Direct", "Unfiltered", "Indirect"].includes(row.connection_type)
-					? row.link_doctype
-					: row.referenced_link_doctype ?? row.link_doctype,
-			_type: row.connection_type,
+					: ["Direct", "Unfiltered", "Indirect"].includes(row?.connection_type || "Direct")
+						? row.link_doctype
+						: row.referenced_link_doctype ?? row.link_doctype,
+			_type: row?.connection_type || "Direct",
 		},
 	});
 	frappe.require("list_settings.bundle.js").then(() => {
-		new frappe.ui.SVAListSettings({
+		let d = new frappe.ui.SVAListSettings({
 			doctype:
 				row.connection_type == "Report"
 					? row.link_report
 					: ["Direct", "Unfiltered", "Indirect"].includes(row.connection_type)
-					? row.link_doctype
-					: row.referenced_link_doctype ?? row.link_doctype,
+						? row.link_doctype
+						: row.referenced_link_doctype ?? row.link_doctype,
 			meta: dtmeta.message,
 			connection_type: row.connection_type,
 			settings: row,
 			dialog_primary_action: async (listview_settings) => {
-				frm.config_dialog.set_value(
+				dialog.set_value(
 					"listview_settings",
 					JSON.stringify(listview_settings)
 				);
@@ -315,45 +414,53 @@ const set_list_settings = async (frm) => {
 				});
 			},
 		});
+		dialog.wrapper.append(`<div class="modal-backdrop fade show"></div>`);
+		d.dialog.on_hide = () => {
+			dialog.wrapper.find('.modal-backdrop').remove();
+		};
 	});
 };
-const set_list_filters = async (frm) => {
-	let row = frm.config_dialog.get_values(true, false);
+const set_list_filters = async (dialog) => {
+	let row = dialog.get_values(true, false);
 	let dtmeta = await frappe.call({
 		method: "frappe_theme.dt_api.get_meta_fields",
 		args: {
 			doctype:
 				row.connection_type == "Report"
 					? row.link_report
-					: ["Direct", "Unfiltered", "Indirect"].includes(row.connection_type)
-					? row.link_doctype
-					: row.referenced_link_doctype ?? row.link_doctype,
+					: ["Direct", "Unfiltered", "Indirect"].includes(row?.connection_type || "Direct")
+						? row.link_doctype
+						: row.referenced_link_doctype ?? row.link_doctype,
 			_type: row.connection_type,
 		},
 	});
 	let allowed_fieldtypes = ["Select", "Link", "Data", "Currency", "Int", "Float"];
 	let fields = dtmeta?.message?.filter((d) => allowed_fieldtypes.includes(d.fieldtype));
 	frappe.require("list_settings.bundle.js").then(() => {
-		new frappe.ui.SVAListSettings({
+		let d = new frappe.ui.SVAListSettings({
 			doctype:
 				row.connection_type == "Report"
 					? row.link_report
-					: ["Direct", "Unfiltered", "Indirect"].includes(row.connection_type)
-					? row.link_doctype
-					: row.referenced_link_doctype ?? row.link_doctype,
+					: ["Direct", "Unfiltered", "Indirect"].includes(row?.connection_type || "Direct")
+						? row.link_doctype
+						: row.referenced_link_doctype ?? row.link_doctype,
 			meta: fields,
 			only_list_settings: true,
-			connection_type: row.connection_type,
+			connection_type: row?.connection_type || "Direct",
 			settings: row,
 			dialog_primary_action: async (listview_settings) => {
-				frm.config_dialog.set_value("list_filters", JSON.stringify(listview_settings));
+				dialog.set_value("list_filters", JSON.stringify(listview_settings));
 				frappe.show_alert({ message: __("List filters updated"), indicator: "green" });
 			},
 		});
+		dialog.wrapper.append(`<div class="modal-backdrop fade show"></div>`);
+		d.dialog.on_hide = () => {
+			dialog.wrapper.find('.modal-backdrop').remove();
+		};
 	});
 };
-const set_crud_permissiions = (frm) => {
-	let row = frm.config_dialog.get_values(true, false);
+const set_crud_permissiions = (dialog) => {
+	let row = dialog.get_values(true, false);
 	let prev_permissions;
 	if (row.connection_type === "Indirect") {
 		prev_permissions = JSON.parse(row.crud_permissions ?? '["read"]');
@@ -393,11 +500,15 @@ const set_crud_permissiions = (frm) => {
 		fields: fields,
 		primary_action_label: __("Save"),
 		primary_action: async () => {
-			frm.config_dialog.set_value("crud_permissions", JSON.stringify(prev_permissions));
+			dialog.set_value("crud_permissions", JSON.stringify(prev_permissions));
 			permissions_dialog.hide();
 		},
 	});
 	permissions_dialog.show();
+	dialog.wrapper.append(`<div class="modal-backdrop fade show"></div>`);
+	permissions_dialog.on_hide = () => {
+		dialog.wrapper.find('.modal-backdrop').remove();
+	};
 };
 
 var final_dt_options = [];
@@ -474,37 +585,17 @@ async function customPropertySetter(frm) {
 												if (prop) {
 													try {
 														let values = JSON.parse(prop.value);
-														table_data = JSON.parse(
-															values[field.fieldname] || "[]"
-														);
+														table_data = values[field.fieldname] || [];
 													} catch (error) {
 														console.log(
 															"Exception in Custom Property Setter for Table Field"
 														);
 													}
 												}
-												let dialog_table_fields = [];
-												dialog_table_fields = table_fields.message.map(
-													(tf) => {
-														return {
-															...tf,
-															[tf.fieldtype == "Button"
-																? "click"
-																: "onchange"]: child_table_field_changes?.[
-																tf.fieldname
-															]
-																? child_table_field_changes[
-																		tf.fieldname
-																  ].bind(this, frm)
-																: undefined,
-															default: tf.default,
-														};
-													}
-												);
 												return {
 													...field,
 													data: table_data,
-													fields: dialog_table_fields,
+													fields: table_fields.message,
 												};
 											}
 											return {
@@ -512,17 +603,17 @@ async function customPropertySetter(frm) {
 												[field.fieldtype == "Button"
 													? "click"
 													: "onchange"]: field_changes?.[field.fieldname]
-													? field_changes[field.fieldname].bind(
+														? field_changes[field.fieldname].bind(
 															this,
 															frm
-													  )
-													: undefined,
+														)
+														: undefined,
 												default:
 													field.fieldname == "fieldtype"
 														? fieldtype
 														: field.fieldname == "fieldname"
-														? fieldname
-														: field.default,
+															? fieldname
+															: field.default,
 											};
 										})
 									);
