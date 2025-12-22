@@ -154,7 +154,7 @@
 									/>
 									<polyline points="14 2 14 8 20 8" />
 								</svg>
-								Dialog Field Values
+								Field Values
 							</div>
 							<div class="field-grid">
 								<div
@@ -165,7 +165,20 @@
 									<div class="field-label">
 										{{ formatFieldLabel(field.fieldname) }}
 									</div>
-									<div class="field-value">{{ field.value || "N/A" }}</div>
+									<div
+										v-if="
+											field.fieldtype === 'Attach' ||
+											field.fieldtype === 'Attach Image'
+										"
+										class="field-value"
+									>
+										<a :href="field.value" target="_blank">{{
+											field.value || "N/A"
+										}}</a>
+									</div>
+									<div v-else class="field-value">
+										{{ field.value || "N/A" }}
+									</div>
 								</div>
 							</div>
 						</template>
@@ -389,8 +402,34 @@ const loadWorkflowData = async () => {
 		});
 
 		if (response.message && response.message.success) {
-			workflowData.value = response.message;
+			for (const action of response.message.actions || []) {
+				if (action.action_data?.length) {
+					for (const item of action.action_data) {
+						if (item.fieldtype === "Link") {
+							let value = item.value;
+							let _value;
 
+							if (item.reference_doctype && value) {
+								_value = frappe.utils.get_link_title(
+									item.reference_doctype,
+									value
+								);
+
+								if (!_value) {
+									const resp = await frappe.utils.fetch_link_title(
+										item.reference_doctype,
+										value
+									);
+									_value = resp || value;
+								}
+							}
+
+							item.value = _value || value;
+						}
+					}
+				}
+			}
+			workflowData.value = response.message;
 			if (response.message.type === "no_action") {
 				// Set current state from workflowState prop or current_doc_state
 				currentState.value = props.workflowState || response.message.current_doc_state;

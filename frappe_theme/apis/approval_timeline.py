@@ -79,13 +79,17 @@ def get_workflow_audit(doctype=None, reference_name=None, limit=100):
 				action_data = frappe.get_all(
 					"SVA Workflow Action Data Child",
 					filters={"parent": action.name},
-					fields=["fieldname", "fieldtype", "value"],
+					fields=["fieldname", "fieldtype", "value", "reference_doctype"],
 					order_by="idx asc",
 				)
 
 				action["action_data"] = action_data
 				action["dialog_values"] = {
-					item["fieldname"]: {"value": item["value"], "fieldtype": item["fieldtype"]}
+					item["fieldname"]: {
+						"value": item["value"],
+						"fieldtype": item["fieldtype"],
+						"reference_doctype": item["reference_doctype"],
+					}
 					for item in action_data
 				}
 

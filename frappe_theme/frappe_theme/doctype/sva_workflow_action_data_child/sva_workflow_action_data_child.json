@@ -8,7 +8,8 @@
  "field_order": [
   "fieldname",
   "fieldtype",
-  "value"
+  "value",
+  "reference_doctype"
  ],
  "fields": [
   {
@@ -34,13 +35,21 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Value"
+  },
+  {
+   "fieldname": "reference_doctype",
+   "fieldtype": "Data",
+   "in_filter": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Reference Doctype"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-12-20 12:37:28.340205",
+ "modified": "2025-12-22 18:40:39.300598",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "SVA Workflow Action Data Child",
