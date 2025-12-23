@@ -52,7 +52,8 @@ def get_workflow_audit(doctype=None, reference_name=None, limit=100):
 		filters = {"reference_doctype": doctype}
 		if reference_name:
 			filters["reference_name"] = reference_name
-
+		dt_meta = frappe.get_meta(doctype)
+		field_label_map = {df.fieldname: df.label for df in dt_meta.fields}
 		# Fetch workflow actions
 		actions = frappe.get_all(
 			"SVA Workflow Action",
@@ -82,16 +83,9 @@ def get_workflow_audit(doctype=None, reference_name=None, limit=100):
 					fields=["fieldname", "fieldtype", "value", "reference_doctype"],
 					order_by="idx asc",
 				)
-
+				for item in action_data:
+					item["label"] = field_label_map.get(item.get("fieldname"))
 				action["action_data"] = action_data
-				action["dialog_values"] = {
-					item["fieldname"]: {
-						"value": item["value"],
-						"fieldtype": item["fieldtype"],
-						"reference_doctype": item["reference_doctype"],
-					}
-					for item in action_data
-				}
 
 		return {
 			"success": True,

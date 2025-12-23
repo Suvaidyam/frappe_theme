@@ -141,7 +141,11 @@
 				<div class="timeline-right">
 					<div class="data-card">
 						<!-- Dialog Field Values -->
-						<template v-if="item.action_data && item.action_data.length > 0">
+						<template
+							v-if="
+								(item.action_data && item.action_data.length > 0) || item.comment
+							"
+						>
 							<div class="data-section-title">
 								<svg
 									viewBox="0 0 24 24"
@@ -157,14 +161,26 @@
 								Field Values
 							</div>
 							<div class="field-grid">
+								<!-- Comment Section - Show at top if present -->
+								<div v-if="item.comment" class="field-item comment-field">
+									<div class="field-label">Comments</div>
+									<div class="field-value">
+										{{ item.comment }}
+									</div>
+								</div>
+
+								<!-- Field Values -->
 								<div
 									v-for="(field, fieldIndex) in item.action_data"
 									:key="field.fieldname"
-									v-show="showAllFields[item.name] || fieldIndex < 2"
+									v-show="
+										showAllFields[item.name] ||
+										(!item.comment && fieldIndex < 2)
+									"
 									class="field-item"
 								>
 									<div class="field-label">
-										{{ formatFieldLabel(field.fieldname) }}
+										{{ field.label || formatFieldLabel(field.fieldname) }}
 									</div>
 									<div
 										v-if="
@@ -184,7 +200,7 @@
 
 								<!-- Show More/Less Button - Inside the grid -->
 								<div
-									v-if="item.action_data.length > 2"
+									v-if="getHiddenFieldsCount(item) > 0"
 									class="show-more-container"
 								>
 									<button
@@ -192,7 +208,7 @@
 										class="show-more-btn"
 									>
 										<span v-if="!showAllFields[item.name]">
-											Show More ({{ item.action_data.length - 2 }} more)
+											Show More ({{ getHiddenFieldsCount(item) }} more)
 											<svg
 												viewBox="0 0 24 24"
 												fill="none"
@@ -218,26 +234,12 @@
 							</div>
 						</template>
 
-						<!-- Comment Section -->
-						<template v-if="item.comment">
-							<div
-								v-if="item.action_data && item.action_data.length > 0"
-								style="margin-top: 10px"
-							></div>
-							<div class="field-grid">
-								<div class="field-item comment-field">
-									<div class="field-label">Comments</div>
-									<div class="field-value">
-										{{ item.comment }}
-									</div>
-								</div>
-							</div>
-						</template>
-
 						<!-- No Data Message -->
 						<div v-if="!item.action_data?.length && !item.comment" class="no-data">
 							{{
-								index === 0 && !item.completed
+								index === 0 &&
+								!item.completed &&
+								!isFinalState(item.workflow_state_current)
 									? "Awaiting action"
 									: "No additional data"
 							}}
@@ -287,6 +289,33 @@ const showAllFields = ref({});
 // Toggle show all fields for a specific item
 const toggleShowAllFields = (itemName) => {
 	showAllFields.value[itemName] = !showAllFields.value[itemName];
+};
+
+// Get count of hidden fields based on whether comment is present
+const getHiddenFieldsCount = (item) => {
+	const actionDataLength = item.action_data?.length || 0;
+	const hasComment = !!item.comment;
+
+	// If comment exists, hide all fields and show them in "Show More"
+	// If no comment, show 2 fields by default, hide the rest
+	if (hasComment) {
+		return actionDataLength; // All fields are hidden
+	} else {
+		const hiddenCount = actionDataLength - 2;
+		return hiddenCount > 0 ? hiddenCount : 0;
+	}
+};
+
+// Helper function to check if state is final
+const isFinalState = (state) => {
+	if (!state) return false;
+	const normalizedState = state.trim().toLowerCase();
+	return (
+		normalizedState === "approved" ||
+		normalizedState === "accepted" ||
+		normalizedState === "receipt confirmed" ||
+		normalizedState === "rejected"
+	);
 };
 
 // Timeline Items - Show minimal placeholder if no actions
@@ -420,6 +449,9 @@ const loadWorkflowData = async () => {
 			},
 		});
 
+		// Console log the full API response
+		console.log("Message:", response.message);
+
 		if (response.message && response.message.success) {
 			for (const action of response.message.actions || []) {
 				if (action.action_data?.length) {
@@ -448,6 +480,7 @@ const loadWorkflowData = async () => {
 					}
 				}
 			}
+
 			workflowData.value = response.message;
 			if (response.message.type === "no_action") {
 				// Set current state from workflowState prop or current_doc_state
@@ -460,6 +493,7 @@ const loadWorkflowData = async () => {
 			}
 		} else {
 			error.value = response.message?.message || "Failed to load workflow data";
+			console.error("API Error:", error.value);
 		}
 	} catch (err) {
 		error.value = err.message || "An error occurred while loading data";
@@ -677,7 +711,6 @@ defineExpose({
 <style scoped>
 .approval-timeline {
 	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-	padding: 16px;
 	background: #fff;
 	border-radius: 8px;
 }
@@ -688,6 +721,7 @@ defineExpose({
 	justify-content: space-between;
 	align-items: flex-start;
 	margin-bottom: 16px;
+	padding-top: 16px;
 	padding-bottom: 16px;
 	border-bottom: 1px solid #e2e8f0;
 	flex-wrap: wrap;
@@ -747,7 +781,7 @@ defineExpose({
 
 /* Default/Other States (Gray) */
 .status-default {
-	background: #f1f5f9;
+	background: #f5f5f5;
 	color: #475569;
 }
 
@@ -775,7 +809,7 @@ defineExpose({
 
 /* Default/Other States (Gray) */
 .state-default {
-	background: #f1f5f9;
+	background: #f5f5f5;
 	color: #475569;
 }
 
@@ -813,7 +847,7 @@ defineExpose({
 /* Default/Other States (Gray) */
 .node-default {
 	border-color: #94a3b8;
-	background: #f1f5f9;
+	background: #f5f5f5;
 }
 .node-default svg {
 	color: #64748b;
@@ -826,7 +860,7 @@ defineExpose({
 	gap: 0;
 	margin-bottom: 20px;
 	padding: 14px 12px;
-	background: #f1f5f9;
+	background: #f5f5f5;
 	border-radius: 8px;
 	overflow-x: auto;
 }
@@ -1058,7 +1092,7 @@ defineExpose({
 	display: inline-flex;
 	align-items: center;
 	padding: 2px 6px;
-	background: #f1f5f9;
+	background: #f5f5f5;
 	border-radius: 3px;
 	font-size: 9px;
 	font-weight: 500;
@@ -1132,7 +1166,7 @@ defineExpose({
 }
 
 .data-card {
-	background: #f1f5f9;
+	background: #f5f5f5;
 	border: 1px solid #e2e8f0;
 	border-radius: 6px;
 	padding: 12px;
@@ -1209,7 +1243,7 @@ defineExpose({
 }
 
 .show-more-btn:hover {
-	background: #f1f5f9;
+	background: #f5f5f5;
 	border-color: #94a3b8;
 }
 
