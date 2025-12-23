@@ -8,6 +8,7 @@ class SVAHeatmap {
 		this.blockHeight = opts.block_height || 280;
 
 		this.map = null;
+		this.frm = opts.frm || null;
 		this.stateLayer = null;
 		this.districtLayer = null;
 		this.mapId = "map-" + frappe.utils.get_random(8);
@@ -228,10 +229,17 @@ class SVAHeatmap {
 		}
 
 		frappe.call({
-			method: "frappe.desk.query_report.run",
+			method: "frappe_theme.dt_api.get_dt_list",
 			args: {
-				report_name: this.reportName,
-				filters: this.filters,
+				doctype: this.reportName,
+				doc: this.frm?.doc?.name,
+				ref_doctype: this.frm?.doc?.doctype,
+				filters: [],
+				fields: ["*"],
+				limit_page_length: 100000,
+				limit_start: 0,
+				_type: "Report",
+				return_columns: true,
 			},
 			callback: (r) => {
 				if (r.message) {
@@ -450,21 +458,25 @@ class SVAHeatmap {
 		if (!range || typeof range.min === "undefined") {
 			return this.lowNumberCode;
 		}
+		if (value == range.min) {
+			return this.lowNumberCode;
+		} else if (value == range.max) {
+			return this.highNumberCode;
+		} else {
+			const percentage = (value - range.min) / (range.max - range.min);
+			// Convert hex colors to RGB for interpolation
+			const lowRGB = this.hexToRGB(this.lowNumberCode);
+			const highRGB = this.hexToRGB(this.highNumberCode);
 
-		const percentage = (value - range.min) / (range.max - range.min);
+			// Interpolate between colors
+			const resultRGB = {
+				r: Math.round(lowRGB.r + (highRGB.r - lowRGB.r) * percentage),
+				g: Math.round(lowRGB.g + (highRGB.g - lowRGB.g) * percentage),
+				b: Math.round(lowRGB.b + (highRGB.b - lowRGB.b) * percentage),
+			};
 
-		// Convert hex colors to RGB for interpolation
-		const lowRGB = this.hexToRGB(this.lowNumberCode);
-		const highRGB = this.hexToRGB(this.highNumberCode);
-
-		// Interpolate between colors
-		const resultRGB = {
-			r: Math.round(lowRGB.r + (highRGB.r - lowRGB.r) * percentage),
-			g: Math.round(lowRGB.g + (highRGB.g - lowRGB.g) * percentage),
-			b: Math.round(lowRGB.b + (highRGB.b - lowRGB.b) * percentage),
-		};
-
-		return `rgb(${resultRGB.r}, ${resultRGB.g}, ${resultRGB.b})`;
+			return `rgb(${resultRGB.r}, ${resultRGB.g}, ${resultRGB.b})`;
+		}
 	}
 
 	// Helper function to convert hex to RGB

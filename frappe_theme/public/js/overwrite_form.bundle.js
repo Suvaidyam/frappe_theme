@@ -679,6 +679,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 				new SVAHeatmap({
 					wrapper: $(wrapper),
 					...(field?.sva_ft || {}),
+					frm,
 				});
 				break;
 		}
