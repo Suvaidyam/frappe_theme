@@ -158,8 +158,9 @@
 							</div>
 							<div class="field-grid">
 								<div
-									v-for="field in item.action_data"
+									v-for="(field, fieldIndex) in item.action_data"
 									:key="field.fieldname"
+									v-show="showAllFields[item.name] || fieldIndex < 2"
 									class="field-item"
 								>
 									<div class="field-label">
@@ -180,6 +181,40 @@
 										{{ field.value || "N/A" }}
 									</div>
 								</div>
+
+								<!-- Show More/Less Button - Inside the grid -->
+								<div
+									v-if="item.action_data.length > 2"
+									class="show-more-container"
+								>
+									<button
+										@click="toggleShowAllFields(item.name)"
+										class="show-more-btn"
+									>
+										<span v-if="!showAllFields[item.name]">
+											Show More ({{ item.action_data.length - 2 }} more)
+											<svg
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+											>
+												<polyline points="6 9 12 15 18 9" />
+											</svg>
+										</span>
+										<span v-else>
+											Show Less
+											<svg
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+											>
+												<polyline points="18 15 12 9 6 15" />
+											</svg>
+										</span>
+									</button>
+								</div>
 							</div>
 						</template>
 
@@ -188,36 +223,14 @@
 							<div
 								v-if="item.action_data && item.action_data.length > 0"
 								style="margin-top: 10px"
-							>
-								<div class="data-section-title">
-									<svg
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="2"
-									>
-										<path
-											d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
-										/>
-									</svg>
-									Comments
+							></div>
+							<div class="field-grid">
+								<div class="field-item comment-field">
+									<div class="field-label">Comments</div>
+									<div class="field-value">
+										{{ item.comment }}
+									</div>
 								</div>
-							</div>
-							<div v-else class="data-section-title">
-								<svg
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2"
-								>
-									<path
-										d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
-									/>
-								</svg>
-								Comments
-							</div>
-							<div :class="['comment-box', getCommentClass(item)]">
-								{{ item.comment }}
 							</div>
 						</template>
 
@@ -269,6 +282,12 @@ const loading = ref(false);
 const error = ref(null);
 const currentState = ref(null);
 const documentId = computed(() => props.referenceName || props.doctype);
+const showAllFields = ref({});
+
+// Toggle show all fields for a specific item
+const toggleShowAllFields = (itemName) => {
+	showAllFields.value[itemName] = !showAllFields.value[itemName];
+};
 
 // Timeline Items - Show minimal placeholder if no actions
 const timelineItems = computed(() => {
@@ -807,7 +826,7 @@ defineExpose({
 	gap: 0;
 	margin-bottom: 20px;
 	padding: 14px 12px;
-	background: #f8fafc;
+	background: #f1f5f9;
 	border-radius: 8px;
 	overflow-x: auto;
 }
@@ -1113,7 +1132,7 @@ defineExpose({
 }
 
 .data-card {
-	background: #f8fafc;
+	background: #f1f5f9;
 	border: 1px solid #e2e8f0;
 	border-radius: 6px;
 	padding: 12px;
@@ -1137,7 +1156,7 @@ defineExpose({
 
 .field-grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	grid-template-columns: repeat(2, 1fr);
 	gap: 10px;
 }
 
@@ -1146,6 +1165,10 @@ defineExpose({
 	border: 1px solid #e2e8f0;
 	border-radius: 4px;
 	padding: 8px 10px;
+}
+
+.field-item.comment-field {
+	grid-column: 1 / -1;
 }
 
 .field-label {
@@ -1164,31 +1187,35 @@ defineExpose({
 	word-break: break-word;
 }
 
-.comment-box {
-	background: #fff;
-	border-left: 3px solid #cbd5e1;
-	border-radius: 4px;
-	padding: 10px 12px;
-	font-size: 11px;
-	line-height: 1.5;
-	color: #475569;
+/* Show More Button */
+.show-more-container {
+	margin-top: 0;
+	display: inline-block;
 }
 
-.comment-info {
-	border-left-color: #3b82f6;
-	background: #eff6ff;
+.show-more-btn {
+	background: transparent;
+	border: 1px solid #cbd5e1;
+	border-radius: 4px;
+	padding: 6px 12px;
+	font-size: 11px;
+	font-weight: 500;
+	color: #475569;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
 }
-.comment-approved {
-	border-left-color: #10b981;
-	background: #ecfdf5;
+
+.show-more-btn:hover {
+	background: #f1f5f9;
+	border-color: #94a3b8;
 }
-.comment-rejected {
-	border-left-color: #ef4444;
-	background: #fef2f2;
-}
-.comment-sent-back {
-	border-left-color: #f97316;
-	background: #fff7ed;
+
+.show-more-btn svg {
+	width: 14px;
+	height: 14px;
 }
 
 .no-data {
