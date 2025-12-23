@@ -10,9 +10,89 @@
   "fieldtype",
   "column_break_knvb",
   "section_break_hevv",
-  "html_block",
   "column_break_yoee",
-  "column_break_wmoh"
+  "property_type",
+  "number_card",
+  "doc_field",
+  "chart",
+  "html_block",
+  "show_legend",
+  "card_sequence",
+  "column_break_vafi",
+  "label",
+  "info",
+  "column_break_fwyn",
+  "card_styling_section",
+  "card_icon_column",
+  "icon",
+  "icon_color",
+  "column_break_heye",
+  "background_color",
+  "text_color",
+  "value_color",
+  "border_color",
+  "card_hover_effect_column",
+  "card_hover_background_color",
+  "card_hover_text_color",
+  "card_hover_value_color",
+  "hover_border_color",
+  "section_break_tgqw",
+  "connection_type",
+  "column_break_qdop",
+  "hide_table",
+  "section_break_qivk",
+  "template",
+  "link_report",
+  "report_ref_dt",
+  "referenced_link_doctype",
+  "dt_reference_field",
+  "local_field",
+  "link_doctype",
+  "crud_permissions",
+  "setup_crud_permissions",
+  "list_filters",
+  "setup_list_filters",
+  "title",
+  "disable_edit_depends_on",
+  "disable_delete_depends_on",
+  "column_break_gnrk",
+  "endpoint",
+  "report_type",
+  "dn_reference_field",
+  "foreign_field",
+  "link_fieldname",
+  "listview_settings",
+  "setup_list_settings",
+  "action_list",
+  "setup_action_list",
+  "action_label",
+  "disable_add_depends_on",
+  "disable_workflow_depends_on",
+  "section_break_gyve",
+  "column_break_eepi",
+  "unfiltered",
+  "add_row_button_label",
+  "extend_condition",
+  "extended_condition",
+  "allow_export",
+  "allow_import",
+  "column_break_opgt",
+  "keep_workflow_enabled_form_submission",
+  "redirect_to_main_form",
+  "full_screen_dialog",
+  "disable_workflow",
+  "section_break_okbe",
+  "child_confs",
+  "heat_map_section",
+  "heatmap_report",
+  "default_view",
+  "block_height",
+  "min_data_color",
+  "max_data_color",
+  "column_break_xtcd",
+  "target_fields",
+  "setup_target_fields",
+  "primary_target"
  ],
  "fields": [
   {
@@ -41,9 +121,11 @@
    "fieldtype": "Section Break"
   },
   {
+   "depends_on": "eval:doc.property_type=='Custom HTML Block'",
    "fieldname": "html_block",
    "fieldtype": "Link",
    "label": "HTML Block",
+   "mandatory_depends_on": "eval:doc.property_type=='Custom HTML Block'",
    "options": "Custom HTML Block"
   },
   {
@@ -51,15 +133,541 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "column_break_wmoh",
+   "fieldname": "property_type",
+   "fieldtype": "Select",
+   "label": "Property Type",
+   "options": "DocType (Direct)\nDocType (Indirect)\nDocType (Referenced)\nDocType (Unfiltered)\nReport\nIs Custom Design\nHeatmap (India Map)\nDocField\nNumber Card\nDashboard Chart\nCustom HTML Block"
+  },
+  {
+   "depends_on": "eval:doc.property_type=='Dashboard Chart'",
+   "fieldname": "chart",
+   "fieldtype": "Link",
+   "label": "Chart",
+   "mandatory_depends_on": "eval:doc.property_type=='Dashboard Chart'",
+   "options": "Dashboard Chart"
+  },
+  {
+   "depends_on": "eval:doc.property_type=='Number Card'",
+   "fieldname": "number_card",
+   "fieldtype": "Link",
+   "label": "Number Card",
+   "mandatory_depends_on": "eval:doc.property_type=='Number Card'",
+   "options": "Number Card"
+  },
+  {
+   "fieldname": "label",
+   "fieldtype": "Data",
+   "label": "Label"
+  },
+  {
+   "depends_on": "eval:doc.property_type=='DocField'",
+   "fieldname": "doc_field",
+   "fieldtype": "Link",
+   "label": "Doc Field",
+   "mandatory_depends_on": "eval:doc.property_type=='DocField'",
+   "options": "DocField"
+  },
+  {
+   "fieldname": "info",
+   "fieldtype": "Small Text",
+   "label": "Info"
+  },
+  {
+   "depends_on": "eval:doc.property_type=='Number Card'",
+   "fieldname": "card_styling_section",
+   "fieldtype": "Section Break",
+   "label": "Card Styling"
+  },
+  {
+   "fieldname": "icon",
+   "fieldtype": "Icon",
+   "label": "Icon"
+  },
+  {
+   "fieldname": "icon_color",
+   "fieldtype": "Color",
+   "label": "Color"
+  },
+  {
+   "fieldname": "column_break_heye",
+   "fieldtype": "Column Break",
+   "label": "Style"
+  },
+  {
+   "fieldname": "card_icon_column",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "card_hover_effect_column",
+   "fieldtype": "Column Break",
+   "label": "Hover Effects"
+  },
+  {
+   "fieldname": "card_hover_background_color",
+   "fieldtype": "Color",
+   "label": "Background Color"
+  },
+  {
+   "fieldname": "card_hover_text_color",
+   "fieldtype": "Color",
+   "label": "Label Color"
+  },
+  {
+   "fieldname": "card_hover_value_color",
+   "fieldtype": "Color",
+   "label": "Value Color"
+  },
+  {
+   "fieldname": "card_sequence",
+   "fieldtype": "Int",
+   "label": "Sequence"
+  },
+  {
+   "fieldname": "background_color",
+   "fieldtype": "Color",
+   "label": "Background Color"
+  },
+  {
+   "fieldname": "text_color",
+   "fieldtype": "Color",
+   "label": "Text Color"
+  },
+  {
+   "fieldname": "value_color",
+   "fieldtype": "Color",
+   "label": "Value Color"
+  },
+  {
+   "fieldname": "border_color",
+   "fieldtype": "Color",
+   "label": "Border Color"
+  },
+  {
+   "fieldname": "hover_border_color",
+   "fieldtype": "Color",
+   "label": "Border Color"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.property_type=='Dashboard Chart'",
+   "fieldname": "show_legend",
+   "fieldtype": "Check",
+   "label": "Show Legend"
+  },
+  {
+   "depends_on": "eval:doc.property_type != \"Is Custom Design\"",
+   "fieldname": "connection_type",
+   "fieldtype": "Select",
+   "label": "Connection Type",
+   "options": "Direct\nIndirect\nReferenced\nUnfiltered\nReport",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_vafi",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_fwyn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:[\"DocType (Direct)\",\"DocType (Indirect)\",\"DocType (Unfiltered)\",\"DocType (Referenced)\",\"Report\", \"Is Custom Design\"].includes(doc.property_type)",
+   "fieldname": "section_break_qivk",
+   "fieldtype": "Section Break"
+  },
+  {
+   "depends_on": "eval:doc.property_type != \"Is Custom Design\"",
+   "fieldname": "setup_list_settings",
+   "fieldtype": "Button",
+   "label": "Setup Listview Setting"
+  },
+  {
+   "default": "[\"read\"]",
+   "depends_on": "eval:doc.property_type != \"Is Custom Design\"",
+   "fieldname": "crud_permissions",
+   "fieldtype": "JSON",
+   "label": "Crud Permissions",
+   "max_height": "4rem",
+   "options": "JSON",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.property_type != \"Is Custom Design\"",
+   "fieldname": "setup_crud_permissions",
+   "fieldtype": "Button",
+   "label": "Setup Crud Permissions"
+  },
+  {
+   "depends_on": "eval:[\"Direct\",\"Unfiltered\",\"Indirect\"].includes(doc.connection_type)",
+   "fieldname": "link_doctype",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Link DocType",
+   "mandatory_depends_on": "eval:[\"Direct\",\"Unfiltered\",\"Indirect\"].includes(doc.connection_type)",
+   "options": "DocType"
+  },
+  {
+   "depends_on": "eval:doc.connection_type ==\"Direct\"",
+   "fieldname": "link_fieldname",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Link Fieldname",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.connection_type == \"Referenced\"",
+   "fieldname": "dt_reference_field",
+   "fieldtype": "Data",
+   "label": "Dt Reference Field",
+   "mandatory_depends_on": "eval:doc.connection_type == \"Referenced\"",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.connection_type == \"Referenced\"",
+   "fieldname": "dn_reference_field",
+   "fieldtype": "Data",
+   "label": "Dn Reference Field",
+   "mandatory_depends_on": "eval:doc.connection_type == \"Referenced\"",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.connection_type == \"Referenced\"",
+   "fieldname": "referenced_link_doctype",
+   "fieldtype": "Autocomplete",
+   "in_list_view": 1,
+   "label": "Referenced Link DocType",
+   "mandatory_depends_on": "eval:doc.connection_type == \"Referenced\""
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Is Custom Design\"",
+   "fieldname": "template",
+   "fieldtype": "Select",
+   "label": "Template",
+   "mandatory_depends_on": "eval:doc.property_type == \"Is Custom Design\"",
+   "options": "Tasks\nEmail\nTimeline\nGallery\nNotes\nLinked Users\nApproval Request\nHTML View From API"
+  },
+  {
+   "depends_on": "eval:doc.property_type != \"Is Custom Design\"",
+   "fieldname": "listview_settings",
+   "fieldtype": "Code",
+   "label": "Listview Settings",
+   "max_height": "10rem",
+   "read_only": 1
+  },
+  {
+   "default": "[]",
+   "depends_on": "eval:doc.extend_condition == true",
+   "description": "Only Double Quote (\") is allowed in the conditions,\ne.g. [[\"dt\",\"fieldname\",\"operator\",\"value\"],[\"dt\",\"fieldname\",\"operator\",\"value\"]]",
+   "fieldname": "extended_condition",
+   "fieldtype": "Code",
+   "label": "Extended Condition",
+   "max_height": "6rem"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:![\"Report\", \"Is Custom Design\"].includes(doc.property_type)",
+   "fieldname": "extend_condition",
+   "fieldtype": "Check",
+   "label": "Extend Condition"
+  },
+  {
+   "default": "Approval",
+   "depends_on": "eval:doc.connection_type && ![\"Report\"].includes(doc.connection_type)",
+   "fieldname": "action_label",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Workflow Action Label"
+  },
+  {
+   "depends_on": "eval:doc.connection_type",
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "label": "Title"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.connection_type && ![\"Report\"].includes(doc.connection_type)",
+   "fieldname": "redirect_to_main_form",
+   "fieldtype": "Check",
+   "label": "Redirect to main form on any Action"
+  },
+  {
+   "depends_on": "eval:doc.connection_type == \"Indirect\"",
+   "fieldname": "local_field",
+   "fieldtype": "Select",
+   "label": "Local Field",
+   "mandatory_depends_on": "eval:doc.connection_type == \"Indirect\""
+  },
+  {
+   "depends_on": "eval:doc.connection_type == \"Indirect\"",
+   "fieldname": "foreign_field",
+   "fieldtype": "Select",
+   "label": "Foreign Field",
+   "mandatory_depends_on": "eval:doc.connection_type == \"Indirect\""
+  },
+  {
+   "depends_on": "eval:doc.connection_type && ![\"Report\"].includes(doc.connection_type)",
+   "fieldname": "disable_edit_depends_on",
+   "fieldtype": "Code",
+   "label": "Disable Edit Depends On (JS)",
+   "max_height": "3rem",
+   "options": "JS"
+  },
+  {
+   "depends_on": "eval:doc.connection_type && ![\"Report\"].includes(doc.connection_type)",
+   "fieldname": "disable_delete_depends_on",
+   "fieldtype": "Code",
+   "label": "Disable Delete Depends On (JS)",
+   "max_height": "3rem",
+   "options": "JS"
+  },
+  {
+   "depends_on": "eval:[\"Report\"].includes(doc.connection_type)",
+   "fieldname": "link_report",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Link Report",
+   "mandatory_depends_on": "eval:[\"Report\"].includes(doc.connection_type)",
+   "options": "Report"
+  },
+  {
+   "fieldname": "column_break_opgt",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:[\"Report\"].includes(doc.connection_type)",
+   "fetch_from": "link_report.report_type",
+   "fieldname": "report_type",
+   "fieldtype": "Data",
+   "label": "Report Type",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:[\"Report\"].includes(doc.connection_type)",
+   "fetch_from": "link_report.ref_doctype",
+   "fieldname": "report_ref_dt",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Linked Report's Doctype",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:[\"Report\"].includes(doc.connection_type)",
+   "fieldname": "unfiltered",
+   "fieldtype": "Check",
+   "label": "Unfiltered"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.connection_type && ![\"Report\"].includes(doc.connection_type)",
+   "fieldname": "keep_workflow_enabled_form_submission",
+   "fieldtype": "Check",
+   "label": "Keep workflow enabled even after main form submission"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.connection_type && ![\"Report\"].includes(doc.connection_type)",
+   "fieldname": "full_screen_dialog",
+   "fieldtype": "Check",
+   "label": "Make Dialogs Fullscreen"
+  },
+  {
+   "depends_on": "eval:doc.connection_type",
+   "fieldname": "action_list",
+   "fieldtype": "Code",
+   "label": "Action List",
+   "max_height": "5rem",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.connection_type",
+   "fieldname": "setup_action_list",
+   "fieldtype": "Button",
+   "label": "Setup Action List"
+  },
+  {
+   "depends_on": "eval:[\"DocType (Direct)\",\"DocType (Indirect)\",\"DocType (Unfiltered)\",\"DocType (Referenced)\",\"Report\", \"Is Custom Design\"].includes(doc.property_type)",
+   "fieldname": "section_break_gyve",
+   "fieldtype": "Section Break",
+   "hide_border": 1
+  },
+  {
+   "fieldname": "column_break_eepi",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:![\"Report\", \"Is Custom Design\"].includes(doc.property_type)",
+   "fieldname": "allow_export",
+   "fieldtype": "Check",
+   "label": "Allow Export"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:![\"Report\", \"Is Custom Design\"].includes(doc.property_type)",
+   "fieldname": "allow_import",
+   "fieldtype": "Check",
+   "label": "Allow Import"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.connection_type && ![\"Report\"].includes(doc.connection_type)",
+   "fieldname": "disable_workflow",
+   "fieldtype": "Check",
+   "label": "Hide workflow (Even If exists)"
+  },
+  {
+   "default": "0",
+   "fieldname": "hide_table",
+   "fieldtype": "Check",
+   "label": "Hide Table"
+  },
+  {
+   "default": "Add row",
+   "depends_on": "eval:doc.connection_type && ![\"Report\"].includes(doc.connection_type)",
+   "fieldname": "add_row_button_label",
+   "fieldtype": "Data",
+   "label": "\"Add row\" Button Label"
+  },
+  {
+   "depends_on": "eval:doc.connection_type",
+   "fieldname": "setup_list_filters",
+   "fieldtype": "Button",
+   "label": "Setup List Filters"
+  },
+  {
+   "depends_on": "eval:doc.connection_type",
+   "fieldname": "list_filters",
+   "fieldtype": "Code",
+   "label": "List Filters",
+   "max_height": "5rem",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:!doc.connection_type && [\"HTML View From API\"].includes(doc.template)",
+   "description": "Ex:- module.api.test <br>\nAPI must return HTML string",
+   "fieldname": "endpoint",
+   "fieldtype": "Data",
+   "label": "Endpoint",
+   "mandatory_depends_on": "eval:[\"HTML View From API\"].includes(doc.template)"
+  },
+  {
+   "depends_on": "eval:doc.connection_type && ![\"Report\"].includes(doc.connection_type)",
+   "fieldname": "disable_add_depends_on",
+   "fieldtype": "Code",
+   "label": "Disable Add Depends On (JS)",
+   "max_height": "3rem",
+   "options": "JS"
+  },
+  {
+   "depends_on": "eval:doc.connection_type && ![\"Report\"].includes(doc.connection_type)",
+   "fieldname": "disable_workflow_depends_on",
+   "fieldtype": "Code",
+   "label": "Disable Workflow Depends On (JS)",
+   "max_height": "3rem",
+   "options": "JS"
+  },
+  {
+   "depends_on": "eval:[\"DocType (Direct)\",\"DocType (Indirect)\",\"DocType (Unfiltered)\",\"DocType (Referenced)\",\"Report\", \"Is Custom Design\"].includes(doc.property_type)",
+   "fieldname": "section_break_tgqw",
+   "fieldtype": "Section Break",
+   "label": "Datatable configuration"
+  },
+  {
+   "fieldname": "column_break_qdop",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_gnrk",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.connection_type && ![\"Report\"].includes(doc.connection_type)",
+   "fieldname": "section_break_okbe",
+   "fieldtype": "Section Break",
+   "hide_border": 1
+  },
+  {
+   "depends_on": "eval:doc.connection_type && ![\"Report\"].includes(doc.connection_type)",
+   "fieldname": "child_confs",
+   "fieldtype": "Table",
+   "label": "Child Confs",
+   "options": "SVADT Connections"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
+   "fieldname": "heat_map_section",
+   "fieldtype": "Section Break",
+   "label": "Heat Map Settings"
+  },
+  {
+   "default": "State",
+   "depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
+   "fieldname": "default_view",
+   "fieldtype": "Select",
+   "label": "Default View",
+   "options": "State\nDistrict",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
+   "fieldname": "target_fields",
+   "fieldtype": "Code",
+   "label": "Target Fields",
+   "max_height": "5rem",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
+   "fieldname": "setup_target_fields",
+   "fieldtype": "Button",
+   "label": "Setup Target Fields"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
+   "fieldname": "primary_target",
+   "fieldtype": "Select",
+   "label": "Primary Target",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
+   "fieldname": "block_height",
+   "fieldtype": "Int",
+   "label": "Block Height (px)"
+  },
+  {
+   "fieldname": "column_break_xtcd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
+   "fieldname": "min_data_color",
+   "fieldtype": "Color",
+   "label": "Min Data Color (Based on primary Target)"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
+   "fieldname": "max_data_color",
+   "fieldtype": "Color",
+   "label": "Max Data Color (Based on primary Target)"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
+   "fieldname": "heatmap_report",
+   "fieldtype": "Link",
+   "label": "Report (With State or District Column)",
+   "options": "Report",
+   "reqd": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_virtual": 1,
  "links": [],
- "modified": "2025-11-18 00:46:35.804293",
+ "modified": "2025-12-23 12:47:39.467433",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Custom Property Setter",

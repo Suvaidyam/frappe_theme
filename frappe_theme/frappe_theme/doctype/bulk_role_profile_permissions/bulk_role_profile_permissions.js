@@ -3,122 +3,140 @@
 
 frappe.ui.form.on("Bulk Role Profile Permissions", {
 	refresh(frm) {
-		// Hide toggle button
-		const toggleBtn = document.querySelector(".btn.btn-default.icon-btn");
-		if (toggleBtn) {
-			toggleBtn.style.display = "none";
-		}
-
 		frm.disable_save();
+		frm.clear_custom_buttons();
 
-		// Hide custom actions
-		frappe.after_ajax(() => {
-			let parent = frm.page.wrapper.querySelector(".custom-actions");
-			if (parent && parent.children.length > 2) {
-				parent.children[1].style.display = "none";
-				parent.children[2].style.display = "none";
-			}
-		});
-
-		// Bulk Actions
-		frm.add_custom_button(
-			__("Enable Read"),
-			() => set_bulk_perms(frm, { read: 1 }),
-			__("Bulk Actions")
-		);
-		frm.add_custom_button(
-			__("Enable Write"),
-			() => set_bulk_perms(frm, { write: 1 }),
-			__("Bulk Actions")
-		);
-		frm.add_custom_button(
-			__("Enable Read & Write"),
-			() => set_bulk_perms(frm, { read: 1, write: 1 }),
-			__("Bulk Actions")
-		);
-		frm.add_custom_button(
-			__("Select All"),
-			() => toggle_all_perms(frm, true),
-			__("Bulk Actions")
-		);
-		frm.add_custom_button(
-			__("Deselect All"),
-			() => toggle_all_perms(frm, false),
-			__("Bulk Actions")
-		);
-
-		// Quick Presets
-		frm.add_custom_button(
-			__("Read Only"),
-			() => apply_preset(frm, "read_only"),
-			__("Quick Presets")
-		);
-		frm.add_custom_button(
-			__("Full Access"),
-			() => apply_preset(frm, "full_access"),
-			__("Quick Presets")
-		);
-		frm.add_custom_button(
-			__("Report Only"),
-			() => apply_preset(frm, "report_only"),
-			__("Quick Presets")
-		);
-		frm.add_custom_button(
-			__("Data Entry"),
-			() => apply_preset(frm, "data_entry"),
-			__("Quick Presets")
-		);
-
-		// Main action button - Apply Permissions
-		if (!frm.custom_btn) {
-			frm.custom_btn = frm.add_custom_button(__("Apply Permissions"), function () {
-				if (
-					!frm.doc.doctype_name ||
-					!frm.doc.role_profiles ||
-					frm.doc.role_profiles.length === 0
-				) {
-					frappe.throw(__("Select DocType and load Role Profiles first."));
-				}
-
-				frappe.confirm(
-					__("Are you sure you want to apply these permissions to all selected roles?"),
-					() => {
-						frappe.call({
-							method: "frappe_theme.frappe_theme.doctype.bulk_role_profile_permissions.bulk_role_profile_permissions.apply_bulk_permissions",
-							args: {
-								doc: frm.doc,
-							},
-							callback: function (r) {
-								if (r.message) {
-									frappe.show_alert({
-										message: __(
-											`Permissions Applied Successfully! Created: ${r.message.created}, Updated: ${r.message.updated}`
-										),
-										indicator: "green",
-									});
-								}
-							},
-							freeze: true,
-							freeze_message: __("Applying Permissions..."),
-						});
-					}
-				);
-			});
-			frm.custom_btn.addClass("btn-primary");
+		if (
+			frm.doc.doctype_name &&
+			frm.doc.doctype_name !== "Undefined" &&
+			frm.doc.doctype_name !== "Null"
+		) {
+			bulkActionForEnable(frm);
+			bulkActionForDisable(frm);
+			bulkActionForQuickPresets(frm);
+			add_apply_button(frm);
 		}
 	},
 
-	doctype_name: function (frm) {
-		// Clear table when doctype changes
+	doctype_name(frm) {
 		frm.clear_table("role_profiles");
 		frm.refresh_field("role_profiles");
 
-		// Auto-load role profiles if doctype is selected
 		if (frm.doc.doctype_name) {
 			load_role_profiles(frm);
+			frm.refresh(); // 🔥 important
 		}
 	},
 });
+
+// Bulk Actions fo Enable
+function bulkActionForEnable(frm) {
+	frm.add_custom_button(
+		__("Enable Read"),
+		() => set_bulk_perms(frm, { read: 1 }),
+		__("Bulk Actions for Enable")
+	);
+	frm.add_custom_button(
+		__("Enable Write"),
+		() => set_bulk_perms(frm, { write: 1 }),
+		__("Bulk Actions for Enable")
+	);
+	frm.add_custom_button(
+		__("Enable Read & Write"),
+		() => set_bulk_perms(frm, { read: 1, write: 1 }),
+		__("Bulk Actions for Enable")
+	);
+	frm.add_custom_button(
+		__("Select All"),
+		() => toggle_all_perms(frm, true),
+		__("Bulk Actions for Enable")
+	);
+}
+
+// Bulk Actions fo Disabe
+function bulkActionForDisable(frm) {
+	frm.add_custom_button(
+		__("Disabe Read"),
+		() => set_bulk_perms(frm, { read: 0 }),
+		__("Bulk Actions for Disabe")
+	);
+	frm.add_custom_button(
+		__("Disabe Write"),
+		() => set_bulk_perms(frm, { write: 0 }),
+		__("Bulk Actions for Disabe")
+	);
+	frm.add_custom_button(
+		__("Disabe Read & Write"),
+		() => set_bulk_perms(frm, { read: 0, write: 0 }),
+		__("Bulk Actions for Disabe")
+	);
+	frm.add_custom_button(
+		__("Deselect All"),
+		() => toggle_all_perms(frm, false),
+		__("Bulk Actions for Disabe")
+	);
+}
+
+// Quick Presets
+function bulkActionForQuickPresets(frm) {
+	frm.add_custom_button(
+		__("Read Only"),
+		() => apply_preset(frm, "read_only"),
+		__("Quick Presets")
+	);
+	frm.add_custom_button(
+		__("Full Access"),
+		() => apply_preset(frm, "full_access"),
+		__("Quick Presets")
+	);
+	frm.add_custom_button(
+		__("Report Only"),
+		() => apply_preset(frm, "report_only"),
+		__("Quick Presets")
+	);
+	frm.add_custom_button(
+		__("Data Entry"),
+		() => apply_preset(frm, "data_entry"),
+		__("Quick Presets")
+	);
+}
+
+function add_apply_button(frm) {
+	if (frm.custom_btn) return;
+
+	frm.custom_btn = frm.add_custom_button(__("Apply Permissions"), () => {
+		if (!frm.doc.doctype_name || !frm.doc.role_profiles?.length) {
+			frappe.throw(__("Select DocType and load Role Profiles first."));
+		}
+
+		frappe.confirm(__("Are you sure you want to apply these permissions?"), () => {
+			frappe.call({
+				method: "frappe_theme.frappe_theme.doctype.bulk_role_profile_permissions.bulk_role_profile_permissions.apply_bulk_permissions",
+				args: { doc: frm.doc },
+				freeze: true,
+				freeze_message: __("Applying Permissions..."),
+				callback(r) {
+					if (r.message) {
+						frappe.show_alert({
+							message: __(
+								`Permissions Applied! Created: ${r.message.created}, Updated: ${r.message.updated}`
+							),
+							indicator: "green",
+						});
+					}
+				},
+			});
+		});
+	});
+
+	// frm.custom_btn.addClass("btn-primary");
+	// frm.custom_btn.addClass("btn-success");
+	frm.custom_btn.css({
+		backgroundColor: "#16a34a",
+		color: "#ffffff",
+		borderColor: "#16a34a",
+	});
+}
 
 function load_role_profiles(frm) {
 	frappe.call({

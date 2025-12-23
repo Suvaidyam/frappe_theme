@@ -35,11 +35,14 @@ class SVADashboardManager {
 		this.filters = {};
 
 		// Create container instances with memoization
-		this.containers = {
-			cards: this.createContainer("sva-dashboard-cards"),
-			charts: this.createContainer("sva-dashboard-charts"),
-		};
+		this.containers = {};
+		if (this.numberCards.length) {
+			this.containers["cards"] = this.createContainer("sva-dashboard-cards");
+		}
 
+		if (this.charts.length) {
+			this.containers["charts"] = this.createContainer("sva-dashboard-charts");
+		}
 		// Bind methods to preserve context
 		this.renderDashboard = this.renderDashboard.bind(this);
 
@@ -104,7 +107,6 @@ class SVADashboardManager {
                 </div>
                 `;
 			}
-			// Initialize charts
 			if (this.charts?.length && !this.frm.is_new()) {
 				let chartInstance = new SvaChart({
 					wrapper: this.containers.charts,
@@ -140,130 +142,16 @@ class SVADashboardManager {
 		}
 	}
 
-	// async initializeNumberCards() {
-
-	//     const cardInstance = new SVANumberCard({
-	//         wrapper: this.containers.cards,
-	//         frm: this.frm,
-	//         numberCards: this.numberCards,
-	//         filters: this.filters,
-	//         signal: this.signal
-	//     });
-	//     if(cardInstance.numberCards.length){
-	//         if(!this.frm?.['sva_cards']){
-	//             this.frm['sva_cards'] = {};
-	//         }
-	//         if(!this.frm?.['sva_cards']?.[cardInstance.numberCards[0].number_card]){
-	//             this.frm['sva_cards'][cardInstance.numberCards[0].number_card] = cardInstance;
-	//         }
-	//     }
-	//     this.componentInstances.set('cards', cardInstance);
-	// }
-
-	// async initializeCharts() {
-	//     const chartInstance = new SVADashboardChart({
-	//         wrapper: this.containers.charts,
-	//         frm: this.frm,
-	//         charts: this.charts,
-	//         filters: this.filters,
-	//         signal: this.signal
-	//     });
-	//     if(!this.frm?.['sva_charts']){
-	//         this.frm['sva_charts'] = {};
-	//     }
-	//     if(chartInstance.charts.length){
-	//         if(!this.frm?.['sva_charts']?.[chartInstance.charts[0].dashboard_chart]){
-	//             this.frm['sva_charts'][chartInstance.charts[0].dashboard_chart] = chartInstance;
-	//         }
-	//     }
-	//     this.componentInstances.set('charts', chartInstance);
-
-	// }
-
-	// async makeRequest(requestFn) {
-	//     const controller = new AbortController();
-	//     const signal = this.signal || controller.signal;
-
-	//     try {
-	//         this.activeRequests.add(controller);
-
-	//         if (signal.aborted) {
-	//             throw new DOMException('Request aborted', 'AbortError');
-	//         }
-
-	//         return await Promise.race([
-	//             requestFn(),
-	//             new Promise((_, reject) => {
-	//                 signal.addEventListener('abort', () =>
-	//                     reject(new DOMException('Request aborted', 'AbortError'))
-	//                 );
-	//             })
-	//         ]);
-	//     } finally {
-	//         this.activeRequests.delete(controller);
-	//     }
-	// }
-
-	// async getFilterFields() {
-	//     console.log("Getting filter fields");
-
-	//     if (this.isDestroyed) return [];
-
-	//     try {
-	//         const meta = frappe.get_meta(this.frm.doctype);
-	//         const fields = this.getStandardDateFields();
-	//         const allFields = new Set();
-
-	//         await Promise.all([
-	//             this.processChartFields(allFields),
-	//             this.processCardFields(allFields)
-	//         ]);
-
-	//         this.addMetaFields(meta, allFields, fields);
-	//         return fields;
-	//     } catch (error) {
-	//         this.handleError(error, 'Error getting filter fields');
-	//         return [];
-	//     }
-	// }
-
-	// async processChartFields(allFields) {
-	//     const chartPromises = this.charts
-	//         .filter(chart => chart.dashboard_chart && !this.isDestroyed)
-	//         .map(chart => this.sva_db.get_doc('Dashboard Chart', chart.dashboard_chart)
-	//             .then(chartDoc => this.processFiltersJson(chartDoc.filters_json, allFields))
-	//             .catch(error => this.handleError(error, 'Chart field processing error'))
-	//         );
-
-	//     await Promise.all(chartPromises);
-	// }
-
-	// async processCardFields(allFields) {
-	//     const cardPromises = this.numberCards
-	//         .filter(card => card.number_card && !this.isDestroyed)
-	//         .map(card => this.sva_db.get_doc('Number Card', card.number_card)
-	//             .then(cardDoc => this.processFiltersJson(cardDoc.filters_json, allFields))
-	//             .catch(error => this.handleError(error, 'Card field processing error'))
-	//         );
-
-	//     await Promise.all(cardPromises);
-	// }
-
-	// processFiltersJson(filtersJson, allFields) {
-	//     try {
-	//         const filters = JSON.parse(filtersJson);
-	//         Object.keys(filters).forEach(fieldname => allFields.add(fieldname));
-	//     } catch (error) {
-	//         this.handleError(error, 'Filter JSON parsing error');
-	//     }
-	// }
-
 	async make() {
 		if (this.isDestroyed) return;
 
 		this.wrapper.innerHTML = "";
-		this.wrapper.appendChild(this.containers.cards);
-		this.wrapper.appendChild(this.containers.charts);
+		if (this.containers.cards) {
+			this.wrapper.appendChild(this.containers.cards);
+		}
+		if (this.containers.charts) {
+			this.wrapper.appendChild(this.containers.charts);
+		}
 		await this.initializeStyles();
 	}
 
