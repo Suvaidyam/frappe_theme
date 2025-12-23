@@ -141,7 +141,11 @@
 				<div class="timeline-right">
 					<div class="data-card">
 						<!-- Dialog Field Values -->
-						<template v-if="item.action_data && item.action_data.length > 0">
+						<template
+							v-if="
+								(item.action_data && item.action_data.length > 0) || item.comment
+							"
+						>
 							<div class="data-section-title">
 								<svg
 									viewBox="0 0 24 24"
@@ -154,64 +158,88 @@
 									/>
 									<polyline points="14 2 14 8 20 8" />
 								</svg>
-								Dialog Field Values
+								Field Values
 							</div>
 							<div class="field-grid">
+								<!-- Comment Section - Show at top if present -->
+								<div v-if="item.comment" class="field-item comment-field">
+									<div class="field-label">Comments</div>
+									<div class="field-value">
+										{{ item.comment }}
+									</div>
+								</div>
+
+								<!-- Field Values -->
 								<div
-									v-for="field in item.action_data"
+									v-for="(field, fieldIndex) in item.action_data"
 									:key="field.fieldname"
+									v-show="
+										showAllFields[item.name] ||
+										(!item.comment && fieldIndex < 2)
+									"
 									class="field-item"
 								>
 									<div class="field-label">
-										{{ formatFieldLabel(field.fieldname) }}
+										{{ field.label || formatFieldLabel(field.fieldname) }}
 									</div>
-									<div class="field-value">{{ field.value || "N/A" }}</div>
-								</div>
-							</div>
-						</template>
-
-						<!-- Comment Section -->
-						<template v-if="item.comment">
-							<div
-								v-if="item.action_data && item.action_data.length > 0"
-								style="margin-top: 10px"
-							>
-								<div class="data-section-title">
-									<svg
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="2"
+									<div
+										v-if="
+											field.fieldtype === 'Attach' ||
+											field.fieldtype === 'Attach Image'
+										"
+										class="field-value"
 									>
-										<path
-											d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
-										/>
-									</svg>
-									Comments
+										<a :href="field.value" target="_blank">{{
+											field.value || "N/A"
+										}}</a>
+									</div>
+									<div v-else class="field-value">
+										{{ field.value || "N/A" }}
+									</div>
 								</div>
-							</div>
-							<div v-else class="data-section-title">
-								<svg
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2"
+
+								<!-- Show More/Less Button - Inside the grid -->
+								<div
+									v-if="getHiddenFieldsCount(item) > 0"
+									class="show-more-container"
 								>
-									<path
-										d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
-									/>
-								</svg>
-								Comments
-							</div>
-							<div :class="['comment-box', getCommentClass(item)]">
-								{{ item.comment }}
+									<button
+										@click="toggleShowAllFields(item.name)"
+										class="show-more-btn"
+									>
+										<span v-if="!showAllFields[item.name]">
+											Show More ({{ getHiddenFieldsCount(item) }} more)
+											<svg
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+											>
+												<polyline points="6 9 12 15 18 9" />
+											</svg>
+										</span>
+										<span v-else>
+											Show Less
+											<svg
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+											>
+												<polyline points="18 15 12 9 6 15" />
+											</svg>
+										</span>
+									</button>
+								</div>
 							</div>
 						</template>
 
 						<!-- No Data Message -->
 						<div v-if="!item.action_data?.length && !item.comment" class="no-data">
 							{{
-								index === 0 && !item.completed
+								index === 0 &&
+								!item.completed &&
+								!isFinalState(item.workflow_state_current)
 									? "Awaiting action"
 									: "No additional data"
 							}}
@@ -256,6 +284,39 @@ const loading = ref(false);
 const error = ref(null);
 const currentState = ref(null);
 const documentId = computed(() => props.referenceName || props.doctype);
+const showAllFields = ref({});
+
+// Toggle show all fields for a specific item
+const toggleShowAllFields = (itemName) => {
+	showAllFields.value[itemName] = !showAllFields.value[itemName];
+};
+
+// Get count of hidden fields based on whether comment is present
+const getHiddenFieldsCount = (item) => {
+	const actionDataLength = item.action_data?.length || 0;
+	const hasComment = !!item.comment;
+
+	// If comment exists, hide all fields and show them in "Show More"
+	// If no comment, show 2 fields by default, hide the rest
+	if (hasComment) {
+		return actionDataLength; // All fields are hidden
+	} else {
+		const hiddenCount = actionDataLength - 2;
+		return hiddenCount > 0 ? hiddenCount : 0;
+	}
+};
+
+// Helper function to check if state is final
+const isFinalState = (state) => {
+	if (!state) return false;
+	const normalizedState = state.trim().toLowerCase();
+	return (
+		normalizedState === "approved" ||
+		normalizedState === "accepted" ||
+		normalizedState === "receipt confirmed" ||
+		normalizedState === "rejected"
+	);
+};
 
 // Timeline Items - Show minimal placeholder if no actions
 const timelineItems = computed(() => {
@@ -388,9 +449,39 @@ const loadWorkflowData = async () => {
 			},
 		});
 
-		if (response.message && response.message.success) {
-			workflowData.value = response.message;
+		// Console log the full API response
+		console.log("Message:", response.message);
 
+		if (response.message && response.message.success) {
+			for (const action of response.message.actions || []) {
+				if (action.action_data?.length) {
+					for (const item of action.action_data) {
+						if (item.fieldtype === "Link") {
+							let value = item.value;
+							let _value;
+
+							if (item.reference_doctype && value) {
+								_value = frappe.utils.get_link_title(
+									item.reference_doctype,
+									value
+								);
+
+								if (!_value) {
+									const resp = await frappe.utils.fetch_link_title(
+										item.reference_doctype,
+										value
+									);
+									_value = resp || value;
+								}
+							}
+
+							item.value = _value || value;
+						}
+					}
+				}
+			}
+
+			workflowData.value = response.message;
 			if (response.message.type === "no_action") {
 				// Set current state from workflowState prop or current_doc_state
 				currentState.value = props.workflowState || response.message.current_doc_state;
@@ -402,6 +493,7 @@ const loadWorkflowData = async () => {
 			}
 		} else {
 			error.value = response.message?.message || "Failed to load workflow data";
+			console.error("API Error:", error.value);
 		}
 	} catch (err) {
 		error.value = err.message || "An error occurred while loading data";
@@ -619,7 +711,6 @@ defineExpose({
 <style scoped>
 .approval-timeline {
 	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-	padding: 16px;
 	background: #fff;
 	border-radius: 8px;
 }
@@ -630,6 +721,7 @@ defineExpose({
 	justify-content: space-between;
 	align-items: flex-start;
 	margin-bottom: 16px;
+	padding-top: 16px;
 	padding-bottom: 16px;
 	border-bottom: 1px solid #e2e8f0;
 	flex-wrap: wrap;
@@ -689,7 +781,7 @@ defineExpose({
 
 /* Default/Other States (Gray) */
 .status-default {
-	background: #f1f5f9;
+	background: #f5f5f5;
 	color: #475569;
 }
 
@@ -717,7 +809,7 @@ defineExpose({
 
 /* Default/Other States (Gray) */
 .state-default {
-	background: #f1f5f9;
+	background: #f5f5f5;
 	color: #475569;
 }
 
@@ -755,7 +847,7 @@ defineExpose({
 /* Default/Other States (Gray) */
 .node-default {
 	border-color: #94a3b8;
-	background: #f1f5f9;
+	background: #f5f5f5;
 }
 .node-default svg {
 	color: #64748b;
@@ -768,7 +860,7 @@ defineExpose({
 	gap: 0;
 	margin-bottom: 20px;
 	padding: 14px 12px;
-	background: #f8fafc;
+	background: #f5f5f5;
 	border-radius: 8px;
 	overflow-x: auto;
 }
@@ -1000,7 +1092,7 @@ defineExpose({
 	display: inline-flex;
 	align-items: center;
 	padding: 2px 6px;
-	background: #f1f5f9;
+	background: #f5f5f5;
 	border-radius: 3px;
 	font-size: 9px;
 	font-weight: 500;
@@ -1074,7 +1166,7 @@ defineExpose({
 }
 
 .data-card {
-	background: #f8fafc;
+	background: #f5f5f5;
 	border: 1px solid #e2e8f0;
 	border-radius: 6px;
 	padding: 12px;
@@ -1098,7 +1190,7 @@ defineExpose({
 
 .field-grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	grid-template-columns: repeat(2, 1fr);
 	gap: 10px;
 }
 
@@ -1107,6 +1199,10 @@ defineExpose({
 	border: 1px solid #e2e8f0;
 	border-radius: 4px;
 	padding: 8px 10px;
+}
+
+.field-item.comment-field {
+	grid-column: 1 / -1;
 }
 
 .field-label {
@@ -1125,31 +1221,35 @@ defineExpose({
 	word-break: break-word;
 }
 
-.comment-box {
-	background: #fff;
-	border-left: 3px solid #cbd5e1;
-	border-radius: 4px;
-	padding: 10px 12px;
-	font-size: 11px;
-	line-height: 1.5;
-	color: #475569;
+/* Show More Button */
+.show-more-container {
+	margin-top: 0;
+	display: inline-block;
 }
 
-.comment-info {
-	border-left-color: #3b82f6;
-	background: #eff6ff;
+.show-more-btn {
+	background: transparent;
+	border: 1px solid #cbd5e1;
+	border-radius: 4px;
+	padding: 6px 12px;
+	font-size: 11px;
+	font-weight: 500;
+	color: #475569;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
 }
-.comment-approved {
-	border-left-color: #10b981;
-	background: #ecfdf5;
+
+.show-more-btn:hover {
+	background: #f5f5f5;
+	border-color: #94a3b8;
 }
-.comment-rejected {
-	border-left-color: #ef4444;
-	background: #fef2f2;
-}
-.comment-sent-back {
-	border-left-color: #f97316;
-	background: #fff7ed;
+
+.show-more-btn svg {
+	width: 14px;
+	height: 14px;
 }
 
 .no-data {
