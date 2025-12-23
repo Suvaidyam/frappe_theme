@@ -20,6 +20,7 @@ if (frappe.ui?.FileUploader) {
 
 import Loader from "./loader-element.js";
 import SvaDataTable from "./datatable/sva_datatable.bundle.js";
+import SVAHeatmap from "./custom_components/heatmap.bundle.js";
 import SVADashboardManager from "./sva_dashboard_manager.bundle.js";
 import SVAEmailComponent from "./custom_components/communication.bundle.js";
 import SVAGalleryComponent from "./custom_components/gallery.bundle.js";
@@ -213,11 +214,12 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					method: "frappe_theme.dt_api.get_sva_dt_settings",
 					doctype: frm.doc.doctype,
 				});
-				if (!message) return;
-				this.dts = message;
-				window.sva_datatable_configuration = {
-					[frm.doc.doctype]: this.dts,
-				};
+				if (message) {
+					this.dts = message;
+					window.sva_datatable_configuration = {
+						[frm.doc.doctype]: this.dts,
+					};
+				}
 			} else {
 				this.dts = window.sva_datatable_configuration?.[frm.doc.doctype];
 			}
@@ -489,7 +491,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			);
 			const relevant_html_fields = [...dtFields.map((f) => f.html_field), ...vm_fields];
 			this.clearOtherMappedFields(this.dts, relevant_html_fields, vm_all_fields, frm);
-			await this.handleCustomHTMLBlock(frm, tab_fields);
+			await this.handleBlocks(frm, tab_fields, signal);
 			await this.initializeDashboards(this.dts, frm, tab_fields, signal);
 			await this.processDataTables(dtFields, frm, this.dts, signal);
 		} catch (error) {
@@ -564,30 +566,122 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			frm.set_df_property(field, "options", "");
 		});
 	}
-	async handleCustomHTMLBlock(frm, tab_fields) {
-		const custom_html_blocks = frm.meta.fields
+	async handleBlocks(frm, tab_fields, signal = null) {
+		frm.sva_ft_instances = {};
+		const custom_blocks = frm.meta.fields
 			.filter((f) => tab_fields.includes(f.fieldname))
 			?.filter((f) => f.sva_ft)
 			?.filter((f) => {
 				try {
-					return JSON.parse(f.sva_ft).html_block;
+					return JSON.parse(f.sva_ft);
 				} catch (error) {
 					return false;
 				}
 			});
 		let promises = [];
-		for (const field of custom_html_blocks) {
+		for (const field of custom_blocks) {
 			let f = { ...field, sva_ft: JSON.parse(field.sva_ft) };
-			promises.push(this.renderCustomHTMLBlock(frm, f));
+			promises.push(this.renderCustomBlock(frm, f, signal));
 		}
 		await Promise.all(promises);
 	}
-	renderCustomHTMLBlock = async (frm, field) => {
-		let html = await frappe.db.get_doc("Custom HTML Block", field.sva_ft.html_block);
-		if (html) {
-			let my_wrapper = document.createElement("div");
-			frm.set_df_property(field.fieldname, "options", my_wrapper);
-			frappe.create_shadow_element(my_wrapper, html.html, html.style, html.script);
+	renderCustomBlock = async (frm, field, signal = null) => {
+		let wrapper = document.createElement("div");
+		frm.set_df_property(field.fieldname, "options", wrapper);
+
+		switch (field.sva_ft.property_type) {
+			case "Custom HTML Block":
+				if (field.sva_ft.html_block) {
+					let html = await frappe.db.get_doc(
+						"Custom HTML Block",
+						field.sva_ft.html_block
+					);
+					if (html) {
+						frappe.create_shadow_element(wrapper, html.html, html.style, html.script);
+					}
+				}
+				break;
+			case "Number Card":
+				if (field.sva_ft.number_card) {
+					let card_doc = await frappe.db.get_doc(
+						"Number Card",
+						field.sva_ft.number_card
+					);
+					let item = {
+						fetch_from: "Number Card",
+						number_card: field.sva_ft.number_card,
+						card_label: field.sva_ft.label || card_doc.label || "Untitled",
+						details: card_doc,
+						report: card_doc.report
+							? await frappe.db.get_doc("Report", card_doc.report)
+							: null,
+						icon_value: field.sva_ft.icon || null,
+						icon_color: field.sva_ft.icon_color || null,
+						background_color: field.sva_ft.background_color || null,
+						text_color: field.sva_ft.text_color || null,
+						value_color: field.sva_ft.value_color || null,
+						border_color: field.sva_ft.border_color || null,
+					};
+					let { _wrapper, ref } = new SVADashboardManager({
+						wrapper,
+						frm,
+						numberCards: [item],
+						signal,
+					});
+					frm.sva_ft_instances[field.fieldname] = ref;
+					wrapper._dashboard = _wrapper;
+				}
+				break;
+
+			case "Dashboard Chart":
+				if (field.sva_ft.chart) {
+					let chart_doc = await frappe.db.get_doc("Dashboard Chart", field.sva_ft.chart);
+					let report_doc = null;
+					if (chart_doc.chart_type === "Report" && chart_doc.report_name) {
+						report_doc = await frappe.db.get_doc("Report", chart_doc.report_name);
+					}
+					let item = {
+						...field.sva_ft,
+						fetch_from: "Dashboard Chart",
+						chart_label: field.sva_ft.label || chart_doc.chart_name,
+						details: chart_doc,
+						report: report_doc,
+					};
+					let { _wrapper, ref } = new SVADashboardManager({
+						wrapper,
+						frm,
+						charts: [item],
+						signal,
+					});
+					frm.sva_ft_instances[field.fieldname] = ref;
+					wrapper._dashboard = _wrapper;
+				}
+				break;
+			case "DocType (Direct)":
+			case "DocType (Indirect)":
+			case "DocType (Referenced)":
+			case "DocType (Unfiltered)":
+			case "Report":
+			case "Is Custom Design":
+				if (field.sva_ft.property_type === "Is Custom Design") {
+					field.sva_ft["connection_type"] = "Is Custom Design";
+				}
+				if (!field.sva_ft?.connection_type || field.sva_ft?.hide_table) break;
+				field.sva_ft["html_field"] = field.fieldname;
+				if (frm.is_new()) {
+					await this.renderLocalFormMessage(field, frm);
+				} else {
+					await this.renderSavedFormContent(field.sva_ft, frm, field.sva_ft, signal);
+				}
+				break;
+			case "Heatmap (India Map)":
+				field.sva_ft["report"] = field.sva_ft["heatmap_report"];
+				new SVAHeatmap({
+					wrapper: $(wrapper),
+					...(field?.sva_ft || {}),
+					frm,
+				});
+				break;
 		}
 	};
 	async initializeDashboards(dts, frm, currentTabFields, signal) {
@@ -866,7 +960,8 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 	}
 
 	async initializeSvaDataTable(field, frm, dts, signal) {
-		const childLinks = dts.child_confs.filter((f) => f.parent_doctype === field.link_doctype);
+		const childLinks =
+			dts?.child_confs?.filter((f) => f.parent_doctype === field.link_doctype) || [];
 		const wrapper = document.createElement("div");
 		const wrapperId = `sva-datatable-wrapper-${field.html_field}`;
 		wrapper.id = wrapperId;
@@ -899,6 +994,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			onFieldClick: this.handleFieldEvent("onFieldClick"),
 			onFieldValueChange: this.handleFieldEvent("onFieldValueChange"),
 		});
+		frm.sva_ft_instances[field.html_field] = instance;
 		frm.sva_tables[
 			["Direct", "Unfiltered"].includes(field.connection_type)
 				? field.link_doctype

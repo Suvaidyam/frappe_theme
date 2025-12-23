@@ -143,7 +143,10 @@ class SvaDataTable {
 					}
 				}
 				// ================================ Workflow Logic  ================================
-				if (!this.connection?.disable_workflow) {
+				if (
+					!this.connection?.disable_workflow &&
+					this.connection.connection_type !== "Report"
+				) {
 					let workflow = await this.sva_db.get_value("Workflow", {
 						document_type: this.doctype,
 						is_active: 1,
@@ -1834,7 +1837,7 @@ class SvaDataTable {
 					this.connection?.title || doctype
 				)}`
 			),
-			size: this.getDialogSize(fields), // Available sizes: 'small', 'medium', 'large', 'extra-large'
+			size: frappe.utils.get_dialog_size(fields), // Available sizes: 'small', 'medium', 'large', 'extra-large'
 			fields: fields || [],
 			primary_action_label: name ? "Update" : "Create",
 			primary_action: async (values) => {
@@ -2184,7 +2187,7 @@ class SvaDataTable {
 			tr.appendChild(th);
 		});
 		// ========================= Workflow Logic ======================
-		if (!this.connection?.disable_workflow) {
+		if (!this.connection?.disable_workflow && this.connection.connection_type !== "Report") {
 			if (this.workflow && (this.wf_editable_allowed || this.wf_transitions_allowed)) {
 				const addColumn = document.createElement("th");
 				addColumn.textContent = this.connection.action_label
@@ -2580,7 +2583,10 @@ class SvaDataTable {
 				});
 
 				// ========================= Workflow Logic ===================
-				if (!this.connection?.disable_workflow) {
+				if (
+					!this.connection?.disable_workflow &&
+					this.connection.connection_type !== "Report"
+				) {
 					if (
 						this.workflow &&
 						(this.wf_editable_allowed || this.wf_transitions_allowed)
@@ -2840,7 +2846,7 @@ class SvaDataTable {
 			workflowFormValue = await new Promise((resolve, reject) => {
 				dialog = new frappe.ui.Dialog({
 					title: "Confirm",
-					size: this.getDialogSize(popupFields),
+					size: frappe.utils.get_dialog_size(popupFields),
 					fields: popupFields,
 					primary_action_label: "Proceed",
 					primary_action: (values) => {
@@ -3138,6 +3144,47 @@ class SvaDataTable {
 			read_only: 1,
 			description: "",
 		};
+		if (column.fieldname === this?.workflow?.workflow_state_field) {
+			if (this.frm?.dt_events?.[this.doctype]?.formatter?.[column.fieldname]) {
+				let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
+				td.innerHTML = formatter(
+					this.workflow_state_map[row[column.fieldname]] || row[column.fieldname],
+					column,
+					row,
+					this
+				);
+				td.title =
+					this.workflow_state_map[row[column.fieldname]] || row[column.fieldname] || "";
+			} else {
+				td.innerHTML = `<span>${
+					this.workflow_state_map[row[column.fieldname]] || row[column.fieldname]
+				}</span>`;
+				td.title =
+					this.workflow_state_map[row[column.fieldname]] || row[column.fieldname] || "";
+				if (col?.width) {
+					$(td).css({
+						width: `${Number(col?.width) * 50}px`,
+						minWidth: `${Number(col?.width) * 50}px`,
+						maxWidth: `${Number(col?.width) * 50}px`,
+						height: "32px",
+						whiteSpace: "nowrap",
+						overflow: "hidden",
+						textOverflow: "ellipsis",
+						padding: "0px 5px",
+					});
+				} else {
+					$(td).css({
+						height: "32px",
+						whiteSpace: "nowrap",
+						overflow: "hidden",
+						textOverflow: "ellipsis",
+						padding: "0px 5px",
+					});
+				}
+				this.bindColumnEvents(td.firstElementChild, row[column.fieldname], column, row);
+			}
+			return;
+		}
 		if (column.fieldtype === "Link") {
 			let spanElement;
 			if (this.frm?.dt_events?.[this.doctype]?.formatter?.[column.fieldname]) {
@@ -3212,7 +3259,6 @@ class SvaDataTable {
 					});
 				}
 			}
-
 			this.bindColumnEvents(
 				td.firstElementChild || spanElement,
 				row[column.fieldname],
@@ -3918,32 +3964,6 @@ class SvaDataTable {
 			"You do not have permission through role permission to access this resource.";
 		if (!this.wrapper.querySelector("#noPermissionPage")) {
 			this.wrapper.appendChild(noPermissionPage);
-		}
-	}
-	getDialogSize(fields) {
-		let hasChildTable = fields.some((field) => field.fieldtype === "Table");
-		let hasMultipleColumns = false;
-
-		let currentColumnCount = 0; // Track columns in a section
-		for (let field of fields) {
-			if (field.fieldtype === "Section Break") {
-				currentColumnCount = 0; // Reset column count on new section
-			} else if (field.fieldtype === "Column Break") {
-				currentColumnCount++; // Increase column count
-			}
-
-			if (currentColumnCount >= 1) {
-				// At least one column break = 2 columns
-				hasMultipleColumns = true;
-			}
-		}
-
-		if (hasChildTable) {
-			return "extra-large"; // Child tables require more space
-		} else if (hasMultipleColumns) {
-			return "large"; // Sections with 2+ columns need a larger dialog
-		} else {
-			return "small"; // Default size
 		}
 	}
 

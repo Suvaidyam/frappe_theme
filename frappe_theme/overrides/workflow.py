@@ -86,9 +86,10 @@ def custom_apply_workflow(doc, action):
 
 		data_doc.set(fieldname, value)
 		if fieldname not in comment_fields:
-			wf_action_data["action_data"].append(
-				{"fieldname": fieldname, "fieldtype": field.fieldtype, "value": value}
-			)
+			action_item = {"fieldname": fieldname, "fieldtype": field.fieldtype, "value": value}
+			if field.fieldtype in ["Link", "Dynamic Link", "Table MultiSelect", "Table"]:
+				action_item["reference_doctype"] = field.options
+			wf_action_data["action_data"].append(action_item)
 		if fieldname in comment_fields:
 			wf_action_data["comment"] = value
 		updated = True
