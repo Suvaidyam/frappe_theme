@@ -20,6 +20,7 @@ if (frappe.ui?.FileUploader) {
 
 import Loader from "./loader-element.js";
 import SvaDataTable from "./datatable/sva_datatable.bundle.js";
+import SVAHeatmap from "./custom_components/heatmap.bundle.js";
 import SVADashboardManager from "./sva_dashboard_manager.bundle.js";
 import SVAEmailComponent from "./custom_components/communication.bundle.js";
 import SVAGalleryComponent from "./custom_components/gallery.bundle.js";
@@ -600,7 +601,6 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					}
 				}
 				break;
-
 			case "Number Card":
 				if (field.sva_ft.number_card) {
 					let card_doc = await frappe.db.get_doc(
@@ -673,6 +673,13 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 				} else {
 					await this.renderSavedFormContent(field.sva_ft, frm, field.sva_ft, signal);
 				}
+				break;
+			case "Heatmap (India Map)":
+				field.sva_ft["report"] = field.sva_ft["heatmap_report"];
+				new SVAHeatmap({
+					wrapper: $(wrapper),
+					...(field?.sva_ft || {}),
+				});
 				break;
 		}
 	};

@@ -321,6 +321,12 @@ class SVAHeatmap {
 				layer.setStyle({
 					fillColor: this.getColorByValue(data.count),
 					fillOpacity: 0.7,
+					color: "#333333",
+				});
+			} else {
+				layer.setStyle({
+					fillColor: "#d4d4d4",
+					color: "#333333",
 				});
 			}
 		});
@@ -480,6 +486,7 @@ class SVAHeatmap {
 				this.stateLayer = L.geoJSON(data, {
 					style: {
 						color: "#F2F2F3",
+						borderColor: "",
 						weight: 1,
 						fillOpacity: 0.7,
 					},
@@ -619,6 +626,12 @@ class SVAHeatmap {
 							layer.setStyle({
 								fillColor: this.getColorByValue(data.count),
 								fillOpacity: 0.7,
+								color: "#333333",
+							});
+						} else {
+							layer.setStyle({
+								fillColor: "#d4d4d4",
+								color: "#333333",
 							});
 						}
 					},

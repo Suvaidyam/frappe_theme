@@ -82,7 +82,17 @@
   "full_screen_dialog",
   "disable_workflow",
   "section_break_okbe",
-  "child_confs"
+  "child_confs",
+  "heat_map_section",
+  "heatmap_report",
+  "default_view",
+  "block_height",
+  "min_data_color",
+  "max_data_color",
+  "column_break_xtcd",
+  "target_fields",
+  "setup_target_fields",
+  "primary_target"
  ],
  "fields": [
   {
@@ -126,7 +136,7 @@
    "fieldname": "property_type",
    "fieldtype": "Select",
    "label": "Property Type",
-   "options": "DocType (Direct)\nDocType (Indirect)\nDocType (Referenced)\nDocType (Unfiltered)\nReport\nIs Custom Design\nDocField\nNumber Card\nDashboard Chart\nCustom HTML Block"
+   "options": "DocType (Direct)\nDocType (Indirect)\nDocType (Referenced)\nDocType (Unfiltered)\nReport\nIs Custom Design\nHeatmap (India Map)\nDocField\nNumber Card\nDashboard Chart\nCustom HTML Block"
   },
   {
    "depends_on": "eval:doc.property_type=='Dashboard Chart'",
@@ -584,13 +594,80 @@
    "fieldtype": "Table",
    "label": "Child Confs",
    "options": "SVADT Connections"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
+   "fieldname": "heat_map_section",
+   "fieldtype": "Section Break",
+   "label": "Heat Map Settings"
+  },
+  {
+   "default": "State",
+   "depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
+   "fieldname": "default_view",
+   "fieldtype": "Select",
+   "label": "Default View",
+   "options": "State\nDistrict",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
+   "fieldname": "target_fields",
+   "fieldtype": "Code",
+   "label": "Target Fields",
+   "max_height": "5rem",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
+   "fieldname": "setup_target_fields",
+   "fieldtype": "Button",
+   "label": "Setup Target Fields"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
+   "fieldname": "primary_target",
+   "fieldtype": "Select",
+   "label": "Primary Target",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
+   "fieldname": "block_height",
+   "fieldtype": "Int",
+   "label": "Block Height (px)"
+  },
+  {
+   "fieldname": "column_break_xtcd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
+   "fieldname": "min_data_color",
+   "fieldtype": "Color",
+   "label": "Min Data Color (Based on primary Target)"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
+   "fieldname": "max_data_color",
+   "fieldtype": "Color",
+   "label": "Max Data Color (Based on primary Target)"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
+   "fieldname": "heatmap_report",
+   "fieldtype": "Link",
+   "label": "Report (With State or District Column)",
+   "options": "Report",
+   "reqd": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_virtual": 1,
  "links": [],
- "modified": "2025-12-23 11:07:07.700574",
+ "modified": "2025-12-23 12:47:39.467433",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Custom Property Setter",
