@@ -185,7 +185,6 @@ class DTConf:
 			conditions += " AND " + DTConf.filters_to_sql_conditions(filters)
 		if limit_page_length and limit_start is not None:
 			conditions += f" LIMIT {limit_start}, {limit_page_length}"
-		print(conditions, "================================conditions", ref_doctype, doc)
 		query = data.get("query")
 		sub_query = re.sub(r";\s*\)", ")", query)
 		query = sub_query.rstrip(";")
