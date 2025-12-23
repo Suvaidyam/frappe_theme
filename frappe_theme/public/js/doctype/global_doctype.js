@@ -99,7 +99,7 @@ frappe.ui.form.on("*", {
 				open_approval_timeline_dialog(
 					frm.doctype,
 					frm.doc.name,
-					frm.doc.title || frm.doc.name
+					frm.meta.title_field ? frm.doc[frm.meta.title_field] : ""
 				);
 			});
 		}
