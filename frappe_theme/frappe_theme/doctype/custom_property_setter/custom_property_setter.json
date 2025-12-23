@@ -536,7 +536,7 @@
   },
   {
    "depends_on": "eval:!doc.connection_type && [\"HTML View From API\"].includes(doc.template)",
-   "description": "Ex:- module.api.test <br>\nAPI should return HTML string",
+   "description": "Ex:- module.api.test <br>\nAPI must return HTML string",
    "fieldname": "endpoint",
    "fieldtype": "Data",
    "label": "Endpoint",
@@ -590,7 +590,7 @@
  "index_web_pages_for_search": 1,
  "is_virtual": 1,
  "links": [],
- "modified": "2025-12-22 16:39:06.443664",
+ "modified": "2025-12-23 11:07:07.700574",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Custom Property Setter",

@@ -184,6 +184,42 @@ after_render_control = async function (dialog, _frm) {
 };
 const field_changes = {
 	property_type: async function (frm) {
+		let fields_being_affected = [
+			{ fn: "hide_table", ft: "Check" },
+			{ fn: "template", ft: "Select" },
+			{ fn: "link_report", ft: "Link" },
+			{ fn: "report_ref_dt", ft: "Link" },
+			{ fn: "referenced_link_doctype", ft: "Link" },
+			{ fn: "dt_reference_field", ft: "Link" },
+			{ fn: "local_field", ft: "Link" },
+			{ fn: "link_doctype", ft: "Link" },
+			{ fn: "crud_permissions", ft: "Code" },
+			{ fn: "list_filters", ft: "Data" },
+			{ fn: "title", ft: "Data" },
+			{ fn: "disable_edit_depends_on", ft: "Code" },
+			{ fn: "disable_delete_depends_on", ft: "Code" },
+			{ fn: "endpoint", ft: "Data" },
+			{ fn: "report_type", ft: "Data" },
+			{ fn: "dn_reference_field", ft: "Data" },
+			{ fn: "foreign_field", ft: "Select" },
+			{ fn: "link_fieldname", ft: "Data" },
+			{ fn: "listview_settings", ft: "Code" },
+			{ fn: "action_list", ft: "Code" },
+			{ fn: "action_label", ft: "Data" },
+			{ fn: "disable_add_depends_on", ft: "Code" },
+			{ fn: "disable_workflow_depends_on", ft: "Code" },
+			{ fn: "unfiltered", ft: "Check" },
+			{ fn: "add_row_button_label", ft: "Data" },
+			{ fn: "extend_condition", ft: "Check" },
+			{ fn: "extended_condition", ft: "Code" },
+			{ fn: "allow_export", ft: "Check" },
+			{ fn: "allow_import", ft: "Check" },
+			{ fn: "keep_workflow_enabled_form_submission", ft: "Check" },
+			{ fn: "redirect_to_main_form", ft: "Check" },
+			{ fn: "full_screen_dialog", ft: "Check" },
+			{ fn: "disable_workflow", ft: "Check" },
+			{ fn: "child_confs", ft: "Table" },
+		];
 		let connecttion_type_map = {
 			"DocType (Indirect)": "Indirect",
 			"DocType (Direct)": "Direct",
@@ -194,6 +230,22 @@ const field_changes = {
 		let property_type = frm?.config_dialog?.get_value("property_type");
 		if (property_type in connecttion_type_map) {
 			frm?.config_dialog?.set_value("connection_type", connecttion_type_map[property_type]);
+			for (let field of fields_being_affected) {
+				if (field.ft === "Check") {
+					frm?.config_dialog?.set_value(field.fn, 0);
+					continue;
+				} else if (field.ft === "Table") {
+					frm?.config_dialog?.set_df_property(field.fn, "data", []);
+					continue;
+				} else {
+					if (field.fn == "crud_permissions") {
+						frm?.config_dialog?.set_value(field.fn, JSON.stringify(["read"]));
+						continue;
+					}
+					frm?.config_dialog?.set_value(field.fn, "");
+					continue;
+				}
+			}
 		} else {
 			frm?.config_dialog?.set_value("connection_type", "");
 		}
@@ -542,7 +594,6 @@ async function customPropertySetter(frm) {
 			let el = this;
 			// Click listener (optional)
 			el.addEventListener("click", () => {
-				console.log("Field clicked:", el);
 				let control = el.querySelector(".control.frappe-control.editable[data-fieldname]");
 
 				if (control) {
@@ -581,9 +632,10 @@ async function customPropertySetter(frm) {
 								if (prop) {
 									try {
 										let values = JSON.parse(prop.value);
-										for (field of fields.message) {
+										for (let field of fields.message) {
 											if (values[field.fieldname]) {
-												field.default = values[field.fieldname];
+												field.default =
+													values[field.fieldname] || field.default;
 											}
 										}
 									} catch (error) {
