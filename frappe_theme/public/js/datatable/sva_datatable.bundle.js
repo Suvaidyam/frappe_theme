@@ -97,6 +97,7 @@ class SvaDataTable {
 		this.footer_element = null;
 		this.skeletonLoader = null;
 		this.standard_filters_fields_dict = {};
+		this.title_field = null;
 		// Initialize crud permissions before reloadTable so crudHandler can modify them
 		this.crud = {
 			read: true,
@@ -185,6 +186,9 @@ class SvaDataTable {
 					});
 					let columns = response.fields;
 					this.meta = response.meta;
+					if (this.meta?.title_field) {
+						this.title_field = this.meta.title_field;
+					}
 					if (this.filter_area) {
 						this.filter_area.make_standard_filters();
 					}
@@ -2378,6 +2382,19 @@ class SvaDataTable {
 				}
 			}
 		}
+
+		if (this.workflow && this.frm?.has_permission_for_workflow_action_log) {
+			appendDropdownOption(
+				`${frappe.utils.icon("workflow", "sm")} ${__("Approval Timeline")}`,
+				async () => {
+					open_approval_timeline_dialog(
+						this.doctype,
+						primaryKey,
+						this.title_field ? row[this.title_field] : ""
+					);
+				}
+			);
+		}
 		// ========================= Print Button ======================
 		if (this.permissions.includes("print")) {
 			appendDropdownOption(`${frappe.utils.icon("printer", "sm")} ${__("Print")}`, () => {
@@ -3121,6 +3138,47 @@ class SvaDataTable {
 			read_only: 1,
 			description: "",
 		};
+		if (column.fieldname === this?.workflow?.workflow_state_field) {
+			if (this.frm?.dt_events?.[this.doctype]?.formatter?.[column.fieldname]) {
+				let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
+				td.innerHTML = formatter(
+					this.workflow_state_map[row[column.fieldname]] || row[column.fieldname],
+					column,
+					row,
+					this
+				);
+				td.title =
+					this.workflow_state_map[row[column.fieldname]] || row[column.fieldname] || "";
+			} else {
+				td.innerHTML = `<span>${
+					this.workflow_state_map[row[column.fieldname]] || row[column.fieldname]
+				}</span>`;
+				td.title =
+					this.workflow_state_map[row[column.fieldname]] || row[column.fieldname] || "";
+				if (col?.width) {
+					$(td).css({
+						width: `${Number(col?.width) * 50}px`,
+						minWidth: `${Number(col?.width) * 50}px`,
+						maxWidth: `${Number(col?.width) * 50}px`,
+						height: "32px",
+						whiteSpace: "nowrap",
+						overflow: "hidden",
+						textOverflow: "ellipsis",
+						padding: "0px 5px",
+					});
+				} else {
+					$(td).css({
+						height: "32px",
+						whiteSpace: "nowrap",
+						overflow: "hidden",
+						textOverflow: "ellipsis",
+						padding: "0px 5px",
+					});
+				}
+				this.bindColumnEvents(td.firstElementChild, row[column.fieldname], column, row);
+			}
+			return;
+		}
 		if (column.fieldtype === "Link") {
 			let spanElement;
 			if (this.frm?.dt_events?.[this.doctype]?.formatter?.[column.fieldname]) {
@@ -3195,7 +3253,6 @@ class SvaDataTable {
 					});
 				}
 			}
-
 			this.bindColumnEvents(
 				td.firstElementChild || spanElement,
 				row[column.fieldname],
