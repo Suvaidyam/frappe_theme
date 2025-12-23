@@ -3138,6 +3138,47 @@ class SvaDataTable {
 			read_only: 1,
 			description: "",
 		};
+		if (column.fieldname === this?.workflow?.workflow_state_field) {
+			if (this.frm?.dt_events?.[this.doctype]?.formatter?.[column.fieldname]) {
+				let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
+				td.innerHTML = formatter(
+					this.workflow_state_map[row[column.fieldname]] || row[column.fieldname],
+					column,
+					row,
+					this
+				);
+				td.title =
+					this.workflow_state_map[row[column.fieldname]] || row[column.fieldname] || "";
+			} else {
+				td.innerHTML = `<span>${
+					this.workflow_state_map[row[column.fieldname]] || row[column.fieldname]
+				}</span>`;
+				td.title =
+					this.workflow_state_map[row[column.fieldname]] || row[column.fieldname] || "";
+				if (col?.width) {
+					$(td).css({
+						width: `${Number(col?.width) * 50}px`,
+						minWidth: `${Number(col?.width) * 50}px`,
+						maxWidth: `${Number(col?.width) * 50}px`,
+						height: "32px",
+						whiteSpace: "nowrap",
+						overflow: "hidden",
+						textOverflow: "ellipsis",
+						padding: "0px 5px",
+					});
+				} else {
+					$(td).css({
+						height: "32px",
+						whiteSpace: "nowrap",
+						overflow: "hidden",
+						textOverflow: "ellipsis",
+						padding: "0px 5px",
+					});
+				}
+				this.bindColumnEvents(td.firstElementChild, row[column.fieldname], column, row);
+			}
+			return;
+		}
 		if (column.fieldtype === "Link") {
 			let spanElement;
 			if (this.frm?.dt_events?.[this.doctype]?.formatter?.[column.fieldname]) {
@@ -3212,7 +3253,6 @@ class SvaDataTable {
 					});
 				}
 			}
-
 			this.bindColumnEvents(
 				td.firstElementChild || spanElement,
 				row[column.fieldname],
