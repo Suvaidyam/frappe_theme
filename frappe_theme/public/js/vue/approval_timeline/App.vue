@@ -12,7 +12,27 @@
 				v-if="currentState"
 				:class="['current-status', getStateConfig(currentState).statusClass]"
 			>
-				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<!-- Dynamic icon based on state - matching progress bar icons -->
+				<svg
+					v-if="isApprovedState(currentState)"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="3"
+				>
+					<polyline points="20 6 9 17 4 12" />
+				</svg>
+				<svg
+					v-else-if="isRejectedState(currentState)"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="3"
+				>
+					<line x1="18" y1="6" x2="6" y2="18" />
+					<line x1="6" y1="6" x2="18" y2="18" />
+				</svg>
+				<svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 					<circle cx="12" cy="12" r="10" />
 					<polyline points="12 6 12 12 16 14" />
 				</svg>
@@ -119,7 +139,6 @@
 						<template v-if="!item.isPlaceholder">
 							<div class="action-label">
 								{{ item.workflow_action || "Action Performed" }}
-								<span class="role-badge">{{ item.role || "N/A" }}</span>
 							</div>
 							<div class="user-info">
 								<div :class="['user-avatar', getRoleAvatar(item.role)]">
@@ -208,7 +227,7 @@
 										class="show-more-btn"
 									>
 										<span v-if="!showAllFields[item.name]">
-											Show More ({{ getHiddenFieldsCount(item) }} more)
+											Show More ({{ getHiddenFieldsCount(item) }})
 											<svg
 												viewBox="0 0 24 24"
 												fill="none"
@@ -289,6 +308,24 @@ const showAllFields = ref({});
 // Toggle show all fields for a specific item
 const toggleShowAllFields = (itemName) => {
 	showAllFields.value[itemName] = !showAllFields.value[itemName];
+};
+
+// Helper function to check if state is approved/accepted/receipt confirmed
+const isApprovedState = (state) => {
+	if (!state) return false;
+	const normalizedState = state.trim().toLowerCase();
+	return (
+		normalizedState === "approved" ||
+		normalizedState === "accepted" ||
+		normalizedState === "receipt confirmed"
+	);
+};
+
+// Helper function to check if state is rejected
+const isRejectedState = (state) => {
+	if (!state) return false;
+	const normalizedState = state.trim().toLowerCase();
+	return normalizedState === "rejected";
 };
 
 // Get count of hidden fields based on whether comment is present
@@ -710,7 +747,6 @@ defineExpose({
 
 <style scoped>
 .approval-timeline {
-	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 	background: #fff;
 	border-radius: 8px;
 }
@@ -721,7 +757,6 @@ defineExpose({
 	justify-content: space-between;
 	align-items: flex-start;
 	margin-bottom: 16px;
-	padding-top: 16px;
 	padding-bottom: 16px;
 	border-bottom: 1px solid #e2e8f0;
 	flex-wrap: wrap;
@@ -1087,18 +1122,6 @@ defineExpose({
 	gap: 6px;
 	flex-wrap: wrap;
 }
-
-.role-badge {
-	display: inline-flex;
-	align-items: center;
-	padding: 2px 6px;
-	background: #f5f5f5;
-	border-radius: 3px;
-	font-size: 9px;
-	font-weight: 500;
-	color: #64748b;
-}
-
 .user-info {
 	display: flex;
 	align-items: center;
@@ -1208,8 +1231,6 @@ defineExpose({
 .field-label {
 	font-size: 9px;
 	font-weight: 600;
-	color: #64748b;
-	text-transform: uppercase;
 	letter-spacing: 0.3px;
 	margin-bottom: 4px;
 }
@@ -1223,28 +1244,21 @@ defineExpose({
 
 /* Show More Button */
 .show-more-container {
+	grid-column: 1;
 	margin-top: 0;
 	display: inline-block;
 }
 
 .show-more-btn {
 	background: transparent;
-	border: 1px solid #cbd5e1;
-	border-radius: 4px;
-	padding: 6px 12px;
+	border: none;
+	padding-left: 1px !important;
 	font-size: 11px;
 	font-weight: 500;
-	color: #475569;
+	color: #811622;
 	cursor: pointer;
 	transition: all 0.2s ease;
 	display: inline-flex;
-	align-items: center;
-	gap: 4px;
-}
-
-.show-more-btn:hover {
-	background: #f5f5f5;
-	border-color: #94a3b8;
 }
 
 .show-more-btn svg {
