@@ -135,10 +135,11 @@ class DTConf:
 		limit_start=None,
 		_type="List",
 		unfiltered=0,
+		return_columns=False,
 	):
 		if _type == "Report":
 			return DTConf.report_list(
-				doctype, doc, ref_doctype, filters, limit_page_length, limit_start, unfiltered
+				doctype, doc, ref_doctype, filters, limit_page_length, limit_start, unfiltered, return_columns
 			)
 		else:
 			return DTConf.doc_type_list(doctype, filters, fields, limit_page_length, order_by, limit_start)
@@ -151,30 +152,48 @@ class DTConf:
 		limit_page_length=None,
 		limit_start=None,
 		unfiltered=0,
+		return_columns=False,
 	):
+		if isinstance(filters, str):
+			filters = json.loads(filters)
+		if filters is None:
+			filters = []
+
 		doc_filters = DTConf.get_report_filters(doctype)
+		data = frappe.get_doc("Report", doctype)
 		# convert filters to sql conditions
 		conditions = ""
-		for f in doc_filters:
-			if (
-				f.get("fieldname")
-				and f.get("fieldname") not in filters
-				and f.get("options") == ref_doctype
-				and unfiltered == 0
-			):
-				conditions += f" AND t.{f.get('fieldname')} = '{doc}'"
-		if filters:
-			conditions = conditions + " AND " + DTConf.filters_to_sql_conditions(filters)
+		if ref_doctype:
+			for f in doc_filters:
+				if (
+					f.get("fieldname")
+					and f.get("fieldname") not in filters
+					and f.get("options") == ref_doctype
+					and unfiltered == 0
+				):
+					conditions += f" AND t.{f.get('fieldname')} = '{doc}'"
+
+			for f in data.get("columns"):
+				if (
+					f.get("fieldname")
+					and f.get("fieldname") not in filters
+					and f.get("options") == ref_doctype
+					and unfiltered == 0
+				):
+					conditions += f" AND t.{f.get('fieldname')} = '{doc}'"
+		if len(filters):
+			conditions += " AND " + DTConf.filters_to_sql_conditions(filters)
 		if limit_page_length and limit_start is not None:
 			conditions += f" LIMIT {limit_start}, {limit_page_length}"
-		# return conditions
-		data = frappe.get_doc("Report", doctype)
 		query = data.get("query")
 		sub_query = re.sub(r";\s*\)", ")", query)
 		query = sub_query.rstrip(";")
 		final_sql = f"SELECT * FROM ({query}) AS t WHERE 1=1 {conditions}"
 		result = read_sql(final_sql, as_dict=1)
-		return result
+		if return_columns:
+			return {"result": result, "columns": data.get("columns")}
+		else:
+			return result
 
 	def doc_type_list(
 		doctype, filters=None, fields=None, limit_page_length=None, order_by=None, limit_start=None
