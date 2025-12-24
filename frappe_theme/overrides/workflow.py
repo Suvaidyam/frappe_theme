@@ -170,6 +170,9 @@ def custom_apply_workflow(doc, action):
 	# -------------------------------
 	if updated:
 		data_doc.save()
+	wf_action_doc = frappe.new_doc("SVA Workflow Action")
+	wf_action_doc.update(wf_action_data)
+	wf_action_doc.insert(ignore_permissions=True)
 
 	# -------------------------------
 	# Insert workflow action log
