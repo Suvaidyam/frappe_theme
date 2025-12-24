@@ -499,6 +499,143 @@ class FrappeThemeManager {
             .widget-head, .widget-label, .widget-title, .widget-body,.widget-content div.number{
                 color: ${theme.number_card_text_color && theme.number_card_text_color} !important;
             }
+
+            /* Sidebar Dynamic Styling */
+            .body-sidebar {
+                ${
+					theme.sidebar_background_color
+						? `background-color: ${theme.sidebar_background_color} !important; border-right-color: rgba(0,0,0,0.05);`
+						: ""
+				}
+            }
+
+            .body-sidebar-container.expanded .standard-sidebar-item.active-sidebar,
+            .body-sidebar-container:not(.expanded) .standard-sidebar-item.active-sidebar {
+                ${
+					theme.sidebar_active_background_color
+						? `background-color: ${theme.sidebar_active_background_color} !important;`
+						: ""
+				}
+                ${
+					theme.sidebar_border_radius !== undefined &&
+					theme.sidebar_border_radius !== null
+						? `border-radius: ${theme.sidebar_border_radius}px !important;`
+						: ""
+				}
+                box-shadow: none !important;
+                margin: 0 !important;
+                ${
+					theme.sidebar_active_left_border_width
+						? `border-left: ${theme.sidebar_active_left_border_width}px solid ${
+								theme.sidebar_active_left_border_color || "transparent"
+						  } !important;`
+						: ""
+				}
+                ${
+					theme.sidebar_active_right_border_width
+						? `border-right: ${theme.sidebar_active_right_border_width}px solid ${
+								theme.sidebar_active_right_border_color || "transparent"
+						  } !important;`
+						: ""
+				}
+            }
+
+            /* Prevent child items from inheriting active state */
+            .body-sidebar-container .standard-sidebar-item.active-sidebar .sidebar-child-item .standard-sidebar-item {
+                ${
+					theme.sidebar_active_background_color
+						? `background-color: transparent !important;`
+						: ""
+				}
+                ${theme.sidebar_active_left_border_width ? `border-left: none !important;` : ""}
+                ${theme.sidebar_active_right_border_width ? `border-right: none !important;` : ""}
+            }
+
+            ${
+				theme.sidebar_active_text_color
+					? `
+                /* Active text color - only for direct children, not nested */
+                .body-sidebar-container .standard-sidebar-item.active-sidebar > .item-anchor,
+                .body-sidebar-container .standard-sidebar-item.active-sidebar > .item-anchor .sidebar-item-label,
+                .body-sidebar-container .standard-sidebar-item.active-sidebar > .item-anchor .sidebar-item-icon,
+                .body-sidebar-container .standard-sidebar-item.active-sidebar > .item-anchor svg,
+                .body-sidebar-container .standard-sidebar-item.active-sidebar > .item-anchor svg use {
+                    color: ${theme.sidebar_active_text_color} !important;
+                    fill: ${theme.sidebar_active_text_color} !important;
+                    stroke: ${theme.sidebar_active_text_color} !important;
+                }
+
+                /* Reset child items to inherit normal colors */
+                .body-sidebar-container .standard-sidebar-item.active-sidebar .sidebar-child-item .standard-sidebar-item .item-anchor,
+                .body-sidebar-container .standard-sidebar-item.active-sidebar .sidebar-child-item .standard-sidebar-item .sidebar-item-label,
+                .body-sidebar-container .standard-sidebar-item.active-sidebar .sidebar-child-item .standard-sidebar-item svg {
+                    color: ${theme.sidebar_inactive_text_color || "inherit"} !important;
+                    fill: ${theme.sidebar_inactive_text_color || "inherit"} !important;
+                    stroke: ${theme.sidebar_inactive_text_color || "inherit"} !important;
+                }
+            `
+					: ""
+			}
+
+            .body-sidebar-container.expanded .standard-sidebar-item:not(.active-sidebar):hover {
+                ${
+					theme.sidebar_hover_background_color
+						? `background-color: ${theme.sidebar_hover_background_color} !important;`
+						: ""
+				}
+                ${
+					theme.sidebar_border_radius !== undefined &&
+					theme.sidebar_border_radius !== null
+						? `border-radius: ${theme.sidebar_border_radius}px !important;`
+						: ""
+				}
+                margin: 0 !important;
+            }
+
+            ${
+				theme.sidebar_hover_text_color
+					? `
+                .body-sidebar-container.expanded .standard-sidebar-item:not(.active-sidebar):hover .sidebar-item-label,
+                .body-sidebar-container.expanded .standard-sidebar-item:not(.active-sidebar):hover .sidebar-item-icon svg {
+                     color: ${theme.sidebar_hover_text_color} !important;
+                }
+            `
+					: ""
+			}
+
+            ${
+				theme.sidebar_inactive_text_color
+					? `
+                /* Inactive Color - Only for Nav Items, not App Switcher */
+                .body-sidebar .standard-sidebar-section .standard-sidebar-item:not(.active-sidebar) .sidebar-item-label,
+                .body-sidebar .standard-sidebar-section .standard-sidebar-item:not(.active-sidebar) .sidebar-item-icon svg {
+                    color: ${theme.sidebar_inactive_text_color} !important;
+                }
+            `
+					: ""
+			}
+
+            ${
+				theme.sidebar_app_title_color
+					? `
+                /* App Title / Logo Area Specific Color */
+                .app-switcher-dropdown .sidebar-item-label,
+                .app-switcher-dropdown .app-title,
+                .app-switcher-dropdown .sidebar-item-control .drop-icon svg {
+                    color: ${theme.sidebar_app_title_color} !important;
+                    fill: ${theme.sidebar_app_title_color} !important;
+                }
+            `
+					: ""
+			}
+
+            ${
+				theme.sidebar_remove_top_margin == 1
+					? `
+               .body-sidebar .standard-sidebar-section:first-child { margin-top: 10px !important; }
+            `
+					: ""
+			}
         `;
 		await this.observer_function(theme);
 		document.head.appendChild(style);
