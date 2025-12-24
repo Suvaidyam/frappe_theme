@@ -292,3 +292,32 @@ function getLighterShade(hex, percent = 20) {
 	return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 frappe.utils.get_lighter_shade_of_hex_color = getLighterShade;
+
+function getDialogSize(fields) {
+	let hasChildTable = fields.some((field) => field.fieldtype === "Table");
+	let hasMultipleColumns = false;
+
+	let currentColumnCount = 0; // Track columns in a section
+	for (let field of fields) {
+		if (field.fieldtype === "Section Break") {
+			currentColumnCount = 0; // Reset column count on new section
+		} else if (field.fieldtype === "Column Break") {
+			currentColumnCount++; // Increase column count
+		}
+
+		if (currentColumnCount >= 1) {
+			// At least one column break = 2 columns
+			hasMultipleColumns = true;
+		}
+	}
+
+	if (hasChildTable) {
+		return "extra-large"; // Child tables require more space
+	} else if (hasMultipleColumns) {
+		return "large"; // Sections with 2+ columns need a larger dialog
+	} else {
+		return "small"; // Default size
+	}
+}
+
+frappe.utils.get_dialog_size = getDialogSize;

@@ -87,6 +87,7 @@ def get_dt_list(
 	limit_start=None,
 	_type="List",
 	unfiltered=0,
+	return_columns=False,
 ):
 	return DTConf.get_dt_list(
 		doctype,
@@ -99,6 +100,7 @@ def get_dt_list(
 		limit_start,
 		_type,
 		unfiltered,
+		return_columns=return_columns,
 	)
 
 

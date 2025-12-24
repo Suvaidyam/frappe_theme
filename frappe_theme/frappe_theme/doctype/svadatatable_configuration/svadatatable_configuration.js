@@ -585,9 +585,6 @@ frappe.ui.form.on("SVADatatable Child Conf", {
 				},
 			};
 		};
-		// let html_fields = await frappe.db.get_list('DocField', { filters: { 'parent': frm.doc.parent_doctype, 'fieldtype': 'HTML' }, fields: ['fieldname'] });
-		// let options = html_fields.map(function (d) { return d.fieldname });
-		// frm?.cur_grid?.set_field_property('html_field', 'options', options);
 	},
 	parent_doctype: async function (frm, cdt, cdn) {
 		let row = locals[cdt][cdn];
