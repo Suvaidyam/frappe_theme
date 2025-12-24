@@ -46,20 +46,26 @@ frappe.ui.Sidebar = class CustomSidebar extends frappe.ui.Sidebar {
 			.off("click")
 			.on("click", (e) => {
 				const $target = $(e.currentTarget);
+				if ($target.data('processing')) return false;
+				$target.data('processing', true);
+				
 				const item_name = $target.closest(".sidebar-item-container").attr("item-name");
 				const item_title = $target.attr("title");
 
-				// Delay to let route update
+				// Immediate active state update
+				this.handle_sidebar_click(e.currentTarget, item_name, item_title);
+				
+				// Delay only for route-dependent updates
 				setTimeout(() => {
 					this.set_active_workspace_item();
-					this.handle_sidebar_click(e.currentTarget, item_name, item_title);
 					frappe.breadcrumbs.update();
+					$target.removeData('processing');
 
 					// Scroll to item if needed
 					if (!frappe.dom.is_element_in_viewport($target)) {
 						$target[0].scrollIntoView({ behavior: "smooth", block: "center" });
 					}
-				}, 50);
+				}, 100);
 
 				$(".list-sidebar.hidden-xs.hidden-sm").removeClass("opened");
 				$("body").css("overflow", "auto");
