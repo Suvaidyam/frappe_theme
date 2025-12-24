@@ -84,6 +84,28 @@ frappe.ui.Sidebar = class CustomSidebar extends frappe.ui.Sidebar {
 				}
 			});
 
+		// Smooth dropdown toggle for parent items
+		$(".drop-icon")
+			.off("click")
+			.on("click", (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+
+				const $dropIcon = $(e.currentTarget);
+				const $childContainer = $dropIcon
+					.closest(".sidebar-item-container")
+					.find(".sidebar-child-item");
+				const $iconUse = $dropIcon.find("use");
+
+				if ($childContainer.hasClass("hidden")) {
+					$childContainer.removeClass("hidden");
+					$iconUse.attr("href", "#es-line-up");
+				} else {
+					$childContainer.addClass("hidden");
+					$iconUse.attr("href", "#es-line-down");
+				}
+			});
+
 		if (
 			sidebar_section.find(".sidebar-item-container").length &&
 			sidebar_section.find("> [item-is-hidden='0']").length == 0
