@@ -183,43 +183,41 @@ const show_table = async (frm, document_type) => {
 };
 
 const set_pending_on_options = async (frm) => {
-	if (frm.doc.module && frm.doc.module !== "N/A") {
-		let pending_on_options = [{ label: "Me", value: "me" }];
+	let pending_on_options = [{ label: "Me", value: "me" }];
+	if (frm.doc.module && frm.doc.module != "N/A") {
 		let response = await frappe.xcall("frappe_theme.api.get_workflow_based_users", {
 			doctype: frm.doc.module,
 		});
 		if (response && response.length) {
 			pending_on_options = pending_on_options.concat(response);
 		}
-		frm.fields_dict.pending_on.set_data(pending_on_options);
 	}
+	frm.fields_dict.pending_on.set_data(pending_on_options);
 };
 const apply_pending_on_filter = async (frm) => {
-	if (frm.doc.module && frm.doc.module !== "N/A") {
-		if (frm.doc?.pending_on) {
-			const result = await frappe.xcall(
-				"frappe_theme.api.get_documents_with_available_transitions",
-				{
-					doctype: frm.doc.module,
-					user: frm.doc?.pending_on != "me" ? frm.doc?.pending_on : null,
-				}
-			);
-			if (result?.length) {
-				frm.sva_dt_instance.connection.extend_condition = 1;
-				frm.sva_dt_instance.connection.extended_condition = JSON.stringify([
-					[frm.doc.module, "name", "in", result],
-				]);
-			} else {
-				frm.sva_dt_instance.connection.extend_condition = 1;
-				frm.sva_dt_instance.connection.extended_condition = JSON.stringify([
-					[frm.doc.module, "name", "in", [""]],
-				]);
+	if (frm.doc?.pending_on) {
+		const result = await frappe.xcall(
+			"frappe_theme.api.get_documents_with_available_transitions",
+			{
+				doctype: frm.doc.module,
+				user: frm.doc?.pending_on != "me" ? frm.doc?.pending_on : null,
 			}
-			await frm.sva_dt_instance.reloadTable();
+		);
+		if (result?.length) {
+			frm.sva_dt_instance.connection.extend_condition = 1;
+			frm.sva_dt_instance.connection.extended_condition = JSON.stringify([
+				[frm.doc.module, "name", "in", result],
+			]);
 		} else {
-			frm.sva_dt_instance.connection.extend_condition = 0;
-			frm.sva_dt_instance.connection.extended_condition = "[]";
-			await frm.sva_dt_instance.reloadTable();
+			frm.sva_dt_instance.connection.extend_condition = 1;
+			frm.sva_dt_instance.connection.extended_condition = JSON.stringify([
+				[frm.doc.module, "name", "in", [""]],
+			]);
 		}
+		await frm.sva_dt_instance.reloadTable();
+	} else {
+		frm.sva_dt_instance.connection.extend_condition = 0;
+		frm.sva_dt_instance.connection.extended_condition = "[]";
+		await frm.sva_dt_instance.reloadTable();
 	}
 };
