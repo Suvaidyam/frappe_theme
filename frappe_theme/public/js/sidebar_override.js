@@ -1,9 +1,14 @@
 frappe.ui.Sidebar = class CustomSidebar extends frappe.ui.Sidebar {
 	// Improved method to handle sidebar item clicks
 	handle_sidebar_click(item_element, item_name, item_title) {
+		// Remove active from ALL sidebar items first
 		$(".standard-sidebar-item").removeClass("active-sidebar");
-		$(item_element).closest(".standard-sidebar-item").addClass("active-sidebar");
-		this.active_item = $(item_element).closest(".standard-sidebar-item");
+
+		// Add active only to the specific clicked item
+		const $clickedItem = $(item_element).closest(".standard-sidebar-item");
+		$clickedItem.addClass("active-sidebar");
+
+		this.active_item = $clickedItem;
 		localStorage.setItem("sidebar-active-item", item_name || item_title);
 	}
 	set_active_workspace_item() {
@@ -15,11 +20,15 @@ frappe.ui.Sidebar = class CustomSidebar extends frappe.ui.Sidebar {
 
 		const $match = this.$sidebar.find(`.sidebar-item-container[item-name="${current_item}"]`);
 		if ($match.length) {
+			// Clear ALL active states first
 			this.$sidebar.find(".standard-sidebar-item").removeClass("active-sidebar");
-			$match.find(".standard-sidebar-item").addClass("active-sidebar");
+
+			// Set active only on the matched item
+			const $targetItem = $match.find(".standard-sidebar-item").first();
+			$targetItem.addClass("active-sidebar");
 			this.active_item = $match;
 
-			// If nested, expand parent
+			// If nested, expand parent but don't make parent active
 			const $parent_container = $match.closest(".sidebar-child-item");
 			if ($parent_container.length) {
 				$parent_container.removeClass("hidden");

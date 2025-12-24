@@ -540,17 +540,38 @@ class FrappeThemeManager {
 				}
             }
 
+            /* Prevent child items from inheriting active state */
+            .body-sidebar-container .standard-sidebar-item.active-sidebar .sidebar-child-item .standard-sidebar-item {
+                ${
+					theme.sidebar_active_background_color
+						? `background-color: transparent !important;`
+						: ""
+				}
+                ${theme.sidebar_active_left_border_width ? `border-left: none !important;` : ""}
+                ${theme.sidebar_active_right_border_width ? `border-right: none !important;` : ""}
+            }
+
             ${
 				theme.sidebar_active_text_color
 					? `
-                .body-sidebar-container .standard-sidebar-item.active-sidebar .item-anchor,
-                .body-sidebar-container .standard-sidebar-item.active-sidebar .sidebar-item-label,
-                .body-sidebar-container .standard-sidebar-item.active-sidebar .sidebar-item-icon,
-                .body-sidebar-container .standard-sidebar-item.active-sidebar svg,
-                .body-sidebar-container .standard-sidebar-item.active-sidebar svg use {
+                /* Active text color - only for direct children, not nested */
+                .body-sidebar-container .standard-sidebar-item.active-sidebar > .item-anchor,
+                .body-sidebar-container .standard-sidebar-item.active-sidebar > .item-anchor .sidebar-item-label,
+                .body-sidebar-container .standard-sidebar-item.active-sidebar > .item-anchor .sidebar-item-icon,
+                .body-sidebar-container .standard-sidebar-item.active-sidebar > .item-anchor svg,
+                .body-sidebar-container .standard-sidebar-item.active-sidebar > .item-anchor svg use {
                     color: ${theme.sidebar_active_text_color} !important;
                     fill: ${theme.sidebar_active_text_color} !important;
                     stroke: ${theme.sidebar_active_text_color} !important;
+                }
+
+                /* Reset child items to inherit normal colors */
+                .body-sidebar-container .standard-sidebar-item.active-sidebar .sidebar-child-item .standard-sidebar-item .item-anchor,
+                .body-sidebar-container .standard-sidebar-item.active-sidebar .sidebar-child-item .standard-sidebar-item .sidebar-item-label,
+                .body-sidebar-container .standard-sidebar-item.active-sidebar .sidebar-child-item .standard-sidebar-item svg {
+                    color: ${theme.sidebar_inactive_text_color || "inherit"} !important;
+                    fill: ${theme.sidebar_inactive_text_color || "inherit"} !important;
+                    stroke: ${theme.sidebar_inactive_text_color || "inherit"} !important;
                 }
             `
 					: ""
