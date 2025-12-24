@@ -1,5 +1,5 @@
 class FrappeThemeManager {
-	constructor() {}
+	constructor() { }
 
 	async getElements(selector, waitSeconds = 2) {
 		let timeTaken = 0;
@@ -137,34 +137,29 @@ class FrappeThemeManager {
 		style.innerHTML = `
             /* Login page */
             #page-login {
-                background: ${
-					theme.page_background_type && theme.page_background_type == "Color"
-						? `${theme.login_page_background_color}`
-						: theme.page_background_type == "Image"
-						? theme.login_page_background_image &&
-						  `url("${theme.login_page_background_image}")`
-						: "transparent"
-				} !important;
+                background: ${theme.page_background_type && theme.page_background_type == "Color"
+				? `${theme.login_page_background_color}`
+				: theme.page_background_type == "Image"
+					? theme.login_page_background_image &&
+					`url("${theme.login_page_background_image}")`
+					: "transparent"
+			} !important;
                 background-size: cover !important;
                 height: 100vh !important;
             }
             .btn-primary.btn-login {
-                background-color: ${
-					theme.login_button_background_color && theme.login_button_background_color
-				} !important;
-                color: ${
-					theme.login_button_text_color && theme.login_button_text_color
-				} !important;
+                background-color: ${theme.login_button_background_color && theme.login_button_background_color
+			} !important;
+                color: ${theme.login_button_text_color && theme.login_button_text_color
+			} !important;
             }
             .btn-primary.btn-login:hover {
-                background-color: ${
-					theme.login_page_button_hover_background_color &&
-					theme.login_page_button_hover_background_color
-				} !important;
-                color: ${
-					theme.login_page_button_hover_text_color &&
-					theme.login_page_button_hover_text_color
-				} !important;
+                background-color: ${theme.login_page_button_hover_background_color &&
+			theme.login_page_button_hover_background_color
+			} !important;
+                color: ${theme.login_page_button_hover_text_color &&
+			theme.login_page_button_hover_text_color
+			} !important;
             }
             div.level-left p{
                 padding-top: 8px;
@@ -172,13 +167,11 @@ class FrappeThemeManager {
             }
 
             .form-control{
-                background-color: ${
-					theme.input_background_color && theme.input_background_color
-				} !important;
+                background-color: ${theme.input_background_color && theme.input_background_color
+			} !important;
                 color: ${theme.input_text_color && theme.input_text_color} !important;
-                border: 2px solid ${
-					theme.input_border_color && theme.input_border_color
-				} !important;
+                border: 2px solid ${theme.input_border_color && theme.input_border_color
+			} !important;
             }
             label.control-label{
                 color: ${theme.input_label_color && theme.input_label_color} !important;
@@ -188,27 +181,23 @@ class FrappeThemeManager {
                 right: ${theme.login_box_position === "Right" ? "10%" : ""};
                 left: ${theme.login_box_position === "Left" ? "10%" : ""};
                 top:${theme.is_app_details_inside_the_box == 1 ? "26%" : "18%"};
-                background-color:${
-					theme.is_app_details_inside_the_box == 1 &&
-					(theme.login_box_background_color ? theme.login_box_background_color : "#ffff")
-				} !important;
+                background-color:${theme.is_app_details_inside_the_box == 1 &&
+			(theme.login_box_background_color ? theme.login_box_background_color : "#ffff")
+			} !important;
                 border-radius:${theme.is_app_details_inside_the_box == 1 && "10px"} !important;
             }
             .login-content.page-card{
-                padding: ${
-					theme.is_app_details_inside_the_box == 1
-						? "18px 40px 40px 40px"
-						: theme.login_box_position !== "Default"
-						? "40px"
-						: ""
-				} !important;
+                padding: ${theme.is_app_details_inside_the_box == 1
+				? "18px 40px 40px 40px"
+				: theme.login_box_position !== "Default"
+					? "40px"
+					: ""
+			} !important;
                 width:${theme.login_box_position !== "Default" ? "450px" : ""} !important;
-                background-color: ${
-					theme.login_box_background_color && theme.login_box_background_color
-				} !important;
-                border: 2px solid ${
-					theme.login_box_background_color && theme.login_box_background_color
-				} !important;
+                background-color: ${theme.login_box_background_color && theme.login_box_background_color
+			} !important;
+                border: 2px solid ${theme.login_box_background_color && theme.login_box_background_color
+			} !important;
             }
             .login-content{
                 border:${theme.is_app_details_inside_the_box == 1 && "none"} !important;
@@ -224,9 +213,8 @@ class FrappeThemeManager {
                 color:${theme.login_page_title && theme.page_heading_text_color} !important;
             }
             .page-card-head h4 {
-                color: ${
-					theme.page_heading_text_color && theme.page_heading_text_color
-				} !important;
+                color: ${theme.page_heading_text_color && theme.page_heading_text_color
+			} !important;
             }
 
             @media (max-width: 768px) {
@@ -269,25 +257,22 @@ class FrappeThemeManager {
                 color: ${theme.navbar_text_color && theme.navbar_text_color} !important;
             }
             #navbar-breadcrumbs li.disabled a{
-                color: ${
-					theme.navbar_color && theme.navbar_text_color
-						? theme.navbar_text_color
-						: theme.navbar_color && "#56373F"
-				} !important;
+                color: ${theme.navbar_color && theme.navbar_text_color
+				? theme.navbar_text_color
+				: theme.navbar_color && "#56373F"
+			} !important;
             }
             .btn-reset.nav-link span{
-                color:${
-					theme.hide_help_button == 0 &&
-					theme.navbar_text_color &&
-					theme.navbar_text_color
-				} !important;
+                color:${theme.hide_help_button == 0 &&
+			theme.navbar_text_color &&
+			theme.navbar_text_color
+			} !important;
             }
             .btn-reset.nav-link span svg{
-                stroke:${
-					theme.hide_help_button == 0 &&
-					theme.navbar_text_color &&
-					theme.navbar_text_color
-				} !important;
+                stroke:${theme.hide_help_button == 0 &&
+			theme.navbar_text_color &&
+			theme.navbar_text_color
+			} !important;
             }
             .d-lg-block,
             .d-sm-block {
@@ -296,171 +281,139 @@ class FrappeThemeManager {
 
             /* Primary Btn */
             .btn-primary, .btn-primary:active{
-                background-color: ${
-					theme.button_background_color && theme.button_background_color
-				} !important;
+                background-color: ${theme.button_background_color && theme.button_background_color
+			} !important;
             }
             .btn-primary span, .btn-primary:active span{
                 color: ${theme.button_text_color && theme.button_text_color} !important;
             }
             .btn-primary:hover{
-                background-color: ${
-					theme.button_hover_background_color && theme.button_hover_background_color
-				} !important;
+                background-color: ${theme.button_hover_background_color && theme.button_hover_background_color
+			} !important;
             }
             .btn-primary:hover span{
-                color: ${
-					theme.button_hover_text_color && theme.button_hover_text_color
-				} !important;
+                color: ${theme.button_hover_text_color && theme.button_hover_text_color
+			} !important;
             }
 
             /* main Contant*/
             body{
-                background-color: ${
-					theme.body_background_color && theme.body_background_color
-				} !important;
+                background-color: ${theme.body_background_color && theme.body_background_color
+			} !important;
             }
             .content.page-container{
-                background-color: ${
-					theme.body_background_color && theme.body_background_color
-				} !important;
+                background-color: ${theme.body_background_color && theme.body_background_color
+			} !important;
             }
             .page-head {
-                background-color: ${
-					theme.body_background_color && theme.body_background_color
-				} !important;
+                background-color: ${theme.body_background_color && theme.body_background_color
+			} !important;
             }
             .layout-main-section, .row.form-section.card-section.visible-section{
-                background-color: ${
-					theme.main_body_content_box_background_color &&
-					theme.main_body_content_box_background_color
-				} !important;
+                background-color: ${theme.main_body_content_box_background_color &&
+			theme.main_body_content_box_background_color
+			} !important;
                 border-radius: 10px!important;
             }
             @media(min-width: 992px) {
                 [data-page-route=Workspaces].layout-main.layout-main-section.edit-mode {
-                    background-color: ${
-						theme.main_body_content_box_background_color &&
-						theme.main_body_content_box_background_color
-					} !important;
+                    background-color: ${theme.main_body_content_box_background_color &&
+			theme.main_body_content_box_background_color
+			} !important;
                 }
             }
             .desk-sidebar-item.standard-sidebar-item.selected,.desk-sidebar-item.standard-sidebar-item.selected span{
-                background-color: ${
-					theme.secondary_button_background_color &&
-					theme.secondary_button_background_color
-				} !important;
-                color: ${
-					theme.secondary_button_text_color && theme.secondary_button_text_color
-				} !important;
+                background-color: ${theme.secondary_button_background_color &&
+			theme.secondary_button_background_color
+			} !important;
+                color: ${theme.secondary_button_text_color && theme.secondary_button_text_color
+			} !important;
             }
             .desk-sidebar-item.standard-sidebar-item:hover,.desk-sidebar-item.standard-sidebar-item:hover span{
-                background-color: ${
-					theme.secondary_button_hover_background_color &&
-					theme.secondary_button_hover_background_color
-				} !important;
-                color: ${
-					theme.secondary_button_hover_text_color &&
-					theme.secondary_button_hover_text_color
-				} !important;
+                background-color: ${theme.secondary_button_hover_background_color &&
+			theme.secondary_button_hover_background_color
+			} !important;
+                color: ${theme.secondary_button_hover_text_color &&
+			theme.secondary_button_hover_text_color
+			} !important;
             }
             .btn.btn-default.ellipsis, .btn-default , .btn-default:active{
-                background-color: ${
-					theme.secondary_button_background_color &&
-					theme.secondary_button_background_color
-				} !important;
-                color: ${
-					theme.secondary_button_text_color && theme.secondary_button_text_color
-				} !important; s
+                background-color: ${theme.secondary_button_background_color &&
+			theme.secondary_button_background_color
+			} !important;
+                color: ${theme.secondary_button_text_color && theme.secondary_button_text_color
+			} !important; s
             }
             .btn.btn-default.ellipsis:hover, .btn-default:hover{
-                background-color: ${
-					theme.secondary_button_hover_background_color &&
-					theme.secondary_button_hover_background_color
-				} !important;
-                color: ${
-					theme.secondary_button_hover_text_color &&
-					theme.secondary_button_hover_text_color
-				} !important;
+                background-color: ${theme.secondary_button_hover_background_color &&
+			theme.secondary_button_hover_background_color
+			} !important;
+                color: ${theme.secondary_button_hover_text_color &&
+			theme.secondary_button_hover_text_color
+			} !important;
             }
             .btn.btn-secondary.btn-default svg{
-                stroke:${
-					theme.secondary_button_text_color && theme.secondary_button_text_color
-				} !important;
-                fill:${
-					theme.secondary_button_text_color && theme.secondary_button_text_color
-				} !important;
+                stroke:${theme.secondary_button_text_color && theme.secondary_button_text_color
+			} !important;
+                fill:${theme.secondary_button_text_color && theme.secondary_button_text_color
+			} !important;
             }
             .btn.btn-secondary svg{
-                stroke:${
-					theme.secondary_button_text_color && theme.secondary_button_text_color
-				} !important;
-                fill:${
-					theme.secondary_button_text_color && theme.secondary_button_text_color
-				} !important;
+                stroke:${theme.secondary_button_text_color && theme.secondary_button_text_color
+			} !important;
+                fill:${theme.secondary_button_text_color && theme.secondary_button_text_color
+			} !important;
             }
             .btn.btn-default svg{
-                stroke:${
-					theme.secondary_button_text_color && theme.secondary_button_text_color
-				} !important;
-                fill:${
-					theme.secondary_button_text_color && theme.secondary_button_text_color
-				} !important;
+                stroke:${theme.secondary_button_text_color && theme.secondary_button_text_color
+			} !important;
+                fill:${theme.secondary_button_text_color && theme.secondary_button_text_color
+			} !important;
             }
             .btn.btn-secondary.btn-default:hover svg{
-                stroke:${
-					theme.secondary_button_hover_text_color &&
-					theme.secondary_button_hover_text_color
-				} !important;
-                fill:${
-					theme.secondary_button_hover_text_color &&
-					theme.secondary_button_hover_text_color
-				} !important;
+                stroke:${theme.secondary_button_hover_text_color &&
+			theme.secondary_button_hover_text_color
+			} !important;
+                fill:${theme.secondary_button_hover_text_color &&
+			theme.secondary_button_hover_text_color
+			} !important;
             }
             .btn.btn-secondary:hover svg{
-                stroke:${
-					theme.secondary_button_hover_text_color &&
-					theme.secondary_button_hover_text_color
-				} !important;
-                fill:${
-					theme.secondary_button_hover_text_color &&
-					theme.secondary_button_hover_text_color
-				} !important;
+                stroke:${theme.secondary_button_hover_text_color &&
+			theme.secondary_button_hover_text_color
+			} !important;
+                fill:${theme.secondary_button_hover_text_color &&
+			theme.secondary_button_hover_text_color
+			} !important;
             }
             .btn.btn-default:hover svg{
-                stroke:${
-					theme.secondary_button_hover_text_color &&
-					theme.secondary_button_hover_text_color
-				} !important;
-                fill:${
-					theme.secondary_button_hover_text_color &&
-					theme.secondary_button_hover_text_color
-				} !important;
+                stroke:${theme.secondary_button_hover_text_color &&
+			theme.secondary_button_hover_text_color
+			} !important;
+                fill:${theme.secondary_button_hover_text_color &&
+			theme.secondary_button_hover_text_color
+			} !important;
             }
             .btn.btn-default.icon-btn span .menu-btn-group-label svg,.btn.btn-secondary.btn-default:hover svg{
-                stroke:${
-					theme.secondary_button_hover_text_color &&
-					theme.secondary_button_hover_text_color
-				} !important;
+                stroke:${theme.secondary_button_hover_text_color &&
+			theme.secondary_button_hover_text_color
+			} !important;
             }
             .page-form.flex{
-                background-color: ${
-					theme.main_body_content_box_background_color &&
-					theme.main_body_content_box_background_color
-				} !important;
+                background-color: ${theme.main_body_content_box_background_color &&
+			theme.main_body_content_box_background_color
+			} !important;
             }
             .widget{
-                background-color: ${
-					theme.main_body_content_box_background_color &&
-					theme.main_body_content_box_background_color
-				} !important;
+                background-color: ${theme.main_body_content_box_background_color &&
+			theme.main_body_content_box_background_color
+			} !important;
             }
 
             /* table */
             .level.list-row-head.text-muted{
-                background-color: ${
-					theme.table_head_background_color && theme.table_head_background_color
-				} !important;
+                background-color: ${theme.table_head_background_color && theme.table_head_background_color
+			} !important;
             }
             .level-left.list-header-subject, span.level-item,div.level-right{
                 color: ${theme.table_head_text_color && theme.table_head_text_color} !important;
@@ -470,9 +423,8 @@ class FrappeThemeManager {
             }
 
             .level.list-row,.level-item.bold.ellipsis a,.filterable.ellipsis{
-                background-color:${
-					theme.table_body_background_color && theme.table_body_background_color
-				} !important;
+                background-color:${theme.table_body_background_color && theme.table_body_background_color
+			} !important;
                 color: ${theme.table_body_text_color && theme.table_body_text_color} !important;
                 margin-top: 1px !important;
             }
@@ -489,12 +441,10 @@ class FrappeThemeManager {
 
             /* Widgets */
             .widget.number-widget-box{
-                background-color: ${
-					theme.number_card_background_color && theme.number_card_background_color
-				} !important;
-                border: 2px solid ${
-					theme.number_card_border_color ? theme.number_card_border_color : "#EDEDED"
-				} !important;
+                background-color: ${theme.number_card_background_color && theme.number_card_background_color
+			} !important;
+                border: 2px solid ${theme.number_card_border_color ? theme.number_card_border_color : "#EDEDED"
+			} !important;
             }
             .widget-head, .widget-label, .widget-title, .widget-body,.widget-content div.number{
                 color: ${theme.number_card_text_color && theme.number_card_text_color} !important;
@@ -502,58 +452,83 @@ class FrappeThemeManager {
 
             /* Sidebar Dynamic Styling */
             .body-sidebar {
-                ${
-					theme.sidebar_background_color
-						? `background-color: ${theme.sidebar_background_color} !important; border-right-color: rgba(0,0,0,0.05);`
-						: ""
-				}
+                ${theme.sidebar_background_color
+				? `background-color: ${theme.sidebar_background_color} !important; border-right-color: rgba(0,0,0,0.05);`
+				: ""
+			}
+            }
+
+            /* Smooth transitions for sidebar items */
+            .standard-sidebar-item {
+                transition: all 0.7s ease !important;
+            }
+
+            .standard-sidebar-item .item-anchor {
+                transition: all 0.7s ease !important;
+            }
+
+            .sidebar-child-item {
+                transition: all 0.7s ease, max-height 0.7s ease !important;
+                overflow: hidden;
+            }
+
+            .sidebar-child-item.hidden {
+                max-height: 0 !important;
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            .sidebar-child-item:not(.hidden) {
+                max-height: 500px !important;
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            .sidebar-item-label {
+                transition: all 0.7s ease !important;
+            }
+
+            .sidebar-item-icon svg {
+                transition: all 0.7s ease !important;
             }
 
             .body-sidebar-container.expanded .standard-sidebar-item.active-sidebar,
             .body-sidebar-container:not(.expanded) .standard-sidebar-item.active-sidebar {
-                ${
-					theme.sidebar_active_background_color
-						? `background-color: ${theme.sidebar_active_background_color} !important;`
-						: ""
-				}
-                ${
-					theme.sidebar_border_radius !== undefined &&
-					theme.sidebar_border_radius !== null
-						? `border-radius: ${theme.sidebar_border_radius}px !important;`
-						: ""
-				}
+                ${theme.sidebar_active_background_color
+				? `background-color: ${theme.sidebar_active_background_color} !important;`
+				: ""
+			}
+                ${theme.sidebar_border_radius !== undefined &&
+				theme.sidebar_border_radius !== null
+				? `border-radius: ${theme.sidebar_border_radius}px !important;`
+				: ""
+			}
                 box-shadow: none !important;
                 margin: 0 !important;
-                ${
-					theme.sidebar_active_left_border_width
-						? `border-left: ${theme.sidebar_active_left_border_width}px solid ${
-								theme.sidebar_active_left_border_color || "transparent"
-						  } !important;`
-						: ""
-				}
-                ${
-					theme.sidebar_active_right_border_width
-						? `border-right: ${theme.sidebar_active_right_border_width}px solid ${
-								theme.sidebar_active_right_border_color || "transparent"
-						  } !important;`
-						: ""
-				}
+                ${theme.sidebar_active_left_border_width
+				? `border-left: ${theme.sidebar_active_left_border_width}px solid ${theme.sidebar_active_left_border_color || "transparent"
+				} !important;`
+				: ""
+			}
+                ${theme.sidebar_active_right_border_width
+				? `border-right: ${theme.sidebar_active_right_border_width}px solid ${theme.sidebar_active_right_border_color || "transparent"
+				} !important;`
+				: ""
+			}
             }
 
             /* Prevent child items from inheriting active state */
             .body-sidebar-container .standard-sidebar-item.active-sidebar .sidebar-child-item .standard-sidebar-item {
-                ${
-					theme.sidebar_active_background_color
-						? `background-color: transparent !important;`
-						: ""
-				}
+                ${theme.sidebar_active_background_color
+				? `background-color: transparent !important;`
+				: ""
+			}
                 ${theme.sidebar_active_left_border_width ? `border-left: none !important;` : ""}
                 ${theme.sidebar_active_right_border_width ? `border-right: none !important;` : ""}
             }
 
-            ${
-				theme.sidebar_active_text_color
-					? `
+            ${theme.sidebar_active_text_color
+				? `
                 /* Active text color - only for direct children, not nested */
                 .body-sidebar-container .standard-sidebar-item.active-sidebar > .item-anchor,
                 .body-sidebar-container .standard-sidebar-item.active-sidebar > .item-anchor .sidebar-item-label,
@@ -574,50 +549,45 @@ class FrappeThemeManager {
                     stroke: ${theme.sidebar_inactive_text_color || "inherit"} !important;
                 }
             `
-					: ""
+				: ""
 			}
 
             .body-sidebar-container.expanded .standard-sidebar-item:not(.active-sidebar):hover {
-                ${
-					theme.sidebar_hover_background_color
-						? `background-color: ${theme.sidebar_hover_background_color} !important;`
-						: ""
-				}
-                ${
-					theme.sidebar_border_radius !== undefined &&
-					theme.sidebar_border_radius !== null
-						? `border-radius: ${theme.sidebar_border_radius}px !important;`
-						: ""
-				}
+                ${theme.sidebar_hover_background_color
+				? `background-color: ${theme.sidebar_hover_background_color} !important;`
+				: ""
+			}
+                ${theme.sidebar_border_radius !== undefined &&
+				theme.sidebar_border_radius !== null
+				? `border-radius: ${theme.sidebar_border_radius}px !important;`
+				: ""
+			}
                 margin: 0 !important;
             }
 
-            ${
-				theme.sidebar_hover_text_color
-					? `
+            ${theme.sidebar_hover_text_color
+				? `
                 .body-sidebar-container.expanded .standard-sidebar-item:not(.active-sidebar):hover .sidebar-item-label,
                 .body-sidebar-container.expanded .standard-sidebar-item:not(.active-sidebar):hover .sidebar-item-icon svg {
                      color: ${theme.sidebar_hover_text_color} !important;
                 }
             `
-					: ""
+				: ""
 			}
 
-            ${
-				theme.sidebar_inactive_text_color
-					? `
+            ${theme.sidebar_inactive_text_color
+				? `
                 /* Inactive Color - Only for Nav Items, not App Switcher */
                 .body-sidebar .standard-sidebar-section .standard-sidebar-item:not(.active-sidebar) .sidebar-item-label,
                 .body-sidebar .standard-sidebar-section .standard-sidebar-item:not(.active-sidebar) .sidebar-item-icon svg {
                     color: ${theme.sidebar_inactive_text_color} !important;
                 }
             `
-					: ""
+				: ""
 			}
 
-            ${
-				theme.sidebar_app_title_color
-					? `
+            ${theme.sidebar_app_title_color
+				? `
                 /* App Title / Logo Area Specific Color */
                 .app-switcher-dropdown .sidebar-item-label,
                 .app-switcher-dropdown .app-title,
@@ -626,15 +596,14 @@ class FrappeThemeManager {
                     fill: ${theme.sidebar_app_title_color} !important;
                 }
             `
-					: ""
+				: ""
 			}
 
-            ${
-				theme.sidebar_remove_top_margin == 1
-					? `
+            ${theme.sidebar_remove_top_margin == 1
+				? `
                .body-sidebar .standard-sidebar-section:first-child { margin-top: 10px !important; }
             `
-					: ""
+				: ""
 			}
         `;
 		await this.observer_function(theme);
