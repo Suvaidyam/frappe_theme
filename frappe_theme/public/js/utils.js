@@ -271,3 +271,53 @@ const setup_year_options_on_autocomplete_field = (frm, fieldname) => {
 	}
 };
 frappe.utils.setup_year_options_on_autocomplete_field = setup_year_options_on_autocomplete_field;
+
+function getLighterShade(hex, percent = 20) {
+	// Remove the hash if present
+	hex = hex.replace(/^#/, "");
+
+	// Parse the hex color
+	let r = parseInt(hex.substring(0, 2), 16);
+	let g = parseInt(hex.substring(2, 4), 16);
+	let b = parseInt(hex.substring(4, 6), 16);
+
+	// Calculate the lighter shade
+	r = Math.min(255, Math.floor(r + (255 - r) * (percent / 100)));
+	g = Math.min(255, Math.floor(g + (255 - g) * (percent / 100)));
+	b = Math.min(255, Math.floor(b + (255 - b) * (percent / 100)));
+
+	// Convert back to hex
+	const toHex = (n) => n.toString(16).padStart(2, "0");
+
+	return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+frappe.utils.get_lighter_shade_of_hex_color = getLighterShade;
+
+function getDialogSize(fields) {
+	let hasChildTable = fields.some((field) => field.fieldtype === "Table");
+	let hasMultipleColumns = false;
+
+	let currentColumnCount = 0; // Track columns in a section
+	for (let field of fields) {
+		if (field.fieldtype === "Section Break") {
+			currentColumnCount = 0; // Reset column count on new section
+		} else if (field.fieldtype === "Column Break") {
+			currentColumnCount++; // Increase column count
+		}
+
+		if (currentColumnCount >= 1) {
+			// At least one column break = 2 columns
+			hasMultipleColumns = true;
+		}
+	}
+
+	if (hasChildTable) {
+		return "extra-large"; // Child tables require more space
+	} else if (hasMultipleColumns) {
+		return "large"; // Sections with 2+ columns need a larger dialog
+	} else {
+		return "small"; // Default size
+	}
+}
+
+frappe.utils.get_dialog_size = getDialogSize;
