@@ -43,12 +43,11 @@ function formatCurrency(amount, currencyCode) {
 }
 
 function formatCurrencyWithSuffix(amount, currencyCode) {
-	if (!currencyCode){
+	if (!currencyCode) {
 		currencyCode = frappe.sys_defaults?.currency;
 	}
 	const suffixMaps = {
 		INR: [
-
 			{ threshold: 10000000, suffix: "Cr", divisor: 10000000 },
 			{ threshold: 100000, suffix: "L", divisor: 100000 },
 			{ threshold: 1000, suffix: "K", divisor: 1000 },
