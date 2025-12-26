@@ -184,11 +184,13 @@ const show_table = async (frm, document_type) => {
 
 const set_pending_on_options = async (frm) => {
 	let pending_on_options = [{ label: "Me", value: "me" }];
-	let response = await frappe.xcall("frappe_theme.api.get_workflow_based_users", {
-		doctype: frm.doc.module,
-	});
-	if (response && response.length) {
-		pending_on_options = pending_on_options.concat(response);
+	if (frm.doc.module && frm.doc.module != "N/A") {
+		let response = await frappe.xcall("frappe_theme.api.get_workflow_based_users", {
+			doctype: frm.doc.module,
+		});
+		if (response && response.length) {
+			pending_on_options = pending_on_options.concat(response);
+		}
 	}
 	frm.fields_dict.pending_on.set_data(pending_on_options);
 };
