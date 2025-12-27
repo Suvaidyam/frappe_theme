@@ -52,8 +52,11 @@ def get_workflow_audit(doctype=None, reference_name=None, limit=100):
 		filters = {"reference_doctype": doctype}
 		if reference_name:
 			filters["reference_name"] = reference_name
+
 		dt_meta = frappe.get_meta(doctype)
 		field_label_map = {df.fieldname: df.label for df in dt_meta.fields}
+		field_meta_map = {df.fieldname: df for df in dt_meta.fields}
+
 		# Fetch workflow actions
 		actions = frappe.get_all(
 			"SVA Workflow Action",
@@ -80,11 +83,59 @@ def get_workflow_audit(doctype=None, reference_name=None, limit=100):
 				action_data = frappe.get_all(
 					"SVA Workflow Action Data Child",
 					filters={"parent": action.name},
-					fields=["fieldname", "fieldtype", "value", "reference_doctype"],
+					fields=["fieldname", "fieldtype", "value"],
 					order_by="idx asc",
 				)
+
+				# Process each field value
 				for item in action_data:
-					item["label"] = field_label_map.get(item.get("fieldname"))
+					fieldname = item.get("fieldname")
+					fieldtype = item.get("fieldtype")
+					value = item.get("value")
+
+					# Get label from field meta
+					item["label"] = field_label_map.get(fieldname)
+
+					# Get field meta for this field
+					field_meta = field_meta_map.get(fieldname)
+
+					if not field_meta or not value:
+						continue
+
+					# Handle Link field
+					if fieldtype == "Link" and field_meta.options:
+						link_doctype = field_meta.options
+						item["reference_doctype"] = link_doctype
+						item["value"] = get_link_title(link_doctype, value)
+
+					# Handle Dynamic Link field
+					elif fieldtype == "Dynamic Link" and field_meta.options:
+						# options field contains the fieldname that stores the doctype
+						link_doctype_field = field_meta.options
+						# Get the doctype value from the parent document
+						if reference_name:
+							parent_doc = frappe.get_doc(doctype, reference_name)
+							link_doctype = parent_doc.get(link_doctype_field)
+							if link_doctype:
+								item["reference_doctype"] = link_doctype
+								item["value"] = get_link_title(link_doctype, value)
+
+					# Handle Table MultiSelect field
+					elif fieldtype == "Table MultiSelect" and field_meta.options:
+						link_doctype = field_meta.options
+						item["reference_doctype"] = link_doctype
+						# Value is comma-separated IDs
+						if value:
+							ids = [v.strip() for v in value.split(",") if v.strip()]
+							titles = [get_link_title(link_doctype, id_val) for id_val in ids]
+							item["value"] = ", ".join(titles)
+
+					# Handle Multiselect with link references (if any)
+					elif fieldtype == "MultiSelect":
+						# Usually stores display values, not IDs
+						# But check if options suggest it's a link
+						pass
+
 				action["action_data"] = action_data
 
 		return {
@@ -102,6 +153,42 @@ def get_workflow_audit(doctype=None, reference_name=None, limit=100):
 	except Exception as e:
 		frappe.log_error(f"Workflow Audit Error: {str(e)}", "Workflow Audit API")
 		return {"success": False, "message": str(e)}
+
+
+def get_link_title(doctype, name):
+	"""
+	Get the title/display name for a linked document
+
+	Args:
+	    doctype (str): The DocType
+	    name (str): The document name/ID
+
+	Returns:
+	    str: The title or name
+	"""
+	try:
+		if not doctype or not name:
+			return name
+
+		# Check if document exists
+		if not frappe.db.exists(doctype, name):
+			return name
+
+		# Get meta for the doctype
+		meta = frappe.get_meta(doctype)
+
+		# Try to get title field
+		title_field = meta.get_title_field()
+
+		if title_field and title_field != "name":
+			title = frappe.db.get_value(doctype, name, title_field)
+			return title or name
+
+		return name
+
+	except Exception as e:
+		frappe.log_error(f"Get Link Title Error for {doctype} - {name}: {str(e)}", "Link Title Fetch")
+		return name
 
 
 @frappe.whitelist()
