@@ -260,8 +260,9 @@ class Chart:
         data_sets = []
         labels = []
         data_sets_map = {}
+        default_colors = Chart.default_colors()
 
-        for y_axis in y_axis_columns:
+        for index, y_axis in enumerate(y_axis_columns):
             y_field = y_axis.get("y_field")
             _type = (y_axis.get("custom_type") or chart_doc.get("type")).lower()
             _label = y_axis.get("custom_label") or next(
@@ -270,7 +271,7 @@ class Chart:
             )
             data_sets_map[y_field] = {
                 "data": [],
-                "backgroundColor": y_axis.get("color"),
+                "backgroundColor": y_axis.get("color") or default_colors[index],
                 "borderColor": y_axis.get("color") if _type == "line" else None,
                 "type": _type,
                 "label": _label,
