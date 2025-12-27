@@ -6,53 +6,27 @@
 				<div class="d-flex justify-content-between align-items-center">
 					{{ chart.details.chart_name }}
 					<div class="dropdown" v-if="actions.length">
-						<span
-							title="action"
-							class="pointer d-flex justify-content-center align-items-center"
-							id="dropdownMenuButton"
-							data-toggle="dropdown"
-							aria-haspopup="true"
-							aria-expanded="false"
-						>
+						<span title="action" class="pointer d-flex justify-content-center align-items-center"
+							id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 							...
 						</span>
 						<div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-							<a
-								v-for="action in actions"
-								:key="action.action"
-								class="dropdown-item"
-								@click="handleAction(action.action)"
-							>
+							<a v-for="action in actions" :key="action.action" class="dropdown-item"
+								@click="handleAction(action.action)">
 								{{ action.label }}
 							</a>
 						</div>
 					</div>
 				</div>
 				<div class="w-100 pt-2" v-if="data.labels.length">
-					<Bar
-						v-if="chart?.details?.type === 'Bar'"
-						:data="data"
-						:options="{ ...options, ...data?.options }"
-						:height="400"
-					/>
-					<Line
-						v-if="chart?.details?.type === 'Line'"
-						:data="data"
-						:options="{ ...options, ...data?.options }"
-						:height="400"
-					/>
-					<Pie
-						v-if="chart?.details?.type === 'Pie'"
-						:data="data"
-						:options="{ ...options, ...data?.options }"
-						:height="400"
-					/>
-					<Doughnut
-						v-if="chart?.details?.type === 'Donut'"
-						:data="data"
-						:options="{ ...options, ...data?.options }"
-						:height="400"
-					/>
+					<Bar v-if="chart?.details?.type === 'Bar'" :data="data" :options="{ ...options, ...data?.options }"
+						:height="400" />
+					<Line v-if="chart?.details?.type === 'Line'" :data="data"
+						:options="{ ...options, ...data?.options }" :height="400" />
+					<Pie v-if="chart?.details?.type === 'Pie'" :data="data" :options="{ ...options, ...data?.options }"
+						:height="400" />
+					<Doughnut v-if="chart?.details?.type === 'Donut'" :data="data"
+						:options="{ ...options, ...data?.options }" :height="400" />
 				</div>
 				<div class="frappe-theme-no-data" v-else>No data</div>
 			</div>
@@ -74,11 +48,12 @@ import {
 	ArcElement,
 	PointElement,
 	LineElement,
+	Filler
 } from "chart.js";
 import ChartDataLabels from "chartjs-plugin-datalabels";
+import zoomPlugin from 'chartjs-plugin-zoom';
 import { Bar, Line, Pie, Doughnut } from "vue-chartjs";
 
-// Register ChartJS components
 ChartJS.register(
 	Title,
 	Tooltip,
@@ -88,7 +63,8 @@ ChartJS.register(
 	LinearScale,
 	ArcElement,
 	PointElement,
-	LineElement
+	LineElement,
+	Filler,
 );
 
 const props = defineProps({
@@ -121,73 +97,78 @@ const options = ref({
 	indexAxis: props.chart?.details?.custom_enable_row ? "y" : "x",
 	scales: {
 		y: {
-			...(props.chart?.details?.custom_enable_row
-				? {}
-				: {
-						min: props.chart?.details?.custom_ymin || 0,
-						max: props.chart?.details?.custom_ymax || undefined,
-						stacked:
-							props.chart?.details?.custom_stack &&
-							!props.chart?.details?.custom_overlap
-								? true
-								: false,
-						ticks: {
-							callback: function (value) {
-								return frappe.utils.shorten_number(value);
-							},
-						},
-				  }),
-		},
-		x: {
+			display: ["Pie", "Donut"].includes(props.chart?.details?.type) ? false : true,
 			...(props.chart?.details?.custom_enable_row
 				? {
-						min: props.chart?.details?.custom_ymin || 0,
-						max: props.chart?.details?.custom_ymax || undefined,
-						stacked:
-							props.chart?.details?.custom_stack &&
+					ticks: {
+						minRotation: parseInt(props.chart?.details?.custom_rotate_values || 0) || 0,
+						maxRotation: parseInt(props.chart?.details?.custom_rotate_values || 0) || 0
+					}
+				}
+				: {
+					min: props.chart?.details?.custom_ymin || 0,
+					max: props.chart?.details?.custom_ymax || undefined,
+					stacked:
+						props.chart?.details?.custom_stack &&
 							!props.chart?.details?.custom_overlap
-								? true
-								: false,
-						ticks: {
-							callback: function (value) {
-								return frappe.utils.shorten_number(value);
-							},
-						},
-				  }
-				: {}),
+							? true
+							: false,
+					ticks: {
+						callback: function (value) {
+							return frappe.utils.shorten_number(value);
+						}
+					},
+				}),
 		},
+		x: {
+			display: ["Pie", "Donut"].includes(props.chart?.details?.type) ? false : true,
+			...(props.chart?.details?.custom_enable_row
+				? {
+					min: props.chart?.details?.custom_ymin || 0,
+					max: props.chart?.details?.custom_ymax || undefined,
+					stacked:
+						props.chart?.details?.custom_stack &&
+							!props.chart?.details?.custom_overlap
+							? true
+							: false,
+					ticks: {
+						callback: function (value) {
+							return frappe.utils.shorten_number(value);
+						}
+					},
+				}
+				: {
+					ticks: {
+						minRotation: parseInt(props.chart?.details?.custom_rotate_values || 0) || 0,
+						maxRotation: parseInt(props.chart?.details?.custom_rotate_values || 0) || 0
+					}
+				}),
+		},
+	},
+	elements: {
+		...(props.chart?.details?.type == "Line" && props.chart?.details?.custom__curved_area
+			? {
+				line: {
+					tension: 0.4,
+					cubicInterpolationMode: 'monotone',
+				},
+			}
+			: {}),
+		...(props.chart?.details?.type == "Bar" && props.chart?.details?.custom_overlap
+			? {
+				bar: {
+					barPercentage: 0.5,
+					categoryPercentage: 0.5,
+				},
+			}
+			: {}),
 	},
 	responsive: true,
 	maintainAspectRatio: false,
 	plugins: {
-		...(props.chart?.details?.custom_show_data_labels
-			? {
-					datalabels: {
-						anchor: "center",
-						align: "center",
-						color: "black",
-						formatter: (data) => {
-							let meta = data.meta || {};
-							let value = data?.y || 0;
-							if (meta) {
-								if (meta.fieldtype === "Currency") {
-									return `${frappe.utils.format_currency(
-										value,
-										props.chart?.details?.currency
-									)}`;
-								} else if (
-									meta.fieldtype === "Int" ||
-									meta.fieldtype === "Float"
-								) {
-									return `${frappe.utils.shorten_number(value)}`;
-								}
-							}
-						},
-					},
-			  }
-			: {}),
 		legend: {
-			position: "bottom",
+			display: true,
+			position: (props.chart?.details?.custom_legend_position?.toLowerCase() || "bottom"),
 		},
 		tooltip: {
 			callbacks: {
@@ -209,7 +190,7 @@ const options = ref({
 		},
 	},
 });
-
+console.log(options.value, 'options')
 // const emit = defineEmits(['action-clicked']);
 
 const handleAction = async (action) => {

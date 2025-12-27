@@ -2,315 +2,602 @@ import json
 
 import frappe
 from frappe import _
-from frappe.utils import fmt_money
-
 
 class Chart:
-	@staticmethod
-	def chart_settings(settings) -> list[dict]:
-		"""Process and return visible charts with their details."""
-		visible_charts = [chart for chart in settings.charts if chart.is_visible]
-		updated_charts = []
+    @staticmethod
+    def default_colors(length=20) -> list[str]:
+        """Return a list of default colors for charts."""
+        my_theme = frappe.get_cached_doc("My Theme", "My Theme").as_dict()
+        primary_color = my_theme.get("navbar_color")
+        
+        colors = [Chart.lighten_hex(primary_color, amount=0.2)] if primary_color else []
+        fallback_colors = [
+            "#3498db",
+            "#e74c3c",
+            "#2ecc71",
+            "#9b59b6",
+            "#f1c40f",
+            "#e67e22",
+            "#1abc9c",
+            "#34495e",
+            "#7f8c8d",
+            "#d35400",
+            "#27ae60",
+            "#8e44ad",
+            "#2980b9",
+            "#16a085",
+            "#2c3e50",
+            "#f39c12",
+            "#bdc3c7",
+            "#95a5a6",
+            "#c0392b",
+            "#d35400"
+        ]
+        for i in range(length):
+            colors.append(fallback_colors[i % len(fallback_colors)])
+        return colors
+        
+        
+    @staticmethod
+    def lighten_hex(hex_color, amount=0.3):
+        """
+        amount: 0 → original color
+                1 → white
+        """
+        hex_color = hex_color.lstrip("#")
+        r, g, b = [int(hex_color[i:i+2], 16) for i in (0, 2, 4)]
 
-		for chart in visible_charts:
-			if not frappe.db.exists("Dashboard Chart", chart.dashboard_chart):
-				continue
-			chart_details = frappe.get_cached_doc("Dashboard Chart", chart.dashboard_chart)
-			chart["details"] = chart_details
+        r = int(r + (255 - r) * amount)
+        g = int(g + (255 - g) * amount)
+        b = int(b + (255 - b) * amount)
 
-			if chart.details.chart_type == "Report":
-				chart["report"] = (
-					frappe.get_cached_doc("Report", chart.details.report_name)
-					if frappe.db.exists("Report", chart.details.report_name)
-					else None
-				)
+        return f"#{r:02x}{g:02x}{b:02x}"
+    
+    @staticmethod
+    def chart_settings(settings) -> list[dict]:
+        """Process and return visible charts with their details."""
+        visible_charts = [chart for chart in settings.charts if chart.is_visible]
+        updated_charts = []
 
-			updated_charts.append(chart)
+        for chart in visible_charts:
+            if not frappe.db.exists("Dashboard Chart", chart.dashboard_chart):
+                continue
+            chart_details = frappe.get_cached_doc("Dashboard Chart", chart.dashboard_chart)
+            chart["details"] = chart_details
 
-		return updated_charts
+            if chart.details.chart_type == "Report":
+                chart["report"] = (
+                    frappe.get_cached_doc("Report", chart.details.report_name)
+                    if frappe.db.exists("Report", chart.details.report_name)
+                    else None
+                )
 
-	@staticmethod
-	def get_chart_data(
-		type: str,
-		details: str,
-		report: str | None = None,
-		doctype: str | None = None,
-		docname: str | None = None,
-	) -> dict:
-		"""Get chart data based on type and parameters."""
-		try:
-			details = json.loads(details)
-			report = json.loads(report) if report else None
+            updated_charts.append(chart)
 
-			if type == "Report":
-				return Chart.chart_report(details, report, doctype, docname)
-			elif type == "Document Type":
-				return Chart.chart_doc_type(details, doctype, docname)
-			else:
-				return Chart._get_empty_chart_data(f"Invalid chart type: {type}")
-		except Exception as e:
-			frappe.log_error(f"Error in get_chart_data: {str(e)}")
-			return Chart._get_empty_chart_data(str(e))
+        return updated_charts
 
-	@staticmethod
-	def _get_empty_chart_data(message: str = "") -> dict:
-		"""Return empty chart data structure."""
-		return {"data": {"labels": [], "datasets": [{"data": []}]}, "message": message}
+    @staticmethod
+    def get_chart_data(
+        type: str,
+        details: str,
+        report: str | None = None,
+        doctype: str | None = None,
+        docname: str | None = None,
+    ) -> dict:
+        """Get chart data based on type and parameters."""
+        try:
+            details = json.loads(details)
+            report = json.loads(report) if report else None
 
-	@staticmethod
-	def _get_colors(details: dict) -> list[str]:
-		"""Get colors for chart from details."""
-		if details.get("custom_options"):
-			return list(json.loads(details.get("custom_options")))
-		return [x.get("color") for x in details.get("y_axis", [])]
+            if type == "Report":
+                return Chart.chart_report(details, report, doctype, docname)
+            elif type == "Document Type":
+                return Chart.chart_doc_type(details, doctype, docname)
+            else:
+                return Chart._get_empty_chart_data(f"Invalid chart type: {type}")
+        except Exception as e:
+            frappe.log_error(f"Error in get_chart_data: {str(e)}")
+            return Chart._get_empty_chart_data(str(e))
 
-	@staticmethod
-	def chart_doc_type(details: dict, doctype: str | None = None, docname: str | None = None) -> dict:
-		"""Generate chart data for document type."""
-		try:
-			filters = Chart._process_filters(json.loads(details.get("filters_json", "[]")))
+    @staticmethod
+    def _get_empty_chart_data(message: str = "") -> dict:
+        """Return empty chart data structure."""
+        return {"data": {"labels": [], "datasets": [{"data": []}]}, "message": message}
 
-			if doctype and docname:
-				filters.extend(Chart._get_doc_filters(details.get("document_type"), doctype, docname))
+    @staticmethod
+    def _get_colors(details: dict) -> list[str]:
+        """Get colors for chart from details."""
+        if details.get("custom_options"):
+            return list(json.loads(details.get("custom_options")))
+        return [x.get("color") for x in details.get("y_axis", [])]
 
-			data = frappe.db.get_list(
-				details.get("document_type"), filters=filters, fields=["label", "count"]
-			)
+    @staticmethod
+    def chart_doc_type(details: dict, doctype: str | None = None, docname: str | None = None) -> dict:
+        """Generate chart data for document type."""
+        try:
+            filters = Chart._process_filters(json.loads(details.get("filters_json", "[]")))
 
-			return {
-				"data": {
-					"labels": [x.get("label") for x in data],
-					"datasets": [
-						{
-							"data": [x.get("count") for x in data],
-							"backgroundColor": Chart._get_colors(details),
-						}
-					],
-				},
-				"message": "Document Type",
-			}
-		except Exception as e:
-			frappe.log_error(f"Error in chart_doc_type: {str(e)}")
-			return Chart._get_empty_chart_data(str(e))
+            if doctype and docname:
+                filters.extend(Chart._get_doc_filters(details.get("document_type"), doctype, docname))
 
-	@staticmethod
-	def _process_filters(filters: list) -> list:
-		"""Clean and process filters."""
-		processed_filters = []
-		for filter_condition in filters:
-			if len(filter_condition) < 3:
-				continue
+            data = frappe.db.get_list(
+                details.get("document_type"), filters=filters, fields=["label", "count"]
+            )
 
-			if isinstance(filter_condition[3], list):
-				filter_condition[3] = [x for x in filter_condition[3] if x is not None]
-				if not filter_condition[3]:
-					continue
+            return {
+                "data": {
+                    "labels": [x.get("label") for x in data],
+                    "datasets": [
+                        {
+                            "data": [x.get("count") for x in data],
+                            "backgroundColor": Chart._get_colors(details),
+                        }
+                    ],
+                },
+                "message": "Document Type",
+            }
+        except Exception as e:
+            frappe.log_error(f"Error in chart_doc_type: {str(e)}")
+            return Chart._get_empty_chart_data(str(e))
 
-			if len(filter_condition) > 4 and filter_condition[4] is False:
-				filter_condition.pop(4)
+    @staticmethod
+    def _process_filters(filters: list) -> list:
+        """Clean and process filters."""
+        processed_filters = []
+        for filter_condition in filters:
+            if len(filter_condition) < 3:
+                continue
 
-			processed_filters.append(filter_condition)
+            if isinstance(filter_condition[3], list):
+                filter_condition[3] = [x for x in filter_condition[3] if x is not None]
+                if not filter_condition[3]:
+                    continue
 
-		return processed_filters
+            if len(filter_condition) > 4 and filter_condition[4] is False:
+                filter_condition.pop(4)
 
-	@staticmethod
-	def _get_doc_filters(doc_type: str, doctype: str, docname: str) -> list:
-		"""Get document filters based on doctype and docname."""
-		filters = []
-		meta = frappe.get_meta(doc_type)
+            processed_filters.append(filter_condition)
 
-		if not meta.fields:
-			return filters
+        return processed_filters
 
-		# Check for direct link field
-		direct_link_field = next(
-			(
-				x
-				for x in meta.fields
-				if x.fieldtype == "Link" and x.options == doctype and x.fieldname not in ["amended_form"]
-			),
-			None,
-		)
-		if direct_link_field:
-			filters.append([doc_type, direct_link_field.fieldname, "=", docname])
+    @staticmethod
+    def _get_doc_filters(doc_type: str, doctype: str, docname: str) -> list:
+        """Get document filters based on doctype and docname."""
+        filters = []
+        meta = frappe.get_meta(doc_type)
 
-		# Check for reference fields
-		reference_dt_field = next(
-			(x for x in meta.fields if x.fieldtype == "Link" and x.options == "DocType"), None
-		)
-		if reference_dt_field:
-			reference_dn_field = next(
-				(
-					x
-					for x in meta.fields
-					if x.fieldtype == "Dynamic Link" and x.options == reference_dt_field.fieldname
-				),
-				None,
-			)
-			if reference_dn_field:
-				filters.extend(
-					[
-						[doc_type, reference_dt_field.fieldname, "=", doctype],
-						[doc_type, reference_dn_field.fieldname, "=", docname],
-					]
-				)
+        if not meta.fields:
+            return filters
 
-		return filters
+        # Check for direct link field
+        direct_link_field = next(
+            (
+                x
+                for x in meta.fields
+                if x.fieldtype == "Link" and x.options == doctype and x.fieldname not in ["amended_form"]
+            ),
+            None,
+        )
+        if direct_link_field:
+            filters.append([doc_type, direct_link_field.fieldname, "=", docname])
 
-	@staticmethod
-	def chart_report(
-		details: dict, report: dict | None = None, doctype: str | None = None, docname: str | None = None
-	) -> dict:
-		"""Generate chart data for report type."""
-		try:
-			if not report:
-				return Chart._get_empty_chart_data("Report not found.")
-			chart_data = Chart._get_empty_chart_data("No data available.")
-			if report.get("report_type") == "Query Report" and report.get("query"):
-				conditions = "WHERE 1=1"
-				if (doctype and docname) and doctype != docname:
-					for f in report.get("columns", []):
-						if f.get("fieldtype") == "Link" and f.get("options") == doctype:
-							conditions += f" AND t.{f.get('fieldname')} = '{docname}'"
+        # Check for reference fields
+        reference_dt_field = next(
+            (x for x in meta.fields if x.fieldtype == "Link" and x.options == "DocType"), None
+        )
+        if reference_dt_field:
+            reference_dn_field = next(
+                (
+                    x
+                    for x in meta.fields
+                    if x.fieldtype == "Dynamic Link" and x.options == reference_dt_field.fieldname
+                ),
+                None,
+            )
+            if reference_dn_field:
+                filters.extend(
+                    [
+                        [doc_type, reference_dt_field.fieldname, "=", doctype],
+                        [doc_type, reference_dn_field.fieldname, "=", docname],
+                    ]
+                )
 
-				query = f"""
+        return filters
+
+    @staticmethod
+    def chart_report(
+        details: dict, report: dict | None = None, doctype: str | None = None, docname: str | None = None
+    ) -> dict:
+        """Generate chart data for report type."""
+        try:
+            if not report:
+                return Chart._get_empty_chart_data("Report not found.")
+            chart_data = Chart._get_empty_chart_data("No data available.")
+            if report.get("report_type") == "Query Report" and report.get("query"):
+                conditions = "WHERE 1=1"
+                if (doctype and docname) and doctype != docname:
+                    for f in report.get("columns", []):
+                        if f.get("fieldtype") == "Link" and f.get("options") == doctype:
+                            conditions += f" AND t.{f.get('fieldname')} = '{docname}'"
+
+                query = f"""
                     SELECT
                         t.*
                     FROM
                         ({report.get('query')}) AS t {conditions}
                 """
 
-				data = frappe.db.sql(query, as_dict=True)
-				columns = report.get("columns", [])
+                data = frappe.db.sql(query, as_dict=True)
+                columns = report.get("columns", [])
 
-				if details.get("type") in ["Bar", "Line"]:
-					chart_data = Chart.process_response_for_bar_or_line_chart(details, data, columns)
+                if details.get("type") in ["Bar", "Line"]:
+                    chart_data = Chart.process_response_for_bar_or_line_chart(details, data, columns)
+                elif details.get("type") in ["Pie", "Donut"]:
+                    chart_data = Chart.process_response_for_pie_or_donut_chart(details, data, columns)
 
-			if report.get("report_type") == "Script Report":
-				from frappe.desk.query_report import run
+            if report.get("report_type") == "Script Report":
+                from frappe.desk.query_report import run
 
-				response = run(report.get("name"), filters={})
-				data = response.get("result", [])
-				columns = response.get("columns", [])
-				data = Chart.filter_script_report_data(data, columns, doctype, docname)
+                response = run(report.get("name"), filters={})
+                data = response.get("result", [])
+                columns = response.get("columns", [])
+                data = Chart.filter_script_report_data(data, columns, doctype, docname)
 
-				if details.get("type") in ["Bar", "Line"]:
-					chart_data = Chart.process_response_for_bar_or_line_chart(details, data, columns)
+                if details.get("type") in ["Bar", "Line"]:
+                    chart_data = Chart.process_response_for_bar_or_line_chart(details, data, columns)
+                elif details.get("type") in ["Pie", "Donut"]:
+                    chart_data = Chart.process_response_for_pie_or_donut_chart(details, data, columns)
 
-			return chart_data
+            return chart_data
 
-		except Exception as e:
-			frappe.log_error(f"Error in chart_report: {str(e)}")
-			return Chart._get_empty_chart_data(str(e))
+        except Exception as e:
+            frappe.log_error(f"Error in chart_report: {str(e)}")
+            return Chart._get_empty_chart_data(str(e))
 
-	@staticmethod
-	def process_response_for_bar_or_line_chart(chart_doc, data, columns):
-		y_axis_columns = chart_doc.get("y_axis", [])
-		data_sets = []
-		labels = []
-		data_sets_map = {}
+    @staticmethod
+    def process_response_for_bar_or_line_chart(chart_doc, data, columns):
+        y_axis_columns = chart_doc.get("y_axis", [])
+        data_sets = []
+        labels = []
+        data_sets_map = {}
 
-		for y_axis in y_axis_columns:
-			y_field = y_axis.get("y_field")
-			_type = (y_axis.get("custom_type") or chart_doc.get("type")).lower()
-			_label = y_axis.get("custom_label") or next(
-				(col.get("label") for col in columns if col.get("fieldname") == y_field),
-				y_field,
-			)
-			data_sets_map[y_field] = {
-				"data": [],
-				"backgroundColor": y_axis.get("color"),
-				"borderColor": y_axis.get("color") if _type == "line" else None,
-				"type": _type,
-				"label": _label,
-			}
-			if chart_doc.get("custom_stack") or chart_doc.get("custom_overlap"):
-				data_sets_map[y_field]["stack"] = "same"
+        for y_axis in y_axis_columns:
+            y_field = y_axis.get("y_field")
+            _type = (y_axis.get("custom_type") or chart_doc.get("type")).lower()
+            _label = y_axis.get("custom_label") or next(
+                (col.get("label") for col in columns if col.get("fieldname") == y_field),
+                y_field,
+            )
+            data_sets_map[y_field] = {
+                "data": [],
+                "backgroundColor": y_axis.get("color"),
+                "borderColor": y_axis.get("color") if _type == "line" else None,
+                "type": _type,
+                "label": _label,
+            }
+            if chart_doc.get("custom_stack") or chart_doc.get("custom_overlap"):
+                data_sets_map[y_field]["stack"] = "same"
+            if _type == "line":
+                data_sets_map[y_field]["pointRadius"] = 0
+                if chart_doc.get("custom_show_area"):
+                    data_sets_map[y_field]["fill"] = True
+                    data_sets_map[y_field]["backgroundColor"] = Chart.lighten_hex(y_axis.get("color"), 0.8)
+                if chart_doc.get("custom_show_data_points"):
+                    data_sets_map[y_field]["pointRadius"] = 3
+                
 
-		labels = []
+        labels = []
 
-		# Loop rows
-		for row in data:
-			row_has_value = False
-			row_values = {}
+        # Loop rows
+        for row in data:
+            row_has_value = False
+            row_values = {}
 
-			for y_axis in y_axis_columns:
-				y_field = y_axis.get("y_field")
+            for y_axis in y_axis_columns:
+                y_field = y_axis.get("y_field")
 
-				if isinstance(row, dict):
-					value = row.get(y_field)
-				else:
-					y_idx = next(
-						(i for i, col in enumerate(columns) if col.get("fieldname") == y_field),
-						None,
-					)
-					value = row[y_idx] if y_idx is not None else None
+                if isinstance(row, dict):
+                    value = row.get(y_field)
+                else:
+                    y_idx = next(
+                        (i for i, col in enumerate(columns) if col.get("fieldname") == y_field),
+                        None,
+                    )
+                    value = row[y_idx] if y_idx is not None else None
 
-				value = value or 0
-				row_values[y_field] = value
+                value = value or 0
+                row_values[y_field] = value
 
-				if value:
-					row_has_value = True
+                if value:
+                    row_has_value = True
 
-			if not row_has_value:
-				continue
+            if not row_has_value:
+                continue
 
-			if isinstance(row, dict):
-				label = row.get(chart_doc.get("x_field")) or "Unknown"
-			else:
-				x_idx = next(
-					(i for i, col in enumerate(columns) if col.get("fieldname") == chart_doc.get("x_field")),
-					None,
-				)
-				label = row[x_idx] if x_idx is not None else "Unknown"
+            if isinstance(row, dict):
+                label = row.get(chart_doc.get("x_field")) or "Unknown"
+            else:
+                x_idx = next(
+                    (i for i, col in enumerate(columns) if col.get("fieldname") == chart_doc.get("x_field")),
+                    None,
+                )
+                label = row[x_idx] if x_idx is not None else "Unknown"
 
-			labels.append(label)
+            labels.append(label)
 
-			for y_field, dataset in data_sets_map.items():
-				_field = next((col for col in columns if col.get("fieldname") == y_field), None)
-				dataset["data"].append(
-					{
-						"x": row_values.get(y_field),
-						"y": row_values.get(y_field),
-						"meta": {**_field, "label": dataset["label"] or _field.get("label") or y_field},
-					}
-				)
+            for y_field, dataset in data_sets_map.items():
+                _field = next((col for col in columns if col.get("fieldname") == y_field), None)
+                dataset["data"].append(
+                    {
+                        "x": row_values.get(y_field),
+                        "y": row_values.get(y_field),
+                        "meta": {**_field, "label": dataset["label"] or _field.get("label") or y_field},
+                    }
+                )
 
-		data_sets = list(data_sets_map.values())
+        data_sets = list(data_sets_map.values())
 
-		return {
-			"data": {"labels": labels, "datasets": data_sets},
-			"message": chart_doc,
-		}
+        return {
+            "data": {"labels": labels, "datasets": data_sets},
+            "message": chart_doc,
+        }
 
-	@staticmethod
-	def filter_script_report_data(result, columns, dt=None, dn=None):
-		"""Filter report data based on document type and name."""
-		if not dt or not dn:
-			return result
+    @staticmethod
+    def process_response_for_pie_or_donut_chart(chart_doc, data, columns):
+        """Process response data for pie or donut charts.
+        
+        Supports two modes:
+        - Single dataset (default): Uses first y-axis, creates one pie/donut with color variations
+        - Multiple datasets: Uses all y-axis columns, creates concentric rings (set custom_multiple_datasets=True)
+        """
+        y_axis_columns = chart_doc.get("y_axis", [])
 
-		if dt == dn:
-			return result
+        if not y_axis_columns:
+            return {
+                "data": {"labels": [], "datasets": [{"data": []}]},
+                "message": "No y-axis configuration found",
+            }
 
-		primary_link_field = None
+        # Check if multiple datasets mode is enabled
+        use_multiple_datasets = chart_doc.get("custom_multiple_datasets", False)
 
-		for col in columns:
-			if col.get("fieldtype") == "Link" and col.get("options") == dt:
-				primary_link_field = col.get("fieldname")
-				break
-		if not primary_link_field:
-			return result
-		data = []
-		for row in result:
-			if isinstance(row, dict):
-				if row.get(primary_link_field) == dn:
-					data.append(row)
-			else:
-				idx = None
-				for i, col in enumerate(columns):
-					if col.get("fieldname") == primary_link_field:
-						idx = i
-						break
-				if idx is not None and row[idx] == dn:
-					data.append(row)
-		return data
+        if use_multiple_datasets:
+            # Multiple datasets mode: create concentric rings
+            return Chart._process_multi_dataset_pie_donut(chart_doc, data, columns, y_axis_columns)
+        else:
+            # Single dataset mode: use first y-axis with color variations
+            return Chart._process_single_dataset_pie_donut(chart_doc, data, columns, y_axis_columns)
+
+    @staticmethod
+    def _process_single_dataset_pie_donut(chart_doc, data, columns, y_axis_columns):
+        """Process pie/donut chart with single dataset (color variations per slice)."""
+        labels = []
+        dataset_values = []
+        background_colors = []
+
+        y_axis = y_axis_columns[0]  # Use first y-axis
+        y_field = y_axis.get("y_field")
+        y_label = y_axis.get("custom_label") or next(
+            (col.get("label") for col in columns if col.get("fieldname") == y_field),
+            y_field,
+        )
+
+        # Collect all data first
+        all_data = []
+        for row in data:
+            # Get the value for y-field
+            if isinstance(row, dict):
+                value = row.get(y_field)
+                label = row.get(chart_doc.get("x_field")) or "Unknown"
+            else:
+                y_idx = next(
+                    (i for i, col in enumerate(columns) if col.get("fieldname") == y_field),
+                    None,
+                )
+                x_idx = next(
+                    (i for i, col in enumerate(columns) if col.get("fieldname") == chart_doc.get("x_field")),
+                    None,
+                )
+                value = row[y_idx] if y_idx is not None else None
+                label = row[x_idx] if x_idx is not None else "Unknown"
+
+            value = value or 0
+
+            # Skip rows with no value
+            if not value:
+                continue
+
+            all_data.append({"label": label, "value": value})
+
+        # Sort by value in descending order
+        all_data.sort(key=lambda x: x["value"], reverse=True)
+
+        # Apply max_slices limit if specified
+        max_slices = chart_doc.get("custom_max_slices")
+        if max_slices and max_slices > 0 and len(all_data) > max_slices:
+            # Keep top N slices
+            top_slices = all_data[:max_slices]
+            # Group remaining slices as "Others"
+            others_slices = all_data[max_slices:]
+            others_total = sum(item["value"] for item in others_slices)
+            
+            if others_total > 0:
+                top_slices.append({"label": "Others", "value": others_total})
+            
+            all_data = top_slices
+
+        # Extract labels and values
+        labels = [item["label"] for item in all_data]
+        dataset_values = [item["value"] for item in all_data]
+
+        # Generate colors for each slice
+        base_color = y_axis.get("color") or "#3498db"
+        
+        if len(labels) > 1:
+            for i in range(len(labels)):
+                lightness = 0.1 * i if i < 10 else 0.1 * (i % 10)
+                background_colors.append(Chart.lighten_hex(base_color, lightness))
+        else:
+            background_colors.append(base_color)
+        custom_colors = []
+        custom_options = chart_doc.get("custom_options")
+        if custom_options:
+            custom_options = json.loads(custom_options)
+            if custom_options.get("colors"):
+                custom_colors = custom_options.get("colors")
+                
+        if not len(custom_colors):
+            custom_colors = Chart.default_colors()
+        return {
+            "data": {
+                "labels": labels,
+                "datasets": [
+                    {
+                        "data": dataset_values,
+                        "label": y_label,
+                        "backgroundColor": custom_colors if len(custom_colors) else background_colors,
+                        "borderWidth": 1,
+                        "borderColor": "#ffffff",
+                    }
+                ],
+            },
+            "message": chart_doc,
+        }
+
+    @staticmethod
+    def _process_multi_dataset_pie_donut(chart_doc, data, columns, y_axis_columns):
+        """Process pie/donut chart with multiple datasets (concentric rings)."""
+        labels = []
+        datasets = []
+        custom_colors = []
+        
+        custom_options = chart_doc.get("custom_options")
+        if custom_options:
+            custom_options = json.loads(custom_options)
+            if custom_options.get("colors"):
+                custom_colors = custom_options.get("colors")
+                
+        if not len(custom_colors):
+            custom_colors = Chart.default_colors()
+                
+        # Build datasets for each y-axis
+        for y_axis in y_axis_columns:
+            y_field = y_axis.get("y_field")
+            _label = y_axis.get("custom_label") or next(
+                (col.get("label") for col in columns if col.get("fieldname") == y_field),
+                y_field,
+            )
+            
+            dataset = {
+                "label": _label,
+                "data": [],
+                "backgroundColor": custom_colors if len(custom_colors) else y_axis.get("color") or "#3498db",
+                "borderWidth": 1,
+                "borderColor": "#ffffff",
+            }
+            datasets.append({"field": y_field, "dataset": dataset})
+            
+        # Collect all row data first with aggregated values
+        row_data = []
+        for row in data:
+            if isinstance(row, dict):
+                label = row.get(chart_doc.get("x_field")) or "Unknown"
+            else:
+                x_idx = next(
+                    (i for i, col in enumerate(columns) if col.get("fieldname") == chart_doc.get("x_field")),
+                    None,
+                )
+                label = row[x_idx] if x_idx is not None else "Unknown"
+
+            # Collect values for each y-axis
+            row_values = {}
+            total_value = 0
+            for ds_info in datasets:
+                y_field = ds_info["field"]
+                
+                if isinstance(row, dict):
+                    value = row.get(y_field)
+                else:
+                    y_idx = next(
+                        (i for i, col in enumerate(columns) if col.get("fieldname") == y_field),
+                        None,
+                    )
+                    value = row[y_idx] if y_idx is not None else None
+
+                value = value or 0
+                row_values[y_field] = value
+                total_value += value
+
+            row_data.append({"label": label, "values": row_values, "total": total_value})
+
+        # Sort by total value in descending order
+        row_data.sort(key=lambda x: x["total"], reverse=True)
+
+        # Apply max_slices limit if specified
+        max_slices = chart_doc.get("custom_max_slices")
+        if max_slices and max_slices > 0 and len(row_data) > max_slices:
+            # Keep top N slices
+            top_rows = row_data[:max_slices]
+            # Group remaining slices as "Others"
+            others_rows = row_data[max_slices:]
+            
+            # Aggregate "Others" values for each y-axis
+            others_values = {}
+            for ds_info in datasets:
+                y_field = ds_info["field"]
+                others_values[y_field] = sum(row["values"].get(y_field, 0) for row in others_rows)
+            
+            others_total = sum(others_values.values())
+            if others_total > 0:
+                top_rows.append({"label": "Others", "values": others_values, "total": others_total})
+            
+            row_data = top_rows
+
+        # Extract labels and populate datasets
+        labels = [row["label"] for row in row_data]
+        for ds_info in datasets:
+            y_field = ds_info["field"]
+            ds_info["dataset"]["data"] = [row["values"].get(y_field, 0) for row in row_data]
+
+        # Extract just the dataset objects (remove field info)
+        final_datasets = [ds_info["dataset"] for ds_info in datasets]
+
+        return {
+            "data": {
+                "labels": labels,
+                "datasets": final_datasets,
+            },
+            "message": chart_doc,
+        }
+
+    @staticmethod
+    def filter_script_report_data(result, columns, dt=None, dn=None):
+        """Filter report data based on document type and name."""
+        if not dt or not dn:
+            return result
+
+        if dt == dn:
+            return result
+
+        primary_link_field = None
+
+        for col in columns:
+            if col.get("fieldtype") == "Link" and col.get("options") == dt:
+                primary_link_field = col.get("fieldname")
+                break
+        if not primary_link_field:
+            return result
+        data = []
+        for row in result:
+            if isinstance(row, dict):
+                if row.get(primary_link_field) == dn:
+                    data.append(row)
+            else:
+                idx = None
+                for i, col in enumerate(columns):
+                    if col.get("fieldname") == primary_link_field:
+                        idx = i
+                        break
+                if idx is not None and row[idx] == dn:
+                    data.append(row)
+        return data
