@@ -1,37 +1,35 @@
 import json
-
 import frappe
 from frappe import _
+from frappe.desk.doctype.dashboard_chart.dashboard_chart import DashboardChart, get_group_by_chart_config,get_heatmap_chart_config, get_chart_config
+from frappe.utils import get_datetime
 
 class Chart:
     @staticmethod
-    def default_colors(length=20) -> list[str]:
+    def hex_to_rgba(hex_color, alpha=0.2):
+        hex_color = hex_color.lstrip("#")
+
+        r = int(hex_color[0:2], 16)
+        g = int(hex_color[2:4], 16)
+        b = int(hex_color[4:6], 16)
+
+        return f"rgba({r}, {g}, {b}, {alpha})"
+    @staticmethod
+    def default_colors(length=50) -> list[str]:
         """Return a list of default colors for charts."""
         my_theme = frappe.get_cached_doc("My Theme", "My Theme").as_dict()
         primary_color = my_theme.get("navbar_color")
         
         colors = [Chart.lighten_hex(primary_color, amount=0.2)] if primary_color else []
         fallback_colors = [
-            "#3498db",
-            "#e74c3c",
-            "#2ecc71",
-            "#9b59b6",
-            "#f1c40f",
-            "#e67e22",
-            "#1abc9c",
-            "#34495e",
-            "#7f8c8d",
-            "#d35400",
-            "#27ae60",
-            "#8e44ad",
-            "#2980b9",
-            "#16a085",
-            "#2c3e50",
-            "#f39c12",
-            "#bdc3c7",
-            "#95a5a6",
-            "#c0392b",
-            "#d35400"
+            "#3498db","#e74c3c","#2ecc71","#9b59b6","#f1c40f","#e67e22","#1abc9c",
+            "#34495e","#7f8c8d","#d35400","#27ae60","#8e44ad","#2980b9","#16a085",
+            "#2c3e50","#f39c12","#bdc3c7","#95a5a6","#c0392b","#d35400","#27ae60",
+            "#8e44ad","#2980b9","#16a085","#2980b9","#16a085","#2c3e50","#f39c12",
+            "#2c3e50","#f39c12","#bdc3c7","#95a5a6","#c0392b","#1abc9c","#e67e22",
+            "#9b59b6","#3498db","#e74c3c","#2ecc71","#f1c40f","#7f8c8d","#d35400",
+            "#27ae60","#8e44ad","#bdc3c7","#95a5a6","#c0392b","#2c3e50","#f39c12",
+            "#bdc3c7","#95a5a6","#c0392b","#d35400","#27ae60","#8e44ad","#2980b9"
         ]
         for i in range(length):
             colors.append(fallback_colors[i % len(fallback_colors)])
@@ -108,37 +106,162 @@ class Chart:
     def _get_colors(details: dict) -> list[str]:
         """Get colors for chart from details."""
         if details.get("custom_options"):
-            return list(json.loads(details.get("custom_options")))
-        return [x.get("color") for x in details.get("y_axis", [])]
+            return list(json.loads(details.get("custom_options").get("colors", "[]")))
+        colors = [x.get("color") for x in details.get("y_axis", [])]
+        if not len(colors):
+            colors = Chart.default_colors()
+        return colors
 
     @staticmethod
-    def chart_doc_type(details: dict, doctype: str | None = None, docname: str | None = None) -> dict:
-        """Generate chart data for document type."""
+    def chart_doc_type(chart_doc: dict, doctype: str | None = None, docname: str | None = None) -> dict:
         try:
-            filters = Chart._process_filters(json.loads(details.get("filters_json", "[]")))
+            filters = Chart._process_filters(json.loads(chart_doc.get("filters_json", "[]")))
 
             if doctype and docname:
-                filters.extend(Chart._get_doc_filters(details.get("document_type"), doctype, docname))
+                filters.extend(Chart._get_doc_filters(chart_doc.get("document_type"), doctype, docname))
 
-            data = frappe.db.get_list(
-                details.get("document_type"), filters=filters, fields=["label", "count"]
-            )
+            # Use the core chart generator to respect timespan, intervals, etc.
+            chart_config = Chart.get(chart_doc.get("name"), filters=filters)
 
-            return {
-                "data": {
-                    "labels": [x.get("label") for x in data],
+            if not chart_config:
+                return Chart._get_empty_chart_data("No data available")
+
+            chart_type = chart_doc.get("type")
+
+            if chart_type in ["Bar", "Line"]:
+                colors = Chart._get_colors(chart_doc)
+                datasets = []
+                _labels = [label if label else "Unknown" for label in chart_config.get("labels", [])] if chart_config.get("labels", []) else []
+
+                for idx, ds in enumerate(chart_config.get("datasets", [])):
+                    values = ds.get("values") or ds.get("data") or []
+                    color = colors[idx % len(colors)] if colors else Chart.default_colors()[idx % len(Chart.default_colors())]
+
+                    dataset = {
+                        "label": _labels[idx] if idx < len(_labels) else f"Series {idx + 1}",
+                        "data": values,
+                        "backgroundColor": color,
+                        "type": chart_type.lower(),
+                    }
+
+                    if chart_type == "Line":
+                        dataset["borderColor"] = color
+                        dataset["fill"] = bool(chart_doc.get("custom_show_area"))
+                        if chart_doc.get("custom_show_area"):
+                            dataset["backgroundColor"] = Chart.hex_to_rgba(color)
+                        if chart_doc.get("custom__curved_area"):
+                            dataset["tension"] = 0.4
+                        dataset["pointRadius"] = 3 if chart_doc.get("custom_show_data_points") else 0
+                    else:
+                        if chart_doc.get("custom_stack") or chart_doc.get("custom_overlap"):
+                            dataset["stack"] = "same"
+
+                    datasets.append(dataset)
+
+                data = {
+                    "labels": _labels,
+                    "datasets": datasets,
+                }
+
+                return {"data": data, "message": chart_doc}
+
+            if chart_type in ["Pie", "Donut"]:
+                labels = [label if label else "Unknown" for label in chart_config.get("labels", [])] if chart_config.get("labels", []) else []
+                ds_list = chart_config.get("datasets", []) or []
+
+                if not ds_list:
+                    return Chart._get_empty_chart_data("No dataset available")
+
+                values = ds_list[0].get("values") or ds_list[0].get("data") or []
+                pairs = list(zip(labels, values))
+                pairs.sort(key=lambda x: x[1] or 0, reverse=True)
+
+                max_slices = chart_doc.get("custom_max_slices")
+                if max_slices and max_slices > 0 and len(pairs) > max_slices:
+                    top = pairs[:max_slices - 1]
+                    others = pairs[max_slices - 1:]
+                    others_total = sum(v or 0 for _, v in others)
+                    if others_total:
+                        top.append(("Others", others_total))
+                    pairs = top
+
+                labels = [p[0] for p in pairs]
+                values = [p[1] or 0 for p in pairs]
+
+                colors = Chart._get_colors(chart_doc) or Chart.default_colors()
+
+                data = {
+                    "labels": labels,
                     "datasets": [
                         {
-                            "data": [x.get("count") for x in data],
-                            "backgroundColor": Chart._get_colors(details),
+                            "data": values,
+                            "backgroundColor": colors[: len(values)],
+                            "borderColor": "#ffffff",
+                            "borderWidth": 1,
                         }
                     ],
-                },
-                "message": "Document Type",
+                }
+
+                return {"data": data, "message": chart_doc}
+
+            # For Percentage, Heatmap and other types, return the frappe chart config as-is
+            return {
+                "data": chart_config,
+                "message": chart_doc,
             }
         except Exception as e:
             frappe.log_error(f"Error in chart_doc_type: {str(e)}")
             return Chart._get_empty_chart_data(str(e))
+
+    @frappe.whitelist()
+    def get(
+        chart_name=None,
+        chart=None,
+        no_cache=None,
+        filters=None,
+        from_date=None,
+        to_date=None,
+        timespan=None,
+        time_interval=None,
+        heatmap_year=None,
+        refresh=None,
+    ):
+        if chart_name:
+            chart: DashboardChart = frappe.get_doc("Dashboard Chart", chart_name)
+        else:
+            chart = frappe._dict(frappe.parse_json(chart))
+
+        heatmap_year = heatmap_year or chart.heatmap_year
+        timespan = timespan or chart.timespan
+
+        if timespan == "Select Date Range":
+            if from_date and len(from_date):
+                from_date = get_datetime(from_date)
+            else:
+                from_date = chart.from_date
+
+            if to_date and len(to_date):
+                to_date = get_datetime(to_date)
+            else:
+                to_date = get_datetime(chart.to_date)
+
+        timegrain = time_interval or chart.time_interval
+        filters = frappe.parse_json(filters) or frappe.parse_json(chart.filters_json)
+        if not filters:
+            filters = []
+
+        # don't include cancelled documents
+        filters.append([chart.document_type, "docstatus", "<", 2])
+
+        if chart.chart_type == "Group By":
+            chart_config = get_group_by_chart_config(chart, filters)
+        else:
+            if chart.type == "Heatmap":
+                chart_config = get_heatmap_chart_config(chart, filters, heatmap_year)
+            else:
+                chart_config = get_chart_config(chart, filters, timespan, timegrain, from_date, to_date)
+
+        return chart_config
 
     @staticmethod
     def _process_filters(filters: list) -> list:
@@ -164,6 +287,11 @@ class Chart:
     def _get_doc_filters(doc_type: str, doctype: str, docname: str) -> list:
         """Get document filters based on doctype and docname."""
         filters = []
+        if not doctype or not docname:
+            return filters
+        if doctype == docname:
+            return filters
+        
         meta = frappe.get_meta(doc_type)
 
         if not meta.fields:
@@ -272,7 +400,7 @@ class Chart:
             data_sets_map[y_field] = {
                 "data": [],
                 "backgroundColor": y_axis.get("color") or default_colors[index],
-                "borderColor": y_axis.get("color") if _type == "line" else None,
+                "borderColor": y_axis.get("color") or default_colors[index] if _type == "line" else None,
                 "type": _type,
                 "label": _label,
             }
@@ -282,10 +410,9 @@ class Chart:
                 data_sets_map[y_field]["pointRadius"] = 0
                 if chart_doc.get("custom_show_area"):
                     data_sets_map[y_field]["fill"] = True
-                    data_sets_map[y_field]["backgroundColor"] = Chart.lighten_hex(y_axis.get("color"), 0.8)
+                    data_sets_map[y_field]["backgroundColor"] = Chart.hex_to_rgba(y_axis.get("color") or default_colors[index])
                 if chart_doc.get("custom_show_data_points"):
                     data_sets_map[y_field]["pointRadius"] = 3
-                
 
         labels = []
 

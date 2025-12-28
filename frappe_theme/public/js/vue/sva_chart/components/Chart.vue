@@ -51,7 +51,6 @@ import {
 	Filler
 } from "chart.js";
 import ChartDataLabels from "chartjs-plugin-datalabels";
-import zoomPlugin from 'chartjs-plugin-zoom';
 import { Bar, Line, Pie, Doughnut } from "vue-chartjs";
 
 ChartJS.register(
@@ -66,6 +65,7 @@ ChartJS.register(
 	LineElement,
 	Filler,
 );
+
 
 const props = defineProps({
 	chart: {
@@ -169,6 +169,25 @@ const options = ref({
 		legend: {
 			display: true,
 			position: (props.chart?.details?.custom_legend_position?.toLowerCase() || "bottom"),
+			labels: {
+				usePointStyle: true,
+				pointStyle: 'rectRounded',
+				...(props.chart?.details?.type == "Line" && props.chart?.details?.custom_show_area
+					? {
+						generateLabels: function (chart) {
+							const labels =
+								Chart.defaults.plugins.legend.labels.generateLabels(chart);
+							labels.forEach(label => {
+								const dataset = chart.data.datasets[label.datasetIndex];
+								label.fillStyle = dataset.borderColor || dataset.backgroundColor;
+								label.strokeStyle = dataset.borderColor || dataset.backgroundColor;
+								label.lineWidth = 0;
+							});
+							return labels;
+						}
+					}
+					: {}),
+			}
 		},
 		tooltip: {
 			callbacks: {
