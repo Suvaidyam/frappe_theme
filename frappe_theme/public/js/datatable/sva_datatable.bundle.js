@@ -4252,9 +4252,14 @@ class SvaDataTable {
 			th.style.cssText = originalCell.style.cssText;
 			th.style.backgroundColor = "#F3F3F3";
 
-			// For header cell (settings button), keep center alignment
+			// Make first header cell sticky
 			if (index === 0) {
+				th.style.position = "sticky";
+				th.style.left = "0px";
+				th.style.zIndex = "3";
+				th.style.backgroundColor = "#F3F3F3";
 				th.style.textAlign = "left";
+				th.style.borderRight = "1px solid #dee2e6";
 				th.appendChild(this.createSettingsButton());
 			} else {
 				// For three dot actions, center align
@@ -4286,6 +4291,16 @@ class SvaDataTable {
 				cell.style.textOverflow = "ellipsis";
 				cell.style.padding = "0px 5px";
 				cell.style.textAlign = "left";
+
+				// Make first column sticky
+				if (colIndex === 0) {
+					cell.style.position = "sticky";
+					cell.style.left = "0px";
+					cell.style.zIndex = "2";
+					cell.style.backgroundColor = "#f8f9fa";
+					cell.style.fontWeight = "500";
+					cell.style.borderRight = "1px solid #dee2e6";
+				}
 
 				// Apply width from header settings (now rowIndex maps to original columns)
 				if (rowIndex < this.header.length) {
