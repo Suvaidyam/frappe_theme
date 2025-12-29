@@ -134,7 +134,7 @@ def custom_apply_workflow(doc, action):
 
 		# ---------- LOG ACTION DATA (SAFE) ----------
 		safe_value = value
-		if isinstance(value, (list, dict)):
+		if isinstance(value, (list | dict)):
 			safe_value = json.dumps(value)
 
 		if fieldname in comment_fields:
