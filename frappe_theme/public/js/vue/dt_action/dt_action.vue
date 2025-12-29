@@ -72,21 +72,115 @@ const executeAction = (action) => {
 	}
 };
 
-const exportData = () => {
-	frappe.require("data_import_tools.bundle.js").then(() => {
-		let exporter = new frappe.data_import.DataExporter(props.dt.doctype, "Insert New Records");
-		setTimeout(() => {
-			if (exporter) {
-				exporter.dialog.set_value("export_records", "by_filter");
-				exporter.filter_group.add_filter(
-					props.dt.doctype,
-					props.dt.connection.link_fieldname,
-					"equals",
-					props.dt.frm.docname
-				);
+const exportData = async () => {
+	// Check if this is a Query Report
+	if (props.dt.connection.connection_type === "Report") {
+		// Use the same API call as datatable but without pagination
+		let filters = [];
+		
+		// Add link field filter if available
+		if (props.dt.connection.link_fieldname && props.dt.frm?.doc?.name) {
+			filters.push([
+				props.dt.doctype || props.dt.link_report,
+				props.dt.connection.link_fieldname,
+				"=",
+				props.dt.frm.doc.name,
+			]);
+		}
+		
+		try {
+			// Get filtered data using the same method as datatable
+			let res = await props.dt.sva_db.call({
+				method: "frappe_theme.dt_api.get_dt_list",
+				doctype: props.dt.doctype || props.dt.link_report,
+				doc: props.dt.frm?.doc?.name,
+				ref_doctype: props.dt.frm?.doc?.doctype,
+				filters: [...filters, ...props.dt.additional_list_filters],
+				fields: props.dt.fields || ["*"],
+				limit_page_length: 0, // No limit for export
+				order_by: `${props.dt.sort_by} ${props.dt.sort_order}`,
+				limit_start: 0,
+				_type: props.dt.connection.connection_type,
+				unfiltered: props.dt.connection?.unfiltered,
+			});
+			
+			if (res.message && res.message.length > 0) {
+				// Get column headers from datatable
+				let columns = props.dt.header || [];
+				let headers = columns.map(col => col.label || col.fieldname);
+				
+				// Add headers as first row
+				let dataWithHeaders = [headers, ...res.message.map(row => 
+					columns.map(col => row[col.fieldname] || '')
+				)];
+				
+				// Convert to Excel and download
+				frappe.tools.downloadify(dataWithHeaders, null, props.dt.doctype || props.dt.link_report);
+			} else {
+				frappe.show_alert({
+					message: "No data to export",
+					indicator: "orange"
+				});
 			}
-		}, 1000);
-	});
+		} catch (error) {
+			frappe.show_alert({
+				message: "Export failed: " + error.message,
+				indicator: "red"
+			});
+		}
+	} else {
+		// Handle regular DocType export - same method for consistency
+		let filters = [];
+		
+		// Add link field filter if available
+		if (props.dt.connection.link_fieldname && props.dt.frm?.doc?.name) {
+			filters.push([
+				props.dt.doctype,
+				props.dt.connection.link_fieldname,
+				"=",
+				props.dt.frm.doc.name,
+			]);
+		}
+		
+		try {
+			let res = await props.dt.sva_db.call({
+				method: "frappe_theme.dt_api.get_dt_list",
+				doctype: props.dt.doctype,
+				doc: props.dt.frm?.doc?.name,
+				ref_doctype: props.dt.frm?.doc?.doctype,
+				filters: [...filters, ...props.dt.additional_list_filters],
+				fields: props.dt.fields || ["*"],
+				limit_page_length: 0,
+				order_by: `${props.dt.sort_by} ${props.dt.sort_order}`,
+				limit_start: 0,
+				_type: props.dt.connection.connection_type,
+				unfiltered: props.dt.connection?.unfiltered,
+			});
+			
+			if (res.message && res.message.length > 0) {
+				// Get column headers from datatable
+				let columns = props.dt.header || [];
+				let headers = columns.map(col => col.label || col.fieldname);
+				
+				// Add headers as first row
+				let dataWithHeaders = [headers, ...res.message.map(row => 
+					columns.map(col => row[col.fieldname] || '')
+				)];
+				
+				frappe.tools.downloadify(dataWithHeaders, null, props.dt.doctype);
+			} else {
+				frappe.show_alert({
+					message: "No data to export",
+					indicator: "orange"
+				});
+			}
+		} catch (error) {
+			frappe.show_alert({
+				message: "Export failed: " + error.message,
+				indicator: "red"
+			});
+		}
+	}
 };
 
 const importData = () => {
