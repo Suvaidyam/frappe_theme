@@ -1400,7 +1400,7 @@ class SvaDataTable {
 							f.hidden = 1;
 						}
 					}
-					if (f.fieldtype === "Table") {
+					if (["Table", "Table MultiSelect"].includes(f.fieldtype)) {
 						let res = await this.sva_db.call({
 							method: "frappe_theme.dt_api.get_meta_fields",
 							doctype: f.options,
@@ -1653,7 +1653,7 @@ class SvaDataTable {
 							return { filters };
 						};
 					}
-					if (f.fieldtype === "Table") {
+					if (["Table", "Table MultiSelect"].includes(f.fieldtype)) {
 						let res = await this.sva_db.call({
 							method: "frappe_theme.dt_api.get_meta_fields",
 							doctype: f.options,
@@ -1734,14 +1734,11 @@ class SvaDataTable {
 		} else {
 			let doc = await this.sva_db.get_doc(doctype, name);
 			for (const f of fields) {
-				if (f.fieldtype === "Table MultiSelect") {
-					continue;
-				}
 				if (f.hidden === "0") {
 					f.hidden = 0;
 				}
 
-				if (f.fieldtype === "Table") {
+				if (["Table", "Table MultiSelect"].includes(f.fieldtype)) {
 					let res = await this.sva_db.call({
 						method: "frappe_theme.dt_api.get_meta_fields",
 						doctype: f.options,
@@ -1773,8 +1770,14 @@ class SvaDataTable {
 					});
 					f.cannot_add_rows = 1;
 					f.cannot_delete_rows = 1;
+					f.read_only = 1;
+
 					if (doc[f.fieldname].length) {
-						f.data = doc[f.fieldname];
+						if (f.fieldtype === "Table MultiSelect") {
+							f.default = doc[f.fieldname];
+						}else{
+							f.data = doc[f.fieldname];
+						}
 					}
 					continue;
 				}
