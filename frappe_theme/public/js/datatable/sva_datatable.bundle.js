@@ -1776,7 +1776,7 @@ class SvaDataTable {
 					if (doc[f.fieldname].length) {
 						if (f.fieldtype === "Table MultiSelect") {
 							f.default = doc[f.fieldname];
-						}else{
+						} else {
 							f.data = doc[f.fieldname];
 						}
 					}
