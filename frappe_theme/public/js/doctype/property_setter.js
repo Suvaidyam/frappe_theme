@@ -37,6 +37,8 @@ const after_child_dialog_render = async (dialog, _frm, mode = "create") => {
 after_render_control = async function (dialog, _frm) {
 	let row = dialog.get_values(true, false);
 	let doctype = _frm.docname == "Customize Form" ? _frm.doc.doc_type : _frm.docname;
+	let is_single = _frm.docname != "Customize Form" ? _frm.doc.issingle : 0;
+
 	let frm = dialog;
 	// =============================== Datatable Configuration Part Starts ===============================
 	if (row.connection_type === "Direct") {
@@ -103,7 +105,7 @@ after_render_control = async function (dialog, _frm) {
 			frm.fields_dict.referenced_link_doctype.set_data(dt_options);
 		}
 	}
-	if (row.connection_type === "Report") {
+	if (row.connection_type === "Report" && !is_single) {
 		let reports = await frappe.call("frappe_theme.dt_api.link_report_list", {
 			doctype: doctype,
 		});
