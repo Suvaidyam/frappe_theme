@@ -203,7 +203,10 @@ class DTConf:
 			else:
 				return result
 		elif data.report_type == "Script Report":
-			response = run(doctype, filters={})
+			filters = filters
+			if isinstance(filters, list):
+				filters = {f[1]: f[3] for f in filters}
+			response = run(doctype, filters=filters)
 			data = response.get("result")
 			columns = response.get("columns")
 			result = Chart.filter_script_report_data(data, columns, ref_doctype, doc)
