@@ -54,7 +54,8 @@
   "column_break_eepi",
   "disable_workflow",
   "allow_export",
-  "allow_import"
+  "allow_import",
+  "enable_auto_transpose"
  ],
  "fields": [
   {
@@ -335,6 +336,13 @@
   },
   {
    "default": "0",
+   "depends_on": "eval:doc.connection_type === \"Report\"",
+   "fieldname": "enable_auto_transpose",
+   "fieldtype": "Check",
+   "label": "Transposed"
+  },
+  {
+   "default": "0",
    "fieldname": "disable_workflow",
    "fieldtype": "Check",
    "label": "Hide workflow (Even If exists)"
@@ -393,7 +401,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-11-01 13:00:30.342178",
+ "modified": "2025-12-27 15:51:00.254137",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "SVADatatable Configuration Child",

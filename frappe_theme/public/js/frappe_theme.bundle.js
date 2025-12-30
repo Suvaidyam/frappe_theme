@@ -509,6 +509,40 @@ class FrappeThemeManager {
 				}
             }
 
+            /* Smooth transitions for sidebar items */
+            .standard-sidebar-item {
+                transition: all 0.7s ease !important;
+            }
+
+            .standard-sidebar-item .item-anchor {
+                transition: all 0.7s ease !important;
+            }
+
+            .sidebar-child-item {
+                transition: all 0.7s ease, max-height 0.7s ease !important;
+                overflow: hidden;
+            }
+
+            .sidebar-child-item.hidden {
+                max-height: 0 !important;
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            .sidebar-child-item:not(.hidden) {
+                max-height: 500px !important;
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            .sidebar-item-label {
+                transition: all 0.7s ease !important;
+            }
+
+            .sidebar-item-icon svg {
+                transition: all 0.7s ease !important;
+            }
+
             .body-sidebar-container.expanded .standard-sidebar-item.active-sidebar,
             .body-sidebar-container:not(.expanded) .standard-sidebar-item.active-sidebar {
                 ${
