@@ -9,7 +9,7 @@ frappe.ui.Sidebar = class CustomSidebar extends frappe.ui.Sidebar {
 		$clickedItem.addClass("active-sidebar");
 
 		this.active_item = $clickedItem;
-		
+
 		// Store in localStorage for URL workspaces
 		localStorage.setItem("sidebar-active-item", item_name || item_title);
 		localStorage.setItem("sidebar-active-url", window.location.href);
@@ -19,9 +19,11 @@ frappe.ui.Sidebar = class CustomSidebar extends frappe.ui.Sidebar {
 	restore_active_state() {
 		const activeItem = localStorage.getItem("sidebar-active-item");
 		const activeUrl = localStorage.getItem("sidebar-active-url");
-		
+
 		if (activeItem && activeUrl && window.location.href === activeUrl) {
-			const $match = this.$sidebar.find(`.sidebar-item-container[item-name="${activeItem}"]`);
+			const $match = this.$sidebar.find(
+				`.sidebar-item-container[item-name="${activeItem}"]`
+			);
 			if ($match.length) {
 				$(".standard-sidebar-item").removeClass("active-sidebar");
 				const $targetItem = $match.find(".standard-sidebar-item").first();
@@ -130,7 +132,7 @@ frappe.ui.Sidebar = class CustomSidebar extends frappe.ui.Sidebar {
 				const $target = $(e.currentTarget);
 				const item_name = $target.closest(".sidebar-item-container").attr("item-name");
 				const item_title = $target.attr("title");
-				
+
 				// Check if this is a URL type workspace and prevent new tab
 				if ($target.attr("target") === "_blank") {
 					e.preventDefault();
