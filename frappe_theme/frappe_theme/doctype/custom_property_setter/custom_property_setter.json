@@ -607,17 +607,17 @@
    "fieldname": "default_view",
    "fieldtype": "Select",
    "label": "Default View",
-   "options": "State\nDistrict",
-   "reqd": 1
+   "mandatory_depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
+   "options": "State\nDistrict"
   },
   {
    "depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
    "fieldname": "target_fields",
    "fieldtype": "Code",
    "label": "Target Fields",
+   "mandatory_depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
    "max_height": "5rem",
-   "read_only": 1,
-   "reqd": 1
+   "read_only": 1
   },
   {
    "depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
@@ -630,7 +630,7 @@
    "fieldname": "primary_target",
    "fieldtype": "Select",
    "label": "Primary Target",
-   "reqd": 1
+   "mandatory_depends_on": "eval:doc.property_type == \"Heatmap (India Map)\""
   },
   {
    "depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
@@ -659,15 +659,15 @@
    "fieldname": "heatmap_report",
    "fieldtype": "Link",
    "label": "Report (With State or District Column)",
-   "options": "Report",
-   "reqd": 1
+   "mandatory_depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
+   "options": "Report"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_virtual": 1,
  "links": [],
- "modified": "2025-12-23 12:47:39.467433",
+ "modified": "2025-12-24 14:32:01.019274",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Custom Property Setter",
