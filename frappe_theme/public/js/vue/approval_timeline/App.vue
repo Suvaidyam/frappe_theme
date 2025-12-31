@@ -490,34 +490,6 @@ const loadWorkflowData = async () => {
 		console.log("Message:", response.message);
 
 		if (response.message && response.message.success) {
-			for (const action of response.message.actions || []) {
-				if (action.action_data?.length) {
-					for (const item of action.action_data) {
-						if (item.fieldtype === "Link") {
-							let value = item.value;
-							let _value;
-
-							if (item.reference_doctype && value) {
-								_value = frappe.utils.get_link_title(
-									item.reference_doctype,
-									value
-								);
-
-								if (!_value) {
-									const resp = await frappe.utils.fetch_link_title(
-										item.reference_doctype,
-										value
-									);
-									_value = resp || value;
-								}
-							}
-
-							item.value = _value || value;
-						}
-					}
-				}
-			}
-
 			workflowData.value = response.message;
 			if (response.message.type === "no_action") {
 				// Set current state from workflowState prop or current_doc_state

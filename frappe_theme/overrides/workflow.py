@@ -29,9 +29,7 @@ def custom_apply_workflow(doc, action):
 	# -------------------------------
 	# Resolve required fields
 	# -------------------------------
-	action_fields = json.loads(
-		selected_transition.custom_selected_fields or "[]"
-	)
+	action_fields = json.loads(selected_transition.custom_selected_fields or "[]")
 
 	if action_fields:
 		required_fields = [
@@ -50,10 +48,7 @@ def custom_apply_workflow(doc, action):
 			},
 			ignore_permissions=True,
 		)
-		required_fields = [
-			{"fieldname": p["field_name"], "label": p["field_name"]}
-			for p in props
-		]
+		required_fields = [{"fieldname": p["field_name"], "label": p["field_name"]} for p in props]
 
 	# -------------------------------
 	# Validate dialog fields
@@ -61,18 +56,10 @@ def custom_apply_workflow(doc, action):
 	wf_dialog_fields = doc.get("wf_dialog_fields") or {}
 
 	if required_fields:
-		missing = [
-			f for f in required_fields
-			if not wf_dialog_fields.get(f["fieldname"])
-		]
+		missing = [f for f in required_fields if not wf_dialog_fields.get(f["fieldname"])]
 		if missing:
-			field_list = "".join(
-				f"<li>{f['label']}</li>" for f in missing
-			)
-			frappe.throw(
-				f"Required workflow data is missing or incomplete."
-				f"<br><ul>{field_list}</ul>"
-			)
+			field_list = "".join(f"<li>{f['label']}</li>" for f in missing)
+			frappe.throw(f"Required workflow data is missing or incomplete." f"<br><ul>{field_list}</ul>")
 
 	# -------------------------------
 	# Load actual document
@@ -138,9 +125,7 @@ def custom_apply_workflow(doc, action):
 			elif field.fieldtype in ("Int", "Float", "Currency", "Percent"):
 				try:
 					value = (
-						float(value)
-						if field.fieldtype in ("Float", "Currency", "Percent")
-						else int(value)
+						float(value) if field.fieldtype in ("Float", "Currency", "Percent") else int(value)
 					)
 				except ValueError:
 					frappe.throw(f"Invalid value for field {fieldname}")
@@ -149,7 +134,7 @@ def custom_apply_workflow(doc, action):
 
 		# ---------- LOG ACTION DATA (SAFE) ----------
 		safe_value = value
-		if isinstance(value, (list, dict)):
+		if isinstance(value, (list | dict)):
 			safe_value = json.dumps(value)
 
 		if fieldname in comment_fields:
