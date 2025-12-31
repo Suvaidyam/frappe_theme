@@ -753,7 +753,7 @@ class SVAHeatmap {
 				.map((field) => {
 					let value = data.data[field.fieldname];
 					if (value) {
-						if (field.fieldtype === "Currency") {
+						if (field?.fieldtype === "Currency") {
 							value = frappe.utils.format_currency(value, field.options);
 						} else {
 							value = frappe.utils.shorten_number(
@@ -771,7 +771,7 @@ class SVAHeatmap {
             <div>
                 <strong>${name}</strong><br/>
                 ${column?.label || "Count"}: ${
-			column.fieldtype == "Currency"
+			column?.fieldtype == "Currency"
 				? frappe.utils.format_currency(data?.count || 0)
 				: frappe.utils.shorten_number(data?.count || 0, frappe.sys_defaults.country)
 		}
