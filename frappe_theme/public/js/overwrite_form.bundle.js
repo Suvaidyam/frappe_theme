@@ -668,6 +668,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 				}
 				if (!field.sva_ft?.connection_type || field.sva_ft?.hide_table) break;
 				field.sva_ft["html_field"] = field.fieldname;
+				field.sva_ft["configuration_basis"] = "Property Setter";
 				if (frm.is_new()) {
 					await this.renderLocalFormMessage(field, frm);
 				} else {
