@@ -943,13 +943,26 @@ class SvaDataTable {
 				try {
 					if (!reset) {
 						if (frappe.session.user == "Administrator") {
-							await this.sva_db.call({
-								method: "frappe.client.set_value",
-								doctype: this.connection.doctype,
-								name: this.connection.name,
-								fieldname: "listview_settings",
-								value: JSON.stringify(listview_settings ?? []),
-							});
+							if (
+								this.connection?.configuration_basis == "Property Setter" &&
+								this.frm?.doctype
+							) {
+								await this.sva_db.call({
+									method: "frappe_theme.dt_api.update_sva_ft_property",
+									doctype: this.frm.doctype,
+									fieldname: this.connection.html_field,
+									key: "listview_settings",
+									value: JSON.stringify(listview_settings ?? []),
+								});
+							} else if (this.connection.doctype && this.connection.name) {
+								await this.sva_db.call({
+									method: "frappe.client.set_value",
+									doctype: this.connection.doctype,
+									name: this.connection.name,
+									fieldname: "listview_settings",
+									value: JSON.stringify(listview_settings ?? []),
+								});
+							}
 						} else {
 							await this.sva_db.call({
 								method: "frappe_theme.dt_api.setup_user_list_settings",

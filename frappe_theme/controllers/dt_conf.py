@@ -203,7 +203,10 @@ class DTConf:
 			else:
 				return result
 		elif data.report_type == "Script Report":
-			response = run(doctype, filters={})
+			filters = filters
+			if isinstance(filters, list):
+				filters = {f[1]: f[3] for f in filters}
+			response = run(doctype, filters=filters)
 			data = response.get("result")
 			columns = response.get("columns")
 			result = Chart.filter_script_report_data(data, columns, ref_doctype, doc)
@@ -292,6 +295,28 @@ class DTConf:
 		if exists:
 			frappe.delete_doc("SVADT User Listview Settings", exists)
 		return True
+
+	def update_sva_ft_property(doctype, fieldname, key, value):
+		exists = frappe.db.exists(
+			"Property Setter",
+			{
+				"doc_type": doctype,
+				"field_name": fieldname,
+				"property": "sva_ft",
+			},
+		)
+		if exists:
+			ps_doc = frappe.get_doc("Property Setter", exists)
+			if isinstance(ps_doc.value, str):
+				sva_ft_dict = json.loads(ps_doc.value)
+			else:
+				sva_ft_dict = ps_doc.value
+			sva_ft_dict[key] = value
+			if isinstance(sva_ft_dict, dict):
+				ps_doc.value = json.dumps(sva_ft_dict)
+			else:
+				ps_doc.value = sva_ft_dict
+			ps_doc.save(ignore_permissions=True)
 
 	def get_user_list_settings(parent_id, child_dt):
 		user = frappe.session.user
