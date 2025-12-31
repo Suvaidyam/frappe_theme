@@ -109,11 +109,24 @@ const exportData = async () => {
 				let columns = props.dt.header || [];
 				let headers = columns.map((col) => col.label || col.fieldname);
 
-				// Add headers as first row
-				let dataWithHeaders = [
-					headers,
-					...res.message.map((row) => columns.map((col) => row[col.fieldname] || "")),
-				];
+				// Prepare data based on transpose state
+				let dataWithHeaders;
+				if (props.dt.isTransposed) {
+					// For transposed export: rows become columns
+					dataWithHeaders = [
+						["Fields", ...res.message.map((_, index) => index + 1)],
+						...columns.map((col) => [
+							col.label || col.fieldname,
+							...res.message.map((row) => row[col.fieldname] || "")
+						])
+					];
+				} else {
+					// Normal export
+					dataWithHeaders = [
+						headers,
+						...res.message.map((row) => columns.map((col) => row[col.fieldname] || "")),
+					];
+				}
 
 				frappe.tools.downloadify(
 					dataWithHeaders,
