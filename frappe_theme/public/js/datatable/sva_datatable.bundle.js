@@ -3181,8 +3181,15 @@ class SvaDataTable {
 			description: "",
 		};
 		if (column.fieldname === this?.workflow?.workflow_state_field) {
-			if (this.frm?.dt_events?.[this.doctype]?.formatter?.[column.fieldname]) {
-				let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
+			if (
+				this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
+					column.fieldname
+				]
+			) {
+				let formatter =
+					this.frm.dt_events[this.doctype || this.link_report].formatter[
+						column.fieldname
+					];
 				td.innerHTML = formatter(
 					this.workflow_state_map[row[column.fieldname]] || row[column.fieldname],
 					column,
@@ -3223,8 +3230,15 @@ class SvaDataTable {
 		}
 		if (column.fieldtype === "Link") {
 			let spanElement;
-			if (this.frm?.dt_events?.[this.doctype]?.formatter?.[column.fieldname]) {
-				let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
+			if (
+				this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
+					column.fieldname
+				]
+			) {
+				let formatter =
+					this.frm.dt_events[this.doctype || this.link_report].formatter[
+						column.fieldname
+					];
 				if (frappe.utils.get_link_title(column.options, row[column.fieldname])) {
 					td.innerHTML = formatter(
 						frappe.utils.get_link_title(column.options, row[column.fieldname]),
@@ -3403,8 +3417,15 @@ class SvaDataTable {
 				$(td).css({ height: "25px !important", padding: "0px 5px" });
 				control.refresh();
 			} else {
-				if (this.frm?.dt_events?.[this.doctype]?.formatter?.[column.fieldname]) {
-					let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
+				if (
+					this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
+						column.fieldname
+					]
+				) {
+					let formatter =
+						this.frm.dt_events[this.doctype || this.link_report].formatter[
+							column.fieldname
+						];
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
 					td.innerHTML = `<span title="${row[column.fieldname] || ""}">${
@@ -3518,8 +3539,15 @@ class SvaDataTable {
 				}
 			}
 			if (columnField.fieldtype === "Currency") {
-				if (this.frm?.dt_events?.[this.doctype]?.formatter?.[column.fieldname]) {
-					let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
+				if (
+					this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
+						column.fieldname
+					]
+				) {
+					let formatter =
+						this.frm.dt_events[this.doctype || this.link_report].formatter[
+							column.fieldname
+						];
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
 					let value = formatCurrency(
@@ -3605,8 +3633,15 @@ class SvaDataTable {
 				}
 			}
 			if (["Int", "Float"].includes(columnField.fieldtype)) {
-				if (this.frm?.dt_events?.[this.doctype]?.formatter?.[column.fieldname]) {
-					let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
+				if (
+					this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
+						column.fieldname
+					]
+				) {
+					let formatter =
+						this.frm.dt_events[this.doctype || this.link_report].formatter[
+							column.fieldname
+						];
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
 					let value =
@@ -3650,8 +3685,15 @@ class SvaDataTable {
 				return;
 			}
 			if (["Percent"].includes(columnField.fieldtype)) {
-				if (this.frm?.dt_events?.[this.doctype]?.formatter?.[column.fieldname]) {
-					let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
+				if (
+					this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
+						column.fieldname
+					]
+				) {
+					let formatter =
+						this.frm.dt_events[this.doctype || this.link_report].formatter[
+							column.fieldname
+						];
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
 					let value =
@@ -3695,8 +3737,15 @@ class SvaDataTable {
 				return;
 			}
 			if (["Date"].includes(columnField.fieldtype)) {
-				if (this.frm?.dt_events?.[this.doctype]?.formatter?.[column.fieldname]) {
-					let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
+				if (
+					this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
+						column.fieldname
+					]
+				) {
+					let formatter =
+						this.frm.dt_events[this.doctype || this.link_report].formatter[
+							column.fieldname
+						];
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
 					td.innerHTML = `<span title="${
@@ -3776,9 +3825,15 @@ class SvaDataTable {
 				btn.setAttribute("data-fieldname", columnField.fieldname);
 				btn.onclick = this.onFieldClick;
 				btn.textContent = columnField.label;
-				if (this.frm?.dt_events?.[this.doctype]?.formatter?.[columnField.fieldname]) {
+				if (
+					this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
+						columnField.fieldname
+					]
+				) {
 					let formatter =
-						this.frm.dt_events[this.doctype].formatter[columnField.fieldname];
+						this.frm.dt_events[this.doctype || this.link_report].formatter[
+							columnField.fieldname
+						];
 					btn = formatter(btn, column, row, this);
 				}
 				td.appendChild(btn);
@@ -3802,7 +3857,11 @@ class SvaDataTable {
 				this.bindColumnEvents(td.firstElementChild, row[column.fieldname], column, row);
 				return;
 			}
-			if (this.frm?.dt_events?.[this.doctype]?.formatter?.[column.fieldname]) {
+			if (
+				this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
+					column.fieldname
+				]
+			) {
 				let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
 				td.innerHTML = formatter(row[column.fieldname], column, row, this);
 			} else {
@@ -3838,8 +3897,15 @@ class SvaDataTable {
 		}
 	}
 	bindColumnEvents(element, value, column, row) {
-		if (this.frm?.dt_events?.[this.doctype]?.columnEvents?.[column.fieldname]) {
-			let events = this.frm.dt_events[this.doctype].columnEvents[column.fieldname];
+		if (
+			this.frm?.dt_events?.[this.doctype || this.link_report]?.columnEvents?.[
+				column.fieldname
+			]
+		) {
+			let events =
+				this.frm.dt_events[this.doctype || this.link_report].columnEvents[
+					column.fieldname
+				];
 			for (let event in events) {
 				element.addEventListener(event, () =>
 					events[event](element, value, column, row, this)
