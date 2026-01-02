@@ -46,6 +46,11 @@ def delete_user_list_settings(parent_id, child_dt):
 
 
 @frappe.whitelist()
+def update_sva_ft_property(doctype, fieldname, key, value):
+	return DTConf.update_sva_ft_property(doctype, fieldname, key, value)
+
+
+@frappe.whitelist()
 def get_user_list_settings(parent_id, child_dt):
 	return DTConf.get_user_list_settings(parent_id, child_dt)
 
@@ -87,6 +92,7 @@ def get_dt_list(
 	limit_start=None,
 	_type="List",
 	unfiltered=0,
+	return_columns=False,
 ):
 	return DTConf.get_dt_list(
 		doctype,
@@ -99,6 +105,7 @@ def get_dt_list(
 		limit_start,
 		_type,
 		unfiltered,
+		return_columns=return_columns,
 	)
 
 

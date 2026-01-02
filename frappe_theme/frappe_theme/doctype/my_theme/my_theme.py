@@ -1,10 +1,12 @@
 # Copyright (c) 2024, Suvaidyam and contributors
 # For license information, please see license.txt
 
-# import frappe
 import re
 
+import frappe
 from frappe.model.document import Document
+
+from frappe_theme.dt_api import get_number_card_count
 
 
 class MyTheme(Document):
@@ -15,3 +17,20 @@ class MyTheme(Document):
 				self.login_page_title = ""
 			else:
 				pass
+
+	@frappe.whitelist()
+	def eval_number_card(self, numbercard, doctype, docname):
+		details = None
+		if frappe.db.exists("Number Card", numbercard):
+			details = frappe.get_doc("Number Card", numbercard).as_dict()
+
+		if not details:
+			return 0
+		report = None
+		if details.get("type") == "Report":
+			report = frappe.get_doc("Report", details.get("report_name"))
+		res = get_number_card_count(details.get("type"), details, report, doctype, docname)
+		if res.get("count"):
+			return res.get("count")
+		else:
+			return 0

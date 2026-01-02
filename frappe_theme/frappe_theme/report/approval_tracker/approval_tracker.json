@@ -1,0 +1,31 @@
+{
+ "add_total_row": 0,
+ "add_translate_data": 0,
+ "columns": [],
+ "creation": "2025-12-12 14:27:27.854224",
+ "custom_create_view": 0,
+ "custom_refresh_frequency": 0,
+ "custom_view_type": "Logical",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letterhead": null,
+ "modified": "2025-12-12 14:27:27.854224",
+ "modified_by": "Administrator",
+ "module": "Frappe Theme",
+ "name": "APPROVAL TRACKER",
+ "owner": "Administrator",
+ "prepared_report": 0,
+ "ref_doctype": "Approval Tracker",
+ "report_name": "APPROVAL TRACKER",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "System Manager"
+  }
+ ],
+ "timeout": 0
+}

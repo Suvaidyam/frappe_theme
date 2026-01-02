@@ -11,18 +11,48 @@ from frappe.utils.pdf import get_pdf
 
 @frappe.whitelist()
 def get_wf_state_by_closure(doctype, closure_type="Positive"):
-	sql = """SELECT
+	sql = f"""SELECT
             wfs.state,
             wfs.custom_closure
             FROM
             `tabWorkflow` AS wf
             INNER JOIN `tabWorkflow Document State` AS wfs ON wf.name = wfs.parent
             WHERE
-            wf.document_type = %s AND wf.is_active = 1 AND wfs.custom_closure = %s
+            wf.document_type = '{doctype}' AND wf.is_active = 1 AND wfs.custom_closure = '{closure_type}'
         """
-	list = frappe.db.sql(sql, (doctype, closure_type), as_dict=1)
+	list = frappe.db.sql(sql, as_dict=1)
 	if len(list) > 0:
 		return list[0].state
+	return None
+
+
+def get_state_closure_by_type(doctype, closure_type="Positive"):
+	sql = f"""SELECT
+            wfs.state,
+            wfs.custom_closure
+            FROM
+            `tabWorkflow` AS wf
+            INNER JOIN `tabWorkflow Document State` AS wfs ON wf.name = wfs.parent
+            WHERE
+            wf.document_type = '{doctype}' AND wf.is_active = 1 AND wfs.custom_closure = '{closure_type}'
+        """
+	list = frappe.db.sql(sql, as_dict=1)
+	if len(list) > 0:
+		return list[0].state
+	return None
+
+
+def get_state_closure(doctype, wf_state):
+	sql = f"""SELECT
+                wds.state,
+                wds.custom_closure
+            FROM `tabWorkflow` AS wf
+            INNER JOIN `tabWorkflow Document State` AS wds ON wf.name = wds.parent
+            WHERE
+                wf.document_type = '{doctype}' AND wds.state='{wf_state}' AND wds.custom_closure IN ('Positive', 'Negative') AND wf.is_active = 1"""
+	list = frappe.db.sql(sql, as_dict=1)
+	if len(list) > 0:
+		return list[0].custom_closure
 	return None
 
 

@@ -5,6 +5,7 @@ frappe.ui.form.on("Customize Form", {
 	refresh(frm) {
 		add_customization_buttons(frm);
 		add_configure_data_protection_buttons(frm);
+		customPropertySetter(frm);
 	},
 	doc_type(frm) {
 		add_customization_buttons(frm);

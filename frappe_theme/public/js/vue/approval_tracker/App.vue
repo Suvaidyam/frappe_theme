@@ -1,84 +1,68 @@
 <template>
-	<div class="d-flex gap-3 overflow-auto">
-		<!-- ✅ Single table on small screens -->
-		<div class="d-block d-md-none w-100" style="max-height: 550px; overflow: auto">
-			<table class="table border" style="min-width: 200px">
-				<thead class="table-light">
-					<tr>
-						<th>State</th>
-						<th>Count</th>
-					</tr>
-				</thead>
-				<tbody>
-					<tr
-						v-for="item in data"
-						:key="item.state"
-						:style="{ cursor: 'pointer', userSelect: 'none' }"
-						:class="{ 'bg-light fw-bold': selectedStates.includes(item.state) }"
-						@click="onStateClick(item.state)"
-					>
-						<td
-							:class="`text-${item.style?.toLowerCase()}`"
-							style="padding: 4px !important"
-						>
-							{{ item.state }}
-						</td>
-						<td
-							:class="`text-${item.style?.toLowerCase()} fw-semibold`"
-							style="padding: 4px !important"
-						>
-							{{ item.count }}
-						</td>
-					</tr>
-				</tbody>
-			</table>
+	<div
+		style="
+			background: #fff;
+			border-radius: 8px;
+			box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+			padding: 16px;
+			font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+		"
+	>
+		<div style="font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 12px">
+			Workflow States
 		</div>
-
-		<!-- ✅ Split tables on larger screens -->
-		<template v-if="data.length > 1">
-			<div
-				class="d-none d-md-block"
-				v-for="(half, i) in [firstHalf, secondHalf]"
-				:key="i"
-				style="max-height: 550px; overflow: auto"
-				v-if="i === 0 || secondHalf.length"
+		<div style="display: flex; flex-wrap: wrap; gap: 16px; font-size: 16px">
+			<span
+				@click="onStateClick(item.state)"
+				v-for="(item, index) in data"
+				style="
+					width: fit-content;
+					display: flex;
+					align-items: center;
+					gap: 6px;
+					text-decoration: none;
+					cursor: pointer;
+				"
 			>
-				<table class="table border" style="min-width: 200px; width: 550px">
-					<thead class="table-light">
-						<tr>
-							<th>State</th>
-							<th>Count</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr
-							v-for="item in half"
-							:key="item.state"
-							:style="{ cursor: 'pointer', userSelect: 'none' }"
-							:class="{ 'bg-light fw-bold': selectedStates.includes(item.state) }"
-							@click="onStateClick(item.state)"
-						>
-							<td
-								:class="`text-${item.style?.toLowerCase()}`"
-								style="padding: 4px !important"
-							>
-								{{ item.state }}
-							</td>
-							<td
-								:class="`text-${item.style?.toLowerCase()} fw-semibold`"
-								style="padding: 4px !important"
-							>
-								{{ item.count }}
-							</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
-		</template>
+				<span
+					style="min-width: 10px; min-height: 10px; border-radius: 50%"
+					:class="'bg-' + item.style?.toLowerCase()"
+					:style="{ background: !item.style?.toLowerCase() && 'gray' }"
+				></span>
+				<span style="font-weight: 700; color: #1f2937">{{ item.count }}</span>
+				<span style="color: #6b7280">{{ item.state }}</span>
+				<svg
+					style="width: 14px"
+					v-if="selectedStates.includes(item.state)"
+					fill="gray"
+					xmlns="http://www.w3.org/2000/svg"
+					shape-rendering="geometricPrecision"
+					text-rendering="geometricPrecision"
+					image-rendering="optimizeQuality"
+					fill-rule="evenodd"
+					clip-rule="evenodd"
+					viewBox="0 0 512 444.81"
+				>
+					<path
+						fill-rule="nonzero"
+						d="M104.42 183.22c31.76 18.29 52.42 33.49 77.03 60.61C245.27 141.1 314.54 84.19 404.62 3.4l8.81-3.4H512C379.83 146.79 277.36 267.82 185.61 444.81 137.84 342.68 95.26 272.18 0 206.81l104.42-23.59z"
+					/>
+				</svg>
+				<span
+					v-if="index != data.length - 1"
+					style="
+						min-width: 2px;
+						min-height: 100%;
+						background-color: gray;
+						margin-left: 5px;
+					"
+				></span>
+			</span>
+		</div>
 	</div>
 </template>
 <script setup>
-import { ref, computed } from "vue";
+import { ref } from "vue";
 
 const selectedStates = ref([]); // ✅ multiple selection
 
@@ -104,15 +88,24 @@ const data = ref([]);
 const props = defineProps({ doctype: { required: true } });
 
 const get_data = async () => {
-	const res = await frappe.call({
-		method: "frappe_theme.api.get_workflow_count",
-		args: { doctype: props.doctype },
-	});
-	if (res) data.value = res.message;
+	if (props.doctype && props.doctype !== "N/A") {
+		const res = await frappe.call({
+			method: "frappe_theme.api.get_workflow_count",
+			args: { doctype: props.doctype },
+		});
+		if (res) data.value = res.message;
+	} else {
+		data.value = [];
+	}
 };
 get_data();
 
-const mid = computed(() => Math.ceil(data.value.length / 2));
-const firstHalf = computed(() => data.value.slice(0, mid.value));
-const secondHalf = computed(() => data.value.slice(mid.value));
+// const half = computed(() => Math.ceil(data.value.length / 2));
+// const first_half = computed(() => data.value.slice(0, half.value));
+// const second_half = computed(() => data.value.slice(half.value));
+
+// const mid = computed(() => Math.ceil(data.value.length / 3));
+// const first_part = computed(() => data.value.slice(0, mid.value));
+// const second_part = computed(() => data.value.slice(mid.value, mid.value * 2));
+// const third_part = computed(() => data.value.slice(mid.value * 2));
 </script>

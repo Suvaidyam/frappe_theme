@@ -25,7 +25,7 @@
 <style scoped>
 .skeleton-card {
 	width: 100%;
-	min-height: 344px;
+	min-height: 400px;
 	background-color: #ffffff;
 	border: 1px solid #e0e0e0;
 	border-radius: 10px;
