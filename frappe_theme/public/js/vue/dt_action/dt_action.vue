@@ -117,14 +117,16 @@ const exportData = async () => {
 						["Fields", ...res.message.map((_, index) => index + 1)],
 						...columns.map((col) => [
 							col.label || col.fieldname,
-							...res.message.map((row) => row[col.fieldname] || "")
-						])
+							...res.message.map((row) => row[col.fieldname] || ""),
+						]),
 					];
 				} else {
 					// Normal export
 					dataWithHeaders = [
 						headers,
-						...res.message.map((row) => columns.map((col) => row[col.fieldname] || "")),
+						...res.message.map((row) =>
+							columns.map((col) => row[col.fieldname] || "")
+						),
 					];
 				}
 

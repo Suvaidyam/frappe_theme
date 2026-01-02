@@ -1344,7 +1344,14 @@ class SvaDataTable {
 		}
 	}
 	isAsync = (fn) => fn?.constructor?.name === "AsyncFunction";
-	async createFormDialog(doctype, name = undefined, mode = "create", additional_action = null) {
+	async createFormDialog(
+		doctype,
+		name = undefined,
+		mode = "create",
+		additional_action = null,
+		data = null,
+		primary_action = null
+	) {
 		let res = await this.sva_db.call({
 			method: "frappe_theme.dt_api.get_meta_fields",
 			doctype: doctype,
@@ -1382,7 +1389,12 @@ class SvaDataTable {
 		}
 		if (mode === "create" || mode === "write") {
 			if (name) {
-				let doc = await this.sva_db.get_doc(doctype, name);
+				let doc = {};
+				if (data) {
+					doc = data;
+				} else {
+					doc = await this.sva_db.get_doc(doctype, name);
+				}
 				for (const f of fields) {
 					f.default = "";
 					if (f.hidden === "0") {
@@ -1746,7 +1758,12 @@ class SvaDataTable {
 				}
 			}
 		} else {
-			let doc = await this.sva_db.get_doc(doctype, name);
+			let doc;
+			if (data) {
+				doc = data;
+			} else {
+				doc = await this.sva_db.get_doc(doctype, name);
+			}
 			for (const f of fields) {
 				if (f.hidden === "0") {
 					f.hidden = 0;
@@ -1887,115 +1904,125 @@ class SvaDataTable {
 								values = dialog.get_values(true, false);
 							}
 						}
-						if (!name) {
-							let response = await frappe.xcall("frappe.client.insert", {
-								doc: {
-									doctype: doctype,
-									...values,
-								},
-							});
-							if (response) {
-								if (this.rows.length == this.limit) {
-									this.rows.pop();
-								}
-								this.rows = [response, ...this.rows];
-								// this.rows.push(response);
-								this.updateTableBody();
-								frappe.show_alert({
-									message: `Successfully created ${__(
-										this.connection?.title || doctype
-									)}`,
-									indicator: "success",
-								});
-								if (this.frm?.["dt_events"]?.[doctype]?.["after_insert"]) {
-									let change = this.frm["dt_events"][doctype]["after_insert"];
-									if (this.isAsync(change)) {
-										await change(this, response);
-									} else {
-										change(this, response);
-									}
-								}
-								if (this.frm?.["dt_global_events"]?.["after_insert"]) {
-									let change = this.frm["dt_global_events"]["after_insert"];
-									if (this.isAsync(change)) {
-										await change(this, response);
-									} else {
-										change(this, response);
-									}
-								}
+						if (primary_action != null) {
+							if (this.isAsync(primary_action)) {
+								await primary_action(values, this, mode, name);
+							} else {
+								primary_action(values, this, mode, name);
 							}
 						} else {
-							let value_fields = fields.filter(
-								(f) =>
-									![
-										"Section Break",
-										"Column Break",
-										"HTML",
-										"Button",
-										"Tab Break",
-									].includes(f.fieldtype)
-							);
-							let updated_values = {};
-							for (let field of value_fields) {
-								let key = field.fieldname;
-								if (Array.isArray(values[key])) {
-									updated_values[key] = values[key].map((item) => {
-										if (item.old_name) {
-											return { ...item, name: item.old_name };
-										}
-										return item;
-									});
-								} else {
-									updated_values[key] = values[key] || "";
-								}
-							}
-							let response = await frappe.xcall("frappe.client.set_value", {
-								doctype: doctype,
-								name,
-								fieldname: updated_values,
-							});
-							if (response) {
-								let rowIndex = this.rows.findIndex((r) => r.name === name);
-								this.rows[rowIndex] = response;
-								this.updateTableBody();
-								frappe.show_alert({
-									message: `Successfully updated ${__(
-										this.connection?.title || doctype
-									)}`,
-									indicator: "success",
+							if (!name) {
+								let response = await frappe.xcall("frappe.client.insert", {
+									doc: {
+										doctype: doctype,
+										...values,
+									},
 								});
-								if (this.frm?.["dt_events"]?.[doctype]?.["after_update"]) {
-									let change = this.frm["dt_events"][doctype]["after_update"];
-									if (this.isAsync(change)) {
-										await change(this, response);
-									} else {
-										change(this, response);
+								if (response) {
+									if (this.rows.length == this.limit) {
+										this.rows.pop();
+									}
+									this.rows = [response, ...this.rows];
+									// this.rows.push(response);
+									this.updateTableBody();
+									frappe.show_alert({
+										message: `Successfully created ${__(
+											this.connection?.title || doctype
+										)}`,
+										indicator: "success",
+									});
+									if (this.frm?.["dt_events"]?.[doctype]?.["after_insert"]) {
+										let change =
+											this.frm["dt_events"][doctype]["after_insert"];
+										if (this.isAsync(change)) {
+											await change(this, response);
+										} else {
+											change(this, response);
+										}
+									}
+									if (this.frm?.["dt_global_events"]?.["after_insert"]) {
+										let change = this.frm["dt_global_events"]["after_insert"];
+										if (this.isAsync(change)) {
+											await change(this, response);
+										} else {
+											change(this, response);
+										}
 									}
 								}
-								if (this.frm?.["dt_global_events"]?.["after_update"]) {
-									let change = this.frm["dt_global_events"]["after_update"];
-									if (this.isAsync(change)) {
-										await change(this, response);
+							} else {
+								let value_fields = fields.filter(
+									(f) =>
+										![
+											"Section Break",
+											"Column Break",
+											"HTML",
+											"Button",
+											"Tab Break",
+										].includes(f.fieldtype)
+								);
+								let updated_values = {};
+								for (let field of value_fields) {
+									let key = field.fieldname;
+									if (Array.isArray(values[key])) {
+										updated_values[key] = values[key].map((item) => {
+											if (item.old_name) {
+												return { ...item, name: item.old_name };
+											}
+											return item;
+										});
 									} else {
-										change(this, response);
+										updated_values[key] = values[key] || "";
+									}
+								}
+								let response = await frappe.xcall("frappe.client.set_value", {
+									doctype: doctype,
+									name,
+									fieldname: updated_values,
+								});
+								if (response) {
+									let rowIndex = this.rows.findIndex((r) => r.name === name);
+									this.rows[rowIndex] = response;
+									this.updateTableBody();
+									frappe.show_alert({
+										message: `Successfully updated ${__(
+											this.connection?.title || doctype
+										)}`,
+										indicator: "success",
+									});
+									if (this.frm?.["dt_events"]?.[doctype]?.["after_update"]) {
+										let change =
+											this.frm["dt_events"][doctype]["after_update"];
+										if (this.isAsync(change)) {
+											await change(this, response);
+										} else {
+											change(this, response);
+										}
+									}
+									if (this.frm?.["dt_global_events"]?.["after_update"]) {
+										let change = this.frm["dt_global_events"]["after_update"];
+										if (this.isAsync(change)) {
+											await change(this, response);
+										} else {
+											change(this, response);
+										}
 									}
 								}
 							}
-						}
-						if (this.frm?.["dt_events"]?.[doctype]?.["after_save"]) {
-							let change = this.frm["dt_events"][doctype]["after_save"];
-							if (this.isAsync(change)) {
-								await change(this, mode, values);
-							} else {
-								change(this, mode, values);
+							if (this.frm?.["dt_events"]?.[doctype]?.["after_save"]) {
+								let change = this.frm["dt_events"][doctype]["after_save"];
+								if (this.isAsync(change)) {
+									await change(this, mode, values);
+								} else {
+									change(this, mode, values);
+								}
 							}
-						}
-						if (this.frm?.["dt_global_events"]?.["after_save"]) {
-							let change = this.frm["dt_global_events"]["after_save"];
-							if (this.isAsync(change)) {
-								await change(this, mode, values);
-							} else {
-								change(this, mode, values);
+							if (this.frm?.["dt_global_events"]?.["after_save"]) {
+								let change = this.frm["dt_global_events"]["after_save"];
+								if (this.isAsync(change)) {
+									await change(this, mode, values);
+								} else {
+									change(this, mode, values);
+								}
 							}
 						}
 					}
@@ -2080,6 +2107,7 @@ class SvaDataTable {
 				change(this, mode, has_aditional_action, name);
 			}
 		}
+		return dialog;
 	}
 	async deleteRecord(doctype, name) {
 		frappe.confirm(
