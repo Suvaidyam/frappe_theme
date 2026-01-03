@@ -30,6 +30,18 @@ function open_approval_timeline_dialog(doctype, referenceName, documentTitle) {
 	dialog.show();
 }
 
+async function handleDTHeader(frm, html) {
+	try {
+		let wrapper = $(
+			document.querySelector(`#page-${frm.meta.name.replace(/ /g, "\\ ")} .page-head`)
+		);
+		if (wrapper.length && html) {
+			frappe.create_shadow_element(wrapper.get(0), html.html, html.style, html.script);
+		}
+	} catch (error) {
+		console.error("Error in handleDTHeader:", error);
+	}
+}
 // Check if doctype has an active workflow
 async function has_active_workflow(doctype) {
 	try {

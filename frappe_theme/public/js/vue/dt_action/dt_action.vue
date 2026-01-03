@@ -117,14 +117,25 @@ const exportData = async () => {
 						["Fields", ...res.message.map((_, index) => index + 1)],
 						...columns.map((col) => [
 							col.label || col.fieldname,
+<<<<<<< HEAD
 							...res.message.map((row) => row[col.fieldname] || "")
 						])
+=======
+							...res.message.map((row) => row[col.fieldname] || ""),
+						]),
+>>>>>>> 73c56640199c9c8eeb0c91a7573ac232c375a16c
 					];
 				} else {
 					// Normal export
 					dataWithHeaders = [
 						headers,
+<<<<<<< HEAD
 						...res.message.map((row) => columns.map((col) => row[col.fieldname] || "")),
+=======
+						...res.message.map((row) =>
+							columns.map((col) => row[col.fieldname] || "")
+						),
+>>>>>>> 73c56640199c9c8eeb0c91a7573ac232c375a16c
 					];
 				}
 
