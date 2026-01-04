@@ -210,9 +210,11 @@ class DTConf:
 			data = response.get("result")
 			columns = response.get("columns")
 			result = Chart.filter_script_report_data(data, columns, ref_doctype, doc)
+
 			# apply pagination
-			if limit_page_length and limit_start is not None:
+			if limit_page_length and limit_start:
 				result = result[limit_start : limit_start + limit_page_length]
+
 			if return_columns:
 				return {"result": result, "columns": columns}
 			else:
