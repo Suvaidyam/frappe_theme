@@ -98,6 +98,7 @@ class SvaDataTable {
 		this.skeletonLoader = null;
 		this.standard_filters_fields_dict = {};
 		this.title_field = null;
+		this.isTransposed = false; // Track transpose state
 		// Initialize crud permissions before reloadTable so crudHandler can modify them
 		this.crud = {
 			read: true,
@@ -942,13 +943,26 @@ class SvaDataTable {
 				try {
 					if (!reset) {
 						if (frappe.session.user == "Administrator") {
-							await this.sva_db.call({
-								method: "frappe.client.set_value",
-								doctype: this.connection.doctype,
-								name: this.connection.name,
-								fieldname: "listview_settings",
-								value: JSON.stringify(listview_settings ?? []),
-							});
+							if (
+								this.connection?.configuration_basis == "Property Setter" &&
+								this.frm?.doctype
+							) {
+								await this.sva_db.call({
+									method: "frappe_theme.dt_api.update_sva_ft_property",
+									doctype: this.frm.doctype,
+									fieldname: this.connection.html_field,
+									key: "listview_settings",
+									value: JSON.stringify(listview_settings ?? []),
+								});
+							} else if (this.connection.doctype && this.connection.name) {
+								await this.sva_db.call({
+									method: "frappe.client.set_value",
+									doctype: this.connection.doctype,
+									name: this.connection.name,
+									fieldname: "listview_settings",
+									value: JSON.stringify(listview_settings ?? []),
+								});
+							}
 						} else {
 							await this.sva_db.call({
 								method: "frappe_theme.dt_api.setup_user_list_settings",
@@ -1111,7 +1125,7 @@ class SvaDataTable {
 				}
 			}
 		}
-		if (this.total > this.limit) {
+		if (this.total > this.limit && !this.isTransposed) {
 			if (
 				!wrapper
 					.querySelector("div#footer-element")
@@ -1330,7 +1344,14 @@ class SvaDataTable {
 		}
 	}
 	isAsync = (fn) => fn?.constructor?.name === "AsyncFunction";
-	async createFormDialog(doctype, name = undefined, mode = "create", additional_action = null) {
+	async createFormDialog(
+		doctype,
+		name = undefined,
+		mode = "create",
+		additional_action = null,
+		data = null,
+		primary_action = null
+	) {
 		let res = await this.sva_db.call({
 			method: "frappe_theme.dt_api.get_meta_fields",
 			doctype: doctype,
@@ -1368,7 +1389,12 @@ class SvaDataTable {
 		}
 		if (mode === "create" || mode === "write") {
 			if (name) {
-				let doc = await this.sva_db.get_doc(doctype, name);
+				let doc = {};
+				if (data) {
+					doc = data;
+				} else {
+					doc = await this.sva_db.get_doc(doctype, name);
+				}
 				for (const f of fields) {
 					f.default = "";
 					if (f.hidden === "0") {
@@ -1400,7 +1426,7 @@ class SvaDataTable {
 							f.hidden = 1;
 						}
 					}
-					if (f.fieldtype === "Table") {
+					if (["Table", "Table MultiSelect"].includes(f.fieldtype)) {
 						let res = await this.sva_db.call({
 							method: "frappe_theme.dt_api.get_meta_fields",
 							doctype: f.options,
@@ -1653,7 +1679,7 @@ class SvaDataTable {
 							return { filters };
 						};
 					}
-					if (f.fieldtype === "Table") {
+					if (["Table", "Table MultiSelect"].includes(f.fieldtype)) {
 						let res = await this.sva_db.call({
 							method: "frappe_theme.dt_api.get_meta_fields",
 							doctype: f.options,
@@ -1732,16 +1758,18 @@ class SvaDataTable {
 				}
 			}
 		} else {
-			let doc = await this.sva_db.get_doc(doctype, name);
+			let doc;
+			if (data) {
+				doc = data;
+			} else {
+				doc = await this.sva_db.get_doc(doctype, name);
+			}
 			for (const f of fields) {
-				if (f.fieldtype === "Table MultiSelect") {
-					continue;
-				}
 				if (f.hidden === "0") {
 					f.hidden = 0;
 				}
 
-				if (f.fieldtype === "Table") {
+				if (["Table", "Table MultiSelect"].includes(f.fieldtype)) {
 					let res = await this.sva_db.call({
 						method: "frappe_theme.dt_api.get_meta_fields",
 						doctype: f.options,
@@ -1773,8 +1801,14 @@ class SvaDataTable {
 					});
 					f.cannot_add_rows = 1;
 					f.cannot_delete_rows = 1;
+					f.read_only = 1;
+
 					if (doc[f.fieldname].length) {
-						f.data = doc[f.fieldname];
+						if (f.fieldtype === "Table MultiSelect") {
+							f.default = doc[f.fieldname];
+						} else {
+							f.data = doc[f.fieldname];
+						}
 					}
 					continue;
 				}
@@ -1870,115 +1904,125 @@ class SvaDataTable {
 								values = dialog.get_values(true, false);
 							}
 						}
-						if (!name) {
-							let response = await frappe.xcall("frappe.client.insert", {
-								doc: {
-									doctype: doctype,
-									...values,
-								},
-							});
-							if (response) {
-								if (this.rows.length == this.limit) {
-									this.rows.pop();
-								}
-								this.rows = [response, ...this.rows];
-								// this.rows.push(response);
-								this.updateTableBody();
-								frappe.show_alert({
-									message: `Successfully created ${__(
-										this.connection?.title || doctype
-									)}`,
-									indicator: "success",
-								});
-								if (this.frm?.["dt_events"]?.[doctype]?.["after_insert"]) {
-									let change = this.frm["dt_events"][doctype]["after_insert"];
-									if (this.isAsync(change)) {
-										await change(this, response);
-									} else {
-										change(this, response);
-									}
-								}
-								if (this.frm?.["dt_global_events"]?.["after_insert"]) {
-									let change = this.frm["dt_global_events"]["after_insert"];
-									if (this.isAsync(change)) {
-										await change(this, response);
-									} else {
-										change(this, response);
-									}
-								}
+						if (primary_action != null) {
+							if (this.isAsync(primary_action)) {
+								await primary_action(values, this, mode, name);
+							} else {
+								primary_action(values, this, mode, name);
 							}
 						} else {
-							let value_fields = fields.filter(
-								(f) =>
-									![
-										"Section Break",
-										"Column Break",
-										"HTML",
-										"Button",
-										"Tab Break",
-									].includes(f.fieldtype)
-							);
-							let updated_values = {};
-							for (let field of value_fields) {
-								let key = field.fieldname;
-								if (Array.isArray(values[key])) {
-									updated_values[key] = values[key].map((item) => {
-										if (item.old_name) {
-											return { ...item, name: item.old_name };
-										}
-										return item;
-									});
-								} else {
-									updated_values[key] = values[key] || "";
-								}
-							}
-							let response = await frappe.xcall("frappe.client.set_value", {
-								doctype: doctype,
-								name,
-								fieldname: updated_values,
-							});
-							if (response) {
-								let rowIndex = this.rows.findIndex((r) => r.name === name);
-								this.rows[rowIndex] = response;
-								this.updateTableBody();
-								frappe.show_alert({
-									message: `Successfully updated ${__(
-										this.connection?.title || doctype
-									)}`,
-									indicator: "success",
+							if (!name) {
+								let response = await frappe.xcall("frappe.client.insert", {
+									doc: {
+										doctype: doctype,
+										...values,
+									},
 								});
-								if (this.frm?.["dt_events"]?.[doctype]?.["after_update"]) {
-									let change = this.frm["dt_events"][doctype]["after_update"];
-									if (this.isAsync(change)) {
-										await change(this, response);
-									} else {
-										change(this, response);
+								if (response) {
+									if (this.rows.length == this.limit) {
+										this.rows.pop();
+									}
+									this.rows = [response, ...this.rows];
+									// this.rows.push(response);
+									this.updateTableBody();
+									frappe.show_alert({
+										message: `Successfully created ${__(
+											this.connection?.title || doctype
+										)}`,
+										indicator: "success",
+									});
+									if (this.frm?.["dt_events"]?.[doctype]?.["after_insert"]) {
+										let change =
+											this.frm["dt_events"][doctype]["after_insert"];
+										if (this.isAsync(change)) {
+											await change(this, response);
+										} else {
+											change(this, response);
+										}
+									}
+									if (this.frm?.["dt_global_events"]?.["after_insert"]) {
+										let change = this.frm["dt_global_events"]["after_insert"];
+										if (this.isAsync(change)) {
+											await change(this, response);
+										} else {
+											change(this, response);
+										}
 									}
 								}
-								if (this.frm?.["dt_global_events"]?.["after_update"]) {
-									let change = this.frm["dt_global_events"]["after_update"];
-									if (this.isAsync(change)) {
-										await change(this, response);
+							} else {
+								let value_fields = fields.filter(
+									(f) =>
+										![
+											"Section Break",
+											"Column Break",
+											"HTML",
+											"Button",
+											"Tab Break",
+										].includes(f.fieldtype)
+								);
+								let updated_values = {};
+								for (let field of value_fields) {
+									let key = field.fieldname;
+									if (Array.isArray(values[key])) {
+										updated_values[key] = values[key].map((item) => {
+											if (item.old_name) {
+												return { ...item, name: item.old_name };
+											}
+											return item;
+										});
 									} else {
-										change(this, response);
+										updated_values[key] = values[key] || "";
+									}
+								}
+								let response = await frappe.xcall("frappe.client.set_value", {
+									doctype: doctype,
+									name,
+									fieldname: updated_values,
+								});
+								if (response) {
+									let rowIndex = this.rows.findIndex((r) => r.name === name);
+									this.rows[rowIndex] = response;
+									this.updateTableBody();
+									frappe.show_alert({
+										message: `Successfully updated ${__(
+											this.connection?.title || doctype
+										)}`,
+										indicator: "success",
+									});
+									if (this.frm?.["dt_events"]?.[doctype]?.["after_update"]) {
+										let change =
+											this.frm["dt_events"][doctype]["after_update"];
+										if (this.isAsync(change)) {
+											await change(this, response);
+										} else {
+											change(this, response);
+										}
+									}
+									if (this.frm?.["dt_global_events"]?.["after_update"]) {
+										let change = this.frm["dt_global_events"]["after_update"];
+										if (this.isAsync(change)) {
+											await change(this, response);
+										} else {
+											change(this, response);
+										}
 									}
 								}
 							}
-						}
-						if (this.frm?.["dt_events"]?.[doctype]?.["after_save"]) {
-							let change = this.frm["dt_events"][doctype]["after_save"];
-							if (this.isAsync(change)) {
-								await change(this, mode, values);
-							} else {
-								change(this, mode, values);
+							if (this.frm?.["dt_events"]?.[doctype]?.["after_save"]) {
+								let change = this.frm["dt_events"][doctype]["after_save"];
+								if (this.isAsync(change)) {
+									await change(this, mode, values);
+								} else {
+									change(this, mode, values);
+								}
 							}
-						}
-						if (this.frm?.["dt_global_events"]?.["after_save"]) {
-							let change = this.frm["dt_global_events"]["after_save"];
-							if (this.isAsync(change)) {
-								await change(this, mode, values);
-							} else {
-								change(this, mode, values);
+							if (this.frm?.["dt_global_events"]?.["after_save"]) {
+								let change = this.frm["dt_global_events"]["after_save"];
+								if (this.isAsync(change)) {
+									await change(this, mode, values);
+								} else {
+									change(this, mode, values);
+								}
 							}
 						}
 					}
@@ -2063,6 +2107,7 @@ class SvaDataTable {
 				change(this, mode, has_aditional_action, name);
 			}
 		}
+		return dialog;
 	}
 	async deleteRecord(doctype, name) {
 		frappe.confirm(
@@ -2110,6 +2155,20 @@ class SvaDataTable {
 		this.table.appendChild(this.createTableHead());
 		el.appendChild(this.table);
 		this.table.appendChild(this.createTableBody());
+
+		// Auto transpose if enabled for reports
+		if (
+			this.connection?.enable_auto_transpose &&
+			this.connection?.connection_type === "Report"
+		) {
+			this.isTransposed = true;
+			setTimeout(async () => {
+				this.rows = await this.getDocList();
+				this.table.replaceChild(this.createTableBody(), this.table.querySelector("tbody"));
+				this.transposeTable();
+			}, 0);
+		}
+
 		return el;
 	}
 
@@ -3052,6 +3111,11 @@ class SvaDataTable {
 			newTbody,
 			oldTbody || this.table.querySelector("#noDataFoundPage")
 		); // Replace old tbody with new sorted tbody
+
+		// Reapply transpose if it was previously transposed
+		if (this.isTransposed) {
+			setTimeout(() => this.transposeTable(), 0);
+		}
 	}
 
 	getCellStyle(column, freezeColumnsAtLeft, left) {
@@ -3145,8 +3209,15 @@ class SvaDataTable {
 			description: "",
 		};
 		if (column.fieldname === this?.workflow?.workflow_state_field) {
-			if (this.frm?.dt_events?.[this.doctype]?.formatter?.[column.fieldname]) {
-				let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
+			if (
+				this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
+					column.fieldname
+				]
+			) {
+				let formatter =
+					this.frm.dt_events[this.doctype || this.link_report].formatter[
+						column.fieldname
+					];
 				td.innerHTML = formatter(
 					this.workflow_state_map[row[column.fieldname]] || row[column.fieldname],
 					column,
@@ -3187,8 +3258,15 @@ class SvaDataTable {
 		}
 		if (column.fieldtype === "Link") {
 			let spanElement;
-			if (this.frm?.dt_events?.[this.doctype]?.formatter?.[column.fieldname]) {
-				let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
+			if (
+				this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
+					column.fieldname
+				]
+			) {
+				let formatter =
+					this.frm.dt_events[this.doctype || this.link_report].formatter[
+						column.fieldname
+					];
 				if (frappe.utils.get_link_title(column.options, row[column.fieldname])) {
 					td.innerHTML = formatter(
 						frappe.utils.get_link_title(column.options, row[column.fieldname]),
@@ -3367,8 +3445,15 @@ class SvaDataTable {
 				$(td).css({ height: "25px !important", padding: "0px 5px" });
 				control.refresh();
 			} else {
-				if (this.frm?.dt_events?.[this.doctype]?.formatter?.[column.fieldname]) {
-					let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
+				if (
+					this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
+						column.fieldname
+					]
+				) {
+					let formatter =
+						this.frm.dt_events[this.doctype || this.link_report].formatter[
+							column.fieldname
+						];
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
 					td.innerHTML = `<span title="${row[column.fieldname] || ""}">${
@@ -3482,8 +3567,15 @@ class SvaDataTable {
 				}
 			}
 			if (columnField.fieldtype === "Currency") {
-				if (this.frm?.dt_events?.[this.doctype]?.formatter?.[column.fieldname]) {
-					let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
+				if (
+					this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
+						column.fieldname
+					]
+				) {
+					let formatter =
+						this.frm.dt_events[this.doctype || this.link_report].formatter[
+							column.fieldname
+						];
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
 					let value = formatCurrency(
@@ -3569,8 +3661,15 @@ class SvaDataTable {
 				}
 			}
 			if (["Int", "Float"].includes(columnField.fieldtype)) {
-				if (this.frm?.dt_events?.[this.doctype]?.formatter?.[column.fieldname]) {
-					let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
+				if (
+					this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
+						column.fieldname
+					]
+				) {
+					let formatter =
+						this.frm.dt_events[this.doctype || this.link_report].formatter[
+							column.fieldname
+						];
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
 					let value =
@@ -3614,8 +3713,15 @@ class SvaDataTable {
 				return;
 			}
 			if (["Percent"].includes(columnField.fieldtype)) {
-				if (this.frm?.dt_events?.[this.doctype]?.formatter?.[column.fieldname]) {
-					let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
+				if (
+					this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
+						column.fieldname
+					]
+				) {
+					let formatter =
+						this.frm.dt_events[this.doctype || this.link_report].formatter[
+							column.fieldname
+						];
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
 					let value =
@@ -3659,8 +3765,15 @@ class SvaDataTable {
 				return;
 			}
 			if (["Date"].includes(columnField.fieldtype)) {
-				if (this.frm?.dt_events?.[this.doctype]?.formatter?.[column.fieldname]) {
-					let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
+				if (
+					this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
+						column.fieldname
+					]
+				) {
+					let formatter =
+						this.frm.dt_events[this.doctype || this.link_report].formatter[
+							column.fieldname
+						];
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
 					td.innerHTML = `<span title="${
@@ -3740,9 +3853,15 @@ class SvaDataTable {
 				btn.setAttribute("data-fieldname", columnField.fieldname);
 				btn.onclick = this.onFieldClick;
 				btn.textContent = columnField.label;
-				if (this.frm?.dt_events?.[this.doctype]?.formatter?.[columnField.fieldname]) {
+				if (
+					this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
+						columnField.fieldname
+					]
+				) {
 					let formatter =
-						this.frm.dt_events[this.doctype].formatter[columnField.fieldname];
+						this.frm.dt_events[this.doctype || this.link_report].formatter[
+							columnField.fieldname
+						];
 					btn = formatter(btn, column, row, this);
 				}
 				td.appendChild(btn);
@@ -3766,7 +3885,11 @@ class SvaDataTable {
 				this.bindColumnEvents(td.firstElementChild, row[column.fieldname], column, row);
 				return;
 			}
-			if (this.frm?.dt_events?.[this.doctype]?.formatter?.[column.fieldname]) {
+			if (
+				this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
+					column.fieldname
+				]
+			) {
 				let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
 				td.innerHTML = formatter(row[column.fieldname], column, row, this);
 			} else {
@@ -3802,8 +3925,15 @@ class SvaDataTable {
 		}
 	}
 	bindColumnEvents(element, value, column, row) {
-		if (this.frm?.dt_events?.[this.doctype]?.columnEvents?.[column.fieldname]) {
-			let events = this.frm.dt_events[this.doctype].columnEvents[column.fieldname];
+		if (
+			this.frm?.dt_events?.[this.doctype || this.link_report]?.columnEvents?.[
+				column.fieldname
+			]
+		) {
+			let events =
+				this.frm.dt_events[this.doctype || this.link_report].columnEvents[
+					column.fieldname
+				];
 			for (let event in events) {
 				element.addEventListener(event, () =>
 					events[event](element, value, column, row, this)
@@ -3915,9 +4045,13 @@ class SvaDataTable {
 				ref_doctype: this.frm?.doc?.doctype,
 				filters: [...filters, ...this.additional_list_filters],
 				fields: this.fields || ["*"],
-				limit_page_length: this.limit,
+				limit_page_length: this.isTransposed ? 0 : this.limit,
 				order_by: `${this.sort_by} ${this.sort_order}`,
-				limit_start: this.page > 0 ? (this.page - 1) * this.limit : 0,
+				limit_start: this.isTransposed
+					? 0
+					: this.page > 0
+					? (this.page - 1) * this.limit
+					: 0,
 				_type: this.connection.connection_type,
 				unfiltered: this.connection?.unfiltered,
 			});
@@ -3929,14 +4063,14 @@ class SvaDataTable {
 	createNoDataFoundPage() {
 		const tr = document.createElement("tr");
 		tr.id = "noDataFoundPage";
-		tr.style.height = "200px"; // Use viewport height to set a more responsive height
+		tr.style.height = "200px";
 		tr.style.fontSize = "20px";
 		const td = document.createElement("td");
 		td.colSpan =
 			(this.columns?.length ?? 3) +
 			((this.options?.serialNumberColumn ? 1 : 0) +
 				(this.conf_perms.includes("write") || this.conf_perms.includes("delete") ? 1 : 0) +
-				(this.wf_transitions_allowed || this.wf_editable_allowed ? 1 : 0)); // Ensure columns are defined properly
+				(this.wf_transitions_allowed || this.wf_editable_allowed ? 1 : 0));
 
 		td.innerHTML = `
                 <div class="msg-box no-border">
@@ -3946,11 +4080,13 @@ class SvaDataTable {
                         </svg>
                     </div>
                     <p>You haven't created a record yet</p>
-
                 </div>
         `;
 		tr.appendChild(td);
-		return tr;
+
+		const tbody = document.createElement("tbody");
+		tbody.appendChild(tr);
+		return tbody;
 	}
 	handleNoPermission() {
 		let noPermissionPage = document.createElement("div");
@@ -4135,8 +4271,160 @@ class SvaDataTable {
 		$(f.wrapper).find("select").css("width", "140px");
 		$(f.wrapper).find(".select-icon").css("top", "2px");
 	}
-}
 
+	transposeTable() {
+		if (!this.table) return;
+
+		const rows = Array.from(this.table.rows);
+
+		// Handle no data case - create empty transposed structure
+		if (this.rows.length === 0) {
+			this.table.innerHTML = "";
+			const thead = this.table.createTHead();
+			const tbody = this.table.createTBody();
+
+			// Create header row with action column
+			const actionRow = thead.insertRow();
+
+			// Add settings button
+			const settingsTh = document.createElement("th");
+			settingsTh.style.cssText =
+				"width:150px; text-align:left;position:sticky;right:0px;background-color:#F3F3F3;";
+			settingsTh.appendChild(this.createSettingsButton());
+			actionRow.appendChild(settingsTh);
+
+			// Add column headers for each column
+			// Add single header for message
+			const messageTh = document.createElement("th");
+			messageTh.style.backgroundColor = "#F3F3F3";
+			messageTh.style.textAlign = "center";
+			messageTh.style.width = "400px";
+			messageTh.innerHTML = "";
+			actionRow.appendChild(messageTh);
+
+			// Add rows for each column name
+			this.columns.forEach((column, index) => {
+				const row = tbody.insertRow();
+				row.style.maxHeight = "32px";
+				row.style.height = "32px";
+				row.style.backgroundColor = "#fff";
+
+				const labelCell = row.insertCell();
+				labelCell.innerHTML = column.label || column.fieldname;
+				labelCell.style.cssText =
+					"height:32px;padding:0px 5px;font-weight:normal;width:150px;min-width:150px;";
+
+				// Only add value cell for first row, others will be covered by rowSpan
+				if (index === 0) {
+					const valueCell = row.insertCell();
+					valueCell.innerHTML = `
+						<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:30px 0;">
+							<svg class="icon icon-lg" style="stroke: var(--text-light);margin-bottom:15px;">
+								<use href="#icon-small-file"></use>
+							</svg>
+							<p style="margin:0;font-size:14px;">You haven't created a record yet</p>
+						</div>
+					`;
+					valueCell.rowSpan = this.columns.length;
+					valueCell.style.cssText = `padding:0px;width:100%;vertical-align:middle;text-align:center;height:${
+						this.columns.length * 32 + 30
+					}px;line-height:32px;`;
+				}
+			});
+
+			return;
+		}
+
+		if (rows.length === 0) return;
+
+		// Extract action column (last column) from all rows
+		const actionColumn = rows.map((row) => row.cells[row.cells.length - 1]);
+
+		// Convert to matrix excluding action column
+		const matrix = rows.map((row) =>
+			Array.from(row.cells)
+				.slice(0, -1)
+				.map((cell) => cell.innerHTML)
+		);
+
+		// Transpose data columns
+		const transposed = matrix[0].map((_, colIndex) => matrix.map((row) => row[colIndex]));
+
+		// Clear and rebuild
+		this.table.innerHTML = "";
+		const thead = this.table.createTHead();
+		const tbody = this.table.createTBody();
+
+		// First row: action column as first row
+		const actionRow = thead.insertRow();
+		actionColumn.forEach((originalCell, index) => {
+			const th = document.createElement("th");
+			th.style.cssText = originalCell.style.cssText;
+			th.style.backgroundColor = "#F3F3F3";
+
+			// Make first header cell sticky
+			if (index === 0) {
+				th.style.position = "sticky";
+				th.style.left = "0px";
+				th.style.zIndex = "3";
+				th.style.backgroundColor = "#F3F3F3";
+				th.style.textAlign = "left";
+				th.style.borderRight = "1px solid #dee2e6";
+				th.appendChild(this.createSettingsButton());
+			} else {
+				// For three dot actions, center align
+				th.style.textAlign = "center";
+				// Hide action columns for reports to prevent overlap
+				if (this.connection.connection_type === "Report") {
+					th.style.display = "none";
+				} else {
+					th.innerHTML = originalCell.innerHTML;
+				}
+			}
+
+			actionRow.appendChild(th);
+		});
+
+		// Rest of transposed data
+		transposed.forEach((rowData, rowIndex) => {
+			const row = tbody.insertRow();
+			row.style.maxHeight = "32px";
+			row.style.height = "32px";
+			row.style.backgroundColor = "#fff";
+
+			rowData.forEach((cellData, colIndex) => {
+				const cell = row.insertCell();
+				cell.innerHTML = cellData;
+				cell.style.height = "32px";
+				cell.style.whiteSpace = "nowrap";
+				cell.style.overflow = "hidden";
+				cell.style.textOverflow = "ellipsis";
+				cell.style.padding = "0px 5px";
+				cell.style.textAlign = "left";
+
+				// Make first column sticky
+				if (colIndex === 0) {
+					cell.style.position = "sticky";
+					cell.style.left = "0px";
+					cell.style.zIndex = "2";
+					cell.style.backgroundColor = "#f8f9fa";
+					cell.style.fontWeight = "500";
+					cell.style.borderRight = "1px solid #dee2e6";
+				}
+
+				// Apply width from header settings (now rowIndex maps to original columns)
+				if (rowIndex < this.header.length) {
+					const col = this.header[rowIndex];
+					if (col?.width) {
+						cell.style.width = `${Number(col.width) * 50}px`;
+						cell.style.minWidth = `${Number(col.width) * 50}px`;
+						cell.style.maxWidth = `${Number(col.width) * 50}px`;
+					}
+				}
+			});
+		});
+	}
+}
 frappe.provide("frappe.ui");
 frappe.ui.SvaDataTable = SvaDataTable;
 export default SvaDataTable;
