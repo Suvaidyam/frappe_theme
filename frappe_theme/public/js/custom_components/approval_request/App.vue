@@ -88,6 +88,7 @@ const showTable = async (document_type) => {
 					// before_load: async function (dt) {
 					// 	let wf_positive_closure = await frappe.xcall(
 					// 		"frappe_theme.utils.get_wf_state_by_closure",
+
 					// 		{
 					// 			doctype: document_type,
 					// 			closure_type: "Positive",
@@ -101,16 +102,16 @@ const showTable = async (document_type) => {
 					// 		}
 					// 	);
 
-						// if (wf_positive_closure && wf_negative_closure) {
-						// 	dt.additional_list_filters = [
-						// 		[
-						// 			document_type,
-						// 			wf_field,
-						// 			"not in",
-						// 			[wf_positive_closure, wf_negative_closure],
-						// 		],
-						// 	];
-						// }
+					// if (wf_positive_closure && wf_negative_closure) {
+					// 	dt.additional_list_filters = [
+					// 		[
+					// 			document_type,
+					// 			wf_field,
+					// 			"not in",
+					// 			[wf_positive_closure, wf_negative_closure],
+					// 		],
+					// 	];
+					// }
 					// },
 					after_workflow_action: async function (dt) {
 						try {
