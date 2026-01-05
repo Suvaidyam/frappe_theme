@@ -50,7 +50,7 @@ onMounted(async () => {
 
 				const firstOption = r.message.options[0];
 				if (firstOption) {
-					await showTable(firstOption);
+					moduleValue.set_value(firstOption);
 				}
 			} else {
 				frappe.msgprint(__("No workflows found for this doctype."));
@@ -85,33 +85,33 @@ const showTable = async (document_type) => {
 				...frmCopy?.["dt_events"],
 				[document_type]: {
 					...frmCopy?.["dt_events"]?.[document_type],
-					before_load: async function (dt) {
-						let wf_positive_closure = await frappe.xcall(
-							"frappe_theme.utils.get_wf_state_by_closure",
-							{
-								doctype: document_type,
-								closure_type: "Positive",
-							}
-						);
-						let wf_negative_closure = await frappe.xcall(
-							"frappe_theme.utils.get_wf_state_by_closure",
-							{
-								doctype: document_type,
-								closure_type: "Negative",
-							}
-						);
+					// before_load: async function (dt) {
+					// 	let wf_positive_closure = await frappe.xcall(
+					// 		"frappe_theme.utils.get_wf_state_by_closure",
+					// 		{
+					// 			doctype: document_type,
+					// 			closure_type: "Positive",
+					// 		}
+					// 	);
+					// 	let wf_negative_closure = await frappe.xcall(
+					// 		"frappe_theme.utils.get_wf_state_by_closure",
+					// 		{
+					// 			doctype: document_type,
+					// 			closure_type: "Negative",
+					// 		}
+					// 	);
 
-						if (wf_positive_closure && wf_negative_closure) {
-							dt.additional_list_filters = [
-								[
-									document_type,
-									wf_field,
-									"not in",
-									[wf_positive_closure, wf_negative_closure],
-								],
-							];
-						}
-					},
+						// if (wf_positive_closure && wf_negative_closure) {
+						// 	dt.additional_list_filters = [
+						// 		[
+						// 			document_type,
+						// 			wf_field,
+						// 			"not in",
+						// 			[wf_positive_closure, wf_negative_closure],
+						// 		],
+						// 	];
+						// }
+					// },
 					after_workflow_action: async function (dt) {
 						try {
 							if (dt.frm?.number_table_instance)
