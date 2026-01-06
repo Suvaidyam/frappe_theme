@@ -236,27 +236,38 @@ class DTConf:
 
 	def get_dt_count(doctype, doc=None, ref_doctype=None, filters=None, _type="List", unfiltered=False):
 		if _type == "Report":
-			doc_filters = DTConf.get_report_filters(doctype)
-			# convert filters to sql conditions
-			conditions = ""
-			for f in doc_filters:
-				if (
-					f.get("fieldname")
-					and f.get("fieldname") not in filters
-					and f.get("options") == ref_doctype
-					and unfiltered == 0
-				):
-					conditions += f" AND t.{f.get('fieldname')} = '{doc}'"
-			if filters:
-				conditions = conditions + " AND " + DTConf.filters_to_sql_conditions(filters)
-			# return conditions
 			data = frappe.get_doc("Report", doctype)
-			query = data.get("query")
-			sub_query = re.sub(r";\s*\)", ")", query)
-			query = sub_query.rstrip(";")
-			final_sql = f"SELECT COUNT(*) AS count FROM ({query}) AS t WHERE 1=1 {conditions}"
-			result = read_sql(final_sql, as_dict=1)
-			return result[0].get("count")
+			if data.report_type == "Query Report":
+				doc_filters = DTConf.get_report_filters(doctype)
+				# convert filters to sql conditions
+				conditions = ""
+				for f in doc_filters:
+					if (
+						f.get("fieldname")
+						and f.get("fieldname") not in filters
+						and f.get("options") == ref_doctype
+						and unfiltered == 0
+					):
+						conditions += f" AND t.{f.get('fieldname')} = '{doc}'"
+				if filters:
+					conditions = conditions + " AND " + DTConf.filters_to_sql_conditions(filters)
+				# return conditions
+				query = data.get("query")
+				sub_query = re.sub(r";\s*\)", ")", query)
+				query = sub_query.rstrip(";")
+				final_sql = f"SELECT COUNT(*) AS count FROM ({query}) AS t WHERE 1=1 {conditions}"
+				result = read_sql(final_sql, as_dict=1)
+				return result[0].get("count")
+			elif data.report_type == "Script Report":
+				filters = filters
+				if isinstance(filters, list):
+					filters = {f[1]: f[3] for f in filters}
+				response = run(doctype, filters=filters)
+				data = response.get("result")
+				columns = response.get("columns")
+				result = Chart.filter_script_report_data(data, columns, ref_doctype, doc)
+
+				return len(result)
 		else:
 			if filters is not None and not isinstance(filters, (dict | list)):
 				filters = {}
