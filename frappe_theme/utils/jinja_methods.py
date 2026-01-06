@@ -186,3 +186,26 @@ def get_primary_donor_name():
 	except Exception as e:
 		frappe.log_error(f"Error in getting primary donor: {e}")
 		return {}
+
+
+def ordinal(n):
+	"""
+	Convert a number to its ordinal representation:
+	1 -> 1st, 2 -> 2nd, 3 -> 3rd, 4 -> 4th
+	Handles None, strings, floats, negatives, zero safely.
+	"""
+
+	if n is None:
+		return ""
+	try:
+		n = int(n)
+	except (ValueError, TypeError):
+		return ""
+	if n <= 0:
+		return str(n)
+	if 11 <= (n % 100) <= 13:
+		suffix = "th"
+	else:
+		suffix = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+
+	return f"{n}{suffix}"

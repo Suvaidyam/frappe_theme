@@ -221,4 +221,5 @@ class SVADashboardManager {
 	}
 }
 
+frappe.ui.SVADashboardManager = SVADashboardManager;
 export default SVADashboardManager;

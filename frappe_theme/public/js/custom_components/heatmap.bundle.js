@@ -844,4 +844,5 @@ class SVAHeatmap {
 	}
 }
 
+frappe.ui.SVAHeatmap = SVAHeatmap;
 export default SVAHeatmap;
