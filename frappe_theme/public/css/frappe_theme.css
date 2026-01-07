@@ -98,3 +98,11 @@
 .sidebar-item-icon svg {
     transition: all 0.3s ease !important;
 }
+
+.modal-header {
+    flex-wrap: wrap !important;
+}
+
+.modal-header > #sva-dt-error-message {
+    flex: 0 0 100% !important;
+}
