@@ -2,6 +2,7 @@
 	<Chart
 		v-for="(item, index) in charts"
 		:chart="item"
+		:filters="filters"
 		:key="item.chart_label"
 		:delay="index * 200"
 		:actions="actions"
@@ -18,6 +19,10 @@ const props = defineProps({
 	charts: {
 		type: Array,
 		default: [],
+	},
+	filters: {
+		type: Object,
+		default: () => ({}),
 	},
 });
 onMounted(() => {
