@@ -395,8 +395,14 @@ class SVAHeatmap {
 				let formattedNextBreak = nextBreak;
 
 				if (column?.fieldtype === "Currency") {
-					formattedBreak = frappe.utils.format_currency(break_, column.options);
-					formattedNextBreak = frappe.utils.format_currency(nextBreak, column.options);
+					formattedBreak = frappe.utils.format_currency(
+						break_,
+						frappe.boot?.sysdefaults?.currency || "INR"
+					);
+					formattedNextBreak = frappe.utils.format_currency(
+						nextBreak,
+						frappe.boot?.sysdefaults?.currency || "INR"
+					);
 				} else {
 					formattedBreak = frappe.utils.shorten_number(
 						break_,
@@ -754,7 +760,10 @@ class SVAHeatmap {
 					let value = data.data[field.fieldname];
 					if (value) {
 						if (field?.fieldtype === "Currency") {
-							value = frappe.utils.format_currency(value, field.options);
+							value = frappe.utils.format_currency(
+								value,
+								frappe.boot?.sysdefaults?.currency || "INR"
+							);
 						} else {
 							value = frappe.utils.shorten_number(
 								value,
@@ -772,7 +781,10 @@ class SVAHeatmap {
                 <strong>${name}</strong><br/>
                 ${column?.label || "Count"}: ${
 			column?.fieldtype == "Currency"
-				? frappe.utils.format_currency(data?.count || 0)
+				? frappe.utils.format_currency(
+						data?.count || 0,
+						frappe.boot?.sysdefaults?.currency || "INR"
+				  )
 				: frappe.utils.shorten_number(data?.count || 0, frappe.sys_defaults.country)
 		}
                 ${additionalFields}
