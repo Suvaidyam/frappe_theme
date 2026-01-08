@@ -225,7 +225,11 @@ class SvaDataTable {
 							}
 						}
 					} else {
-						this.columns = [...columns.filter((f) => f.in_list_view)];
+						if (this.connection.connection_type === "Report") {
+							this.columns = columns;
+						} else {
+							this.columns = [...columns.filter((f) => f.in_list_view)];
+						}
 					}
 					if (this.frm?.["dt_events"]?.[this.doctype]?.["before_table_load"]) {
 						let change = this.frm["dt_events"][this.doctype]["before_table_load"];
@@ -2195,7 +2199,6 @@ class SvaDataTable {
 
 		let left = 0;
 		let freezeColumnsAtLeft = 1;
-
 		this.columns.forEach((column) => {
 			const th = document.createElement("th");
 			let col = this.header.find((h) => h.fieldname === column.fieldname);

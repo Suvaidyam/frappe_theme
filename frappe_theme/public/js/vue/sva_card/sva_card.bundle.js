@@ -3,7 +3,6 @@ import { createPinia } from "pinia";
 import { store } from "./store.js";
 import App from "./App.vue";
 
-
 class SvaCard {
 	constructor({ wrapper, frm, numberCards, signal, filters = {} }) {
 		this.$wrapper = $(wrapper);

@@ -13,7 +13,10 @@
 import NumberCard from "./components/NumberCard.vue";
 import { ref, onMounted } from "vue";
 
-const actions = ref([{ label: "Refresh", action: "refresh" }]);
+const actions = ref([
+	{ label: "View Table", action: "view_table" },
+	{ label: "Refresh", action: "refresh" },
+]);
 
 const props = defineProps({
 	cards: {
