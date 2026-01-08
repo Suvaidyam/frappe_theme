@@ -3,12 +3,14 @@ import { createPinia } from "pinia";
 import { store } from "./store.js";
 import App from "./App.vue";
 
+
 class SvaCard {
-	constructor({ wrapper, frm, numberCards, signal }) {
+	constructor({ wrapper, frm, numberCards, signal, filters = {} }) {
 		this.$wrapper = $(wrapper);
 		this.frm = frm;
 		this.numberCards = numberCards;
 		this.signal = signal;
+		this.filters = filters;
 		this.app = null;
 		this.init();
 	}
@@ -28,9 +30,16 @@ class SvaCard {
 		}
 	}
 
-	refresh() {
+	refresh(filters) {
+		if (filters) {
+			this.setFilters(filters);
+		}
 		this.cleanup();
 		this.setup_app();
+	}
+
+	setFilters(filters = {}) {
+		this.filters = filters;
 	}
 
 	setup_app() {
@@ -39,6 +48,7 @@ class SvaCard {
 		// create a vue instance with dynamic props
 		this.app = createApp(App, {
 			cards: this.numberCards || [],
+			filters: this.filters || {},
 		});
 		SetVueGlobals(this.app);
 		this.app.use(pinia);

@@ -97,6 +97,10 @@ const props = defineProps({
 		type: Object,
 		default: {},
 	},
+	filters: {
+		type: Object,
+		default: () => ({}),
+	},
 	delay: {
 		type: Number,
 		default: 0,
@@ -240,7 +244,7 @@ const options = ref({
 		},
 	},
 });
-console.log(options.value, "options");
+// console.log(options.value, "options");
 // const emit = defineEmits(['action-clicked']);
 
 const handleAction = async (action) => {
@@ -274,6 +278,7 @@ const getCount = async () => {
 				report: report,
 				doctype: cur_frm.doc.doctype,
 				docname: cur_frm.doc.name,
+				filters: props.filters,
 			},
 		});
 		if (res.message) {
