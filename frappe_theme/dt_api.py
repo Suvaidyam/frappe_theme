@@ -51,11 +51,6 @@ def update_sva_ft_property(doctype, fieldname, key, value):
 
 
 @frappe.whitelist()
-def update_sva_ft_property(doctype, fieldname, key, value):
-	return DTConf.update_sva_ft_property(doctype, fieldname, key, value)
-
-
-@frappe.whitelist()
 def get_user_list_settings(parent_id, child_dt):
 	return DTConf.get_user_list_settings(parent_id, child_dt)
 

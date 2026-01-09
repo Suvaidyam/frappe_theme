@@ -201,7 +201,6 @@ class NumberCard:
 					_filters.append([details.get("document_type"), key, "=", value])
 			elif isinstance(filters, list):
 				_filters.extend(filters)
-
 			if doctype and docname and doctype != docname:
 				meta = frappe.get_meta(details.get("document_type"))
 				if meta.fields:
