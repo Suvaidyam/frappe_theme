@@ -434,3 +434,47 @@ class DTConf:
 			return filters.get("filters")
 		else:
 			return []
+
+	def get_connection_type_confs(doctype, ref_doctype):
+		meta = frappe.get_meta(doctype)
+		if meta.fields:
+			# Add direct link field filter
+			direct_link = next(
+				(
+					x
+					for x in meta.fields
+					if x.fieldtype == "Link"
+					and x.options == ref_doctype
+					and x.fieldname not in ["amended_form"]
+				),
+				None,
+			)
+			if direct_link:
+				return {
+					"link_doctype": doctype,
+					"connection_type": "Direct",
+					"link_fieldname": direct_link.fieldname,
+				}
+
+			# Add reference field filters
+			ref_dt = next((x for x in meta.fields if x.fieldtype == "Link" and x.options == "DocType"), None)
+			if ref_dt:
+				ref_dn = next(
+					(
+						x
+						for x in meta.fields
+						if x.fieldtype == "Dynamic Link" and x.options == ref_dt.get("fieldname")
+					),
+					None,
+				)
+				if ref_dn:
+					return {
+						"referenced_link_doctype": doctype,
+						"dt_reference_field": ref_dt.fieldname,
+						"dn_reference_field": ref_dn.fieldname,
+						"connection_type": "Referenced",
+					}
+			return {
+				"connection_type": "Unfiltered",
+			}
+		return None

@@ -3,6 +3,7 @@
 		v-for="(item, index) in cards"
 		:card="item"
 		:filters="filters"
+		:frm="frm"
 		:key="item.card_label"
 		:delay="index * 200"
 		:actions="actions"
@@ -26,6 +27,10 @@ const props = defineProps({
 	filters: {
 		type: Object,
 		default: () => ({}),
+	},
+	frm: {
+		type: Object,
+		default: null,
 	},
 });
 onMounted(() => {

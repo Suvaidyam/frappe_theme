@@ -4,6 +4,7 @@
 		:chart="item"
 		:filters="filters"
 		:key="item.chart_label"
+		:frm="frm"
 		:delay="index * 200"
 		:actions="actions"
 	/>
@@ -26,6 +27,10 @@ const props = defineProps({
 	filters: {
 		type: Object,
 		default: () => ({}),
+	},
+	frm: {
+		type: Object,
+		default: null,
 	},
 });
 onMounted(() => {

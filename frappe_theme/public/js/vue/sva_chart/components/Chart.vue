@@ -113,6 +113,10 @@ const props = defineProps({
 		type: Array,
 		default: () => [{ label: "Refresh", action: "refresh" }],
 	},
+	frm: {
+		type: Object,
+		default: null,
+	},
 });
 
 if (props.chart?.details?.custom_show_data_labels) {
@@ -266,10 +270,9 @@ const handleAction = async (action) => {
 			label: "",
 			wrapper,
 			doctype: "",
-			frm: cur_frm,
+			frm: props.frm || cur_frm,
 			connection: {
 				crud_permissions: JSON.stringify(["read"]),
-				allow_export: true,
 			},
 			childLinks: [],
 			options: {
@@ -284,7 +287,19 @@ const handleAction = async (action) => {
 			table_options.connection["connection_type"] = "Report";
 		} else {
 			table_options.doctype = props.chart.details?.document_type;
-			table_options.connection["connection_type"] = "Unfiltered";
+			if (cur_frm.doctype) {
+				let confs = await frappe.xcall("frappe_theme.dt_api.get_connection_type_confs", {
+					doctype: props.chart.details?.document_type,
+					ref_doctype: cur_frm.doctype,
+				});
+				if (confs) {
+					Object.assign(table_options.connection, confs);
+				} else {
+					table_options.connection["connection_type"] = "Unfiltered";
+				}
+			} else {
+				table_options.connection["connection_type"] = "Unfiltered";
+			}
 		}
 
 		let dialog = new frappe.ui.Dialog({

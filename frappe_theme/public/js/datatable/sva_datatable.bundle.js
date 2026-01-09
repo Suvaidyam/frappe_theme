@@ -694,6 +694,8 @@ class SvaDataTable {
 		return res.message;
 	}
 	async setupHeader() {
+		let has_list_filters = JSON.parse(this.connection?.list_filters || "[]").length > 0;
+
 		let header_element = document.createElement("div");
 		header_element.id = "header-element";
 		header_element.classList.add("sva-header-element");
@@ -731,7 +733,8 @@ class SvaDataTable {
 		title_actions.style = `
 			display: flex;
 			align-items: center;
-			gap: 10px;
+			gap: ${!has_list_filters ? "5" : "10"}px;
+			${!has_list_filters ? "margin-left: -5px !important;" : ""}
 		`;
 
 		// Custom Button Section
@@ -883,8 +886,14 @@ class SvaDataTable {
 		filter_row.appendChild(filter_controls);
 
 		// Add both rows to header element
-		header_element.appendChild(title_row);
-		header_element.appendChild(filter_row);
+		if (has_list_filters) {
+			header_element.appendChild(title_row);
+			header_element.appendChild(filter_row);
+		} else {
+			standard_filters_wrapper.append(label_wrapper);
+			filter_controls.append(title_actions);
+			header_element.appendChild(filter_row);
+		}
 
 		return header_element;
 	}
