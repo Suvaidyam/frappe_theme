@@ -46,6 +46,7 @@ class SvaChart {
 		let app = createApp(App, {
 			charts: this.charts || [],
 			filters: this.filters || {},
+			frm: this.frm,
 		});
 		SetVueGlobals(app);
 		app.use(pinia);
