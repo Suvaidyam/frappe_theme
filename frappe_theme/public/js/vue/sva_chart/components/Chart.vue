@@ -14,7 +14,7 @@
 							aria-haspopup="true"
 							aria-expanded="false"
 						>
-							...
+							<svg class="icon icon-sm"><use href="#icon-dot-horizontal"></use></svg>
 						</span>
 						<div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
 							<a
