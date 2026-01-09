@@ -61,13 +61,18 @@ def get_sva_dt_settings(doctype):
 
 
 @frappe.whitelist()
-def get_number_card_count(type, details, report=None, doctype=None, docname=None):
-	return NumberCard.get_number_card_count(type, details, report, doctype, docname)
+def get_connection_type_confs(doctype, ref_doctype):
+	return DTConf.get_connection_type_confs(doctype, ref_doctype)
 
 
 @frappe.whitelist()
-def get_chart_data(type, details, report=None, doctype=None, docname=None):
-	return Chart.get_chart_data(type, details, report, doctype, docname)
+def get_number_card_count(type, details, report=None, doctype=None, docname=None, filters=None):
+	return NumberCard.get_number_card_count(type, details, report, doctype, docname, filters)
+
+
+@frappe.whitelist()
+def get_chart_data(type, details, report=None, doctype=None, docname=None, filters=None):
+	return Chart.get_chart_data(type, details, report, doctype, docname, filters)
 
 
 @frappe.whitelist()

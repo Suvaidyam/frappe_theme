@@ -607,14 +607,15 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 						"Number Card",
 						field.sva_ft.number_card
 					);
+					if (card_doc.type == "Report" && card_doc.report_name) {
+						card_doc.report = await frappe.db.get_doc("Report", card_doc.report_name);
+					}
 					let item = {
 						fetch_from: "Number Card",
 						number_card: field.sva_ft.number_card,
 						card_label: field.sva_ft.label || card_doc.label || "Untitled",
 						details: card_doc,
-						report: card_doc.report
-							? await frappe.db.get_doc("Report", card_doc.report)
-							: null,
+						report: card_doc.report || null,
 						icon_value: field.sva_ft.icon || null,
 						icon_color: field.sva_ft.icon_color || null,
 						background_color: field.sva_ft.background_color || null,
