@@ -99,6 +99,7 @@ class Chart:
 		report: str | None = None,
 		doctype: str | None = None,
 		docname: str | None = None,
+		filters: dict | list | None = None,
 	) -> dict:
 		"""Get chart data based on type and parameters."""
 		try:
@@ -106,9 +107,9 @@ class Chart:
 			report = json.loads(report) if report else None
 
 			if type == "Report":
-				return Chart.chart_report(details, report, doctype, docname)
+				return Chart.chart_report(details, report, doctype, docname, filters)
 			elif type == "Document Type":
-				return Chart.chart_doc_type(details, doctype, docname)
+				return Chart.chart_doc_type(details, doctype, docname, filters)
 			else:
 				return Chart._get_empty_chart_data(f"Invalid chart type: {type}")
 		except Exception as e:
@@ -364,7 +365,11 @@ class Chart:
 
 	@staticmethod
 	def chart_report(
-		details: dict, report: dict | None = None, doctype: str | None = None, docname: str | None = None
+		details: dict,
+		report: dict | None = None,
+		doctype: str | None = None,
+		docname: str | None = None,
+		filters: (dict | list | None) = None,
 	) -> dict:
 		"""Generate chart data for report type."""
 		try:
@@ -377,6 +382,28 @@ class Chart:
 					for f in report.get("columns", []):
 						if f.get("fieldtype") == "Link" and f.get("options") == doctype:
 							conditions += f" AND t.{f.get('fieldname')} = '{docname}'"
+
+				if filters and isinstance(filters, dict):
+					for key, value in filters.items():
+						conditions += f" AND t.{key} = '{value}'"
+				elif filters and isinstance(filters, list):
+					for filter_condition in filters:
+						if len(filter_condition) >= 3:
+							fieldname = filter_condition[0]
+							operator = filter_condition[1]
+							value = filter_condition[2]
+							conditions += f" AND t.{fieldname} {operator} '{value}'"
+
+				if filters and isinstance(filters, dict):
+					for key, value in filters.items():
+						conditions += f" AND t.{key} = '{value}'"
+				elif filters and isinstance(filters, list):
+					for filter_condition in filters:
+						if len(filter_condition) >= 3:
+							fieldname = filter_condition[0]
+							operator = filter_condition[1]
+							value = filter_condition[2]
+							conditions += f" AND t.{fieldname} {operator} '{value}'"
 
 				query = f"""
                     SELECT
@@ -396,7 +423,7 @@ class Chart:
 			if report.get("report_type") == "Script Report":
 				from frappe.desk.query_report import run
 
-				response = run(report.get("name"), filters={})
+				response = run(report.get("name"), filters=filters or {})
 				data = response.get("result", [])
 				columns = response.get("columns", [])
 				data = Chart.filter_script_report_data(data, columns, doctype, docname)

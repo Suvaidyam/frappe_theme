@@ -225,7 +225,11 @@ class SvaDataTable {
 							}
 						}
 					} else {
-						this.columns = [...columns.filter((f) => f.in_list_view)];
+						if (this.connection.connection_type === "Report") {
+							this.columns = columns;
+						} else {
+							this.columns = [...columns.filter((f) => f.in_list_view)];
+						}
 					}
 					if (this.frm?.["dt_events"]?.[this.doctype]?.["before_table_load"]) {
 						let change = this.frm["dt_events"][this.doctype]["before_table_load"];
@@ -690,6 +694,8 @@ class SvaDataTable {
 		return res.message;
 	}
 	async setupHeader() {
+		let has_list_filters = JSON.parse(this.connection?.list_filters || "[]").length > 0;
+
 		let header_element = document.createElement("div");
 		header_element.id = "header-element";
 		header_element.classList.add("sva-header-element");
@@ -727,7 +733,8 @@ class SvaDataTable {
 		title_actions.style = `
 			display: flex;
 			align-items: center;
-			gap: 10px;
+			gap: ${!has_list_filters ? "5" : "10"}px;
+			${!has_list_filters ? "margin-left: -5px !important;" : ""}
 		`;
 
 		// Custom Button Section
@@ -879,8 +886,14 @@ class SvaDataTable {
 		filter_row.appendChild(filter_controls);
 
 		// Add both rows to header element
-		header_element.appendChild(title_row);
-		header_element.appendChild(filter_row);
+		if (has_list_filters) {
+			header_element.appendChild(title_row);
+			header_element.appendChild(filter_row);
+		} else {
+			standard_filters_wrapper.append(label_wrapper);
+			filter_controls.append(title_actions);
+			header_element.appendChild(filter_row);
+		}
 
 		return header_element;
 	}
@@ -2195,7 +2208,6 @@ class SvaDataTable {
 
 		let left = 0;
 		let freezeColumnsAtLeft = 1;
-
 		this.columns.forEach((column) => {
 			const th = document.createElement("th");
 			let col = this.header.find((h) => h.fieldname === column.fieldname);
@@ -3725,7 +3737,7 @@ class SvaDataTable {
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
 					let value =
-						row[column.fieldname].toLocaleString("en-US", {
+						row[column.fieldname]?.toLocaleString("en-US", {
 							minimumFractionDigits: 0,
 							maximumFractionDigits: 2,
 						}) || 0;
