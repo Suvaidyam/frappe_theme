@@ -12,6 +12,10 @@ const props = defineProps({
 		type: Object,
 		default: {},
 	},
+	filters: {
+		type: Object,
+		default: () => ({}),
+	},
 	delay: {
 		type: Number,
 		default: 0,
@@ -67,6 +71,7 @@ const getCount = async () => {
 					report: report,
 					doctype: cur_frm.doc.doctype,
 					docname: cur_frm.doc.name,
+					filters: props.filters,
 				},
 			});
 			if (res.message) {
