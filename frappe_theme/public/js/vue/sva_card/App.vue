@@ -2,6 +2,7 @@
 	<NumberCard
 		v-for="(item, index) in cards"
 		:card="item"
+		:filters="filters"
 		:key="item.card_label"
 		:delay="index * 200"
 		:actions="actions"
@@ -18,6 +19,10 @@ const props = defineProps({
 	cards: {
 		type: Array,
 		default: [],
+	},
+	filters: {
+		type: Object,
+		default: () => ({}),
 	},
 });
 onMounted(() => {

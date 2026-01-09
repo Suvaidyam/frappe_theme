@@ -191,8 +191,10 @@ class DTConf:
 						conditions += f" AND t.{f.get('fieldname')} = '{doc}'"
 			if len(filters):
 				conditions += " AND " + DTConf.filters_to_sql_conditions(filters)
+
 			if limit_page_length and limit_start is not None:
 				conditions += f" LIMIT {limit_start}, {limit_page_length}"
+
 			query = data.get("query")
 			sub_query = re.sub(r";\s*\)", ")", query)
 			query = sub_query.rstrip(";")
@@ -207,12 +209,13 @@ class DTConf:
 			if isinstance(filters, list):
 				filters = {f[1]: f[3] for f in filters}
 			response = run(doctype, filters=filters)
+
 			data = response.get("result")
 			columns = response.get("columns")
 			result = Chart.filter_script_report_data(data, columns, ref_doctype, doc)
 
 			# apply pagination
-			if limit_page_length and limit_start:
+			if limit_page_length and limit_start is not None:
 				result = result[limit_start : limit_start + limit_page_length]
 
 			if return_columns:
