@@ -398,6 +398,12 @@ class DTConf:
 	def filters_to_sql_conditions(filters, table_alias="t"):
 		conditions = []
 
+		if isinstance(filters, str):
+			filters = json.loads(filters)
+
+		if isinstance(filters, dict):
+			filters = [[table_alias, key, "=", value] for key, value in filters.items()]
+
 		for f in filters:
 			if len(f) < 4:
 				continue

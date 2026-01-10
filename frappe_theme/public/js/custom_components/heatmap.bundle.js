@@ -69,7 +69,15 @@ class SVAHeatmap {
         `;
 		document.head.appendChild(style);
 
+		this.standard_filters = opts.standard_filters || {};
+		this.filters = opts.filters || {};
+
 		this.init();
+	}
+
+	setFilters(filters = {}) {
+		this.filters = filters;
+		this.refreshData();
 	}
 
 	init() {
@@ -300,7 +308,7 @@ class SVAHeatmap {
 				doctype: this.reportName,
 				doc: this.frm?.doc?.name,
 				ref_doctype: this.frm?.doc?.doctype,
-				filters: [],
+				filters: { ...this.standard_filters, ...this.filters },
 				fields: ["*"],
 				limit_page_length: 100000,
 				limit_start: 0,
