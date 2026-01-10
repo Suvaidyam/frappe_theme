@@ -26,6 +26,10 @@ const props = defineProps({
 		type: Array,
 		default: () => [{ label: "Refresh", action: "refresh" }],
 	},
+	frm: {
+		type: Object,
+		default: () => ({}),
+	},
 });
 
 // const emit = defineEmits(['action-clicked']);
@@ -45,7 +49,7 @@ const handleAction = async (action) => {
 			label: "",
 			wrapper,
 			doctype: "",
-			frm: cur_frm,
+			frm: props.frm || cur_frm,
 			connection: {
 				crud_permissions: JSON.stringify(["read"]),
 			},
