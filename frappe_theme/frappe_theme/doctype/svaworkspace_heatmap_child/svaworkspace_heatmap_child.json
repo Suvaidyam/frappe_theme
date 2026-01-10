@@ -13,6 +13,7 @@
   "setup_target_fields",
   "column_break_tabo",
   "primary_target",
+  "label",
   "section_break_vhni",
   "default_view",
   "block_height",
@@ -95,17 +96,23 @@
   {
    "fieldname": "column_break_dwyd",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "label",
+   "fieldtype": "Data",
+   "label": "Label"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-03-30 10:31:16.557144",
+ "modified": "2026-01-10 15:37:41.485862",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "SVAWorkspace Heatmap Child",
  "owner": "Administrator",
  "permissions": [],
+ "row_format": "Dynamic",
  "sort_field": "creation",
  "sort_order": "DESC",
  "states": []
