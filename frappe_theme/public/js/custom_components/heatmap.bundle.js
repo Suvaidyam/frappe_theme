@@ -1,3 +1,6 @@
+import Loader from "../loader-element.js";
+import SvaDataTable from "../datatable/sva_datatable.bundle.js";
+
 class SVAHeatmap {
 	constructor(opts) {
 		this.reportName = opts.report || "";
@@ -6,7 +9,7 @@ class SVAHeatmap {
 		this.districtGeoJsonUrl = "/assets/frappe_theme/boundaries/districts_boundaries.json";
 		this.defaultView = opts.default_view || "State";
 		this.blockHeight = opts.block_height || 280;
-
+		this.label = opts.label || "";
 		this.map = null;
 		this.frm = opts.frm || null;
 		this.stateLayer = null;
@@ -66,7 +69,15 @@ class SVAHeatmap {
         `;
 		document.head.appendChild(style);
 
+		this.standard_filters = opts.standard_filters || {};
+		this.filters = opts.filters || {};
+
 		this.init();
+	}
+
+	setFilters(filters = {}) {
+		this.filters = filters;
+		this.refreshData();
 	}
 
 	init() {
@@ -109,7 +120,7 @@ class SVAHeatmap {
 			.css({
 				position: "absolute",
 				top: "10px",
-				right: "10px",
+				right: "45px",
 				zIndex: 1000,
 				padding: "4px 6px",
 				backgroundColor: "#fff",
@@ -119,6 +130,25 @@ class SVAHeatmap {
 			.on("click", () => this.toggleFullscreen());
 
 		this.mapContainer.append(this.fullscreenButton);
+		this.showTableButton = $('<button class="btn btn-secondary btn-sm" title="View Table">')
+			.html(
+				`
+			<svg width="24px" height="24px" viewBox="0 0 24.00 24.00" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M3 9H21M3 15H21M9 9L9 20M15 9L15 20M6.2 20H17.8C18.9201 20 19.4802 20 19.908 19.782C20.2843 19.5903 20.5903 19.2843 20.782 18.908C21 18.4802 21 17.9201 21 16.8V7.2C21 6.0799 21 5.51984 20.782 5.09202C20.5903 4.71569 20.2843 4.40973 19.908 4.21799C19.4802 4 18.9201 4 17.8 4H6.2C5.0799 4 4.51984 4 4.09202 4.21799C3.71569 4.40973 3.40973 4.71569 3.21799 5.09202C3 5.51984 3 6.07989 3 7.2V16.8C3 17.9201 3 18.4802 3.21799 18.908C3.40973 19.2843 3.71569 19.5903 4.09202 19.782C4.51984 20 5.07989 20 6.2 20Z" stroke="#000000" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>
+			`
+			)
+			.css({
+				position: "absolute",
+				top: "10px",
+				right: "10px",
+				zIndex: 1000,
+				padding: "4px 4px",
+				backgroundColor: "#fff",
+				border: "none",
+				cursor: "pointer",
+			})
+			.on("click", () => this.showDataTable());
+
+		this.mapContainer.append(this.showTableButton);
 
 		this.resetButton = $(
 			'<button class="btn btn-secondary btn-sm" title="Reset to Country View">'
@@ -132,7 +162,7 @@ class SVAHeatmap {
 			.css({
 				position: "absolute",
 				top: "10px",
-				right: "75px",
+				right: "105px",
 				zIndex: 1000,
 				padding: "4px 6px",
 				backgroundColor: "#fff",
@@ -148,7 +178,7 @@ class SVAHeatmap {
 			.css({
 				position: "absolute",
 				top: "10px",
-				right: "45px",
+				right: "75px",
 				zIndex: 1000,
 				padding: "4px 6px",
 				backgroundColor: "#fff",
@@ -222,6 +252,50 @@ class SVAHeatmap {
 		}
 	}
 
+	async showDataTable() {
+		const wrapper = document.createElement("div");
+		let loader = new Loader(wrapper);
+		loader.show();
+
+		let table_options = {
+			label: "",
+			wrapper,
+			doctype: "",
+			frm: this.frm || cur_frm,
+			connection: {
+				crud_permissions: JSON.stringify(["read"]),
+				link_report: this.reportName,
+				connection_type: "Report",
+			},
+			childLinks: [],
+			options: {
+				serialNumberColumn: true,
+				editable: false,
+			},
+			loader,
+		};
+
+		let dialog = new frappe.ui.Dialog({
+			title: this.reportName || "Data Table",
+			fields: [
+				{
+					fieldtype: "HTML",
+					fieldname: "data_table_html",
+					options: `<div>Table Loading...</div>`,
+				},
+			],
+			size: "extra-large",
+			primary_action_label: "Close",
+			primary_action: function () {
+				dialog.hide();
+			},
+		});
+		dialog.show();
+		dialog.set_df_property("data_table_html", "options", wrapper);
+
+		new SvaDataTable(table_options);
+	}
+
 	fetchData() {
 		if (!this.reportName) {
 			this.hideLoader();
@@ -234,7 +308,7 @@ class SVAHeatmap {
 				doctype: this.reportName,
 				doc: this.frm?.doc?.name,
 				ref_doctype: this.frm?.doc?.doctype,
-				filters: [],
+				filters: { ...this.standard_filters, ...this.filters },
 				fields: ["*"],
 				limit_page_length: 100000,
 				limit_start: 0,
@@ -245,7 +319,7 @@ class SVAHeatmap {
 				if (r.message) {
 					this.reportData = r.message;
 					// Update title with report name
-					this.titleContainer.text(this.reportName);
+					this.titleContainer.text(this.label || this.reportName);
 
 					const hasStateColumn = this.reportData.columns.some(
 						(col) => col.options === "State"
@@ -395,8 +469,14 @@ class SVAHeatmap {
 				let formattedNextBreak = nextBreak;
 
 				if (column?.fieldtype === "Currency") {
-					formattedBreak = frappe.utils.format_currency(break_, column.options);
-					formattedNextBreak = frappe.utils.format_currency(nextBreak, column.options);
+					formattedBreak = frappe.utils.format_currency(
+						break_,
+						frappe.boot?.sysdefaults?.currency || "INR"
+					);
+					formattedNextBreak = frappe.utils.format_currency(
+						nextBreak,
+						frappe.boot?.sysdefaults?.currency || "INR"
+					);
 				} else {
 					formattedBreak = frappe.utils.shorten_number(
 						break_,
@@ -754,7 +834,10 @@ class SVAHeatmap {
 					let value = data.data[field.fieldname];
 					if (value) {
 						if (field?.fieldtype === "Currency") {
-							value = frappe.utils.format_currency(value, field.options);
+							value = frappe.utils.format_currency(
+								value,
+								frappe.boot?.sysdefaults?.currency || "INR"
+							);
 						} else {
 							value = frappe.utils.shorten_number(
 								value,
@@ -772,7 +855,10 @@ class SVAHeatmap {
                 <strong>${name}</strong><br/>
                 ${column?.label || "Count"}: ${
 			column?.fieldtype == "Currency"
-				? frappe.utils.format_currency(data?.count || 0)
+				? frappe.utils.format_currency(
+						data?.count || 0,
+						frappe.boot?.sysdefaults?.currency || "INR"
+				  )
 				: frappe.utils.shorten_number(data?.count || 0, frappe.sys_defaults.country)
 		}
                 ${additionalFields}

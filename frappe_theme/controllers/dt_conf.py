@@ -191,8 +191,10 @@ class DTConf:
 						conditions += f" AND t.{f.get('fieldname')} = '{doc}'"
 			if len(filters):
 				conditions += " AND " + DTConf.filters_to_sql_conditions(filters)
+
 			if limit_page_length and limit_start is not None:
 				conditions += f" LIMIT {limit_start}, {limit_page_length}"
+
 			query = data.get("query")
 			sub_query = re.sub(r";\s*\)", ")", query)
 			query = sub_query.rstrip(";")
@@ -207,12 +209,13 @@ class DTConf:
 			if isinstance(filters, list):
 				filters = {f[1]: f[3] for f in filters}
 			response = run(doctype, filters=filters)
+
 			data = response.get("result")
 			columns = response.get("columns")
 			result = Chart.filter_script_report_data(data, columns, ref_doctype, doc)
 
 			# apply pagination
-			if limit_page_length and limit_start:
+			if limit_page_length and limit_start is not None:
 				result = result[limit_start : limit_start + limit_page_length]
 
 			if return_columns:
@@ -236,27 +239,38 @@ class DTConf:
 
 	def get_dt_count(doctype, doc=None, ref_doctype=None, filters=None, _type="List", unfiltered=False):
 		if _type == "Report":
-			doc_filters = DTConf.get_report_filters(doctype)
-			# convert filters to sql conditions
-			conditions = ""
-			for f in doc_filters:
-				if (
-					f.get("fieldname")
-					and f.get("fieldname") not in filters
-					and f.get("options") == ref_doctype
-					and unfiltered == 0
-				):
-					conditions += f" AND t.{f.get('fieldname')} = '{doc}'"
-			if filters:
-				conditions = conditions + " AND " + DTConf.filters_to_sql_conditions(filters)
-			# return conditions
 			data = frappe.get_doc("Report", doctype)
-			query = data.get("query")
-			sub_query = re.sub(r";\s*\)", ")", query)
-			query = sub_query.rstrip(";")
-			final_sql = f"SELECT COUNT(*) AS count FROM ({query}) AS t WHERE 1=1 {conditions}"
-			result = read_sql(final_sql, as_dict=1)
-			return result[0].get("count")
+			if data.report_type == "Query Report":
+				doc_filters = DTConf.get_report_filters(doctype)
+				# convert filters to sql conditions
+				conditions = ""
+				for f in doc_filters:
+					if (
+						f.get("fieldname")
+						and f.get("fieldname") not in filters
+						and f.get("options") == ref_doctype
+						and unfiltered == 0
+					):
+						conditions += f" AND t.{f.get('fieldname')} = '{doc}'"
+				if filters:
+					conditions = conditions + " AND " + DTConf.filters_to_sql_conditions(filters)
+				# return conditions
+				query = data.get("query")
+				sub_query = re.sub(r";\s*\)", ")", query)
+				query = sub_query.rstrip(";")
+				final_sql = f"SELECT COUNT(*) AS count FROM ({query}) AS t WHERE 1=1 {conditions}"
+				result = read_sql(final_sql, as_dict=1)
+				return result[0].get("count")
+			elif data.report_type == "Script Report":
+				filters = filters
+				if isinstance(filters, list):
+					filters = {f[1]: f[3] for f in filters}
+				response = run(doctype, filters=filters)
+				data = response.get("result")
+				columns = response.get("columns")
+				result = Chart.filter_script_report_data(data, columns, ref_doctype, doc)
+
+				return len(result)
 		else:
 			if filters is not None and not isinstance(filters, (dict | list)):
 				filters = {}
@@ -384,6 +398,12 @@ class DTConf:
 	def filters_to_sql_conditions(filters, table_alias="t"):
 		conditions = []
 
+		if isinstance(filters, str):
+			filters = json.loads(filters)
+
+		if isinstance(filters, dict):
+			filters = [[table_alias, key, "=", value] for key, value in filters.items()]
+
 		for f in filters:
 			if len(f) < 4:
 				continue
@@ -420,3 +440,47 @@ class DTConf:
 			return filters.get("filters")
 		else:
 			return []
+
+	def get_connection_type_confs(doctype, ref_doctype):
+		meta = frappe.get_meta(doctype)
+		if meta.fields:
+			# Add direct link field filter
+			direct_link = next(
+				(
+					x
+					for x in meta.fields
+					if x.fieldtype == "Link"
+					and x.options == ref_doctype
+					and x.fieldname not in ["amended_form"]
+				),
+				None,
+			)
+			if direct_link:
+				return {
+					"link_doctype": doctype,
+					"connection_type": "Direct",
+					"link_fieldname": direct_link.fieldname,
+				}
+
+			# Add reference field filters
+			ref_dt = next((x for x in meta.fields if x.fieldtype == "Link" and x.options == "DocType"), None)
+			if ref_dt:
+				ref_dn = next(
+					(
+						x
+						for x in meta.fields
+						if x.fieldtype == "Dynamic Link" and x.options == ref_dt.get("fieldname")
+					),
+					None,
+				)
+				if ref_dn:
+					return {
+						"referenced_link_doctype": doctype,
+						"dt_reference_field": ref_dt.fieldname,
+						"dn_reference_field": ref_dn.fieldname,
+						"connection_type": "Referenced",
+					}
+			return {
+				"connection_type": "Unfiltered",
+			}
+		return None
