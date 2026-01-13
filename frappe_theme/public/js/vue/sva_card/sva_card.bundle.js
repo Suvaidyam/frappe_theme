@@ -49,6 +49,7 @@ class SvaCard {
 		this.app = createApp(App, {
 			cards: this.numberCards || [],
 			filters: this.filters || {},
+			frm: this.frm,
 		});
 		SetVueGlobals(this.app);
 		this.app.use(pinia);

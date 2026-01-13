@@ -608,10 +608,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 						field.sva_ft.number_card
 					);
 					if (card_doc.type == "Report" && card_doc.report_name) {
-						card_doc.report = await frappe.db.get_doc(
-							"Report",
-							card_doc.report_name
-						);
+						card_doc.report = await frappe.db.get_doc("Report", card_doc.report_name);
 					}
 					let item = {
 						fetch_from: "Number Card",
@@ -681,7 +678,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 				break;
 			case "Heatmap (India Map)":
 				field.sva_ft["report"] = field.sva_ft["heatmap_report"];
-				new SVAHeatmap({
+				frm.sva_ft_instances[field.fieldname] = new SVAHeatmap({
 					wrapper: $(wrapper),
 					...(field?.sva_ft || {}),
 					frm,
@@ -942,6 +939,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			if (signal.aborted) return;
 			const ComponentClass = this.getComponentClass(template);
 			let instance = new ComponentClass(frm, el, conf, { signal });
+			frm.sva_ft_instances[fieldname] = instance;
 			// Store cleanup function
 			this.mountedComponents.set(componentId, () => {
 				if (instance.cleanup) {
