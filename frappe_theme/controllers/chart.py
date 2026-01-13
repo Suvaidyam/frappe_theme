@@ -382,7 +382,18 @@ class Chart:
 					for f in report.get("columns", []):
 						if f.get("fieldtype") == "Link" and f.get("options") == doctype:
 							conditions += f" AND t.{f.get('fieldname')} = '{docname}'"
-       
+
+				if filters and isinstance(filters, dict):
+					for key, value in filters.items():
+						conditions += f" AND t.{key} = '{value}'"
+				elif filters and isinstance(filters, list):
+					for filter_condition in filters:
+						if len(filter_condition) >= 3:
+							fieldname = filter_condition[0]
+							operator = filter_condition[1]
+							value = filter_condition[2]
+							conditions += f" AND t.{fieldname} {operator} '{value}'"
+
 				if filters and isinstance(filters, dict):
 					for key, value in filters.items():
 						conditions += f" AND t.{key} = '{value}'"
