@@ -109,6 +109,7 @@ const show_table = async (frm, document_type) => {
 		frm: Object.assign(frm, {
 			dt_events: {
 				[document_type]: {
+					...(frm.dt_events?.[document_type] || {}),
 					before_load: async function (dt) {
 						let wf_positive_closure = await frappe.xcall(
 							"frappe_theme.utils.get_wf_state_by_closure",
