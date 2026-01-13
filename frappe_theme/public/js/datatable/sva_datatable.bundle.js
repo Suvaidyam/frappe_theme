@@ -1516,8 +1516,8 @@ class SvaDataTable {
 							}
 						}
 						f.fields = tableFields;
-						if (doc[f.fieldname].length) {
-							f.data = doc[f.fieldname].map((row) => {
+						if (doc[f.fieldname]?.length) {
+							f.data = doc[f.fieldname]?.map((row) => {
 								let old_name = row.name;
 								delete row.name;
 								return { ...row, old_name };
