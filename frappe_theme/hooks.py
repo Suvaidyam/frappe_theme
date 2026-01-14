@@ -181,23 +181,13 @@ override_whitelisted_methods = {
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-# 	"all": [
-# 		"frappe_theme.tasks.all"
-# 	],
-# 	"daily": [
-# 		"frappe_theme.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"frappe_theme.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"frappe_theme.tasks.weekly"
-# 	],
-# 	"monthly": [
-# 		"frappe_theme.tasks.monthly"
-# 	],
-# }
+scheduler_events = {
+    "cron": {
+        "*/1 * * * *": [
+            "frappe_theme.cron.sync_ticket_status.run",
+        ]
+    }
+}
 
 # Testing
 # -------
