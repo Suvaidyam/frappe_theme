@@ -215,8 +215,8 @@ class DTConf:
 			result = Chart.filter_script_report_data(data, columns, ref_doctype, doc)
 
 			# apply pagination
-			if limit_page_length and limit_start is not None:
-				result = result[limit_start : limit_start + limit_page_length]
+			if limit_page_length and limit_start is not None and int(limit_page_length or 0) < len(result):
+				result = result[limit_start : limit_start + int(limit_page_length or 0)]
 
 			if return_columns:
 				return {"result": result, "columns": columns}
@@ -398,6 +398,12 @@ class DTConf:
 	def filters_to_sql_conditions(filters, table_alias="t"):
 		conditions = []
 
+		if isinstance(filters, str):
+			filters = json.loads(filters)
+
+		if isinstance(filters, dict):
+			filters = [[table_alias, key, "=", value] for key, value in filters.items()]
+
 		for f in filters:
 			if len(f) < 4:
 				continue
@@ -434,3 +440,47 @@ class DTConf:
 			return filters.get("filters")
 		else:
 			return []
+
+	def get_connection_type_confs(doctype, ref_doctype):
+		meta = frappe.get_meta(doctype)
+		if meta.fields:
+			# Add direct link field filter
+			direct_link = next(
+				(
+					x
+					for x in meta.fields
+					if x.fieldtype == "Link"
+					and x.options == ref_doctype
+					and x.fieldname not in ["amended_form"]
+				),
+				None,
+			)
+			if direct_link:
+				return {
+					"link_doctype": doctype,
+					"connection_type": "Direct",
+					"link_fieldname": direct_link.fieldname,
+				}
+
+			# Add reference field filters
+			ref_dt = next((x for x in meta.fields if x.fieldtype == "Link" and x.options == "DocType"), None)
+			if ref_dt:
+				ref_dn = next(
+					(
+						x
+						for x in meta.fields
+						if x.fieldtype == "Dynamic Link" and x.options == ref_dt.get("fieldname")
+					),
+					None,
+				)
+				if ref_dn:
+					return {
+						"referenced_link_doctype": doctype,
+						"dt_reference_field": ref_dt.fieldname,
+						"dn_reference_field": ref_dn.fieldname,
+						"connection_type": "Referenced",
+					}
+			return {
+				"connection_type": "Unfiltered",
+			}
+		return None

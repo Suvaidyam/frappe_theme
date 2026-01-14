@@ -671,14 +671,14 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 				field.sva_ft["html_field"] = field.fieldname;
 				field.sva_ft["configuration_basis"] = "Property Setter";
 				if (frm.is_new()) {
-					await this.renderLocalFormMessage(field, frm);
+					await this.renderLocalFormMessage(field.sva_ft, frm);
 				} else {
 					await this.renderSavedFormContent(field.sva_ft, frm, field.sva_ft, signal);
 				}
 				break;
 			case "Heatmap (India Map)":
 				field.sva_ft["report"] = field.sva_ft["heatmap_report"];
-				new SVAHeatmap({
+				frm.sva_ft_instances[field.fieldname] = new SVAHeatmap({
 					wrapper: $(wrapper),
 					...(field?.sva_ft || {}),
 					frm,
@@ -939,6 +939,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			if (signal.aborted) return;
 			const ComponentClass = this.getComponentClass(template);
 			let instance = new ComponentClass(frm, el, conf, { signal });
+			frm.sva_ft_instances[fieldname] = instance;
 			// Store cleanup function
 			this.mountedComponents.set(componentId, () => {
 				if (instance.cleanup) {
