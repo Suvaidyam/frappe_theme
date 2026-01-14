@@ -66,11 +66,6 @@ def get_connection_type_confs(doctype, ref_doctype):
 
 
 @frappe.whitelist()
-def get_connection_type_confs(doctype, ref_doctype):
-	return DTConf.get_connection_type_confs(doctype, ref_doctype)
-
-
-@frappe.whitelist()
 def get_number_card_count(type, details, report=None, doctype=None, docname=None, filters=None):
 	return NumberCard.get_number_card_count(type, details, report, doctype, docname, filters)
 
