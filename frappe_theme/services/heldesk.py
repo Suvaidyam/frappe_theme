@@ -2,13 +2,13 @@ import frappe
 import requests
 
 
-def create_ticket(payload={}):
+def create_ticket(payload=None):
 	creds = frappe.db.get_single_value("My Theme", "hd_creds")
 	base_url = frappe.db.get_single_value("My Theme", "hd_url")
 
 	if creds:
 		headers = {"Authorization": f"token {creds}"}
-		res = requests.post(f"{base_url}/api/resource/HD Ticket", json=payload, headers=headers)
+		res = requests.post(f"{base_url}/api/resource/HD Ticket", json=payload or {}, headers=headers)
 		res_json = res.json()
 		if res.status_code != 200:
 			return False

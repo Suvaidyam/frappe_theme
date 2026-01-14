@@ -998,6 +998,9 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			onFieldValueChange: this.handleFieldEvent("onFieldValueChange"),
 		});
 		frm.sva_ft_instances[field.html_field] = instance;
+		if (!frm.sva_tables) {
+			frm.sva_tables = {};
+		}
 		frm.sva_tables[
 			["Direct", "Unfiltered"].includes(field.connection_type)
 				? field.link_doctype
