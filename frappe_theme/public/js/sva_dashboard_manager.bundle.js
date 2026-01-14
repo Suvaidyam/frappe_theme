@@ -200,9 +200,7 @@ class SVADashboardManager {
 		if (this.isDestroyed) return;
 
 		this.filters = merge ? { ...this.filters, ...filters } : filters;
-		this.componentInstances.forEach((instance) =>
-			instance.setFilters?.(this.filters)
-		);
+		this.componentInstances.forEach((instance) => instance.setFilters?.(this.filters));
 
 		if (refresh) {
 			await this.renderDashboard();

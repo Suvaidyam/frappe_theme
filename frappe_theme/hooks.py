@@ -182,11 +182,11 @@ override_whitelisted_methods = {
 # ---------------
 
 scheduler_events = {
-    "cron": {
-        "*/10 * * * *": [
-            "frappe_theme.cron.sync_ticket_status.run",
-        ]
-    }
+	"cron": {
+		"*/10 * * * *": [
+			"frappe_theme.cron.sync_ticket_status.run",
+		]
+	}
 }
 
 # Testing

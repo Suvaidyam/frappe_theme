@@ -109,7 +109,7 @@ class Chart:
 			if type == "Report":
 				return Chart.chart_report(details, report, doctype, docname, filters)
 			elif type == "Document Type":
-				return Chart.chart_doc_type(details, doctype, docname , filters)
+				return Chart.chart_doc_type(details, doctype, docname, filters)
 			else:
 				return Chart._get_empty_chart_data(f"Invalid chart type: {type}")
 		except Exception as e:
@@ -365,7 +365,11 @@ class Chart:
 
 	@staticmethod
 	def chart_report(
-		details: dict, report: dict | None = None, doctype: str | None = None, docname: str | None = None, filters: (dict | list ) = {}
+		details: dict,
+		report: dict | None = None,
+		doctype: str | None = None,
+		docname: str | None = None,
+		filters: (dict | list) = {},
 	) -> dict:
 		"""Generate chart data for report type."""
 		try:
@@ -378,7 +382,7 @@ class Chart:
 					for f in report.get("columns", []):
 						if f.get("fieldtype") == "Link" and f.get("options") == doctype:
 							conditions += f" AND t.{f.get('fieldname')} = '{docname}'"
-       
+
 				if filters and isinstance(filters, dict):
 					for key, value in filters.items():
 						conditions += f" AND t.{key} = '{value}'"

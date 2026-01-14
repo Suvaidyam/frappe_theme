@@ -71,12 +71,17 @@ class NumberCard:
 
 	@staticmethod
 	def card_type_report(
-		details: dict, report: dict | None = None, doctype: str | None = None, docname: str | None = None, filters: dict | list | None = None
+		details: dict,
+		report: dict | None = None,
+		doctype: str | None = None,
+		docname: str | None = None,
+		filters: dict | list | None = None,
 	) -> dict:
 		"""Handle report type number cards."""
 		try:
 			if report.get("report_type") == "Script Report":
 				from frappe.desk.query_report import run
+
 				report_data = run(report.get("name"), filters=filters, ignore_prepared_report=True)
 				if report_data and report_data.get("result"):
 					if details.get("report_function"):
@@ -172,7 +177,12 @@ class NumberCard:
 			return {"count": 0, "message": str(e), "field_type": None}
 
 	@staticmethod
-	def card_type_docype(details: dict, doctype: str | None = None, docname: str | None = None, filters: dict | list | None = None) -> dict:
+	def card_type_docype(
+		details: dict,
+		doctype: str | None = None,
+		docname: str | None = None,
+		filters: dict | list | None = None,
+	) -> dict:
 		"""Handle document type number cards."""
 		try:
 			_filters = json.loads(details.get("filters_json", "[]"))
@@ -191,7 +201,7 @@ class NumberCard:
 					_filters.append([details.get("document_type"), key, "=", value])
 			elif isinstance(filters, list):
 				_filters.extend(filters)
-    
+
 			if doctype and docname and doctype != docname:
 				meta = frappe.get_meta(details.get("document_type"))
 				if meta.fields:
