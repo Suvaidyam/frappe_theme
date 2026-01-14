@@ -671,7 +671,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 				field.sva_ft["html_field"] = field.fieldname;
 				field.sva_ft["configuration_basis"] = "Property Setter";
 				if (frm.is_new()) {
-					await this.renderLocalFormMessage(field, frm);
+					await this.renderLocalFormMessage(field.sva_ft, frm);
 				} else {
 					await this.renderSavedFormContent(field.sva_ft, frm, field.sva_ft, signal);
 				}
