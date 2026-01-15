@@ -45,6 +45,8 @@
   "column_break_mslv",
   "secondary_button_text_color",
   "secondary_button_hover_text_color",
+  "section_break_dowg",
+  "ticket_button",
   "body_tab",
   "main_body_section",
   "body_background_color",
@@ -108,6 +110,11 @@
   "cloud_assets",
   "section_break_cxrk",
   "sanitize_all_fields",
+  "helpdesk_integration_tab",
+  "helpdesk_section",
+  "hd_url",
+  "column_break_yjyk",
+  "hd_creds",
   "change_logs_tab",
   "change_logs"
  ],
@@ -643,13 +650,48 @@
    "fieldname": "sidebar_inactive_text_color",
    "fieldtype": "Color",
    "label": "Inactive Nav Item Color"
+  },
+  {
+   "fieldname": "section_break_dowg",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "ticket_button",
+   "fieldtype": "Button",
+   "label": "Ticket Button"
+  },
+  {
+   "fieldname": "helpdesk_integration_tab",
+   "fieldtype": "Tab Break",
+   "label": "Integrations"
+  },
+  {
+   "fieldname": "hd_url",
+   "fieldtype": "Data",
+   "label": "URL",
+   "mandatory_depends_on": "eval:doc.hd_creds!=''"
+  },
+  {
+   "fieldname": "hd_creds",
+   "fieldtype": "Data",
+   "label": "Creds",
+   "mandatory_depends_on": "eval:doc.hd_url!=''"
+  },
+  {
+   "fieldname": "helpdesk_section",
+   "fieldtype": "Section Break",
+   "label": "Helpdesk"
+  },
+  {
+   "fieldname": "column_break_yjyk",
+   "fieldtype": "Column Break"
   }
  ],
  "hide_toolbar": 1,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-12-24 16:00:12.256757",
+ "modified": "2026-01-14 16:31:49.487314",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "My Theme",
