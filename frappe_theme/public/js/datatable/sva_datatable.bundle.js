@@ -1516,8 +1516,8 @@ class SvaDataTable {
 							}
 						}
 						f.fields = tableFields;
-						if (doc[f.fieldname].length) {
-							f.data = doc[f.fieldname].map((row) => {
+						if (doc[f.fieldname]?.length) {
+							f.data = doc[f.fieldname]?.map((row) => {
 								let old_name = row.name;
 								delete row.name;
 								return { ...row, old_name };
@@ -3979,25 +3979,29 @@ class SvaDataTable {
 				}
 			}
 			if (this.connection?.connection_type === "Referenced") {
-				filters.push([
-					this.doctype,
-					this.connection.dt_reference_field,
-					"=",
-					this.frm?.doc.doctype,
-				]);
-				filters.push([
-					this.doctype,
-					this.connection.dn_reference_field,
-					"=",
-					this.frm?.doc.name,
-				]);
+				if (this.frm?.doc.doctype != this.frm?.doc.name) {
+					filters.push([
+						this.doctype,
+						this.connection.dt_reference_field,
+						"=",
+						this.frm?.doc.doctype,
+					]);
+					filters.push([
+						this.doctype,
+						this.connection.dn_reference_field,
+						"=",
+						this.frm?.doc.name,
+					]);
+				}
 			} else if (this.connection?.connection_type === "Direct") {
-				filters.push([
-					this.doctype,
-					this.connection.link_fieldname,
-					"=",
-					this.frm?.doc.name,
-				]);
+				if (this.frm?.doc.doctype != this.frm?.doc.name) {
+					filters.push([
+						this.doctype,
+						this.connection.link_fieldname,
+						"=",
+						this.frm?.doc.name,
+					]);
+				}
 			} else if (this.connection?.connection_type === "Indirect") {
 				filters.push([
 					this.doctype,
