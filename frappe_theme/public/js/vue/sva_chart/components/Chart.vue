@@ -131,13 +131,16 @@ const data = ref({
 });
 
 function getBWColor(hex) {
-	if (!hex) return '#000';
+	if (!hex) return "#000";
 
-	hex = hex.replace('#', '');
+	hex = hex.replace("#", "");
 
 	// handle short hex (#fff)
 	if (hex.length === 3) {
-		hex = hex.split('').map(c => c + c).join('');
+		hex = hex
+			.split("")
+			.map((c) => c + c)
+			.join("");
 	}
 
 	const r = parseInt(hex.substr(0, 2), 16);
@@ -145,10 +148,10 @@ function getBWColor(hex) {
 	const b = parseInt(hex.substr(4, 2), 16);
 
 	// Relative luminance (WCAG)
-	const luminance = (0.299 * r + 0.587 * g + 0.114 * b);
+	const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
 
 	// threshold can be tuned (140–160 is sweet spot)
-	return luminance > 150 ? '#000000' : '#ffffff';
+	return luminance > 150 ? "#000000" : "#ffffff";
 }
 
 const options = ref({
@@ -267,16 +270,16 @@ const options = ref({
 						} else if (meta.fieldtype === "Int" || meta.fieldtype === "Float") {
 							return `${meta.label}: ${frappe.utils.shorten_number(value)}`;
 						}
-					}else{
-						return value
+					} else {
+						return value;
 					}
 				},
 			},
 		},
 		datalabels: {
-			anchor: 'center',
-			align: 'center',
-			formatter: v => {
+			anchor: "center",
+			align: "center",
+			formatter: (v) => {
 				let meta = v.meta || {};
 				let value = v?.y || 0;
 				if (meta) {
@@ -288,8 +291,8 @@ const options = ref({
 					} else if (meta.fieldtype === "Int" || meta.fieldtype === "Float") {
 						return `${frappe.utils.shorten_number(value)}`;
 					}
-				}else{
-					return value
+				} else {
+					return value;
 				}
 			},
 			color: (ctx) => {
@@ -299,8 +302,8 @@ const options = ref({
 					: dataset.backgroundColor;
 
 				return getBWColor(bg);
-			}
-		}
+			},
+		},
 	},
 });
 // console.log(options.value, "options");
