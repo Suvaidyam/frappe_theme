@@ -178,7 +178,10 @@ const options = ref({
 								: false,
 						ticks: {
 							callback: function (value) {
-								return frappe.utils.shorten_number(value);
+								return frappe.utils.shorten_number(
+									value,
+									frappe.sys_defaults.country
+								);
 							},
 						},
 				  }),
@@ -196,7 +199,10 @@ const options = ref({
 								: false,
 						ticks: {
 							callback: function (value) {
-								return frappe.utils.shorten_number(value);
+								return frappe.utils.shorten_number(
+									value,
+									frappe.sys_defaults.country
+								);
 							},
 						},
 				  }
@@ -268,7 +274,10 @@ const options = ref({
 								props.chart?.details?.currency
 							)}`;
 						} else if (meta.fieldtype === "Int" || meta.fieldtype === "Float") {
-							return `${meta.label}: ${frappe.utils.shorten_number(value)}`;
+							return `${meta.label}: ${frappe.utils.shorten_number(
+								value,
+								frappe.sys_defaults.country
+							)}`;
 						}
 					} else {
 						return value;
@@ -289,7 +298,10 @@ const options = ref({
 							props.chart?.details?.currency
 						)}`;
 					} else if (meta.fieldtype === "Int" || meta.fieldtype === "Float") {
-						return `${frappe.utils.shorten_number(value)}`;
+						return `${frappe.utils.shorten_number(
+							value,
+							frappe.sys_defaults.country
+						)}`;
 					}
 				} else {
 					return value;
