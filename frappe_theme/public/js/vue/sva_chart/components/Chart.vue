@@ -119,7 +119,7 @@ const props = defineProps({
 	},
 });
 
-if (props.chart?.details?.custom_show_data_labels) {
+if (props.chart?.details?.custom_show_data_labels == 1) {
 	ChartJS.register(ChartDataLabels);
 }
 
@@ -129,6 +129,27 @@ const data = ref({
 	labels: [],
 	datasets: [{ data: [] }],
 });
+
+function getBWColor(hex) {
+	if (!hex) return '#000';
+
+	hex = hex.replace('#', '');
+
+	// handle short hex (#fff)
+	if (hex.length === 3) {
+		hex = hex.split('').map(c => c + c).join('');
+	}
+
+	const r = parseInt(hex.substr(0, 2), 16);
+	const g = parseInt(hex.substr(2, 2), 16);
+	const b = parseInt(hex.substr(4, 2), 16);
+
+	// Relative luminance (WCAG)
+	const luminance = (0.299 * r + 0.587 * g + 0.114 * b);
+
+	// threshold can be tuned (140–160 is sweet spot)
+	return luminance > 150 ? '#000000' : '#ffffff';
+}
 
 const options = ref({
 	indexAxis: props.chart?.details?.custom_enable_row ? "y" : "x",
@@ -246,10 +267,40 @@ const options = ref({
 						} else if (meta.fieldtype === "Int" || meta.fieldtype === "Float") {
 							return `${meta.label}: ${frappe.utils.shorten_number(value)}`;
 						}
+					}else{
+						return value
 					}
 				},
 			},
 		},
+		datalabels: {
+			anchor: 'center',
+			align: 'center',
+			formatter: v => {
+				let meta = v.meta || {};
+				let value = v?.y || 0;
+				if (meta) {
+					if (meta.fieldtype === "Currency") {
+						return `${frappe.utils.format_currency(
+							value,
+							props.chart?.details?.currency
+						)}`;
+					} else if (meta.fieldtype === "Int" || meta.fieldtype === "Float") {
+						return `${frappe.utils.shorten_number(value)}`;
+					}
+				}else{
+					return value
+				}
+			},
+			color: (ctx) => {
+				const dataset = ctx.chart.data.datasets[ctx.datasetIndex];
+				const bg = Array.isArray(dataset.backgroundColor)
+					? dataset.backgroundColor[ctx.dataIndex]
+					: dataset.backgroundColor;
+
+				return getBWColor(bg);
+			}
+		}
 	},
 });
 // console.log(options.value, "options");
