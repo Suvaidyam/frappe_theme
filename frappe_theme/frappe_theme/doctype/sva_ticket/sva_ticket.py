@@ -9,9 +9,7 @@ class SVATicket(Document):
 	def validate(self):
 		if self.is_new():
 			return
-
 		old_status = frappe.db.get_value("SVA Ticket", self.name, "status")
-
 		if old_status == "Closed":
 			frappe.throw(
 				_("Closed tickets are read-only. You cannot modify this ticket."), frappe.PermissionError
@@ -28,3 +26,5 @@ class SVATicket(Document):
 		)
 		if hd_id:
 			frappe.db.set_value(self.doctype, self.name, "hd_id", hd_id)
+		else:
+			frappe.throw(_("Failed to create ticket in partner helpdesk. Please try again later."))

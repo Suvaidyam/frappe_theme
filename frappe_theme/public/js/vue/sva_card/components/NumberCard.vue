@@ -170,16 +170,26 @@ const get_formatted_value = (data) => {
 		case "Float":
 			return frappe.utils.shorten_number(
 				data.count || 0,
-				null,
+				frappe.sys_defaults.country,
 				null,
 				data?.column?.precision || 2
 			);
 		case "Int":
-			return frappe.utils.shorten_number(data.count || 0, null, null, 0);
+			return frappe.utils.shorten_number(
+				data.count || 0,
+				frappe.sys_defaults.country,
+				null,
+				0
+			);
 		case "Percent":
 			return `${format_number(data.count || 0, null, data?.column?.precision || 2)}%`;
 		default:
-			return frappe.utils.shorten_number(data.count || 0, null, null, 0);
+			return frappe.utils.shorten_number(
+				data.count || 0,
+				frappe.sys_defaults.country,
+				null,
+				0
+			);
 	}
 };
 </script>
