@@ -6,6 +6,7 @@ class SVADashboardManager {
 		numberCards: [],
 		charts: [],
 		signal: null,
+		filters: {},
 		debounceTime: 250,
 		errorHandler: console.error,
 	};
@@ -24,6 +25,7 @@ class SVADashboardManager {
 		this.numberCards = config.numberCards;
 		this.charts = config.charts;
 		this.signal = config.signal;
+		this.filters = config.filters || {};
 		this.errorHandler = config.errorHandler;
 		this.debounceTime = config.debounceTime;
 
@@ -32,7 +34,6 @@ class SVADashboardManager {
 		this.isDestroyed = false;
 		this.activeRequests = new Set();
 		this.componentInstances = new Map();
-		this.filters = {};
 
 		// Create container instances with memoization
 		this.containers = {};
@@ -95,9 +96,10 @@ class SVADashboardManager {
 					frm: this.frm,
 					numberCards: this.numberCards,
 					signal: this.signal,
+					filters: this.filters,
 				});
-				this.refresh = cardInstance.refresh.bind(cardInstance);
-				initializationPromises.push(cardInstance);
+				this.componentInstances.set("cards", cardInstance);
+				initializationPromises.push(Promise.resolve());
 			} else if (this.numberCards?.length) {
 				this.containers.cards.innerHTML = `
                 <div style="height: 66px; gap: 10px;" id="form-not-saved" class="d-flex flex-column justify-content-center align-items-center p-3 card rounded mb-2">
@@ -113,8 +115,10 @@ class SVADashboardManager {
 					frm: this.frm,
 					charts: this.charts,
 					signal: this.signal,
+					filters: this.filters,
 				});
-				initializationPromises.push(chartInstance);
+				this.componentInstances.set("charts", chartInstance);
+				initializationPromises.push(Promise.resolve());
 			} else if (this.charts?.length) {
 				this.containers.charts.innerHTML = `
                 <div style="height: 344px; gap: 10px;" id="form-not-saved" class="d-flex flex-column justify-content-center align-items-center p-3 card rounded mb-2">
@@ -122,6 +126,10 @@ class SVADashboardManager {
 					    <use href="#icon-small-file"></use>
 				    </svg>
                 </div>`;
+			}
+
+			if (this.componentInstances.size) {
+				this.refresh = this.renderDashboard;
 			}
 
 			await Promise.all(initializationPromises);
@@ -177,14 +185,26 @@ class SVADashboardManager {
 
 		const renderPromises = Array.from(this.componentInstances.entries()).map(
 			([type, instance]) => {
-				instance.filters = this.filters;
-				return instance
-					.make()
-					.catch((error) => this.handleError(error, `${type} rendering error`));
+				instance.setFilters?.(this.filters);
+				const result = instance.refresh ? instance.refresh() : instance.make?.();
+				return Promise.resolve(result).catch((error) =>
+					this.handleError(error, `${type} rendering error`)
+				);
 			}
 		);
 
 		await Promise.all(renderPromises);
+	}
+
+	async setFilters(filters = {}, { merge = false, refresh = true } = {}) {
+		if (this.isDestroyed) return;
+
+		this.filters = merge ? { ...this.filters, ...filters } : filters;
+		this.componentInstances.forEach((instance) => instance.setFilters?.(this.filters));
+
+		if (refresh) {
+			await this.renderDashboard();
+		}
 	}
 
 	cleanup() {
@@ -221,4 +241,5 @@ class SVADashboardManager {
 	}
 }
 
+frappe.ui.SVADashboardManager = SVADashboardManager;
 export default SVADashboardManager;

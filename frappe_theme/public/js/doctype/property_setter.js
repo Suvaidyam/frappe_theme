@@ -37,6 +37,8 @@ const after_child_dialog_render = async (dialog, _frm, mode = "create") => {
 after_render_control = async function (dialog, _frm) {
 	let row = dialog.get_values(true, false);
 	let doctype = _frm.docname == "Customize Form" ? _frm.doc.doc_type : _frm.docname;
+	let is_single = _frm.docname != "Customize Form" ? _frm.doc.issingle : 0;
+
 	let frm = dialog;
 	// =============================== Datatable Configuration Part Starts ===============================
 	if (row.connection_type === "Direct") {
@@ -103,7 +105,7 @@ after_render_control = async function (dialog, _frm) {
 			frm.fields_dict.referenced_link_doctype.set_data(dt_options);
 		}
 	}
-	if (row.connection_type === "Report") {
+	if (row.connection_type === "Report" && !is_single) {
 		let reports = await frappe.call("frappe_theme.dt_api.link_report_list", {
 			doctype: doctype,
 		});
@@ -191,9 +193,27 @@ after_render_control = async function (dialog, _frm) {
 	frm.set_df_property("primary_target", "options", slected_targets);
 	// ++++++++++++++++++++++++++++ Heatmap Configuration Part Ends ++++++++++++++++++++++++++++
 };
+function clear_fields(dialog, field_list) {
+	for (let field of field_list) {
+		if (field.ft === "Check") {
+			dialog?.set_value(field.fn, 0);
+			continue;
+		} else if (field.ft === "Table") {
+			dialog?.set_df_property(field.fn, "data", []);
+			continue;
+		} else {
+			if (field.fn == "crud_permissions") {
+				dialog?.set_value(field.fn, JSON.stringify(["read"]));
+				continue;
+			}
+			dialog?.set_value(field.fn, "");
+			continue;
+		}
+	}
+}
 const field_changes = {
 	property_type: async function (frm) {
-		let fields_being_affected = [
+		let dt_fields_being_affected = [
 			{ fn: "hide_table", ft: "Check" },
 			{ fn: "template", ft: "Select" },
 			{ fn: "link_report", ft: "Link" },
@@ -229,6 +249,30 @@ const field_changes = {
 			{ fn: "disable_workflow", ft: "Check" },
 			{ fn: "child_confs", ft: "Table" },
 		];
+
+		let heat_map_fields_being_affected = [
+			{ fn: "heatmap_report", ft: "Link" },
+			{ fn: "target_fields", ft: "Code" },
+			{ fn: "primary_target", ft: "Select" },
+			{ fn: "block_height", ft: "Int" },
+			{ fn: "min_data_color", ft: "Color" },
+			{ fn: "max_data_color", ft: "Color" },
+		];
+
+		let number_card_fields_being_affected = [
+			{ fn: "number_card", ft: "Link" },
+			{ fn: "icon", ft: "Icon" },
+			{ fn: "icon_color", ft: "Color" },
+			{ fn: "background_color", ft: "Color" },
+			{ fn: "text_color", ft: "Color" },
+			{ fn: "value_color", ft: "Color" },
+			{ fn: "border_color", ft: "Color" },
+			{ fn: "card_hover_background_color", ft: "Color" },
+			{ fn: "card_hover_text_color", ft: "Color" },
+			{ fn: "card_hover_value_color", ft: "Color" },
+			{ fn: "hover_border_color", ft: "Color" },
+		];
+
 		let connecttion_type_map = {
 			"DocType (Indirect)": "Indirect",
 			"DocType (Direct)": "Direct",
@@ -237,24 +281,17 @@ const field_changes = {
 			Report: "Report",
 		};
 		let property_type = frm?.config_dialog?.get_value("property_type");
+		if (!property_type) {
+			frm?.config_dialog?.set_value("connection_type", "");
+			clear_fields(frm?.config_dialog, dt_fields_being_affected);
+			clear_fields(frm?.config_dialog, heat_map_fields_being_affected);
+			clear_fields(frm?.config_dialog, number_card_fields_being_affected);
+			frm?.config_dialog.set_value("html_block", "");
+			frm?.config_dialog.set_value("chart", "");
+		}
 		if (property_type in connecttion_type_map) {
 			frm?.config_dialog?.set_value("connection_type", connecttion_type_map[property_type]);
-			for (let field of fields_being_affected) {
-				if (field.ft === "Check") {
-					frm?.config_dialog?.set_value(field.fn, 0);
-					continue;
-				} else if (field.ft === "Table") {
-					frm?.config_dialog?.set_df_property(field.fn, "data", []);
-					continue;
-				} else {
-					if (field.fn == "crud_permissions") {
-						frm?.config_dialog?.set_value(field.fn, JSON.stringify(["read"]));
-						continue;
-					}
-					frm?.config_dialog?.set_value(field.fn, "");
-					continue;
-				}
-			}
+			clear_fields(frm?.config_dialog, dt_fields_being_affected);
 		} else {
 			frm?.config_dialog?.set_value("connection_type", "");
 		}

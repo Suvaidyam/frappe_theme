@@ -25,6 +25,7 @@ app_include_js = [
 	"overwrite_workflow.bundle.js",
 	"override_date_field.bundle.js",
 	"frappe_theme.bundle.js",
+	"override_table_multiselect.bundle.js",
 	f"/assets/frappe_theme/js/svadb.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/fields_comment.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/extended_chart.js?ver={time.time()}",
@@ -180,23 +181,13 @@ override_whitelisted_methods = {
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-# 	"all": [
-# 		"frappe_theme.tasks.all"
-# 	],
-# 	"daily": [
-# 		"frappe_theme.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"frappe_theme.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"frappe_theme.tasks.weekly"
-# 	],
-# 	"monthly": [
-# 		"frappe_theme.tasks.monthly"
-# 	],
-# }
+scheduler_events = {
+	"cron": {
+		"*/10 * * * *": [
+			"frappe_theme.cron.sync_ticket_status.run",
+		]
+	}
+}
 
 # Testing
 # -------

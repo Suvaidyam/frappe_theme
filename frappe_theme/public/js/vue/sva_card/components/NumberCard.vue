@@ -1,6 +1,8 @@
 <!-- Used as Button & Heading Control -->
 <script setup>
 import Skeleton from "./Skeleton.vue";
+import SvaDataTable from "../../../datatable/sva_datatable.bundle.js";
+import Loader from "../../../loader-element.js";
 import { ref, onMounted, inject } from "vue";
 
 const loading = ref(true);
@@ -12,6 +14,10 @@ const props = defineProps({
 		type: Object,
 		default: {},
 	},
+	filters: {
+		type: Object,
+		default: () => ({}),
+	},
 	delay: {
 		type: Number,
 		default: 0,
@@ -19,6 +25,10 @@ const props = defineProps({
 	actions: {
 		type: Array,
 		default: () => [{ label: "Refresh", action: "refresh" }],
+	},
+	frm: {
+		type: Object,
+		default: () => ({}),
 	},
 });
 
@@ -30,6 +40,69 @@ const handleAction = async (action) => {
 		await getCount();
 	} else if (action == "edit") {
 		frappe.set_route("Form", props.card?.details?.doctype, props.card?.details?.label);
+	} else if (action == "view_table") {
+		const wrapper = document.createElement("div");
+		let loader = new Loader(wrapper);
+		loader.show();
+
+		let table_options = {
+			label: "",
+			wrapper,
+			doctype: "",
+			frm: props.frm || cur_frm,
+			connection: {
+				crud_permissions: JSON.stringify(["read"]),
+			},
+			childLinks: [],
+			options: {
+				serialNumberColumn: true,
+				editable: false,
+			},
+			loader,
+		};
+
+		if (props.card?.details?.type == "Report") {
+			table_options.connection["link_report"] = props.card.details?.report_name;
+			table_options.connection["connection_type"] = "Report";
+		} else if (props.card?.details?.type == "Document Type") {
+			table_options.doctype = props.card.details?.document_type;
+			if (cur_frm.doctype) {
+				let confs = await frappe.xcall("frappe_theme.dt_api.get_connection_type_confs", {
+					doctype: props.card.details?.document_type,
+					ref_doctype: cur_frm.doctype,
+				});
+				if (confs) {
+					Object.assign(table_options.connection, confs);
+				} else {
+					table_options.connection["connection_type"] = "Unfiltered";
+				}
+			} else {
+				table_options.connection["connection_type"] = "Unfiltered";
+			}
+		}
+
+		let dialog = new frappe.ui.Dialog({
+			title:
+				props.card?.details?.report_name ||
+				props.card?.details?.document_type ||
+				"Data Table",
+			fields: [
+				{
+					fieldtype: "HTML",
+					fieldname: "data_table_html",
+					options: `<div>Table Loading...</div>`,
+				},
+			],
+			size: "extra-large",
+			primary_action_label: "Close",
+			primary_action: function () {
+				dialog.hide();
+			},
+		});
+		dialog.show();
+		dialog.set_df_property("data_table_html", "options", wrapper);
+
+		new SvaDataTable(table_options);
 	}
 	// emit('action-clicked', action);
 };
@@ -67,6 +140,7 @@ const getCount = async () => {
 					report: report,
 					doctype: cur_frm.doc.doctype,
 					docname: cur_frm.doc.name,
+					filters: props.filters,
 				},
 			});
 			if (res.message) {
@@ -88,6 +162,36 @@ onMounted(async () => {
 		await getCount();
 	}, props.delay);
 });
+
+const get_formatted_value = (data) => {
+	switch (data?.column?.fieldtype) {
+		case "Currency":
+			return frappe.utils.format_currency(data.count || 0);
+		case "Float":
+			return frappe.utils.shorten_number(
+				data.count || 0,
+				frappe.sys_defaults.country,
+				null,
+				data?.column?.precision || 2
+			);
+		case "Int":
+			return frappe.utils.shorten_number(
+				data.count || 0,
+				frappe.sys_defaults.country,
+				null,
+				0
+			);
+		case "Percent":
+			return `${format_number(data.count || 0, null, data?.column?.precision || 2)}%`;
+		default:
+			return frappe.utils.shorten_number(
+				data.count || 0,
+				frappe.sys_defaults.country,
+				null,
+				0
+			);
+	}
+};
 </script>
 
 <template>
@@ -116,7 +220,7 @@ onMounted(async () => {
 							aria-haspopup="true"
 							aria-expanded="false"
 						>
-							...
+							<svg class="icon icon-sm"><use href="#icon-dot-horizontal"></use></svg>
 						</span>
 						<div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
 							<a
@@ -133,11 +237,7 @@ onMounted(async () => {
 				<!-- number -->
 				<div class="d-flex justify-content-between align-items-center">
 					<h4 :style="`color: ${card.value_color}`">
-						{{
-							data.field_type == "Currency"
-								? frappe.utils.format_currency(data.count)
-								: data.count ?? 0
-						}}
+						{{ get_formatted_value(data) }}
 					</h4>
 					<span
 						v-if="card.icon_value"

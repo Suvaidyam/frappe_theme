@@ -16,8 +16,6 @@
   "doc_field",
   "chart",
   "html_block",
-  "show_legend",
-  "card_sequence",
   "column_break_vafi",
   "label",
   "info",
@@ -81,6 +79,7 @@
   "redirect_to_main_form",
   "full_screen_dialog",
   "disable_workflow",
+  "enable_auto_transpose",
   "section_break_okbe",
   "child_confs",
   "heat_map_section",
@@ -136,7 +135,7 @@
    "fieldname": "property_type",
    "fieldtype": "Select",
    "label": "Property Type",
-   "options": "DocType (Direct)\nDocType (Indirect)\nDocType (Referenced)\nDocType (Unfiltered)\nReport\nIs Custom Design\nHeatmap (India Map)\nDocField\nNumber Card\nDashboard Chart\nCustom HTML Block"
+   "options": "\nDocType (Direct)\nDocType (Indirect)\nDocType (Referenced)\nDocType (Unfiltered)\nReport\nIs Custom Design\nHeatmap (India Map)\nDocField\nNumber Card\nDashboard Chart\nCustom HTML Block"
   },
   {
    "depends_on": "eval:doc.property_type=='Dashboard Chart'",
@@ -218,11 +217,6 @@
    "label": "Value Color"
   },
   {
-   "fieldname": "card_sequence",
-   "fieldtype": "Int",
-   "label": "Sequence"
-  },
-  {
    "fieldname": "background_color",
    "fieldtype": "Color",
    "label": "Background Color"
@@ -246,13 +240,6 @@
    "fieldname": "hover_border_color",
    "fieldtype": "Color",
    "label": "Border Color"
-  },
-  {
-   "default": "0",
-   "depends_on": "eval:doc.property_type=='Dashboard Chart'",
-   "fieldname": "show_legend",
-   "fieldtype": "Check",
-   "label": "Show Legend"
   },
   {
    "depends_on": "eval:doc.property_type != \"Is Custom Design\"",
@@ -498,7 +485,7 @@
   },
   {
    "default": "0",
-   "depends_on": "eval:![\"Report\", \"Is Custom Design\"].includes(doc.property_type)",
+   "depends_on": "eval:![\"Is Custom Design\"].includes(doc.property_type)",
    "fieldname": "allow_export",
    "fieldtype": "Check",
    "label": "Allow Export"
@@ -607,17 +594,17 @@
    "fieldname": "default_view",
    "fieldtype": "Select",
    "label": "Default View",
-   "options": "State\nDistrict",
-   "reqd": 1
+   "mandatory_depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
+   "options": "State\nDistrict"
   },
   {
    "depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
    "fieldname": "target_fields",
    "fieldtype": "Code",
    "label": "Target Fields",
+   "mandatory_depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
    "max_height": "5rem",
-   "read_only": 1,
-   "reqd": 1
+   "read_only": 1
   },
   {
    "depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
@@ -630,7 +617,7 @@
    "fieldname": "primary_target",
    "fieldtype": "Select",
    "label": "Primary Target",
-   "reqd": 1
+   "mandatory_depends_on": "eval:doc.property_type == \"Heatmap (India Map)\""
   },
   {
    "depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
@@ -659,15 +646,22 @@
    "fieldname": "heatmap_report",
    "fieldtype": "Link",
    "label": "Report (With State or District Column)",
-   "options": "Report",
-   "reqd": 1
+   "mandatory_depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
+   "options": "Report"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:[\"Report\"].includes(doc.property_type)",
+   "fieldname": "enable_auto_transpose",
+   "fieldtype": "Check",
+   "label": "Transpose"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_virtual": 1,
  "links": [],
- "modified": "2025-12-23 12:47:39.467433",
+ "modified": "2026-01-15 12:52:49.128517",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Custom Property Setter",
