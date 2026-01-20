@@ -1,159 +1,294 @@
-import frappe
 import json
-from typing import Dict, List, Optional, Union
+
+import frappe
+
 
 class NumberCard:
-    # Consolidated function mappings
-    AGGREGATE_FUNCTIONS = {
-        'Sum': 'SUM',
-        'Average': 'AVG',
-        'Minimum': 'MIN',
-        'Maximum': 'MAX',
-        'Count': 'COUNT'
-    }
+	# Consolidated function mappings
+	AGGREGATE_FUNCTIONS = {
+		"Sum": "SUM",
+		"Average": "AVG",
+		"Minimum": "MIN",
+		"Maximum": "MAX",
+		"Count": "COUNT",
+	}
 
-    @staticmethod
-    def number_card_settings(settings) -> List[Dict]:
-        """Get visible number cards with their details."""
-        try:
-            visible_cards = [card for card in settings.number_cards if card.is_visible]
-            updated_cards = []
+	@staticmethod
+	def number_card_settings(settings) -> list[dict]:
+		"""Get visible number cards with their details."""
+		try:
+			visible_cards = [card for card in settings.number_cards if card.is_visible]
+			updated_cards = []
 
-            for card in visible_cards:
-                if card.fetch_from == 'DocField':
-                    updated_cards.append(card)
-                else:
-                    if not frappe.db.exists('Number Card', card.number_card):
-                        continue
+			for card in visible_cards:
+				if card.fetch_from == "DocField":
+					updated_cards.append(card)
+				else:
+					if not frappe.db.exists("Number Card", card.number_card):
+						continue
 
-                    card_details = frappe.get_cached_doc('Number Card', card.number_card)
-                    card['details'] = card_details
+					card_details = frappe.get_cached_doc("Number Card", card.number_card)
+					card["details"] = card_details
 
-                    if card_details.type == 'Report' and card_details.report_name:
-                        if frappe.db.exists('Report', card_details.report_name):
-                            card['report'] = frappe.get_cached_doc('Report', card_details.report_name)
-                        else:
-                            card['report'] = None
-                    elif card_details.type == 'Document Type':
-                        card['report'] = None
+					if card_details.type == "Report" and card_details.report_name:
+						if frappe.db.exists("Report", card_details.report_name):
+							card["report"] = frappe.get_cached_doc("Report", card_details.report_name)
+						else:
+							card["report"] = None
+					elif card_details.type == "Document Type":
+						card["report"] = None
 
-                    updated_cards.append(card)
+					updated_cards.append(card)
 
-            return updated_cards
-        except Exception as e:
-            frappe.log_error(f"Error in number_card_settings: {str(e)}")
-            return []
+			return updated_cards
+		except Exception as e:
+			frappe.log_error(f"Error in number_card_settings: {str(e)}")
+			return []
 
-    @staticmethod
-    def get_number_card_count(type: str, details: str, report: Optional[str] = None, 
-                            doctype: Optional[str] = None, docname: Optional[str] = None) -> Dict:
-        """Get count based on card type."""
-        try:
-            details = json.loads(details)
-            report = json.loads(report) if report else None
+	@staticmethod
+	def get_number_card_count(
+		type: str,
+		details: str,
+		report: str | None = None,
+		doctype: str | None = None,
+		docname: str | None = None,
+		filters: dict | list | None = None,
+	) -> dict:
+		"""Get count based on card type."""
+		try:
+			if isinstance(details, str):
+				details = json.loads(details or "{}")
+			if isinstance(report, str):
+				report = json.loads(report or "{}")
+			if type == "Report":
+				return NumberCard.card_type_report(details, report, doctype, docname, filters)
+			elif type == "Document Type":
+				return NumberCard.card_type_doctype(details, doctype, docname, filters)
+			return {"count": 0, "message": "Invalid type", "column": {"fieldtype": "Int"}}
+		except Exception as e:
+			frappe.log_error(f"Error in get_number_card_count: {str(e)}")
+			return {
+				"count": 0,
+				"message": f"Error from get_number_card_count : {str(e)}",
+				"column": {"fieldtype": "Int"},
+			}
 
-            if type == 'Report':
-                return NumberCard.card_type_report(details, report, doctype, docname)
-            elif type == 'Document Type':
-                return NumberCard.card_type_docype(details, doctype, docname)
-            return {'count': 0, 'message': 'Invalid type', 'field_type': None}
-        except Exception as e:
-            frappe.log_error(f"Error in get_number_card_count: {str(e)}")
-            return {'count': 0, 'message': str(e), 'field_type': None}
+	@staticmethod
+	def card_type_report(
+		details: dict,
+		report: dict | None = None,
+		doctype: str | None = None,
+		docname: str | None = None,
+		filters: dict | list | None = None,
+	) -> dict:
+		"""Handle report type number cards."""
+		try:
+			if report.get("report_type") == "Script Report":
+				from frappe.desk.query_report import run
 
-    @staticmethod
-    def card_type_report(details: Dict, report: Optional[Dict] = None, 
-                        doctype: Optional[str] = None, docname: Optional[str] = None) -> Dict:
-        """Handle report type number cards."""
-        try:
-            if not report or not report.get('query'):
-                return {'count': 0, 'message': 'Report', 'field_type': None}
+				column = {"fieldtype": "Int"}
+				report_data = run(report.get("name"), filters=filters, ignore_prepared_report=True)
+				if report_data and report_data.get("result"):
+					if details.get("report_function"):
+						function = NumberCard.AGGREGATE_FUNCTIONS.get(details.get("report_function"))
+						field_name = details.get("report_field")
+						matching_link_field = None
+						if doctype and docname:
+							if doctype != docname and report_data.get("columns"):
+								matching_link_field = next(
+									(
+										col
+										for col in report_data.get("columns")
+										if col.get("fieldtype") == "Link" and col.get("options") == doctype
+									),
+									None,
+								)
 
-            conditions = "WHERE 1=1"
-            field_type = None
-            
-            # Build conditions
-            for f in report.get('columns', []):
-                if f.get('fieldtype') == 'Link' and f.get('options') == doctype:
-                    conditions += f" AND t.{f.get('fieldname')} = '{docname}'"
-                field_type = f.get('fieldtype')
+						report_field_column = next(
+							(col for col in report_data.get("columns") if col.get("fieldname") == field_name),
+							None,
+						)
+						if report_field_column:
+							column = report_field_column
 
-            field_name = details.get('report_field')
-            function = NumberCard.AGGREGATE_FUNCTIONS.get(details.get('report_function'))
-            
-            if not function:
-                return {'count': 0, 'message': 'Invalid function', 'field_type': field_type}
+						values = []
+						for row in report_data.get("result"):
+							if isinstance(row, dict):
+								if matching_link_field:
+									if row.get(matching_link_field.get("fieldname")) != docname:
+										continue
 
-            query = f"SELECT {function}(t.{field_name}) AS count FROM ({report.get('query')}) AS t {conditions}"
-            count = frappe.db.sql(query, as_dict=True)
-            
-            return {
-                'count': count[0].get('count') if count else 0,
-                'message': 'Report',
-                'field_type': field_type
-            }
-        except Exception as e:
-            frappe.log_error(f"Error in card_type_report: {str(e)}")
-            return {'count': 0, 'message': str(e), 'field_type': None}
+								values.append(row.get(field_name))
+							else:
+								if matching_link_field:
+									if row[report_data.get("columns").index(matching_link_field)] != docname:
+										continue
+								index = report_data.get("columns").index(
+									next(
+										col
+										for col in report_data.get("columns")
+										if col.get("fieldname") == field_name
+									)
+								)
+								values.append(row[index])
 
-    @staticmethod
-    def card_type_docype(details: Dict, doctype: Optional[str] = None, 
-                        docname: Optional[str] = None) -> Dict:
-        """Handle document type number cards."""
-        try:
-            filters = json.loads(details.get('filters_json', '[]'))
-            
-            # Clean up filters
-            filters = [f for f in filters if f and len(f) >= 4 and 
-                      (not isinstance(f[3], list) or any(x is not None for x in f[3]))]
-            
-            # Remove false from filter conditions
-            filters = [f[:-1] if len(f) > 4 and f[4] is False else f for f in filters]
+						if function == "SUM":
+							count = sum(values) or 0
+						elif function == "AVG":
+							count = sum(values) / len(values) if values else 0
+						elif function == "MIN":
+							count = min(values) if values else 0
+						elif function == "MAX":
+							count = max(values) if values else 0
+						elif function == "COUNT":
+							count = len(values) or 0
+						else:
+							return {"count": 0, "message": "Invalid function", "column": column}
+				return {"count": count, "message": "Script Report Response", "column": column}
 
-            if doctype and docname:
-                meta = frappe.get_meta(details.get('document_type'))
-                if meta.fields:
-                    # Add direct link field filter
-                    direct_link = next((x for x in meta.fields 
-                                     if x.fieldtype == 'Link' and x.options == doctype 
-                                     and x.fieldname not in ['amended_form']), None)
-                    if direct_link:
-                        filters.append([details.get('document_type'), 
-                                     direct_link.get('fieldname'), '=', docname])
+			if not report or not report.get("query"):
+				return {
+					"count": 0,
+					"message": "Report type is not query report",
+					"column": {"fieldtype": "Int"},
+				}
+			conditions = "WHERE 1=1"
+			column = {"fieldtype": "Int"}
 
-                    # Add reference field filters
-                    ref_dt = next((x for x in meta.fields 
-                                 if x.fieldtype == 'Link' and x.options == 'DocType'), None)
-                    if ref_dt:
-                        ref_dn = next((x for x in meta.fields 
-                                     if x.fieldtype == 'Dynamic Link' 
-                                     and x.options == ref_dt.get('fieldname')), None)
-                        if ref_dn:
-                            filters.extend([
-                                [details.get('document_type'), ref_dt.get('fieldname'), '=', doctype],
-                                [details.get('document_type'), ref_dn.get('fieldname'), '=', docname]
-                            ])
+			# Build conditions
+			if doctype != docname:
+				for f in report.get("columns", []):
+					if details.get("report_field") == f.get("fieldname"):
+						column = f
 
-            function = details.get('function')
-            if function == 'Count':
-                count = frappe.db.count(details.get('document_type'), filters=filters)
-            else:
-                agg_function = NumberCard.AGGREGATE_FUNCTIONS.get(function)
-                if not agg_function:
-                    return {'count': 0, 'message': 'Invalid function', 'field_type': None}
-                    
-                count = frappe.db.get_value(
-                    details.get('document_type'),
-                    filters,
-                    f"{agg_function}({details.get('aggregate_function_based_on')})"
-                )
+					if f.get("fieldtype") == "Link" and f.get("options") == doctype:
+						conditions += f" AND t.{f.get('fieldname')} = '{docname}'"
+			else:
+				for f in report.get("columns", []):
+					if details.get("report_field") == f.get("fieldname"):
+						column = f
+						break
 
-            return {
-                'count': count or 0,
-                'message': details,
-                'field_type': None
-            }
-        except Exception as e:
-            frappe.log_error(f"Error in card_type_docype: {str(e)}")
-            return {'count': 0, 'message': str(e), 'field_type': None}
-        
+			if filters:
+				if isinstance(filters, dict):
+					for key, value in filters.items():
+						conditions += f" AND t.{key} = '{value}'"
+
+				elif isinstance(filters, list):
+					for f in filters:
+						if len(f) >= 3:
+							conditions += f" AND t.{f[0]} {f[1]} '{f[2]}'"
+
+			field_name = details.get("report_field")
+			function = NumberCard.AGGREGATE_FUNCTIONS.get(details.get("report_function"))
+
+			if not function:
+				return {"count": 0, "message": "Invalid function", "column": column}
+
+			query = (
+				f"SELECT {function}(t.{field_name}) AS count FROM ({report.get('query')}) AS t {conditions}"
+			)
+			count = frappe.db.sql(query, as_dict=True)
+
+			return {
+				"count": count[0].get("count") if count else 0,
+				"message": "Query Report Response",
+				"column": column,
+			}
+		except Exception as e:
+			frappe.log_error(f"Error in card_type_report: {str(e)}")
+			return {"count": 0, "message": str(e), "column": {"fieldtype": "Int"}}
+
+	@staticmethod
+	def card_type_doctype(
+		details: dict,
+		doctype: str | None = None,
+		docname: str | None = None,
+		filters: dict | list | None = None,
+	) -> dict:
+		"""Handle document type number cards."""
+		try:
+			column = {"fieldtype": "Int"}
+			_filters = json.loads(details.get("filters_json", "[]"))
+
+			# Clean up filters
+			_filters = [
+				f
+				for f in _filters
+				if f and len(f) >= 4 and (not isinstance(f[3], list) or any(x is not None for x in f[3]))
+			]
+
+			# Remove false from filter conditions
+			_filters = [_f[:-1] if len(_f) > 4 and _f[4] is False else _f for _f in _filters]
+
+			if isinstance(filters, str):
+				filters = json.loads(filters or "{}")
+
+			if isinstance(filters, dict):
+				for key, value in filters.items():
+					_filters.append([details.get("document_type"), key, "=", value])
+			elif isinstance(filters, list):
+				_filters.extend(filters)
+			meta = frappe.get_meta(details.get("document_type"))
+			if doctype and docname and doctype != docname:
+				if meta.fields:
+					# Add direct link field filter
+					direct_link = next(
+						(
+							x
+							for x in meta.fields
+							if x.fieldtype == "Link"
+							and x.options == doctype
+							and x.fieldname not in ["amended_form"]
+						),
+						None,
+					)
+					if direct_link:
+						_filters.append(
+							[details.get("document_type"), direct_link.get("fieldname"), "=", docname]
+						)
+
+					# Add reference field filters
+					ref_dt = next(
+						(x for x in meta.fields if x.fieldtype == "Link" and x.options == "DocType"), None
+					)
+					if ref_dt:
+						ref_dn = next(
+							(
+								x
+								for x in meta.fields
+								if x.fieldtype == "Dynamic Link" and x.options == ref_dt.get("fieldname")
+							),
+							None,
+						)
+						if ref_dn:
+							_filters.extend(
+								[
+									[details.get("document_type"), ref_dt.get("fieldname"), "=", doctype],
+									[details.get("document_type"), ref_dn.get("fieldname"), "=", docname],
+								]
+							)
+			function = details.get("function")
+			if function == "Count":
+				count = frappe.db.count(details.get("document_type"), filters=_filters)
+			else:
+				agg_function = NumberCard.AGGREGATE_FUNCTIONS.get(function)
+				if not agg_function:
+					return {"count": 0, "message": "Invalid function", "column": {"fieldtype": "Int"}}
+				count_column = next(
+					(f for f in meta.fields if f.fieldname == details.get("aggregate_function_based_on")),
+					None,
+				)
+				if count_column:
+					column = count_column
+
+				count = frappe.db.get_value(
+					details.get("document_type"),
+					filters,
+					[{agg_function: details.get("aggregate_function_based_on")}],
+				)
+
+			return {"count": count or 0, "message": "DocType Number Card Response", "column": column}
+		except Exception as e:
+			frappe.log_error(f"Error in card_type_doctype: {str(e)}")
+			return {"count": 0, "message": str(e), "column": {"fieldtype": "Int"}}

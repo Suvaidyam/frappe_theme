@@ -46,6 +46,11 @@ def delete_user_list_settings(parent_id, child_dt):
 
 
 @frappe.whitelist()
+def update_sva_ft_property(doctype, fieldname, key, value):
+	return DTConf.update_sva_ft_property(doctype, fieldname, key, value)
+
+
+@frappe.whitelist()
 def get_user_list_settings(parent_id, child_dt):
 	return DTConf.get_user_list_settings(parent_id, child_dt)
 
@@ -56,13 +61,18 @@ def get_sva_dt_settings(doctype):
 
 
 @frappe.whitelist()
-def get_number_card_count(type, details, report=None, doctype=None, docname=None):
-	return NumberCard.get_number_card_count(type, details, report, doctype, docname)
+def get_connection_type_confs(doctype, ref_doctype):
+	return DTConf.get_connection_type_confs(doctype, ref_doctype)
 
 
 @frappe.whitelist()
-def get_chart_data(type, details, report=None, doctype=None, docname=None):
-	return Chart.get_chart_data(type, details, report, doctype, docname)
+def get_number_card_count(type, details, report=None, doctype=None, docname=None, filters=None):
+	return NumberCard.get_number_card_count(type, details, report, doctype, docname, filters)
+
+
+@frappe.whitelist()
+def get_chart_data(type, details, report=None, doctype=None, docname=None, filters=None):
+	return Chart.get_chart_data(type, details, report, doctype, docname, filters)
 
 
 @frappe.whitelist()
@@ -87,6 +97,7 @@ def get_dt_list(
 	limit_start=None,
 	_type="List",
 	unfiltered=0,
+	return_columns=False,
 ):
 	return DTConf.get_dt_list(
 		doctype,
@@ -99,6 +110,7 @@ def get_dt_list(
 		limit_start,
 		_type,
 		unfiltered,
+		return_columns=return_columns,
 	)
 
 

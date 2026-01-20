@@ -1,0 +1,267 @@
+name: CI – Pipeline
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+  push:
+    branches: [ main, development ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.11"
+  NODE_VERSION: "22"
+  APP_NAME: "frappe_theme"
+  SITE_NAME: "test.localhost"
+  FRAPPE_BRANCH: "develop"
+  DB_HOST: "127.0.0.1"
+  DB_ROOT_USER: "root"
+  DB_ROOT_PASSWORD: "root"
+
+jobs:
+  label-check:
+    name: PR label validation
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Check PR labels
+        uses: docker://agilepathway/pull-request-label-checker:latest
+        with:
+          any_of: "accessibility,bug,build,chore,ci,docs,discussion,duplicate,enhancement,feat,fix,good-first-issue,help-wanted,hotfix,infra,invalid,maintenance,perf,question,refactor,release,release:major,release:minor,release:patch,security,style,test,wip,wontfix,dependencies"
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+
+  pre-commit:
+    name: pre-commit
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pre-commit
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ env.PYTHON_VERSION }}-${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - name: Install pre-commit
+        run: |
+          echo "Installing pre-commit..."
+          python -m pip install --upgrade pip
+          pip install pre-commit
+          echo "✓ pre-commit installed"
+
+      - name: Run pre-commit
+        run: |
+          echo "=================================================="
+          echo "Running pre-commit hooks on all files..."
+          echo "=================================================="
+          pre-commit --version
+          pre-commit run --all-files --show-diff-on-failure --color always
+          echo "✓ All pre-commit checks passed"
+
+  semgrep:
+    name: Semgrep security scan
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Semgrep
+        run: pip install semgrep
+
+      - name: Download Frappe Semgrep rules
+        run: git clone --depth 1 https://github.com/frappe/semgrep-rules.git frappe-semgrep-rules
+
+      - name: Run Semgrep with Frappe rules
+        run: |
+          echo "=================================================="
+          echo "Running Semgrep security scan with Frappe rules..."
+          echo "=================================================="
+          semgrep ci --config ./frappe-semgrep-rules/rules --config r/python.lang.correctness --sarif > semgrep.sarif || true
+          echo "✓ Semgrep scan completed"
+
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+        if: always()
+
+  dependency-security:
+    name: Vulnerable dependency check
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/*requirements.txt', '**/pyproject.toml', '**/setup.py') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+            ${{ runner.os }}-
+
+      - name: Install and run pip-audit
+        run: |
+          echo "=================================================="
+          echo "Running pip-audit for vulnerable dependencies..."
+          echo "=================================================="
+          pip install pip-audit
+          cd ${GITHUB_WORKSPACE}
+          pip-audit --desc on .
+          echo "✓ Dependency security check completed"
+
+  frappe-tests:
+    name: Frappe unit tests
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [pre-commit, semgrep, dependency-security, label-check]
+    services:
+      mariadb:
+        image: mariadb:10.6
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: testdb
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+      redis:
+        image: redis:6-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install system dependencies
+        run: |
+          echo "Installing system dependencies..."
+          sudo apt-get update
+          sudo apt-get install -y build-essential python3-dev libffi-dev libssl-dev libmysqlclient-dev
+          echo "✓ System dependencies installed"
+
+      - name: Install bench and helpers
+        run: |
+          echo "Installing frappe-bench and utilities..."
+          python -m pip install --upgrade pip
+          pip install "frappe-bench>=5" pre-commit
+          echo "✓ Bench installed successfully"
+
+      - name: Initialize bench (Frappe)
+        run: |
+          echo "Initializing Frappe bench with branch: ${{ env.FRAPPE_BRANCH }}"
+          bench init --frappe-branch "${{ env.FRAPPE_BRANCH }}" --skip-assets --skip-redis-config-generation --python "python${{ env.PYTHON_VERSION }}" ci-bench
+          echo "✓ Bench initialized successfully"
+
+      # - name: Configure esbuild target globally
+      #   working-directory: ci-bench
+      #   run: |
+      #     echo "Setting esbuild target to es2022 for modern JS support..."
+      #     bench set-config -g esbuild_target "es2022"
+      #     echo "✓ esbuild_target configured"
+
+      - name: Add app to bench
+        working-directory: ci-bench
+        run: |
+          echo "Adding ${{ env.APP_NAME }} to bench..."
+          bench get-app --no-cache "${{ github.workspace }}" || bench get-app "${{ github.workspace }}"
+          echo "✓ App added successfully"
+
+      - name: Configure Redis hosts in bench
+        working-directory: ci-bench
+        run: |
+          echo "Configuring Redis connections..."
+          bench set-config -g redis_cache   redis://127.0.0.1:6379
+          bench set-config -g redis_queue   redis://127.0.0.1:6379
+          bench set-config -g redis_socketio redis://127.0.0.1:6379
+          echo "✓ Redis configured"
+
+      - name: Create site
+        working-directory: ci-bench
+        env:
+          SITE_NAME: ${{ env.SITE_NAME }}
+          DB_HOST: ${{ env.DB_HOST }}
+          DB_ROOT_USER: ${{ env.DB_ROOT_USER }}
+          DB_ROOT_PASSWORD: ${{ env.DB_ROOT_PASSWORD }}
+        run: |
+          echo "Creating new site: $SITE_NAME..."
+          bench new-site "$SITE_NAME" \
+            --db-host "$DB_HOST" \
+            --mariadb-root-username "$DB_ROOT_USER" \
+            --mariadb-root-password "$DB_ROOT_PASSWORD" \
+            --mariadb-user-host-login-scope "%" \
+            --admin-password admin \
+            --verbose
+          echo "✓ Site created successfully"
+
+      - name: Install app into site
+        working-directory: ci-bench
+        env:
+          SITE_NAME: ${{ env.SITE_NAME }}
+          APP_NAME: ${{ env.APP_NAME }}
+        run: |
+          echo "Installing $APP_NAME into site $SITE_NAME..."
+          bench --site "$SITE_NAME" install-app "$APP_NAME"
+          echo "✓ App installed successfully"
+
+      - name: Build and validate frontend assets
+        working-directory: ci-bench
+        env:
+          APP_NAME: ${{ env.APP_NAME }}
+        run: |
+          echo "=================================================="
+          echo "Building frontend assets for $APP_NAME..."
+          echo "=================================================="
+          bench build --app "$APP_NAME" --verbose
+
+      - name: Run Frappe tests for app
+        working-directory: ci-bench
+        env:
+          SITE_NAME: ${{ env.SITE_NAME }}
+          APP_NAME: ${{ env.APP_NAME }}
+        run: |
+          echo "=================================================="
+          echo "Running test suite for $APP_NAME on site $SITE_NAME..."
+          echo "=================================================="
+          bench --site "$SITE_NAME" run-tests --app "$APP_NAME" --profile

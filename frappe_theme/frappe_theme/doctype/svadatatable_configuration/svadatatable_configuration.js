@@ -28,6 +28,10 @@ frappe.ui.form.on("SVADatatable Configuration", {
 				},
 			};
 		});
+		// This button will redirect to the Doctype list view this will help developer to quickly access the doctype
+		frm.add_custom_button(__(`Go to ${frm.doc.parent_doctype}`), function () {
+			frappe.set_route("List", frm.doc.parent_doctype);
+		});
 	},
 	update_sequences: function (frm) {
 		if (frm.doc.mapper_type === "Number Card" || frm.doc.mapper_type === "Both") {
@@ -206,7 +210,8 @@ frappe.ui.form.on("SVADatatable Configuration Child", {
 			frm.cur_grid.grid_form.fields_dict.link_doctype.get_query = () => {
 				return {
 					filters: { name: ["IN", dts.message] },
-					limit_page_length: 100,
+					limit_page_length: 1000,
+					limit: 1000,
 				};
 			};
 		}
@@ -237,11 +242,13 @@ frappe.ui.form.on("SVADatatable Configuration Child", {
 					["DocType", "istable", "=", 0],
 				],
 				pluck: "name",
+				limit_page_length: 1000,
 				limit: 1000,
 			});
 			let dts_2 = await frappe.db.get_list("Custom Field", {
 				filters: [["Custom Field", "options", "=", "DocType"]],
 				fields: ["dt", "fieldname"],
+				limit_page_length: 1000,
 				limit: 1000,
 			});
 			let dt_options = [];
@@ -270,19 +277,22 @@ frappe.ui.form.on("SVADatatable Configuration Child", {
 			frm.cur_grid.grid_form.fields_dict.link_report.get_query = () => {
 				return {
 					filters: { name: ["in", reports.message] },
-					limit_page_length: 10000,
+					limit_page_length: 1000,
+					limit: 1000,
 				};
 			};
 		}
 		let html_fields = await frappe.db.get_list("DocField", {
 			filters: { parent: frm.doc.parent_doctype, fieldtype: "HTML" },
 			fields: ["fieldname"],
-			limit: 100,
+			limit_page_length: 1000,
+			limit: 1000,
 		});
 		let html_fields_2 = await frappe.db.get_list("Custom Field", {
 			filters: { dt: frm.doc.parent_doctype, fieldtype: "HTML" },
 			fields: ["fieldname"],
-			limit: 100,
+			limit_page_length: 1000,
+			limit: 1000,
 		});
 		if (html_fields_2.length) {
 			html_fields = html_fields.concat(html_fields_2);
@@ -308,7 +318,8 @@ frappe.ui.form.on("SVADatatable Configuration Child", {
 						["DocField", "options", "=", frm.doc.parent_doctype],
 						["DocField", "parenttype", "=", "DocType"],
 					],
-					limit_page_length: 100,
+					limit_page_length: 1000,
+					limit: 1000,
 				};
 			};
 		}
@@ -329,11 +340,13 @@ frappe.ui.form.on("SVADatatable Configuration Child", {
 					["DocType", "istable", "=", 0],
 				],
 				pluck: "name",
+				limit_page_length: 1000,
 				limit: 1000,
 			});
 			let dts_2 = await frappe.db.get_list("Custom Field", {
 				filters: [["Custom Field", "options", "=", "DocType"]],
 				fields: ["dt", "fieldname"],
+				limit_page_length: 1000,
 				limit: 1000,
 			});
 			let dt_options = [];
@@ -362,7 +375,8 @@ frappe.ui.form.on("SVADatatable Configuration Child", {
 						["DocType", "issingle", "=", 0],
 						["DocType", "istable", "=", 0],
 					],
-					limit_page_length: 100,
+					limit_page_length: 1000,
+					limit: 1000,
 				};
 			};
 		}
@@ -373,7 +387,8 @@ frappe.ui.form.on("SVADatatable Configuration Child", {
 			frm.cur_grid.grid_form.fields_dict.link_report.get_query = () => {
 				return {
 					filters: { name: ["in", reports.message] },
-					limit_page_length: 10000,
+					limit_page_length: 1000,
+					limit: 1000,
 				};
 			};
 		}
@@ -390,7 +405,8 @@ frappe.ui.form.on("SVADatatable Configuration Child", {
 							["DocField", "options", "=", selected_local_field.options],
 							["DocField", "parenttype", "=", "DocType"],
 						],
-						limit_page_length: 100,
+						limit_page_length: 1000,
+						limit: 1000,
 					};
 				};
 			}
@@ -569,9 +585,6 @@ frappe.ui.form.on("SVADatatable Child Conf", {
 				},
 			};
 		};
-		// let html_fields = await frappe.db.get_list('DocField', { filters: { 'parent': frm.doc.parent_doctype, 'fieldtype': 'HTML' }, fields: ['fieldname'] });
-		// let options = html_fields.map(function (d) { return d.fieldname });
-		// frm?.cur_grid?.set_field_property('html_field', 'options', options);
 	},
 	parent_doctype: async function (frm, cdt, cdn) {
 		let row = locals[cdt][cdn];
@@ -825,12 +838,14 @@ frappe.ui.form.on("Number Card Child", {
 		let html_fields = await frappe.db.get_list("DocField", {
 			filters: { parent: frm.doc.parent_doctype, fieldtype: "HTML" },
 			fields: ["fieldname"],
-			limit: 100,
+			limit_page_length: 1000,
+			limit: 1000,
 		});
 		let html_fields_2 = await frappe.db.get_list("Custom Field", {
 			filters: { dt: frm.doc.parent_doctype, fieldtype: "HTML" },
 			fields: ["fieldname"],
-			limit: 100,
+			limit_page_length: 1000,
+			limit: 1000,
 		});
 		if (html_fields_2.length) {
 			html_fields = html_fields.concat(html_fields_2);
@@ -855,6 +870,7 @@ frappe.ui.form.on("Number Card Child", {
 					fieldtype: ["IN", ["Int", "Float", "Currency"]],
 				},
 				fields: ["fieldname"],
+				limit_page_length: 1000,
 				limit: 1000,
 			});
 			let number_fields_2 = await frappe.db.get_list("Custom Field", {
@@ -863,6 +879,7 @@ frappe.ui.form.on("Number Card Child", {
 					fieldtype: ["IN", ["Int", "Float", "Currency"]],
 				},
 				fields: ["fieldname"],
+				limit_page_length: 1000,
 				limit: 1000,
 			});
 			if (number_fields_2.length) {
@@ -883,6 +900,7 @@ frappe.ui.form.on("Number Card Child", {
 					fieldtype: ["IN", ["Int", "Float", "Currency"]],
 				},
 				fields: ["fieldname"],
+				limit_page_length: 1000,
 				limit: 1000,
 			});
 			let number_fields_2 = await frappe.db.get_list("Custom Field", {
@@ -891,6 +909,7 @@ frappe.ui.form.on("Number Card Child", {
 					fieldtype: ["IN", ["Int", "Float", "Currency"]],
 				},
 				fields: ["fieldname"],
+				limit_page_length: 1000,
 				limit: 1000,
 			});
 			if (number_fields_2.length) {
@@ -931,12 +950,14 @@ frappe.ui.form.on("Dashboard Chart Child", {
 		let html_fields = await frappe.db.get_list("DocField", {
 			filters: { parent: frm.doc.parent_doctype, fieldtype: "HTML" },
 			fields: ["fieldname"],
-			limit: 100,
+			limit_page_length: 1000,
+			limit: 1000,
 		});
 		let html_fields_2 = await frappe.db.get_list("Custom Field", {
 			filters: { dt: frm.doc.parent_doctype, fieldtype: "HTML" },
 			fields: ["fieldname"],
-			limit: 100,
+			limit_page_length: 1000,
+			limit: 1000,
 		});
 		if (html_fields_2.length) {
 			html_fields = html_fields.concat(html_fields_2);

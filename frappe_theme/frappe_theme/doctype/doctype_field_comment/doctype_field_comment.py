@@ -1,15 +1,17 @@
-import frappe
 # import frappe
 import re
 
+import frappe
+
 # Copyright (c) 2025, Suvaidyam and contributors
 # For license information, please see license.txt
-
 # import frappe
 from frappe.model.document import Document
 
+
 class DocTypeFieldComment(Document):
 	pass
+
 
 # @frappe.whitelist()
 # def send_mention_notification(mentioned_user, comment_doc, doctype, docname, field_name, field_label, comment):
@@ -18,13 +20,13 @@ class DocTypeFieldComment(Document):
 #         # Extract user from mention data
 #         mention_pattern = r'data-id="([^"]+)"'
 #         mentioned_users = re.findall(mention_pattern, comment)
-        
+
 #         if not mentioned_users:
 #             return
 
 #         # Get user's full name
 #         from_user = frappe.utils.get_fullname(frappe.session.user)
-        
+
 #         for user_email in mentioned_users:
 #             # Get user ID from email
 #             user_id = frappe.db.get_value("User", {"email": user_email}, "name")
@@ -33,7 +35,7 @@ class DocTypeFieldComment(Document):
 
 #             # Create notification message
 #             notification_message = f"{from_user} mentioned you in a comment on {field_label} in {doctype} {docname}"
-            
+
 #             # Create Notification Log entry
 #             notification = frappe.new_doc("Notification Log")
 #             notification.for_user = user_id

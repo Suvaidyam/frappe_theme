@@ -21,6 +21,7 @@
   "login_box_position",
   "page_heading_text_color",
   "login_box_background_color",
+  "enable_usr_pass_login",
   "disable_usr_pass_login",
   "navbar_tab",
   "navbar_section",
@@ -44,6 +45,8 @@
   "column_break_mslv",
   "secondary_button_text_color",
   "secondary_button_hover_text_color",
+  "section_break_dowg",
+  "ticket_button",
   "body_tab",
   "main_body_section",
   "body_background_color",
@@ -73,6 +76,28 @@
   "column_break_pdaj",
   "input_text_color",
   "input_label_color",
+  "sidebar_tab",
+  "sidebar_general_section",
+  "sidebar_background_color",
+  "col_sidebar_1",
+  "sidebar_remove_top_margin",
+  "sidebar_border_radius",
+  "sidebar_app_title_section",
+  "sidebar_app_title_color",
+  "sidebar_active_section",
+  "sidebar_active_background_color",
+  "sidebar_active_text_color",
+  "col_sidebar_2",
+  "sidebar_active_left_border_color",
+  "sidebar_active_left_border_width",
+  "col_sidebar_3",
+  "sidebar_active_right_border_color",
+  "sidebar_active_right_border_width",
+  "sidebar_hover_inactive_section",
+  "sidebar_hover_background_color",
+  "sidebar_inactive_text_color",
+  "col_sidebar_5",
+  "sidebar_hover_text_color",
   "workspace_remapping_tab",
   "sidebar_element_selector",
   "workspace",
@@ -82,6 +107,14 @@
   "hide_side_bar",
   "hide_form_comment",
   "import_file",
+  "cloud_assets",
+  "section_break_cxrk",
+  "sanitize_all_fields",
+  "helpdesk_integration_tab",
+  "helpdesk_section",
+  "hd_url",
+  "column_break_yjyk",
+  "hd_creds",
   "change_logs_tab",
   "change_logs"
  ],
@@ -452,12 +485,6 @@
    "label": "Logo Height (px)"
   },
   {
-   "default": "1",
-   "fieldname": "disable_usr_pass_login",
-   "fieldtype": "Check",
-   "label": " Disable Username/Password Login"
-  },
-  {
    "fieldname": "features_tab",
    "fieldtype": "Tab Break",
    "label": "Features"
@@ -487,13 +514,184 @@
    "fieldname": "import_file",
    "fieldtype": "Attach",
    "label": "Last Imported File"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_usr_pass_login",
+   "fieldtype": "Check",
+   "label": "Enable Username/Password Login"
+  },
+  {
+   "fieldname": "cloud_assets",
+   "fieldtype": "Button",
+   "label": "Cloud Assets"
+  },
+  {
+   "default": "0",
+   "fieldname": "disable_usr_pass_login",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "disable_usr_pass_login"
+  },
+  {
+   "fieldname": "section_break_cxrk",
+   "fieldtype": "Section Break",
+   "label": "Security"
+  },
+  {
+   "default": "0",
+   "fieldname": "sanitize_all_fields",
+   "fieldtype": "Check",
+   "label": "Sanitize all fields"
+  },
+  {
+   "fieldname": "sidebar_tab",
+   "fieldtype": "Tab Break",
+   "label": "Sidebar"
+  },
+  {
+   "fieldname": "sidebar_general_section",
+   "fieldtype": "Section Break",
+   "label": "General Sidebar"
+  },
+  {
+   "fieldname": "sidebar_background_color",
+   "fieldtype": "Color",
+   "label": "Sidebar Background Color"
+  },
+  {
+   "fieldname": "col_sidebar_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "sidebar_remove_top_margin",
+   "fieldtype": "Check",
+   "label": "Remove Sidebar Top Margin"
+  },
+  {
+   "fieldname": "sidebar_border_radius",
+   "fieldtype": "Int",
+   "label": "Sidebar Border Radius (px)"
+  },
+  {
+   "fieldname": "sidebar_app_title_section",
+   "fieldtype": "Section Break",
+   "label": "App Title / Logo Area"
+  },
+  {
+   "fieldname": "sidebar_app_title_color",
+   "fieldtype": "Color",
+   "label": "App Title / Logo Area Color"
+  },
+  {
+   "fieldname": "sidebar_active_section",
+   "fieldtype": "Section Break",
+   "label": "Sidebar Active State"
+  },
+  {
+   "fieldname": "sidebar_active_background_color",
+   "fieldtype": "Color",
+   "label": "Active Background Color"
+  },
+  {
+   "fieldname": "col_sidebar_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sidebar_active_text_color",
+   "fieldtype": "Color",
+   "label": "Active Text Color"
+  },
+  {
+   "fieldname": "sidebar_active_left_border_color",
+   "fieldtype": "Color",
+   "label": "Active Left Border Color"
+  },
+  {
+   "fieldname": "col_sidebar_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sidebar_active_left_border_width",
+   "fieldtype": "Int",
+   "label": "Active Left Border Width (px)"
+  },
+  {
+   "fieldname": "sidebar_active_right_border_color",
+   "fieldtype": "Color",
+   "label": "Active Right Border Color"
+  },
+  {
+   "fieldname": "sidebar_active_right_border_width",
+   "fieldtype": "Int",
+   "label": "Active Right Border Width (px)"
+  },
+  {
+   "fieldname": "sidebar_hover_inactive_section",
+   "fieldtype": "Section Break",
+   "label": "Hover & Inactive States"
+  },
+  {
+   "fieldname": "sidebar_hover_background_color",
+   "fieldtype": "Color",
+   "label": "Hover Background Color"
+  },
+  {
+   "fieldname": "col_sidebar_5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sidebar_hover_text_color",
+   "fieldtype": "Color",
+   "label": "Hover Text Color"
+  },
+  {
+   "fieldname": "sidebar_inactive_text_color",
+   "fieldtype": "Color",
+   "label": "Inactive Nav Item Color"
+  },
+  {
+   "fieldname": "section_break_dowg",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "ticket_button",
+   "fieldtype": "Button",
+   "label": "Ticket Button"
+  },
+  {
+   "fieldname": "helpdesk_integration_tab",
+   "fieldtype": "Tab Break",
+   "label": "Integrations"
+  },
+  {
+   "fieldname": "hd_url",
+   "fieldtype": "Data",
+   "label": "URL",
+   "mandatory_depends_on": "eval:doc.hd_creds!=''"
+  },
+  {
+   "fieldname": "hd_creds",
+   "fieldtype": "Data",
+   "label": "Creds",
+   "mandatory_depends_on": "eval:doc.hd_url!=''"
+  },
+  {
+   "fieldname": "helpdesk_section",
+   "fieldtype": "Section Break",
+   "label": "Helpdesk"
+  },
+  {
+   "fieldname": "column_break_yjyk",
+   "fieldtype": "Column Break"
   }
  ],
  "hide_toolbar": 1,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-08-29 18:14:43.008245",
+ "modified": "2026-01-14 16:31:49.487314",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "My Theme",

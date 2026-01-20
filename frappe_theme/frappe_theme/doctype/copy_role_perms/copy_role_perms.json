@@ -4,36 +4,23 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "perms_type",
+  "apps",
   "role_from",
   "column_break_hcbw",
   "role_to",
-  "section_break_wgoj",
-  "select",
-  "read",
-  "write",
-  "create",
-  "delete_to",
-  "column_break_vcpw",
-  "submit_to",
-  "cancel_to",
-  "amend",
   "additional_permissions_section",
-  "report",
-  "export",
-  "import_to",
-  "column_break_qphp",
-  "share",
-  "print",
-  "email"
+  "permissions"
  ],
  "fields": [
   {
+   "depends_on": "eval: doc.perms_type==\"Get & Update Perms\"",
    "fieldname": "role_from",
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Role From",
-   "options": "Role",
-   "reqd": 1
+   "mandatory_depends_on": "eval: doc.perms_type==\"Get & Update Perms\"",
+   "options": "Role"
   },
   {
    "fieldname": "column_break_hcbw",
@@ -48,112 +35,37 @@
    "reqd": 1
   },
   {
-   "fieldname": "section_break_wgoj",
-   "fieldtype": "Section Break",
-   "label": "Permissions"
-  },
-  {
-   "default": "0",
-   "fieldname": "select",
-   "fieldtype": "Check",
-   "label": "Select"
-  },
-  {
-   "default": "0",
-   "fieldname": "read",
-   "fieldtype": "Check",
-   "label": "Read"
-  },
-  {
-   "default": "0",
-   "fieldname": "write",
-   "fieldtype": "Check",
-   "label": "Write"
-  },
-  {
-   "default": "0",
-   "fieldname": "create",
-   "fieldtype": "Check",
-   "label": "Create"
-  },
-  {
-   "default": "0",
-   "fieldname": "delete_to",
-   "fieldtype": "Check",
-   "label": "Delete"
-  },
-  {
-   "fieldname": "column_break_vcpw",
-   "fieldtype": "Column Break"
-  },
-  {
-   "default": "0",
-   "fieldname": "submit_to",
-   "fieldtype": "Check",
-   "label": "Submit"
-  },
-  {
-   "default": "0",
-   "fieldname": "cancel_to",
-   "fieldtype": "Check",
-   "label": "Cancel"
-  },
-  {
-   "default": "0",
-   "fieldname": "amend",
-   "fieldtype": "Check",
-   "label": "Amend"
-  },
-  {
    "fieldname": "additional_permissions_section",
-   "fieldtype": "Section Break",
-   "label": "Additional Permissions"
+   "fieldtype": "Section Break"
   },
   {
-   "default": "0",
-   "fieldname": "report",
-   "fieldtype": "Check",
-   "label": "Report"
+   "fieldname": "permissions",
+   "fieldtype": "Table",
+   "label": "Permissions",
+   "options": "Copy Role Perms Child"
   },
   {
-   "default": "0",
-   "fieldname": "export",
-   "fieldtype": "Check",
-   "label": "Export"
+   "default": "Get & Update Perms",
+   "fieldname": "perms_type",
+   "fieldtype": "Select",
+   "label": "Perms Type",
+   "options": "Get & Update Perms\nCreate Perms",
+   "reqd": 1
   },
   {
-   "fieldname": "column_break_qphp",
-   "fieldtype": "Column Break"
-  },
-  {
-   "default": "0",
-   "fieldname": "share",
-   "fieldtype": "Check",
-   "label": "Share"
-  },
-  {
-   "default": "0",
-   "fieldname": "print",
-   "fieldtype": "Check",
-   "label": "Print"
-  },
-  {
-   "default": "0",
-   "fieldname": "email",
-   "fieldtype": "Check",
-   "label": "Email"
-  },
-  {
-   "default": "0",
-   "fieldname": "import_to",
-   "fieldtype": "Check",
-   "label": "Import"
+   "depends_on": "eval: doc.perms_type!==\"Get & Update Perms\"",
+   "fieldname": "apps",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Apps",
+   "reqd": 1
   }
  ],
+ "hide_toolbar": 1,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-04-04 16:11:37.035278",
+ "modified": "2025-09-20 16:54:31.764711",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Copy Role Perms",
@@ -170,6 +82,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "creation",
  "sort_order": "DESC",
  "states": []
