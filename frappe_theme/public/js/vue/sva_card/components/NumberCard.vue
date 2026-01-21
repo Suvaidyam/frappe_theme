@@ -162,6 +162,36 @@ onMounted(async () => {
 		await getCount();
 	}, props.delay);
 });
+
+const get_formatted_value = (data) => {
+	switch (data?.column?.fieldtype) {
+		case "Currency":
+			return frappe.utils.format_currency(data.count || 0);
+		case "Float":
+			return frappe.utils.shorten_number(
+				data.count || 0,
+				frappe.sys_defaults.country,
+				null,
+				data?.column?.precision || 2
+			);
+		case "Int":
+			return frappe.utils.shorten_number(
+				data.count || 0,
+				frappe.sys_defaults.country,
+				null,
+				0
+			);
+		case "Percent":
+			return `${format_number(data.count || 0, null, data?.column?.precision || 2)}%`;
+		default:
+			return frappe.utils.shorten_number(
+				data.count || 0,
+				frappe.sys_defaults.country,
+				null,
+				0
+			);
+	}
+};
 </script>
 
 <template>
@@ -207,11 +237,7 @@ onMounted(async () => {
 				<!-- number -->
 				<div class="d-flex justify-content-between align-items-center">
 					<h4 :style="`color: ${card.value_color}`">
-						{{
-							data.field_type == "Currency"
-								? frappe.utils.format_currency(data.count)
-								: data.count ?? 0
-						}}
+						{{ get_formatted_value(data) }}
 					</h4>
 					<span
 						v-if="card.icon_value"
