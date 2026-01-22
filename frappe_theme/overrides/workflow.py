@@ -30,7 +30,29 @@ def custom_apply_workflow(doc, action):
 	# Resolve required fields
 	# -------------------------------
 	action_fields = json.loads(selected_transition.custom_selected_fields or "[]")
-
+	# -------------------------------
+	# Add approval assignments field if custom assign to is enabled
+	# -------------------------------
+	if selected_transition.custom_allow_assignment:
+		action_fields.append(
+			{
+				"fieldname": "approval_assignments",
+				"label": "Approval Assignments",
+				"read_only": False,
+				"reqd": True,
+				"fetch_if_exists": False,
+			}
+		)
+	if selected_transition.custom_comment:
+		action_fields.append(
+			{
+				"fieldname": "wf_comment",
+				"label": "Comment",
+				"read_only": False,
+				"reqd": True,
+				"fetch_if_exists": False,
+			}
+		)
 	if action_fields:
 		required_fields = [
 			{"fieldname": f["fieldname"], "label": f.get("label", f["fieldname"])}
@@ -50,11 +72,10 @@ def custom_apply_workflow(doc, action):
 		)
 		required_fields = [{"fieldname": p["field_name"], "label": p["field_name"]} for p in props]
 
+	wf_dialog_fields = doc.get("wf_dialog_fields") or {}
 	# -------------------------------
 	# Validate dialog fields
 	# -------------------------------
-	wf_dialog_fields = doc.get("wf_dialog_fields") or {}
-
 	if required_fields:
 		missing = [f for f in required_fields if not wf_dialog_fields.get(f["fieldname"])]
 		if missing:
@@ -98,12 +119,33 @@ def custom_apply_workflow(doc, action):
 		if raw_value is None:
 			continue
 
+		if fieldname == "wf_comment" and selected_transition.custom_comment:
+			wf_action_data["comment"] = raw_value
+		if fieldname == "approval_assignments" and selected_transition.custom_allow_assignment:
+			wf_action_data.setdefault("approval_assignments", [])
+
+			# Normalize into list
+			if isinstance(raw_value, dict):
+				raw_value = [raw_value]
+			elif isinstance(raw_value, str):
+				try:
+					raw_value = frappe.parse_json(raw_value)
+				except Exception:
+					raw_value = []
+
+			# Only allow dict rows
+			for row in raw_value:
+				if isinstance(row, dict):
+					row.pop("__islocal", None)
+					row.pop("name", None)
+					row["state"] = selected_transition.state
+					wf_action_data["approval_assignments"].append(row)
+
 		field = meta.get_field(fieldname)
 		if not field:
 			continue
 
 		value = raw_value
-
 		# ---------- CHILD TABLE ----------
 		if field.fieldtype in ("Table", "Table MultiSelect"):
 			if not isinstance(value, list):
@@ -131,7 +173,6 @@ def custom_apply_workflow(doc, action):
 					frappe.throw(f"Invalid value for field {fieldname}")
 
 			data_doc.set(fieldname, value)
-
 		# ---------- LOG ACTION DATA (SAFE) ----------
 		safe_value = value
 		if isinstance(value, (list | dict)):
@@ -147,7 +188,6 @@ def custom_apply_workflow(doc, action):
 					"value": safe_value,
 				}
 			)
-
 		updated = True
 
 	# -------------------------------

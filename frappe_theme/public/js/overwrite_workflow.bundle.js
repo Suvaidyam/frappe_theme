@@ -106,7 +106,34 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 									};
 								});
 						}
-						if (fields?.length) {
+						// Add custom fields that don't exist in meta fields
+						const customFields = [];
+						if (d?.custom_comment) {
+							customFields.push({
+								label: "Comment",
+								fieldname: "wf_comment",
+								fieldtype: "Data",
+								reqd: d?.custom_comment_required ? 1 : 0,
+							});
+						}
+						if (d?.custom_allow_assignment) {
+							let approval_assignment_fields = await frappe.xcall(
+								"frappe_theme.dt_api.get_meta_fields",
+								{
+									doctype: "Approval Assignment Child",
+									_type: "Direct",
+								}
+							);
+							customFields.push({
+								label: "Approval Assignments",
+								fieldname: "approval_assignments",
+								fieldtype: "Table",
+								options: "Approval Assignment Child",
+								fields: approval_assignment_fields,
+								reqd: d?.custom_allow_assignment ? 1 : 0,
+							});
+						}
+						if (fields?.length || customFields?.length) {
 							try {
 								// Resolve all field promises before proceeding
 								const resolvedFields = await Promise.all(fields);
@@ -130,6 +157,7 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 											bg?.style?.toLowerCase() || "secondary"
 										}">${action}</span></p>`,
 									},
+									...(customFields || []),
 									...(resolvedFields ? resolvedFields : []),
 								];
 								let title = __(me.frm.doctype);

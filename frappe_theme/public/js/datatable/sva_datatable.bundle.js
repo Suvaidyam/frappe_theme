@@ -2902,6 +2902,33 @@ class SvaDataTable {
 					};
 				});
 		}
+		// Add custom fields that don't exist in meta fields
+		const customFields = [];
+		if (selected_state_info?.custom_comment) {
+			customFields.push({
+				label: "Comment",
+				fieldname: "wf_comment",
+				fieldtype: "Data",
+				reqd: selected_state_info?.custom_comment_required ? 1 : 0,
+			});
+		}
+		if (selected_state_info?.custom_allow_assignment) {
+			let approval_assignment_fields = await frappe.xcall(
+				"frappe_theme.dt_api.get_meta_fields",
+				{
+					doctype: "Approval Assignment Child",
+					_type: "Direct",
+				}
+			);
+			customFields.push({
+				label: "Approval Assignments",
+				fieldname: "approval_assignments",
+				fieldtype: "Table",
+				options: "Approval Assignment Child",
+				fields: approval_assignment_fields,
+				reqd: selected_state_info?.custom_allow_assignment ? 1 : 0,
+			});
+		}
 		const popupFields = [
 			{
 				label: "Action Test",
@@ -2911,6 +2938,7 @@ class SvaDataTable {
 					bg?.style?.toLowerCase() || "secondary"
 				}">${selected_state_info.action}</span></p>`,
 			},
+			...(customFields || []),
 			...(fields ? fields : []),
 		];
 		if (!this.skip_workflow_confirmation) {
