@@ -1,9 +1,65 @@
-<!-- Used as Button & Heading Control -->
+<template>
+	<transition name="fade">
+		<div v-if="showCard">
+			<Skeleton v-if="loading" />
+			<div v-else class="card mb-2 number-card" :style="getCardStyles">
+				<div class="d-flex justify-content-between">
+					<p
+						class="text-truncate card-label"
+						:style="`font-size: 11px; width: 90%; color: ${card.text_color}`"
+						:title="card.card_label"
+					>
+						{{ card.card_label?.toUpperCase() }}
+					</p>
+					<span
+						class="card-icon"
+						v-if="card.icon_value"
+						v-html="frappe.utils.icon(card.icon_value)"
+					></span>
+					<!-- <div class="dropdown" v-if="actions.length">
+						<span
+							title="action"
+							class="pointer d-flex justify-content-center align-items-center"
+							id="dropdownMenuButton"
+							data-toggle="dropdown"
+							aria-haspopup="true"
+							aria-expanded="false"
+						>
+							<svg class="icon icon-sm"><use href="#icon-dot-horizontal"></use></svg>
+						</span>
+						<div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+							<a
+								v-for="action in actions"
+								:key="action.action"
+								class="dropdown-item"
+								@click="handleAction(action.action)"
+							>
+								{{ action.label }}
+							</a>
+						</div>
+					</div> -->
+				</div>
+				<!-- number -->
+				<div class="d-flex justify-content-between align-items-center">
+					<h4
+						@dblclick="handleAction('view_table')"
+						class="card-value"
+						style="cursor: pointer"
+						:style="`color: ${card.value_color}`"
+					>
+						{{ get_formatted_value(data) }}
+					</h4>
+				</div>
+			</div>
+		</div>
+	</transition>
+</template>
+
 <script setup>
 import Skeleton from "./Skeleton.vue";
 import SvaDataTable from "../../../datatable/sva_datatable.bundle.js";
 import Loader from "../../../loader-element.js";
-import { ref, onMounted, inject } from "vue";
+import { ref, onMounted, inject, computed } from "vue";
 
 const loading = ref(true);
 const data = ref({});
@@ -33,6 +89,27 @@ const props = defineProps({
 });
 
 // const emit = defineEmits(['action-clicked']);
+
+const getCardStyles = computed(() => {
+	const styles = {
+		padding: "8px 8px 8px 12px",
+		backgroundColor: props.card.background_color || "white",
+		"--text-color": props.card.text_color || "inherit",
+		"--hover-bg-color":
+			props.card.hover_background_color || props.card.background_color || "white",
+		"--hover-text-color": props.card.hover_text_color || props.card.text_color || "#525252",
+		"--hover-value-color": props.card.hover_value_color || props.card.value_color || "inherit",
+	};
+	return Object.entries(styles)
+		.map(([key, value]) => {
+			// Convert camelCase to kebab-case for CSS properties, but keep CSS custom properties as-is
+			const cssKey = key.startsWith("--")
+				? key
+				: key.replace(/([A-Z])/g, "-$1").toLowerCase();
+			return `${cssKey}: ${value}`;
+		})
+		.join("; ");
+});
 
 const handleAction = async (action) => {
 	if (action == "refresh") {
@@ -194,61 +271,6 @@ const get_formatted_value = (data) => {
 };
 </script>
 
-<template>
-	<transition name="fade">
-		<div v-if="showCard">
-			<Skeleton v-if="loading" />
-			<div
-				v-else
-				class="card mb-2"
-				:style="`padding: 8px 8px 8px 12px; background-color: ${card.background_color}`"
-			>
-				<div class="d-flex justify-content-between">
-					<p
-						class="text-truncate"
-						:style="`font-size: 11px; width: 90%; color: ${card.text_color}`"
-						:title="card.card_label"
-					>
-						{{ card.card_label?.toUpperCase() }}
-					</p>
-					<div class="dropdown" v-if="actions.length">
-						<span
-							title="action"
-							class="pointer d-flex justify-content-center align-items-center"
-							id="dropdownMenuButton"
-							data-toggle="dropdown"
-							aria-haspopup="true"
-							aria-expanded="false"
-						>
-							<svg class="icon icon-sm"><use href="#icon-dot-horizontal"></use></svg>
-						</span>
-						<div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-							<a
-								v-for="action in actions"
-								:key="action.action"
-								class="dropdown-item"
-								@click="handleAction(action.action)"
-							>
-								{{ action.label }}
-							</a>
-						</div>
-					</div>
-				</div>
-				<!-- number -->
-				<div class="d-flex justify-content-between align-items-center">
-					<h4 :style="`color: ${card.value_color}`">
-						{{ get_formatted_value(data) }}
-					</h4>
-					<span
-						v-if="card.icon_value"
-						v-html="frappe.utils.icon(card.icon_value)"
-					></span>
-				</div>
-			</div>
-		</div>
-	</transition>
-</template>
-
 <style lang="scss" scoped>
 h4 {
 	margin-bottom: 0px;
@@ -257,6 +279,47 @@ h4 {
 .pointer {
 	cursor: pointer;
 	line-height: 8px;
+}
+
+.number-card {
+	transition: background-color 0.3s ease;
+
+	&:hover {
+		background-color: var(--hover-bg-color) !important;
+
+		.card-label {
+			color: var(--hover-text-color) !important;
+		}
+
+		.card-value {
+			color: var(--hover-value-color) !important;
+		}
+
+		.card-icon {
+			:deep(svg),
+			:deep(svg *),
+			:deep(svg use) {
+				transition: stroke 0.1s ease;
+				stroke: var(--hover-text-color) !important;
+			}
+		}
+	}
+}
+
+.card-label {
+	transition: color 0.3s ease;
+}
+
+.card-value {
+	transition: color 0.3s ease;
+}
+
+.card-icon {
+	:deep(svg),
+	:deep(svg *),
+	:deep(svg use) {
+		stroke: var(--text-color) !important;
+	}
 }
 
 .fade-enter-active,
