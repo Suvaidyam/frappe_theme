@@ -39,7 +39,7 @@ class CustomReport(Report):
 		limit_start=None,
 		unfiltered=0,
 		return_query=False,
-		filters_json=None,
+		additional_filters=None,
 	):
 		if not self.query:
 			frappe.throw(_("Must specify a Query to run"), title=_("Report Document Error"))
@@ -47,8 +47,8 @@ class CustomReport(Report):
 		if filters is None:
 			filters = {}
 
-		if filters_json is None:
-			filters_json = {}
+		if additional_filters is None:
+			additional_filters = {}
 
 		check_safe_sql_query(self.query)
 
@@ -66,13 +66,13 @@ class CustomReport(Report):
 			sql_with_permissions,
 			ref_doctype,
 			ref_docname,
-			filters,
+			additional_filters,
 			unfiltered,
 			limit_page_length,
 			limit_start,
 		)
 		# 4. Execute SQL
-		result = frappe.db.sql(sql_with_applied_filters, filters_json, as_dict=True)
+		result = frappe.db.sql(sql_with_applied_filters, filters, as_dict=True)
 		# 5. Resolve auto columns if missing
 		if not columns:
 			columns = [cstr(c[0]) for c in frappe.db.get_description()]

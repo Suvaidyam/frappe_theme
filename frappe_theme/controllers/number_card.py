@@ -173,8 +173,8 @@ class NumberCard:
 						doctype, docname, report.get("name"), filters
 					)
 				executable_query = report.execute_query_report(
-					filters=valid_filters,
-					filters_json=filters_json,
+					additional_filters=valid_filters,
+					filters=filters_json,
 					ref_doctype=doctype,
 					ref_docname=docname,
 					unfiltered=0,

@@ -400,7 +400,10 @@ class Chart:
 					)
 
 				columns, data = report_doc.execute_query_report(
-					filters=valid_filters, ref_doctype=doctype, ref_docname=docname, filters_json=filters_json
+					additional_filters=valid_filters,
+					ref_doctype=doctype,
+					ref_docname=docname,
+					filters=filters_json,
 				)
 
 				if details.get("type") in ["Bar", "Line"]:

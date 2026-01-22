@@ -177,7 +177,8 @@ class DTConf:
 				)
 
 			columns, result = data.execute_query_report(
-				filters=valid_filters,
+				additional_filters=valid_filters,
+				filters={},
 				ref_doctype=ref_doctype,
 				ref_docname=doc,
 				limit_page_length=limit_page_length,
@@ -190,12 +191,15 @@ class DTConf:
 				return result
 		elif data.report_type == "Script Report":
 			filters = filters
-			valid_filters, invalid_filters = None, []
+			valid_filters, invalid_filters = {}, []
 			if filters:
 				valid_filters, invalid_filters = DTFilters.validate_query_report_filters(
 					ref_doctype, doc, doctype, filters, is_script_report=True
 				)
-			response = run(doctype, filters=filters)
+				if isinstance(filters, list):
+					valid_filters = {f[1]: [f[2], f[3]] for f in filters}
+
+			response = run(doctype, filters=valid_filters)
 
 			data = response.get("result")
 			columns = response.get("columns")
