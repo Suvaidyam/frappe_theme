@@ -1,3 +1,5 @@
+import json
+
 import frappe
 from frappe import _
 from frappe.core.doctype.report.report import Report
@@ -28,7 +30,59 @@ class CustomReport(Report):
 	# -------------------------------
 	# ✨ Main overridden Query Executor
 	# -------------------------------
-	def execute_query_report(self, filters):
+	def execute_query_report(
+		self,
+		filters,
+		ref_doctype=None,
+		ref_docname=None,
+		limit_page_length=None,
+		limit_start=None,
+		unfiltered=0,
+		return_query=False,
+		filters_json=None,
+	):
+		if not self.query:
+			frappe.throw(_("Must specify a Query to run"), title=_("Report Document Error"))
+
+		if filters is None:
+			filters = {}
+
+		if filters_json is None:
+			filters_json = {}
+
+		check_safe_sql_query(self.query)
+
+		# 1. Parse columns of the report
+		columns = self.get_columns() or []
+
+		# 2. Build user-permission filters
+		user_perm_conditions = self.get_user_permission_conditions(columns)
+
+		# 3. Append permission filters to SQL safely
+		sql_with_permissions = self.apply_permission_filter(self.query, user_perm_conditions)
+
+		# 3.a Apply doctype/docname filter if applicable
+		sql_with_applied_filters = self.apply_dt_dn_filter_and_filters(
+			sql_with_permissions,
+			ref_doctype,
+			ref_docname,
+			filters,
+			unfiltered,
+			limit_page_length,
+			limit_start,
+		)
+		# 4. Execute SQL
+		result = frappe.db.sql(sql_with_applied_filters, filters_json, as_dict=True)
+		# 5. Resolve auto columns if missing
+		if not columns:
+			columns = [cstr(c[0]) for c in frappe.db.get_description()]
+
+		if return_query:
+			return sql_with_applied_filters
+
+		return columns, result
+
+	def execute_and_count_query_report_rows(self, filters, ref_doctype=None, ref_docname=None, unfiltered=0):
 		if not self.query:
 			frappe.throw(_("Must specify a Query to run"), title=_("Report Document Error"))
 
@@ -43,14 +97,16 @@ class CustomReport(Report):
 		# 3. Append permission filters to SQL safely
 		sql_with_permissions = self.apply_permission_filter(self.query, user_perm_conditions)
 
+		# 3.a Apply doctype/docname filter if applicable
+		sql_with_applied_filters = self.apply_dt_dn_filter_and_filters(
+			sql_with_permissions, ref_doctype, ref_docname, filters, unfiltered
+		)
 		# 4. Execute SQL
-		result = [list(t) for t in frappe.db.sql(sql_with_permissions, filters)]
+		result = frappe.db.sql(
+			f"SELECT COUNT(*) AS count FROM ({sql_with_applied_filters}) as __count", as_dict=True
+		)
 
-		# 5. Resolve auto columns if missing
-		if not columns:
-			columns = [cstr(c[0]) for c in frappe.db.get_description()]
-
-		return [columns, result]
+		return result[0].get("count") if result else 0
 
 	# -------------------------------------------
 	# ✨ Detect all Link fields & apply permissions
@@ -88,4 +144,73 @@ class CustomReport(Report):
 			return sql + " AND " + permission_sql
 
 		# Otherwise add WHERE
-		return f"SELECT * FROM ({sql}) as __tmp WHERE {permission_sql}"
+		return f"SELECT * FROM ({sql.replace(';', '')}) as __tmp WHERE {permission_sql}"
+
+	def apply_dt_dn_filter_and_filters(
+		self, sql, doctype, docname, filters, unfiltered=0, limit_page_length=None, limit_start=None
+	):
+		available_columns = (self.columns or []) + (self.filters or [])
+
+		conditions = "WHERE 1=1"
+		if doctype and docname and doctype != docname:
+			for f in available_columns:
+				if f.fieldname and f.fieldname not in filters and f.options == doctype and unfiltered == 0:
+					conditions += f" AND __t.{f.fieldname} = '{docname}'"
+		if filters:
+			filter_conditions = CustomReport.filters_to_sql_conditions(filters, table_alias="__t")
+			if filter_conditions:
+				conditions += " AND " + filter_conditions
+
+		if limit_page_length and limit_start is not None:
+			conditions += f" LIMIT {limit_start}, {limit_page_length}"
+
+		# Otherwise add WHERE
+		return f"SELECT * FROM ({sql.replace(';', '')}) as __t {conditions}"
+
+	@staticmethod
+	def filters_to_sql_conditions(filters, table_alias="t"):
+		conditions = []
+		if isinstance(filters, str):
+			filters = json.loads(filters)
+
+		if isinstance(filters, dict):
+			_filters = []
+			for key, value in filters.items():
+				if isinstance(value, list):
+					operator = value[0]
+					val = value[1]
+					_filters.append([table_alias, key, operator, val])
+				else:
+					_filters.append([table_alias, key, "=", value])
+
+			filters = _filters
+
+		for f in filters:
+			if len(f) < 4:
+				continue
+
+			doctype, field, operator, value = f[:4]
+			field_name = f"{table_alias}.{field}"
+
+			if operator.lower() == "between" and isinstance(value, (list | tuple)) and len(value) == 2:
+				condition = f"{field_name} BETWEEN '{value[0]}' AND '{value[1]}'"
+			elif operator.lower() == "like":
+				condition = f"{field_name} LIKE '{value}'"
+			elif operator.lower() == "in" and isinstance(value, (list | tuple)):
+				in_values = ", ".join(f"'{v}'" for v in value)
+				condition = f"{field_name} IN ({in_values})"
+			elif operator.lower() == "not in" and isinstance(value, (list | tuple)):
+				not_in_values = ", ".join(f"'{v}'" for v in value)
+				condition = f"{field_name} NOT IN ({not_in_values})"
+			elif operator.lower() == "is":
+				val = str(value).lower()
+				if val == "set":
+					condition = f"{field_name} IS NOT NULL"
+				elif val == "not set":
+					condition = f"{field_name} IS NULL"
+			else:
+				condition = f"{field_name} {operator} '{value}'"
+
+			conditions.append(condition)
+
+		return " AND ".join(conditions)
