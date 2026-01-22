@@ -186,7 +186,7 @@ class NumberCard:
 					return {"count": 0, "message": "Invalid function", "column": column}
 
 				query = f"SELECT {function}(t.{field_name}) AS count FROM ({executable_query}) AS t"
-				count = frappe.db.sql(query, as_dict=True)
+				count = frappe.db.sql(query, filters_json, as_dict=True)
 
 				return {
 					"count": count[0].get("count") if count else 0,
