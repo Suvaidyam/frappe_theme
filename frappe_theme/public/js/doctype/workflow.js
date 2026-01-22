@@ -334,4 +334,62 @@ frappe.ui.form.on("Workflow Transition", {
 			}, 0);
 		});
 	},
+	custom_select_role_profile: async function (frm, cdt, cdn) {
+		const row = locals[cdt][cdn];
+
+		let existing_values = [];
+		if (row.custom_selected_role_profile) {
+			try {
+				existing_values = JSON.parse(row.custom_selected_role_profile);
+			} catch (e) {
+				console.warn("Invalid JSON in custom_selected_role_profile");
+			}
+		}
+		let user_role_profile_fields = await frappe.xcall("frappe_theme.dt_api.get_meta_fields", {
+			doctype: "User Role Profile",
+			_type: "Direct",
+		});
+		const dialog = new frappe.ui.Dialog({
+			title: "Select Role Profiles",
+			size: "medium",
+			fields: [
+				{
+					fieldname: "role_profiles",
+					label: "Role Profiles",
+					options: "User Role Profile",
+					fieldtype: "Table MultiSelect",
+					fields: user_role_profile_fields,
+					reqd: 0,
+				},
+			],
+			primary_action_label: "Save Selection",
+			primary_action(values) {
+				const selected = values.role_profiles || [];
+				frappe.model.set_value(
+					cdt,
+					cdn,
+					"custom_selected_role_profile",
+					JSON.stringify(selected)
+				);
+
+				frappe.show_alert({
+					message: __("Role Profiles saved"),
+					indicator: "green",
+				});
+				dialog.hide();
+			},
+			secondary_action_label: "Clear Selection",
+			secondary_action() {
+				frappe.model.set_value(cdt, cdn, "custom_selected_role_profile", "");
+				frappe.show_alert({
+					message: __("Role Profiles cleared"),
+					indicator: "green",
+				});
+				dialog.hide();
+			},
+		});
+
+		dialog.show();
+		dialog.set_value("role_profiles", existing_values);
+	},
 });

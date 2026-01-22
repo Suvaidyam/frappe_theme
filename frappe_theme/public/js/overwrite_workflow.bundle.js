@@ -124,6 +124,30 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 									_type: "Direct",
 								}
 							);
+							approval_assignment_fields?.forEach((f) => {
+								if (f?.fieldname === "user") {
+									let role_profiles = JSON.parse(
+										d?.custom_selected_role_profile || "[]"
+									);
+									role_profiles = role_profiles?.map(
+										(role_profile) => role_profile?.role_profile
+									);
+									let filters = {
+										status: "Active",
+									};
+									if (role_profiles?.length) {
+										filters["role_profile"] = ["in", role_profiles];
+									}
+									f.get_query = function () {
+										return {
+											filters: filters,
+										};
+									};
+									return f;
+								} else {
+									return f;
+								}
+							});
 							customFields.push({
 								label: "Approval Assignments",
 								fieldname: "approval_assignments",
@@ -163,6 +187,7 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 								let title = __(me.frm.doctype);
 								let dailog = new frappe.ui.Dialog({
 									title: title,
+									size: frappe.utils.get_dialog_size(popupFields),
 									fields: popupFields,
 									primary_action_label: __(action),
 									secondary_action_label: __("Cancel"),

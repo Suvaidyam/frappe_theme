@@ -2920,6 +2920,30 @@ class SvaDataTable {
 					_type: "Direct",
 				}
 			);
+			approval_assignment_fields?.forEach((f) => {
+				if (f?.fieldname === "user") {
+					let role_profiles = JSON.parse(
+						selected_state_info.custom_selected_role_profile || "[]"
+					);
+					role_profiles = role_profiles?.map(
+						(role_profile) => role_profile?.role_profile
+					);
+					let filters = {
+						status: "Active",
+					};
+					if (role_profiles?.length) {
+						filters["role_profile"] = ["in", role_profiles];
+					}
+					f.get_query = function () {
+						return {
+							filters: filters,
+						};
+					};
+					return f;
+				} else {
+					return f;
+				}
+			});
 			customFields.push({
 				label: "Approval Assignments",
 				fieldname: "approval_assignments",
