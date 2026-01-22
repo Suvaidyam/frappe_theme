@@ -1,6 +1,21 @@
 frappe.ui.form.on("Workflow", {
 	refresh(frm) {
-		// 		console.log('workflow')
+		let states = frm.doc.states || [];
+		let state_names = states?.map((state) => state.state);
+		frm.set_query("custom_positive_state", "transitions", function () {
+			return {
+				filters: {
+					workflow_state_name: ["in", state_names],
+				},
+			};
+		});
+		frm.set_query("custom_negative_state", "transitions", function () {
+			return {
+				filters: {
+					workflow_state_name: ["in", state_names],
+				},
+			};
+		});
 	},
 });
 frappe.ui.form.on("Workflow Transition", {
