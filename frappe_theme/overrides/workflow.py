@@ -49,7 +49,7 @@ def custom_apply_workflow(doc, action):
 				"fieldname": "wf_comment",
 				"label": "Comment",
 				"read_only": False,
-				"reqd": True,
+				"reqd": True if selected_transition.custom_comment_required else False,
 				"fetch_if_exists": False,
 			}
 		)
@@ -72,10 +72,11 @@ def custom_apply_workflow(doc, action):
 		)
 		required_fields = [{"fieldname": p["field_name"], "label": p["field_name"]} for p in props]
 
-	wf_dialog_fields = doc.get("wf_dialog_fields") or {}
 	# -------------------------------
 	# Validate dialog fields
 	# -------------------------------
+	wf_dialog_fields = doc.get("wf_dialog_fields") or {}
+
 	if required_fields:
 		missing = [f for f in required_fields if not wf_dialog_fields.get(f["fieldname"])]
 		if missing:
