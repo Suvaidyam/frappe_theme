@@ -65,7 +65,7 @@ class DTFilters:
 				if isinstance(filters, str):
 					filters = frappe.parse_json(filters)
 
-				base_fields = (report_columns if is_script_report else []) + report_filters
+				base_fields = (report_columns if not is_script_report else []) + report_filters
 
 				if isinstance(filters, dict):
 					valid_filters = {}
