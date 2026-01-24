@@ -607,17 +607,21 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 						"Number Card",
 						field.sva_ft.number_card
 					);
+					if (card_doc.type == "Report" && card_doc.report_name) {
+						card_doc.report = await frappe.db.get_doc("Report", card_doc.report_name);
+					}
 					let item = {
 						fetch_from: "Number Card",
 						number_card: field.sva_ft.number_card,
 						card_label: field.sva_ft.label || card_doc.label || "Untitled",
 						details: card_doc,
-						report: card_doc.report
-							? await frappe.db.get_doc("Report", card_doc.report)
-							: null,
+						report: card_doc.report || null,
 						icon_value: field.sva_ft.icon || null,
 						icon_color: field.sva_ft.icon_color || null,
 						background_color: field.sva_ft.background_color || null,
+						hover_background_color: field.sva_ft.card_hover_background_color || null,
+						hover_text_color: field.sva_ft.card_hover_text_color || null,
+						hover_value_color: field.sva_ft.card_hover_value_color || null,
 						text_color: field.sva_ft.text_color || null,
 						value_color: field.sva_ft.value_color || null,
 						border_color: field.sva_ft.border_color || null,
@@ -670,14 +674,14 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 				field.sva_ft["html_field"] = field.fieldname;
 				field.sva_ft["configuration_basis"] = "Property Setter";
 				if (frm.is_new()) {
-					await this.renderLocalFormMessage(field, frm);
+					await this.renderLocalFormMessage(field.sva_ft, frm);
 				} else {
 					await this.renderSavedFormContent(field.sva_ft, frm, field.sva_ft, signal);
 				}
 				break;
 			case "Heatmap (India Map)":
 				field.sva_ft["report"] = field.sva_ft["heatmap_report"];
-				new SVAHeatmap({
+				frm.sva_ft_instances[field.fieldname] = new SVAHeatmap({
 					wrapper: $(wrapper),
 					...(field?.sva_ft || {}),
 					frm,
@@ -938,6 +942,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			if (signal.aborted) return;
 			const ComponentClass = this.getComponentClass(template);
 			let instance = new ComponentClass(frm, el, conf, { signal });
+			frm.sva_ft_instances[fieldname] = instance;
 			// Store cleanup function
 			this.mountedComponents.set(componentId, () => {
 				if (instance.cleanup) {
@@ -996,6 +1001,9 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			onFieldValueChange: this.handleFieldEvent("onFieldValueChange"),
 		});
 		frm.sva_ft_instances[field.html_field] = instance;
+		if (!frm.sva_tables) {
+			frm.sva_tables = {};
+		}
 		frm.sva_tables[
 			["Direct", "Unfiltered"].includes(field.connection_type)
 				? field.link_doctype

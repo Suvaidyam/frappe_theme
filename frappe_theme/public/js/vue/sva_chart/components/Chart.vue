@@ -14,7 +14,7 @@
 							aria-haspopup="true"
 							aria-expanded="false"
 						>
-							...
+							<svg class="icon icon-sm"><use href="#icon-dot-horizontal"></use></svg>
 						</span>
 						<div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
 							<a
@@ -62,6 +62,10 @@
 <!-- Used as Button & Heading Control -->
 <script setup>
 import Skeleton from "./Skeleton.vue";
+
+import Loader from "../../../loader-element.js";
+import SvaDataTable from "../../../datatable/sva_datatable.bundle.js";
+
 import { ref, onMounted, inject } from "vue";
 import {
 	Chart as ChartJS,
@@ -97,6 +101,10 @@ const props = defineProps({
 		type: Object,
 		default: {},
 	},
+	filters: {
+		type: Object,
+		default: () => ({}),
+	},
 	delay: {
 		type: Number,
 		default: 0,
@@ -105,9 +113,13 @@ const props = defineProps({
 		type: Array,
 		default: () => [{ label: "Refresh", action: "refresh" }],
 	},
+	frm: {
+		type: Object,
+		default: null,
+	},
 });
 
-if (props.chart?.details?.custom_show_data_labels) {
+if (props.chart?.details?.custom_show_data_labels == 1) {
 	ChartJS.register(ChartDataLabels);
 }
 
@@ -117,6 +129,30 @@ const data = ref({
 	labels: [],
 	datasets: [{ data: [] }],
 });
+
+function getBWColor(hex) {
+	if (!hex) return "#000";
+
+	hex = hex.replace("#", "");
+
+	// handle short hex (#fff)
+	if (hex.length === 3) {
+		hex = hex
+			.split("")
+			.map((c) => c + c)
+			.join("");
+	}
+
+	const r = parseInt(hex.substr(0, 2), 16);
+	const g = parseInt(hex.substr(2, 2), 16);
+	const b = parseInt(hex.substr(4, 2), 16);
+
+	// Relative luminance (WCAG)
+	const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+
+	// threshold can be tuned (140–160 is sweet spot)
+	return luminance > 150 ? "#000000" : "#ffffff";
+}
 
 const options = ref({
 	indexAxis: props.chart?.details?.custom_enable_row ? "y" : "x",
@@ -142,7 +178,10 @@ const options = ref({
 								: false,
 						ticks: {
 							callback: function (value) {
-								return frappe.utils.shorten_number(value);
+								return frappe.utils.shorten_number(
+									value,
+									frappe.sys_defaults.country
+								);
 							},
 						},
 				  }),
@@ -160,7 +199,10 @@ const options = ref({
 								: false,
 						ticks: {
 							callback: function (value) {
-								return frappe.utils.shorten_number(value);
+								return frappe.utils.shorten_number(
+									value,
+									frappe.sys_defaults.country
+								);
 							},
 						},
 				  }
@@ -232,15 +274,51 @@ const options = ref({
 								props.chart?.details?.currency
 							)}`;
 						} else if (meta.fieldtype === "Int" || meta.fieldtype === "Float") {
-							return `${meta.label}: ${frappe.utils.shorten_number(value)}`;
+							return `${meta.label}: ${frappe.utils.shorten_number(
+								value,
+								frappe.sys_defaults.country
+							)}`;
 						}
+					} else {
+						return value;
 					}
 				},
 			},
 		},
+		datalabels: {
+			anchor: "center",
+			align: "center",
+			formatter: (v) => {
+				let meta = v.meta || {};
+				let value = v?.y || 0;
+				if (meta) {
+					if (meta.fieldtype === "Currency") {
+						return `${frappe.utils.format_currency(
+							value,
+							props.chart?.details?.currency
+						)}`;
+					} else if (meta.fieldtype === "Int" || meta.fieldtype === "Float") {
+						return `${frappe.utils.shorten_number(
+							value,
+							frappe.sys_defaults.country
+						)}`;
+					}
+				} else {
+					return value;
+				}
+			},
+			color: (ctx) => {
+				const dataset = ctx.chart.data.datasets[ctx.datasetIndex];
+				const bg = Array.isArray(dataset.backgroundColor)
+					? dataset.backgroundColor[ctx.dataIndex]
+					: dataset.backgroundColor;
+
+				return getBWColor(bg);
+			},
+		},
 	},
 });
-console.log(options.value, "options");
+// console.log(options.value, "options");
 // const emit = defineEmits(['action-clicked']);
 
 const handleAction = async (action) => {
@@ -249,6 +327,69 @@ const handleAction = async (action) => {
 		await getCount();
 	} else if (action == "edit") {
 		frappe.set_route("Form", props.chart?.details?.doctype, props.chart?.details?.name);
+	} else if (action == "view_table") {
+		const wrapper = document.createElement("div");
+		let loader = new Loader(wrapper);
+		loader.show();
+
+		let table_options = {
+			label: "",
+			wrapper,
+			doctype: "",
+			frm: props.frm || cur_frm,
+			connection: {
+				crud_permissions: JSON.stringify(["read"]),
+			},
+			childLinks: [],
+			options: {
+				serialNumberColumn: true,
+				editable: false,
+			},
+			loader,
+		};
+
+		if (props.chart?.details?.chart_type == "Report") {
+			table_options.connection["link_report"] = props.chart.details?.report_name;
+			table_options.connection["connection_type"] = "Report";
+		} else {
+			table_options.doctype = props.chart.details?.document_type;
+			if (cur_frm.doctype) {
+				let confs = await frappe.xcall("frappe_theme.dt_api.get_connection_type_confs", {
+					doctype: props.chart.details?.document_type,
+					ref_doctype: cur_frm.doctype,
+				});
+				if (confs) {
+					Object.assign(table_options.connection, confs);
+				} else {
+					table_options.connection["connection_type"] = "Unfiltered";
+				}
+			} else {
+				table_options.connection["connection_type"] = "Unfiltered";
+			}
+		}
+
+		let dialog = new frappe.ui.Dialog({
+			title:
+				props.chart?.details?.report_name ||
+				props.chart?.details?.document_type ||
+				"Data Table",
+			fields: [
+				{
+					fieldtype: "HTML",
+					fieldname: "data_table_html",
+					options: `<div>Table Loading...</div>`,
+				},
+			],
+			size: "extra-large",
+			primary_action_label: "Close",
+			primary_action: function () {
+				dialog.hide();
+			},
+		});
+		dialog.show();
+		dialog.set_df_property("data_table_html", "options", wrapper);
+
+		new SvaDataTable(table_options);
 	}
 };
 
@@ -274,6 +415,7 @@ const getCount = async () => {
 				report: report,
 				doctype: cur_frm.doc.doctype,
 				docname: cur_frm.doc.name,
+				filters: props.filters,
 			},
 		});
 		if (res.message) {
