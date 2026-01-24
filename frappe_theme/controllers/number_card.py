@@ -91,7 +91,7 @@ class NumberCard:
 			if report.get("report_type") == "Script Report":
 				from frappe.desk.query_report import run
 
-				valid_filters, invalid_filters = None, []
+				valid_filters, invalid_filters = {}, []
 				if filters:
 					valid_filters, invalid_filters = DTFilters.validate_query_report_filters(
 						doctype, docname, report.get("name"), filters, is_script_report=True

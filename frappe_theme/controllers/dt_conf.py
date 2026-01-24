@@ -170,7 +170,7 @@ class DTConf:
 
 		data = frappe.get_doc("Report", doctype)
 		if data.report_type == "Query Report":
-			valid_filters, invalid_filters = None, []
+			valid_filters, invalid_filters = {}, []
 			if filters:
 				valid_filters, invalid_filters = DTFilters.validate_query_report_filters(
 					ref_doctype, doc, doctype, filters

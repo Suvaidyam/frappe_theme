@@ -393,7 +393,7 @@ class Chart:
 			if report:
 				report_doc = frappe.get_doc("Report", report.get("name"))
 			if report.get("report_type") == "Query Report" and report.get("query"):
-				valid_filters, invalid_filters = None, []
+				valid_filters, invalid_filters = {}, []
 				if filters:
 					valid_filters, invalid_filters = DTFilters.validate_query_report_filters(
 						doctype=doctype, docname=docname, report_name=report.get("name"), filters=filters
@@ -414,7 +414,7 @@ class Chart:
 			if report.get("report_type") == "Script Report":
 				from frappe.desk.query_report import run
 
-				valid_filters, invalid_filters = None, []
+				valid_filters, invalid_filters = {}, []
 				if filters:
 					valid_filters, invalid_filters = DTFilters.validate_query_report_filters(
 						doctype=doctype,
