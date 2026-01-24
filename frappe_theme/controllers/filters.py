@@ -1,7 +1,6 @@
 import frappe
 
 # from frappe_theme.apis.meta import get_possible_link_filters
-from frappe.desk.query_report import get_script
 
 
 class DTFilters:
@@ -9,7 +8,11 @@ class DTFilters:
 	def validate_doctype_filters(doctype, docname, filters, base_doctype=None):
 		valid_filters = []
 		invalid_filters = []
-		if doctype == docname:
+		if doctype is None or docname is None:
+			return filters, []
+		if doctype != docname:
+			return filters, []
+		else:
 			if not filters:
 				return valid_filters, invalid_filters
 
