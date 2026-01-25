@@ -96,7 +96,8 @@ function toggleFieldError(
 	message,
 	toggle = true,
 	is_child = false,
-	msg_type = "error"
+	msg_type = "error",
+	reqd = true
 ) {
 	let msg_class = "";
 	let msg_styles = {};
@@ -168,8 +169,10 @@ function toggleFieldError(
 		if (toggle) {
 			context.set_df_property(fieldname, "description", error_message);
 			$(field.$wrapper).addClass(`has-${msg_type}`);
-			frappe.validate = false;
-			throw new Error(message);
+			if (reqd) {
+				frappe.validate = false;
+				throw new Error(message);
+			}
 		} else {
 			if (field?.description) {
 				context.set_df_property(fieldname, "description", field?.description);
@@ -211,8 +214,10 @@ function toggleFieldError(
 					context.show_message("");
 					context.show_message(__(message), msg_class);
 				}
-				frappe.validate = false;
-				throw new Error(message);
+				if (reqd) {
+					frappe.validate = false;
+					throw new Error(message);
+				}
 			} else if (isForm) {
 				frappe.throw(message);
 			}
