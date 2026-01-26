@@ -172,6 +172,7 @@ doc_events = {
 
 override_whitelisted_methods = {
 	"frappe.model.workflow.apply_workflow": "frappe_theme.overrides.workflow.custom_apply_workflow",
+	"frappe.model.workflow.get_transitions": "frappe_theme.overrides.workflow.get_custom_transitions",
 	"frappe.desk.reportview.get": "frappe_theme.utils.data_protection.mask_doc_list_view",
 	"frappe.desk.listview.get": "frappe_theme.utils.data_protection.mask_doc_list_view",
 	"frappe.desk.query_report.run": "frappe_theme.utils.data_protection.mask_query_report",

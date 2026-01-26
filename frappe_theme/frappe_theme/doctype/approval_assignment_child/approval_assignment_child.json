@@ -43,7 +43,7 @@
    "fieldname": "action",
    "fieldtype": "Select",
    "label": "Action",
-   "options": "Pending\nApprove\nReject"
+   "options": "Pending\nApproved\nRejected"
   },
   {
    "fieldname": "assignment_remark",
@@ -63,7 +63,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-01-21 23:20:20.742642",
+ "modified": "2026-01-25 21:56:20.513543",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Approval Assignment Child",

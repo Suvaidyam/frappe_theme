@@ -1,9 +1,48 @@
 import json
+from typing import Union
 
 import frappe
+from frappe.model.document import Document
 from frappe.model.workflow import apply_workflow as original_apply_workflow
-from frappe.model.workflow import get_transitions, get_workflow
+from frappe.model.workflow import get_transitions, get_workflow, get_workflow_name, get_workflow_state_field
 from frappe.utils import getdate
+from frappe.workflow.doctype.workflow.workflow import Workflow
+
+
+@frappe.whitelist()
+def get_custom_transitions(
+	doc: Union["Document", str, dict], workflow: "Workflow" = None, raise_exception: bool = False
+) -> list[dict]:
+	doc = frappe.get_doc(frappe.parse_json(doc))
+	doc.load_from_db()
+
+	if not workflow:
+		workflow_name = get_workflow_name(doc.doctype)
+
+	workflow_state_field = (
+		workflow.workflow_state_field if workflow is not None else get_workflow_state_field(workflow_name)
+	)
+	if not workflow_state_field:
+		return get_transitions(doc, workflow, raise_exception)
+
+	custom_workflow_doc_exists = frappe.db.exists(
+		"SVA Workflow Action",
+		{
+			"reference_doctype": doc.doctype,
+			"reference_name": doc.name,
+			"workflow_state_current": doc.get(workflow_state_field),
+		},
+		True,
+	)
+	if not custom_workflow_doc_exists:
+		return get_transitions(doc, workflow, raise_exception)
+
+	custom_workflow_doc = frappe.get_cached_doc("SVA Workflow Action", custom_workflow_doc_exists)
+	if not len(custom_workflow_doc.approval_assignments):
+		return get_transitions(doc, workflow, raise_exception)
+
+	if custom_workflow_doc.approval_assignments:
+		return []
 
 
 @frappe.whitelist()
@@ -139,7 +178,7 @@ def custom_apply_workflow(doc, action):
 				if isinstance(row, dict):
 					row.pop("__islocal", None)
 					row.pop("name", None)
-					row["state"] = selected_transition.state
+					row["state"] = selected_transition.next_state
 					wf_action_data["approval_assignments"].append(row)
 
 		field = meta.get_field(fieldname)
