@@ -310,8 +310,6 @@ class SVAHeatmap {
 				ref_doctype: this.frm?.doc?.doctype,
 				filters: { ...this.standard_filters, ...this.filters },
 				fields: ["*"],
-				limit_page_length: 100000,
-				limit_start: 0,
 				_type: "Report",
 				return_columns: true,
 			},
