@@ -2,6 +2,7 @@ import json
 from typing import Union
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
 from frappe.model.workflow import apply_workflow as original_apply_workflow
 from frappe.model.workflow import get_transitions, get_workflow, get_workflow_name, get_workflow_state_field
@@ -204,26 +205,26 @@ def handle_custom_approval_action(doc, action, comment=None):
 	# Get workflow info
 	workflow, workflow_state_field, current_state = _get_workflow_state_info(doc)
 	if not workflow:
-		frappe.throw("No workflow found for this document")
+		frappe.throw(_("No workflow found for this document"))
 
 	# Get custom workflow doc
 	custom_workflow_doc = _get_custom_workflow_doc(doc, current_state)
 	if not custom_workflow_doc:
-		frappe.throw("No active workflow action found for this document")
+		frappe.throw(_("No active workflow action found for this document"))
 
 	# Find the user's assignment
 	user_assignment = _get_user_assignment(custom_workflow_doc, user, sva_user)
 	if not user_assignment:
-		frappe.throw("You are not assigned to approve this document")
+		frappe.throw(_("You are not assigned to approve this document"))
 
 	# Check if user has already taken action
 	if user_assignment.action in ["Approved", "Rejected"]:
-		frappe.throw("You have already taken action on this assignment")
+		frappe.throw(_("You have already taken action on this assignment"))
 
 	# Get transition data
 	transition_data = _get_custom_transition_data(workflow, current_state)
 	if not transition_data:
-		frappe.throw("No valid transition found for custom approval")
+		frappe.throw(_("No valid transition found for custom approval"))
 
 	transition = transition_data
 
