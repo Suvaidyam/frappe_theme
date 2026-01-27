@@ -13,11 +13,18 @@ from frappe.workflow.doctype.workflow.workflow import Workflow
 def get_custom_transitions(
 	doc: Union["Document", str, dict], workflow: "Workflow" = None, raise_exception: bool = False
 ) -> list[dict]:
+	"""
+	Override get_transitions to handle custom approval assignments.
+	Returns empty list if approval assignments exist (to hide regular workflow actions).
+	"""
 	doc = frappe.get_doc(frappe.parse_json(doc))
 	doc.load_from_db()
 
 	if not workflow:
 		workflow_name = get_workflow_name(doc.doctype)
+		if not workflow_name:
+			return get_transitions(doc, workflow, raise_exception)
+		workflow = get_workflow(doc.doctype)
 
 	workflow_state_field = (
 		workflow.workflow_state_field if workflow is not None else get_workflow_state_field(workflow_name)
@@ -25,24 +32,298 @@ def get_custom_transitions(
 	if not workflow_state_field:
 		return get_transitions(doc, workflow, raise_exception)
 
+	current_state = doc.get(workflow_state_field)
+	if not current_state:
+		return get_transitions(doc, workflow, raise_exception)
+
 	custom_workflow_doc_exists = frappe.db.exists(
 		"SVA Workflow Action",
 		{
 			"reference_doctype": doc.doctype,
 			"reference_name": doc.name,
-			"workflow_state_current": doc.get(workflow_state_field),
+			"workflow_state_current": current_state,
 		},
 		True,
 	)
 	if not custom_workflow_doc_exists:
 		return get_transitions(doc, workflow, raise_exception)
 
-	custom_workflow_doc = frappe.get_cached_doc("SVA Workflow Action", custom_workflow_doc_exists)
+	custom_workflow_doc = frappe.get_doc("SVA Workflow Action", custom_workflow_doc_exists)
 	if not len(custom_workflow_doc.approval_assignments):
 		return get_transitions(doc, workflow, raise_exception)
 
-	if custom_workflow_doc.approval_assignments:
-		return []
+	if any(row.action != "Pending" for row in custom_workflow_doc.approval_assignments):
+		return get_transitions(doc, workflow, raise_exception)
+
+	return []
+
+
+def _get_workflow_state_info(doc):
+	"""Helper function to get workflow and current state info"""
+	workflow = get_workflow(doc.doctype)
+	if not workflow:
+		return None, None, None
+
+	workflow_state_field = get_workflow_state_field(workflow.name)
+	current_state = doc.get(workflow_state_field)
+
+	return workflow, workflow_state_field, current_state
+
+
+def _get_custom_workflow_doc(doc, current_state):
+	"""Helper function to get SVA Workflow Action document"""
+	custom_workflow_doc_name = frappe.db.get_value(
+		"SVA Workflow Action",
+		{
+			"reference_doctype": doc.doctype,
+			"reference_name": doc.name,
+			"workflow_state_current": current_state,
+		},
+		"name",
+		order_by="creation desc",
+	)
+
+	if not custom_workflow_doc_name:
+		return None
+
+	return frappe.get_doc("SVA Workflow Action", custom_workflow_doc_name)
+
+
+def _get_user_assignment(custom_workflow_doc, user, sva_user):
+	"""Helper function to find user's assignment"""
+	user_assignment = None
+
+	if user == "Administrator":
+		# Administrator can see any pending assignment
+		for assignment in custom_workflow_doc.approval_assignments:
+			if assignment.action == "Pending":
+				user_assignment = assignment
+				break
+	else:
+		# Regular users: find their specific assignment
+		for assignment in custom_workflow_doc.approval_assignments:
+			if sva_user and assignment.user == sva_user:
+				user_assignment = assignment
+				break
+
+	return user_assignment
+
+
+def _get_custom_transition_data(workflow, current_state):
+	"""Helper function to get transition data with custom_allow_assignment = 1"""
+	return frappe.db.get_value(
+		"Workflow Transition",
+		{
+			"parent": workflow.name,
+			"next_state": current_state,
+			"custom_allow_assignment": 1,
+		},
+		[
+			"name",
+			"action",
+			"state",
+			"next_state",
+			"custom_allow_assignment",
+			"custom_positive_state",
+			"custom_negative_state",
+			"custom_comment",
+			"custom_comment_required",
+			"allowed",
+		],
+		as_dict=True,
+	)
+
+
+def _get_next_state(custom_workflow_doc, current_state, transition):
+	"""Helper function to get next state based on transition data"""
+	if not transition:
+		return current_state
+
+	assignments = custom_workflow_doc.approval_assignments
+	required_assignments = [a for a in assignments if a.required]
+
+	has_required = bool(required_assignments)
+
+	has_required_rejected = any(a.action == "Rejected" for a in required_assignments)
+	has_any_pending = any(a.action == "Pending" for a in assignments)
+	has_any_approved = any(a.action == "Approved" for a in assignments)
+	has_any_rejected = any(a.action == "Rejected" for a in assignments)
+
+	all_required_approved = (
+		all(a.action == "Approved" for a in required_assignments) if required_assignments else False
+	)
+
+	all_assignments_rejected = has_any_rejected and not has_any_pending and not has_any_approved
+
+	if all_assignments_rejected:
+		return transition.get("custom_negative_state") or current_state
+
+	if has_required:
+		if has_required_rejected:
+			next_state = transition.get("custom_negative_state") or current_state
+
+		elif has_any_pending:
+			next_state = current_state
+
+		elif all_required_approved:
+			next_state = transition.get("custom_positive_state") or transition.get("next_state")
+
+		else:
+			next_state = current_state
+
+	else:
+		if has_any_pending:
+			next_state = current_state
+
+		elif has_any_approved:
+			next_state = transition.get("custom_positive_state") or transition.get("next_state")
+
+		else:
+			next_state = transition.get("custom_negative_state") or current_state
+
+	return next_state
+
+
+@frappe.whitelist()
+def handle_custom_approval_action(doc, action, comment=None):
+	"""
+	Handle custom approval action (Approve/Reject) for users in approval_assignments.
+
+	Args:
+	        doc: Document dict or name
+	        action: "Approve" or "Reject"
+	        comment: Optional comment for the action
+	"""
+	# Parse incoming doc
+	doc = frappe.get_doc(frappe.parse_json(doc))
+	doc.load_from_db()
+
+	user = frappe.session.user
+	sva_user = frappe.db.get_value("SVA User", {"email": user}, "name")
+
+	# Get workflow info
+	workflow, workflow_state_field, current_state = _get_workflow_state_info(doc)
+	if not workflow:
+		frappe.throw("No workflow found for this document")
+
+	# Get custom workflow doc
+	custom_workflow_doc = _get_custom_workflow_doc(doc, current_state)
+	if not custom_workflow_doc:
+		frappe.throw("No active workflow action found for this document")
+
+	# Find the user's assignment
+	user_assignment = _get_user_assignment(custom_workflow_doc, user, sva_user)
+	if not user_assignment:
+		frappe.throw("You are not assigned to approve this document")
+
+	# Check if user has already taken action
+	if user_assignment.action in ["Approved", "Rejected"]:
+		frappe.throw("You have already taken action on this assignment")
+
+	# Get transition data
+	transition_data = _get_custom_transition_data(workflow, current_state)
+	if not transition_data:
+		frappe.throw("No valid transition found for custom approval")
+
+	transition = transition_data
+
+	# Update the assignment
+	user_assignment.action = "Approved" if action == "Approve" else "Rejected"
+	if comment:
+		user_assignment.comment = comment
+	custom_workflow_doc.save(ignore_permissions=True)
+
+	next_state = _get_next_state(custom_workflow_doc, current_state, transition)
+
+	if next_state != current_state:
+		workflow_doc = frappe.get_doc("Workflow", workflow.name)
+		target_transition = None
+		for t in workflow_doc.transitions:
+			if t.state == current_state and t.next_state == next_state:
+				target_transition = t
+				break
+		if target_transition:
+			return original_apply_workflow(frappe.as_json(doc), target_transition.action)
+		else:
+			frappe.db.set_value(
+				doc.doctype, doc.name, workflow_state_field, next_state, update_modified=False
+			)
+			doc.reload()
+
+	# Create workflow action log
+	wf_action_data = {
+		"workflow_action": action,
+		"comment": comment or "",
+		"action_data": [],
+		"reference_doctype": doc.doctype,
+		"reference_name": doc.name,
+		"workflow_state_previous": current_state,
+		"workflow_state_current": next_state,
+		"role": transition.allowed,
+		"user": user,
+		"approval_assignments": custom_workflow_doc.approval_assignments,
+	}
+
+	wf_action_doc = frappe.new_doc("SVA Workflow Action")
+	wf_action_doc.update(wf_action_data)
+	wf_action_doc.insert(ignore_permissions=True)
+
+	return doc
+
+
+@frappe.whitelist()
+def get_custom_approval_info(doc):
+	"""
+	Get information about custom approval assignments for the current user.
+	Returns None if user is not in assignments or if custom approval is not active.
+	"""
+	doc = frappe.get_doc(frappe.parse_json(doc))
+	doc.load_from_db()
+
+	user = frappe.session.user
+	sva_user = frappe.db.get_value("SVA User", {"email": user}, "name")
+
+	# Get workflow info
+	workflow, workflow_state_field, current_state = _get_workflow_state_info(doc)
+	if not workflow:
+		return None
+
+	# Get custom workflow doc
+	custom_workflow_doc = _get_custom_workflow_doc(doc, current_state)
+	if not custom_workflow_doc or not custom_workflow_doc.approval_assignments:
+		return None
+
+	# Find user assignment
+	user_assignment = _get_user_assignment(custom_workflow_doc, user, sva_user)
+	if not user_assignment:
+		return None
+
+	# Get transition data
+	transition_data = _get_custom_transition_data(workflow, current_state)
+	if not transition_data:
+		return None
+
+	# Check if user has already taken action
+	has_taken_action = user_assignment.action in ["Approved", "Rejected"]
+
+	return {
+		"has_assignment": True,
+		"has_taken_action": has_taken_action,
+		"current_action": user_assignment.action,
+		"transition": {
+			"action": transition_data.action,
+			"custom_positive_state": transition_data.custom_positive_state,
+			"custom_negative_state": transition_data.custom_negative_state,
+			"custom_comment": transition_data.custom_comment,
+			"custom_comment_required": transition_data.custom_comment_required,
+		},
+		"assignment": {
+			"user": user_assignment.user,
+			"required": user_assignment.required,
+			"action": user_assignment.action,
+			"assignment_remark": user_assignment.assignment_remark,
+		},
+	}
 
 
 @frappe.whitelist()

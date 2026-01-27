@@ -1,3 +1,10 @@
+// Override frappe.workflow.get_transitions to use custom function that handles approval assignments
+const original_get_transitions = frappe.workflow.get_transitions;
+frappe.workflow.get_transitions = function (doc) {
+	frappe.workflow.setup(doc.doctype);
+	return frappe.xcall("frappe_theme.overrides.workflow.get_custom_transitions", { doc: doc });
+};
+
 frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 	show_actions() {
 		var added = false;
@@ -21,234 +28,325 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 			return approval_access;
 		}
 
-		frappe.workflow.get_transitions(this.frm.doc).then((transitions) => {
+		frappe.workflow.get_transitions(this.frm.doc).then(async (transitions) => {
 			this.frm.page.clear_actions_menu();
-			transitions?.forEach((d) => {
-				if (frappe.user_roles.includes(d.allowed) && has_approval_access(d)) {
-					added = true;
-					me.frm.page.add_action_item(__(d.action), async function () {
-						// set the workflow_action for use in form scripts
-						let wf_dialog_fields = JSON.parse(d.custom_selected_fields || "[]");
-						let fields = [];
-						let action = d.action;
-						if (wf_dialog_fields?.length) {
-							fields = await me.frm.meta?.fields
-								.filter((field) => {
-									return wf_dialog_fields.some(
-										(f) => f.fieldname == field.fieldname
-									);
-								})
-								.map(async (field) => {
-									let field_obj = wf_dialog_fields.find(
-										(f) => f.fieldname == field.fieldname
-									);
-									if (field.fieldtype === "Table") {
-										let fields = await frappe.xcall(
-											"frappe_theme.dt_api.get_meta_fields",
-											{
-												doctype: field.options,
-												_type: "Direct",
-											}
+
+			// Check for custom approval assignment
+			let custom_approval_info = null;
+			try {
+				custom_approval_info = await frappe.xcall(
+					"frappe_theme.overrides.workflow.get_custom_approval_info",
+					{
+						doc: me.frm.doc,
+					}
+				);
+			} catch (error) {
+				console.error("Error getting custom approval info:", error);
+			}
+			console.log(
+				"?????????????????????????????????????????????????????????????custom_approval_info",
+				custom_approval_info
+			);
+			// If user has custom approval assignment, show custom button instead of regular transitions
+			if (
+				custom_approval_info &&
+				custom_approval_info.has_assignment &&
+				!custom_approval_info.has_taken_action
+			) {
+				added = true;
+				// Add Approve and Reject to actions menu (styled like Frappe's action button)
+				me.frm.page.add_action_item(__("Approve"), async function () {
+					await me.handle_custom_approval_action("Approve", custom_approval_info);
+				});
+
+				me.frm.page.add_action_item(__("Reject"), async function () {
+					await me.handle_custom_approval_action("Reject", custom_approval_info);
+				});
+			} else {
+				// Show regular workflow transitions
+				transitions?.forEach((d) => {
+					if (frappe.user_roles.includes(d.allowed) && has_approval_access(d)) {
+						added = true;
+						me.frm.page.add_action_item(__(d.action), async function () {
+							// set the workflow_action for use in form scripts
+							let wf_dialog_fields = JSON.parse(d.custom_selected_fields || "[]");
+							let fields = [];
+							let action = d.action;
+							if (wf_dialog_fields?.length) {
+								fields = await me.frm.meta?.fields
+									.filter((field) => {
+										return wf_dialog_fields.some(
+											(f) => f.fieldname == field.fieldname
 										);
-										field_obj["fields"] = fields;
-									}
-									let field_data = me.frm.doc[field.fieldname];
-									let _field = {
-										label: field.label,
-										fieldname: field.fieldname,
-										fieldtype: field.fieldtype,
-										default:
-											(field_obj?.read_only || field_obj?.fetch_if_exists) &&
-											field_data,
-										read_only: field_obj?.read_only,
-										reqd: field_obj?.read_only ? 0 : field_obj?.reqd,
-										options: field.options,
-									};
-									if (_field.fieldtype === "Table") {
-										_field["fields"] = field_obj.fields;
-									}
-									if (
-										!field_obj?.reqd &&
-										["Attach", "Attach Image", "Attach File"].includes(
-											field.fieldtype
-										)
-									) {
-										if (
-											field_data?.startsWith("/private/") ||
-											field_data?.startsWith("/files/")
-										) {
-											_field.label = "";
-											_field.fieldtype = "HTML";
-											_field.options = `${field.label} :  <a href="${
-												window.location.origin + field_data
-											}" target="_blank"><i>${field_data}</i></a>`;
-											_field.default = "";
-											_field.read_only = true;
-											_field.reqd = 0;
+									})
+									.map(async (field) => {
+										let field_obj = wf_dialog_fields.find(
+											(f) => f.fieldname == field.fieldname
+										);
+										if (field.fieldtype === "Table") {
+											let fields = await frappe.xcall(
+												"frappe_theme.dt_api.get_meta_fields",
+												{
+													doctype: field.options,
+													_type: "Direct",
+												}
+											);
+											field_obj["fields"] = fields;
 										}
-									}
-									return _field;
-								});
-						} else {
-							fields = me.frm.meta?.fields
-								?.filter((field) => {
-									return field?.wf_state_field == action;
-								})
-								?.map((field) => {
-									return {
-										label: field.label,
-										fieldname: field.fieldname,
-										fieldtype: field.fieldtype,
-										reqd: 1,
-										mandatory_depends_on: field.mandatory_depends_on,
-										depends_on: field.depends_on,
-										options: field.options,
-									};
-								});
-						}
-						// Add custom fields that don't exist in meta fields
-						const customFields = [];
-						if (d?.custom_comment) {
-							customFields.push({
-								label: "Comment",
-								fieldname: "wf_comment",
-								fieldtype: "Data",
-								reqd: d?.custom_comment_required ? 1 : 0,
-							});
-						}
-						if (d?.custom_allow_assignment) {
-							let approval_assignment_fields = await frappe.xcall(
-								"frappe_theme.dt_api.get_meta_fields",
-								{
-									doctype: "Approval Assignment Child",
-									_type: "Direct",
-								}
-							);
-							approval_assignment_fields?.forEach((f) => {
-								if (f?.fieldname === "user") {
-									let role_profiles = JSON.parse(
-										d?.custom_selected_role_profile || "[]"
-									);
-									role_profiles = role_profiles?.map(
-										(role_profile) => role_profile?.role_profile
-									);
-									let filters = {
-										status: "Active",
-									};
-									if (role_profiles?.length) {
-										filters["role_profile"] = ["in", role_profiles];
-									}
-									f.get_query = function () {
-										return {
-											filters: filters,
+										let field_data = me.frm.doc[field.fieldname];
+										let _field = {
+											label: field.label,
+											fieldname: field.fieldname,
+											fieldtype: field.fieldtype,
+											default:
+												(field_obj?.read_only ||
+													field_obj?.fetch_if_exists) &&
+												field_data,
+											read_only: field_obj?.read_only,
+											reqd: field_obj?.read_only ? 0 : field_obj?.reqd,
+											options: field.options,
 										};
-									};
-									return f;
-								} else {
-									return f;
-								}
-							});
-							customFields.push({
-								label: "Approval Assignments",
-								fieldname: "approval_assignments",
-								fieldtype: "Table",
-								options: "Approval Assignment Child",
-								fields: approval_assignment_fields,
-								reqd: d?.custom_allow_assignment ? 1 : 0,
-							});
-						}
-						if (fields?.length || customFields?.length) {
-							try {
-								// Resolve all field promises before proceeding
-								const resolvedFields = await Promise.all(fields);
-
-								let workflow_state_bg = await frappe.db.get_list(
-									"Workflow State",
+										if (_field.fieldtype === "Table") {
+											_field["fields"] = field_obj.fields;
+										}
+										if (
+											!field_obj?.reqd &&
+											["Attach", "Attach Image", "Attach File"].includes(
+												field.fieldtype
+											)
+										) {
+											if (
+												field_data?.startsWith("/private/") ||
+												field_data?.startsWith("/files/")
+											) {
+												_field.label = "";
+												_field.fieldtype = "HTML";
+												_field.options = `${field.label} :  <a href="${
+													window.location.origin + field_data
+												}" target="_blank"><i>${field_data}</i></a>`;
+												_field.default = "";
+												_field.read_only = true;
+												_field.reqd = 0;
+											}
+										}
+										return _field;
+									});
+							} else {
+								fields = me.frm.meta?.fields
+									?.filter((field) => {
+										return field?.wf_state_field == action;
+									})
+									?.map((field) => {
+										return {
+											label: field.label,
+											fieldname: field.fieldname,
+											fieldtype: field.fieldtype,
+											reqd: 1,
+											mandatory_depends_on: field.mandatory_depends_on,
+											depends_on: field.depends_on,
+											options: field.options,
+										};
+									});
+							}
+							// Add custom fields that don't exist in meta fields
+							const customFields = [];
+							if (d?.custom_comment) {
+								customFields.push({
+									label: "Comment",
+									fieldname: "wf_comment",
+									fieldtype: "Data",
+									reqd: d?.custom_comment_required ? 1 : 0,
+								});
+							}
+							if (d?.custom_allow_assignment) {
+								let approval_assignment_fields = await frappe.xcall(
+									"frappe_theme.dt_api.get_meta_fields",
 									{
-										fields: ["name", "style"],
+										doctype: "Approval Assignment Child",
+										_type: "Direct",
 									}
 								);
-								const bg = workflow_state_bg?.find(
-									(bg) => bg.name === action && bg.style
-								);
+								approval_assignment_fields?.forEach((f) => {
+									if (f?.fieldname === "user") {
+										let role_profiles = JSON.parse(
+											d?.custom_selected_role_profile || "[]"
+										);
+										role_profiles = role_profiles?.map(
+											(role_profile) => role_profile?.role_profile
+										);
+										let filters = {
+											status: "Active",
+										};
+										if (role_profiles?.length) {
+											filters["role_profile"] = ["in", role_profiles];
+										}
+										f.get_query = function () {
+											return {
+												filters: filters,
+											};
+										};
+										return f;
+									} else {
+										return f;
+									}
+								});
+								customFields.push({
+									label: "Approval Assignments",
+									fieldname: "approval_assignments",
+									fieldtype: "Table",
+									options: "Approval Assignment Child",
+									fields: approval_assignment_fields,
+									reqd: d?.custom_allow_assignment ? 1 : 0,
+								});
+							}
+							if (fields?.length || customFields?.length) {
+								try {
+									// Resolve all field promises before proceeding
+									const resolvedFields = await Promise.all(fields);
 
-								const popupFields = [
-									{
-										label: "Action Test",
-										fieldname: "action_test",
-										fieldtype: "HTML",
-										options: `<p>Action:  <span style="padding: 4px 8px; border-radius: 100px; color:white;  font-size: 12px; font-weight: 400;" class="bg-${
-											bg?.style?.toLowerCase() || "secondary"
-										}">${action}</span></p>`,
-									},
-									...(customFields || []),
-									...(resolvedFields ? resolvedFields : []),
-								];
-								let title = __(me.frm.doctype);
-								let dailog = new frappe.ui.Dialog({
-									title: title,
-									size: frappe.utils.get_dialog_size(popupFields),
-									fields: popupFields,
-									primary_action_label: __(action),
-									secondary_action_label: __("Cancel"),
-									secondary_action: () => {
-										dailog.hide();
-									},
-									primary_action: (values) => {
-										frappe.dom.freeze();
-										// Apply workflow after a small delay to ensure values are set
+									let workflow_state_bg = await frappe.db.get_list(
+										"Workflow State",
+										{
+											fields: ["name", "style"],
+										}
+									);
+									const bg = workflow_state_bg?.find(
+										(bg) => bg.name === action && bg.style
+									);
+
+									const popupFields = [
+										{
+											label: "Action Test",
+											fieldname: "action_test",
+											fieldtype: "HTML",
+											options: `<p>Action:  <span style="padding: 4px 8px; border-radius: 100px; color:white;  font-size: 12px; font-weight: 400;" class="bg-${
+												bg?.style?.toLowerCase() || "secondary"
+											}">${action}</span></p>`,
+										},
+										...(customFields || []),
+										...(resolvedFields ? resolvedFields : []),
+									];
+									let title = __(me.frm.doctype);
+									let dailog = new frappe.ui.Dialog({
+										title: title,
+										size: frappe.utils.get_dialog_size(popupFields),
+										fields: popupFields,
+										primary_action_label: __(action),
+										secondary_action_label: __("Cancel"),
+										secondary_action: () => {
+											dailog.hide();
+										},
+										primary_action: (values) => {
+											frappe.dom.freeze();
+											// Apply workflow after a small delay to ensure values are set
+											frappe
+												.xcall("frappe.model.workflow.apply_workflow", {
+													doc: {
+														...me.frm.doc,
+														wf_dialog_fields: values ? values : {},
+													},
+													action: action,
+												})
+												.then((doc) => {
+													frappe.model.sync(doc);
+													me.frm.refresh();
+													action = null;
+													me.frm.script_manager.trigger(
+														"after_workflow_action"
+													);
+												})
+												.finally(() => {
+													dailog.hide();
+													frappe.dom.unfreeze();
+												});
+										},
+									});
+
+									dailog.show();
+								} catch (error) {
+									console.error("Error in workflow action handler:", error);
+								}
+							} else {
+								frappe.dom.freeze();
+								me.frm.selected_workflow_action = d.action;
+								me.frm.script_manager
+									.trigger("before_workflow_action")
+									.then(() => {
 										frappe
 											.xcall("frappe.model.workflow.apply_workflow", {
-												doc: {
-													...me.frm.doc,
-													wf_dialog_fields: values ? values : {},
-												},
-												action: action,
+												doc: me.frm.doc,
+												action: d.action,
 											})
 											.then((doc) => {
 												frappe.model.sync(doc);
 												me.frm.refresh();
-												action = null;
+												me.frm.selected_workflow_action = null;
 												me.frm.script_manager.trigger(
 													"after_workflow_action"
 												);
 											})
 											.finally(() => {
-												dailog.hide();
 												frappe.dom.unfreeze();
 											});
-									},
-								});
-
-								dailog.show();
-							} catch (error) {
-								console.error("Error in workflow action handler:", error);
-							}
-						} else {
-							frappe.dom.freeze();
-							me.frm.selected_workflow_action = d.action;
-							me.frm.script_manager.trigger("before_workflow_action").then(() => {
-								frappe
-									.xcall("frappe.model.workflow.apply_workflow", {
-										doc: me.frm.doc,
-										action: d.action,
-									})
-									.then((doc) => {
-										frappe.model.sync(doc);
-										me.frm.refresh();
-										me.frm.selected_workflow_action = null;
-										me.frm.script_manager.trigger("after_workflow_action");
-									})
-									.finally(() => {
-										frappe.dom.unfreeze();
 									});
-							});
-						}
-					});
-				}
-			});
+							}
+						});
+					}
+				});
+			}
 
 			this.setup_btn(added);
 		});
+	}
+
+	handle_custom_approval_action(action) {
+		var me = this;
+		const show_comment_dialog = true;
+		if (show_comment_dialog) {
+			// Show dialog for comment
+			const dialog_fields = [];
+			dialog_fields.push({
+				label: __("Comment"),
+				fieldname: "comment",
+				fieldtype: "Small Text",
+				reqd: 1,
+			});
+
+			let dialog = new frappe.ui.Dialog({
+				title: __(action),
+				fields: dialog_fields,
+				primary_action_label: __(action),
+				secondary_action_label: __("Cancel"),
+				primary_action: (values) => {
+					frappe.dom.freeze();
+					frappe
+						.xcall("frappe_theme.overrides.workflow.handle_custom_approval_action", {
+							doc: me.frm.doc,
+							action: action,
+							comment: values.comment || null,
+						})
+						.then((doc) => {
+							frappe.model.sync(doc);
+							me.frm.refresh();
+							me.frm.script_manager.trigger("after_workflow_action");
+						})
+						.catch((error) => {
+							frappe.show_alert({
+								message: error.message || __("Error processing approval action"),
+								indicator: "red",
+							});
+						})
+						.finally(() => {
+							dialog.hide();
+							frappe.dom.unfreeze();
+						});
+				},
+				secondary_action: () => {
+					dialog.hide();
+				},
+			});
+
+			dialog.show();
+		}
 	}
 };
