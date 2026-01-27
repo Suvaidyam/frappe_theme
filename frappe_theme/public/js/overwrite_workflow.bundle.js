@@ -1,10 +1,3 @@
-// Override frappe.workflow.get_transitions to use custom function that handles approval assignments
-const original_get_transitions = frappe.workflow.get_transitions;
-frappe.workflow.get_transitions = function (doc) {
-	frappe.workflow.setup(doc.doctype);
-	return frappe.xcall("frappe_theme.overrides.workflow.get_custom_transitions", { doc: doc });
-};
-
 frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 	show_actions() {
 		var added = false;
@@ -43,10 +36,6 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 			} catch (error) {
 				console.error("Error getting custom approval info:", error);
 			}
-			console.log(
-				"?????????????????????????????????????????????????????????????custom_approval_info",
-				custom_approval_info
-			);
 			// If user has custom approval assignment, show custom button instead of regular transitions
 			if (
 				custom_approval_info &&

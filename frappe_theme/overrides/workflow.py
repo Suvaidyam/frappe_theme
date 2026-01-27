@@ -236,19 +236,8 @@ def handle_custom_approval_action(doc, action, comment=None):
 	next_state = _get_next_state(custom_workflow_doc, current_state, transition)
 
 	if next_state != current_state:
-		workflow_doc = frappe.get_doc("Workflow", workflow.name)
-		target_transition = None
-		for t in workflow_doc.transitions:
-			if t.state == current_state and t.next_state == next_state:
-				target_transition = t
-				break
-		if target_transition:
-			return original_apply_workflow(frappe.as_json(doc), target_transition.action)
-		else:
-			frappe.db.set_value(
-				doc.doctype, doc.name, workflow_state_field, next_state, update_modified=False
-			)
-			doc.reload()
+		frappe.db.set_value(doc.doctype, doc.name, workflow_state_field, next_state, update_modified=False)
+		doc.reload()
 
 	# Create workflow action log
 	wf_action_data = {
