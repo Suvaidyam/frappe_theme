@@ -93,7 +93,8 @@ ChartJS.register(
 	ArcElement,
 	PointElement,
 	LineElement,
-	Filler
+	Filler,
+	ChartDataLabels
 );
 
 const props = defineProps({
@@ -118,10 +119,6 @@ const props = defineProps({
 		default: null,
 	},
 });
-
-if (props.chart?.details?.custom_show_data_labels == 1) {
-	ChartJS.register(ChartDataLabels);
-}
 
 const loading = ref(true);
 const showChart = ref(false);
@@ -286,6 +283,7 @@ const options = ref({
 			},
 		},
 		datalabels: {
+			display: props.chart?.details?.custom_show_data_labels == 1 ? true : false,
 			anchor: "center",
 			align: "center",
 			formatter: (v) => {
