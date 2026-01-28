@@ -6,6 +6,10 @@ import frappe
 class DTFilters:
 	@staticmethod
 	def validate_doctype_filters(doctype, docname, filters, base_doctype=None):
+		renderer_dt = frappe.get_meta(doctype, True)
+		if renderer_dt.get("is_dashboard") != 1:
+			return filters, []
+
 		valid_filters = []
 		invalid_filters = []
 		if doctype is None or docname is None:
@@ -18,8 +22,8 @@ class DTFilters:
 
 			if isinstance(filters, str):
 				filters = frappe.parse_json(filters)
-			fields = frappe.get_meta(doctype, True).get("fields", [])
-			base_fields = frappe.get_meta(base_doctype, True).get("fields", [])
+			fields = [f.as_dict() for f in renderer_dt.get("fields", [])]
+			base_fields = [f.as_dict() for f in frappe.get_meta(base_doctype, True).get("fields", [])]
 			if isinstance(filters, dict):
 				valid_filters = {}
 			if isinstance(filters, list):
