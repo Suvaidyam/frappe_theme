@@ -4082,6 +4082,7 @@ class SvaDataTable {
 			});
 			return res.message;
 		} catch (error) {
+			console.error(error);
 			return [];
 		}
 	}
