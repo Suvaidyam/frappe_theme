@@ -1,3 +1,29 @@
+frappe.format = function (value, df, options, doc) {
+	let mask_readonly = false;
+	if (df?.parent) {
+		const mask_fields = frappe.get_meta(df.parent)?.masked_fields;
+		mask_readonly = mask_fields?.includes(df.fieldname);
+	}
+
+	if (!df || mask_readonly) df = { fieldtype: "Data" };
+	if (df.fieldname == "_user_tags") df = { ...df, fieldtype: "Tag" };
+	var fieldtype = df.fieldtype || "Data";
+
+	// format Dynamic Link as a Link
+	if (fieldtype === "Dynamic Link") {
+		fieldtype = "Link";
+		df._options = doc ? doc[df.options] : null;
+	}
+
+	var formatter = df.formatter || frappe.form.get_formatter(fieldtype);
+
+	var formatted = formatter(value, df, options, doc);
+
+	if (typeof formatted == "string") formatted = frappe.dom.remove_script_and_style(formatted);
+
+	return formatted;
+};
+
 frappe.ui.form.on("Workflow", {
 	refresh(frm) {
 		let states = frm.doc.states || [];

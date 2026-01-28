@@ -2,6 +2,7 @@ import SVASortSelector from "./sva_sort_selector.bundle.js";
 import SVAListSettings from "./list_settings.bundle.js";
 import SVAFilterArea from "./filters/filter_area.bundle.js";
 import DTAction from "../vue/dt_action/dt.action.bundle.js";
+import { add_custom_approval_assignments_fields } from "../utils.bundle.js";
 
 class SvaDataTable {
 	/**
@@ -2903,56 +2904,7 @@ class SvaDataTable {
 				});
 		}
 		// Add custom fields that don't exist in meta fields
-		const customFields = [];
-		if (selected_state_info?.custom_comment) {
-			customFields.push({
-				label: "Comment",
-				fieldname: "wf_comment",
-				fieldtype: "Data",
-				reqd: selected_state_info?.custom_comment_required ? 1 : 0,
-			});
-		}
-		if (selected_state_info?.custom_allow_assignment) {
-			let approval_assignment_fields = await frappe.xcall(
-				"frappe_theme.dt_api.get_meta_fields",
-				{
-					doctype: "Approval Assignment Child",
-					_type: "Direct",
-				}
-			);
-			approval_assignment_fields?.forEach((f) => {
-				if (f?.fieldname === "user") {
-					let role_profiles = JSON.parse(
-						selected_state_info.custom_selected_role_profile || "[]"
-					);
-					role_profiles = role_profiles?.map(
-						(role_profile) => role_profile?.role_profile
-					);
-					let filters = {
-						status: "Active",
-					};
-					if (role_profiles?.length) {
-						filters["role_profile"] = ["in", role_profiles];
-					}
-					f.get_query = function () {
-						return {
-							filters: filters,
-						};
-					};
-					return f;
-				} else {
-					return f;
-				}
-			});
-			customFields.push({
-				label: "Approval Assignments",
-				fieldname: "approval_assignments",
-				fieldtype: "Table",
-				options: "Approval Assignment Child",
-				fields: approval_assignment_fields,
-				reqd: selected_state_info?.custom_allow_assignment ? 1 : 0,
-			});
-		}
+		const customFields = await add_custom_approval_assignments_fields(selected_state_info);
 		const popupFields = [
 			{
 				label: "Action Test",

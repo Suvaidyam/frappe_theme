@@ -53,10 +53,14 @@ def get_custom_transitions(
 	if not len(custom_workflow_doc.approval_assignments):
 		return get_transitions(doc, workflow, raise_exception)
 
-	if any(row.action != "Pending" for row in custom_workflow_doc.approval_assignments):
+	if check_any_custom_approval_assignments_is_pending(custom_workflow_doc):
 		return get_transitions(doc, workflow, raise_exception)
 
 	return []
+
+
+def check_any_custom_approval_assignments_is_pending(custom_workflow_doc):
+	return any(assignment.action != "Pending" for assignment in custom_workflow_doc.approval_assignments)
 
 
 def _get_workflow_state_info(doc):
@@ -232,31 +236,30 @@ def handle_custom_approval_action(doc, action, comment=None):
 	user_assignment.action = "Approved" if action == "Approve" else "Rejected"
 	if comment:
 		user_assignment.comment = comment
-	custom_workflow_doc.save(ignore_permissions=True)
 
 	next_state = _get_next_state(custom_workflow_doc, current_state, transition)
+
+	# Update the custom workflow doc
+	custom_workflow_doc.approval_assignments = custom_workflow_doc.approval_assignments
+	custom_workflow_doc.save(ignore_permissions=True)
 
 	if next_state != current_state:
 		frappe.db.set_value(doc.doctype, doc.name, workflow_state_field, next_state, update_modified=False)
 		doc.reload()
-
-	# Create workflow action log
-	wf_action_data = {
-		"workflow_action": action,
-		"comment": comment or "",
-		"action_data": [],
-		"reference_doctype": doc.doctype,
-		"reference_name": doc.name,
-		"workflow_state_previous": current_state,
-		"workflow_state_current": next_state,
-		"role": transition.allowed,
-		"user": user,
-		"approval_assignments": custom_workflow_doc.approval_assignments,
-	}
-
-	wf_action_doc = frappe.new_doc("SVA Workflow Action")
-	wf_action_doc.update(wf_action_data)
-	wf_action_doc.insert(ignore_permissions=True)
+		# Create workflow action log if all custom approval assignments are approved
+		sva_wf_action_data = {
+			"workflow_action": action,
+			"action_data": [],
+			"reference_doctype": doc.doctype,
+			"reference_name": doc.name,
+			"workflow_state_previous": current_state,
+			"workflow_state_current": next_state,
+			"role": transition.allowed,
+			"user": user,
+		}
+		sva_wf_action_doc = frappe.new_doc("SVA Workflow Action")
+		sva_wf_action_doc.update(sva_wf_action_data)
+		sva_wf_action_doc.insert(ignore_permissions=True, ignore_mandatory=True)
 
 	return doc
 
@@ -449,7 +452,6 @@ def custom_apply_workflow(doc, action):
 				if isinstance(row, dict):
 					row.pop("__islocal", None)
 					row.pop("name", None)
-					row["state"] = selected_transition.next_state
 					wf_action_data["approval_assignments"].append(row)
 
 		field = meta.get_field(fieldname)
