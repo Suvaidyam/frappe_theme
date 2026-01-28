@@ -257,9 +257,14 @@ class DTConf:
 				return count or 0
 			elif data.report_type == "Script Report":
 				filters = filters
+				valid_filters, invalid_filters = {}, []
+				if filters:
+					valid_filters, invalid_filters = DTFilters.validate_query_report_filters(
+						ref_doctype, doc, doctype, filters, is_script_report=True
+					)
 				if isinstance(filters, list):
-					filters = {f[1]: f[3] for f in filters}
-				response = run(doctype, filters=filters)
+					valid_filters = {f[1]: [f[2], f[3]] for f in filters}
+				response = run(doctype, filters=valid_filters)
 				data = response.get("result")
 				columns = response.get("columns")
 				result = Chart.filter_script_report_data(data, columns, ref_doctype, doc)

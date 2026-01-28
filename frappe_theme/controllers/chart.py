@@ -423,6 +423,8 @@ class Chart:
 						filters=filters,
 						is_script_report=True,
 					)
+				if isinstance(valid_filters, str):
+					valid_filters = json.loads(valid_filters or "{}")
 
 				response = run(report.get("name"), filters={**valid_filters, **filters_json} or {})
 				data = response.get("result", [])
