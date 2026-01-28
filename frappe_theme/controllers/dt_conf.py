@@ -3,7 +3,7 @@ import re
 from hashlib import md5
 
 import frappe
-from frappe.desk.query_report import get_script, run
+from frappe.desk.query_report import run
 
 from frappe_theme.controllers.chart import Chart
 from frappe_theme.controllers.filters import DTFilters
@@ -107,11 +107,11 @@ class DTConf:
 					return response.get("columns")
 			elif report.report_type == "Query Report":
 				if meta_attached:
-					return {"fields": report.columns, "meta": {}}
+					return {"fields": report.get("columns"), "meta": {}}
 				else:
 					return report.columns
 		else:
-			meta_fields = frappe.get_meta(doctype).fields
+			meta_fields = frappe.get_meta(doctype, True).fields
 			property_setters = frappe.get_all(
 				"Property Setter",
 				filters={"doc_type": doctype},
@@ -127,7 +127,7 @@ class DTConf:
 						# Dynamically set the field property
 						field[ps.property] = ps.value
 			if meta_attached:
-				return {"fields": fields_dict, "meta": frappe.get_meta(doctype).as_dict()}
+				return {"fields": fields_dict, "meta": frappe.get_meta(doctype, True).as_dict()}
 			else:
 				return fields_dict
 
@@ -430,8 +430,9 @@ class DTConf:
 
 	def get_report_filters(doctype):
 		if doctype:
-			filters = get_script(doctype)
-			return filters.get("filters")
+			report = frappe.get_cached_doc("Report", doctype)
+			report = report.as_dict()
+			return report.get("filters")
 		else:
 			return []
 

@@ -93,13 +93,16 @@ class SVAHeatmap {
 				position: "relative",
 				margin: "0 auto",
 				backgroundColor: "#fff",
+				padding: "10px 10px 5px 10px",
+				borderRadius: "10px",
+				border: "1px solid #dcdcdc",
 			});
 
 		// Add title container
 		this.titleContainer = $("<div>").css({
 			position: "absolute",
 			top: "10px",
-			left: "0%",
+			left: "10px",
 			zIndex: 1000,
 			backgroundColor: "#fff",
 			fontWeight: "bold",

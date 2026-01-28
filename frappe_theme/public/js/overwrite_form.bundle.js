@@ -254,12 +254,58 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 						)
 					);
 					if (wrapper.length) {
-						frappe.create_shadow_element(
-							wrapper.get(0),
-							`<h4 class="dt-header-title">${__(frm.doctype || frm.meta.name)}</h4>`,
-							`.dt-header-title { margin-top: 12px; margin-left: 14px; }`,
-							``
+						let header_element = document.createElement("div");
+						header_element.id = "dashboard-header-element";
+						header_element.style =
+							"width: 100%; padding: 10px 14px;display:flex; justify-content: space-between; align-items: center;";
+
+						let title_element = document.createElement("h4");
+						title_element.id = "dashboard-header-title";
+						title_element.style = "margin:0px; padding:0px;";
+						title_element.innerText = __(frm.doctype || frm.meta.name);
+
+						let refresh_button = document.createElement("button");
+						refresh_button.id = "dashboard-refresh_button";
+						refresh_button.classList.add(
+							"text-muted",
+							"btn",
+							"btn-default",
+							"icon-btn"
 						);
+						refresh_button.innerHTML = `
+							<svg class="es-icon es-line icon-sm" style="" aria-hidden="true">
+								<use class="" href="#es-line-reload"></use>
+							</svg>
+						`;
+						refresh_button.onclick = function () {
+							if (Object.entries(frm.sva_ft_instances).length) {
+								for (const [key, instance] of Object.entries(
+									frm.sva_ft_instances
+								)) {
+									if (
+										instance.refresh &&
+										typeof instance.refresh === "function"
+									) {
+										instance.refresh();
+									} else if (
+										instance.reloadTable &&
+										typeof instance.reloadTable === "function"
+									) {
+										instance.reloadTable();
+									}
+								}
+							}
+						};
+						wrapper.get(0).innerHTML = "";
+						if (!header_element.querySelector("#dashboard-header-title")) {
+							header_element.appendChild(title_element);
+						}
+						if (!header_element.querySelector("#dashboard-refresh_button")) {
+							header_element.appendChild(refresh_button);
+						}
+						if (!wrapper.get(0).querySelector("#dashboard-header-element")) {
+							wrapper.get(0).appendChild(header_element);
+						}
 					}
 				}
 			}
