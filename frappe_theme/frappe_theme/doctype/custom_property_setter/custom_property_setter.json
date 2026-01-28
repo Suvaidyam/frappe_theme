@@ -80,6 +80,10 @@
   "full_screen_dialog",
   "disable_workflow",
   "enable_auto_transpose",
+  "enable_card_view",
+  "hide_filter",
+  "hide_sorting",
+  "hide_refresh_button",
   "section_break_okbe",
   "child_confs",
   "heat_map_section",
@@ -655,13 +659,41 @@
    "fieldname": "enable_auto_transpose",
    "fieldtype": "Check",
    "label": "Transpose"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.connection_type",
+   "fieldname": "enable_card_view",
+   "fieldtype": "Check",
+   "label": "Enable Card View"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.connection_type",
+   "fieldname": "hide_refresh_button",
+   "fieldtype": "Check",
+   "label": "Hide Refresh Button"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.connection_type",
+   "fieldname": "hide_sorting",
+   "fieldtype": "Check",
+   "label": "Hide Sorting"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.connection_type",
+   "fieldname": "hide_filter",
+   "fieldtype": "Check",
+   "label": "Hide Filter"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_virtual": 1,
  "links": [],
- "modified": "2026-01-15 12:52:49.128517",
+ "modified": "2026-01-27 11:05:42.292002",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Custom Property Setter",

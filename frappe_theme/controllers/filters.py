@@ -61,6 +61,9 @@ class DTFilters:
 	@staticmethod
 	def validate_query_report_filters(doctype, docname, report_name, filters, is_script_report=False):
 		try:
+			renderer_dt = frappe.get_meta(doctype, True)
+			if renderer_dt.get("is_dashboard") != 1:
+				return filters, []
 			valid_filters = {}
 			invalid_filters = []
 			if doctype == docname:
