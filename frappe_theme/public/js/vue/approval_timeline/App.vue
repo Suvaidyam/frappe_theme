@@ -179,6 +179,61 @@
 								</svg>
 								Field Values
 							</div>
+							<div
+								v-if="
+									item.approval_assignments &&
+									item.approval_assignments.length > 0
+								"
+								class="field-item approval-assignments-field"
+							>
+								<div class="field-label">Approval Assignments</div>
+								<div class="field-value">
+									<table
+										v-if="item?.approval_assignments?.length"
+										style="width: 100%; border-collapse: collapse"
+									>
+										<!-- TABLE HEADER -->
+										<thead>
+											<tr style="text-align: center">
+												<th
+													v-for="field in item.approval_assignments[0]
+														.fields"
+													:key="field.fieldname"
+													:style="{
+														border: '1px solid #e2e8f0',
+														padding: '5px',
+														width: [
+															'comment',
+															'assignment_remark',
+														].includes(field.fieldname)
+															? '250px'
+															: 'auto',
+													}"
+												>
+													{{ field.label }}
+												</th>
+											</tr>
+										</thead>
+
+										<!-- TABLE BODY -->
+										<tbody>
+											<tr
+												v-for="assignment in item.approval_assignments"
+												:key="assignment.name"
+												style="text-align: center"
+											>
+												<td
+													v-for="field in assignment.fields"
+													:key="field.fieldname"
+													style="border: 1px solid #e2e8f0; padding: 5px"
+												>
+													{{ field.value ?? "-" }}
+												</td>
+											</tr>
+										</tbody>
+									</table>
+								</div>
+							</div>
 							<div class="field-grid">
 								<!-- Comment Section - Show at top if present -->
 								<div v-if="item.comment" class="field-item comment-field">
@@ -187,7 +242,6 @@
 										{{ item.comment }}
 									</div>
 								</div>
-
 								<!-- Field Values -->
 								<div
 									v-for="(field, fieldIndex) in item.action_data"
@@ -485,9 +539,6 @@ const loadWorkflowData = async () => {
 				reference_name: props.referenceName,
 			},
 		});
-
-		// Console log the full API response
-		console.log("Message:", response.message);
 
 		if (response.message && response.message.success) {
 			workflowData.value = response.message;
@@ -1275,6 +1326,21 @@ defineExpose({
 	height: 32px;
 	color: #ef4444;
 	margin: 0 auto 12px;
+}
+
+/* Approval Assignments Section */
+.assignment-item {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	border: 1px solid #e2e8f0;
+	border-radius: 4px;
+	padding: 8px 10px;
+}
+
+.assignment {
+	font-size: 11px;
+	color: #1e293b;
 }
 
 /* Responsive */
