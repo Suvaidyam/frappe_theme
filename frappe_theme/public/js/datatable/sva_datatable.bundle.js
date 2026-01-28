@@ -3902,7 +3902,10 @@ class SvaDataTable {
 					column.fieldname
 				]
 			) {
-				let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
+				let formatter =
+					this.frm.dt_events[this.doctype || this.link_report].formatter[
+						column.fieldname
+					];
 				td.innerHTML = formatter(row[column.fieldname], column, row, this);
 			} else {
 				td.innerHTML = `<span title="${row[column.fieldname] || ""}">${
@@ -4073,6 +4076,7 @@ class SvaDataTable {
 			});
 			return res.message;
 		} catch (error) {
+			console.error(error);
 			return [];
 		}
 	}

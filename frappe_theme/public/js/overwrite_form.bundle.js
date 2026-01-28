@@ -79,15 +79,29 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			console.error("Error in handleDTHeader:", error);
 		}
 	}
+	custom_onload(frm) {
+		this.handleDTHeader(frm);
+		this.dashboard_handlers(frm);
+	}
 	setupHandlers() {
 		if (!frappe.ui.form.handlers[this.doctype]) {
 			frappe.ui.form.handlers[this.doctype] = {
+				onload: [this.custom_onload.bind(this)],
 				refresh: [this.custom_refresh.bind(this)],
 				on_tab_change: [this._activeTab.bind(this)],
 				after_save: [this.custom_after_save.bind(this)],
 				onload_post_render: [this.custom_onload_post_render.bind(this)],
 			};
 			return;
+		}
+
+		// Setup custom setup handlers
+		if (!frappe.ui.form.handlers[this.doctype].onload) {
+			frappe.ui.form.handlers[this.doctype].onload = [this.custom_onload.bind(this)];
+		} else if (
+			!frappe.ui.form.handlers[this.doctype].onload.includes(this.custom_onload.bind(this))
+		) {
+			frappe.ui.form.handlers[this.doctype].onload.push(this.custom_onload.bind(this));
 		}
 
 		// Setup refresh handlers
@@ -151,7 +165,6 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			// 		console.error(e);
 			// 	}
 			// });
-			this.handleDTHeader(frm);
 			setupFieldComments(frm);
 			this.goToCommentButton(frm);
 			if (frm.doctype == "DocType") {
@@ -228,6 +241,30 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			await this.tabContent(frm, tab_field);
 		} catch (error) {
 			console.error("Error in custom_refresh:", error);
+		}
+	}
+	dashboard_handlers(frm) {
+		try {
+			if (frm?.meta?.issingle && frm?.meta?.is_dashboard) {
+				frm.disable_save();
+				if (!frm.meta.header_html) {
+					let wrapper = $(
+						document.querySelector(
+							`#page-${frm.meta.name.replace(/ /g, "\\ ")} .page-head`
+						)
+					);
+					if (wrapper.length) {
+						frappe.create_shadow_element(
+							wrapper.get(0),
+							`<h4 class="dt-header-title">${__(frm.doctype || frm.meta.name)}</h4>`,
+							`.dt-header-title { margin-top: 12px; margin-left: 14px; }`,
+							``
+						);
+					}
+				}
+			}
+		} catch (error) {
+			console.error("Error in dashboard_handlers:", error);
 		}
 	}
 	async custom_after_save(frm) {
