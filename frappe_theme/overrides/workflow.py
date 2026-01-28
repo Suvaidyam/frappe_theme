@@ -37,30 +37,49 @@ def get_custom_transitions(
 	if not current_state:
 		return get_transitions(doc, workflow, raise_exception)
 
-	custom_workflow_doc_exists = frappe.db.exists(
-		"SVA Workflow Action",
-		{
-			"reference_doctype": doc.doctype,
-			"reference_name": doc.name,
-			"workflow_state_current": current_state,
-		},
-		True,
+	custom_workflow_doc = _get_custom_workflow_doc(doc, current_state)
+	if not custom_workflow_doc or not len(custom_workflow_doc.approval_assignments):
+		return get_transitions(doc, workflow, raise_exception)
+
+	user = frappe.session.user
+	sva_user = frappe.db.get_value("SVA User", {"email": user}, "name")
+	user_assignments = [
+		row
+		for row in (custom_workflow_doc.approval_assignments or [])
+		if (row.user == sva_user or user == "Administrator") and row.action == "Pending"
+	]
+	print(
+		len(user_assignments),
+		"????????????????????????????????????????????????=============================??",
 	)
-	if not custom_workflow_doc_exists:
+	if not len(user_assignments):
+		return []
+	if user_assignments and len(user_assignments) > 0:
+		custom_transitions = make_custom_transitions(custom_workflow_doc)
+		return custom_transitions
+	else:
 		return get_transitions(doc, workflow, raise_exception)
 
-	custom_workflow_doc = frappe.get_doc("SVA Workflow Action", custom_workflow_doc_exists)
-	if not len(custom_workflow_doc.approval_assignments):
-		return get_transitions(doc, workflow, raise_exception)
 
-	if check_any_custom_approval_assignments_is_pending(custom_workflow_doc):
-		return get_transitions(doc, workflow, raise_exception)
-
-	return []
-
-
-def check_any_custom_approval_assignments_is_pending(custom_workflow_doc):
-	return any(assignment.action != "Pending" for assignment in custom_workflow_doc.approval_assignments)
+def make_custom_transitions(custom_workflow_doc):
+	custom_transitions = []
+	custom_transitions.append(
+		{
+			"state": custom_workflow_doc.workflow_state_current,
+			"action": "Approve",
+			"next_state": custom_workflow_doc.workflow_state_current,
+			"allowed": "All",
+		}
+	)
+	custom_transitions.append(
+		{
+			"state": custom_workflow_doc.workflow_state_current,
+			"action": "Reject",
+			"next_state": custom_workflow_doc.workflow_state_current,
+			"allowed": "All",
+		}
+	)
+	return custom_transitions
 
 
 def _get_workflow_state_info(doc):
@@ -262,61 +281,6 @@ def handle_custom_approval_action(doc, action, comment=None):
 		sva_wf_action_doc.insert(ignore_permissions=True, ignore_mandatory=True)
 
 	return doc
-
-
-@frappe.whitelist()
-def get_custom_approval_info(doc):
-	"""
-	Get information about custom approval assignments for the current user.
-	Returns None if user is not in assignments or if custom approval is not active.
-	"""
-	doc = frappe.get_doc(frappe.parse_json(doc))
-	doc.load_from_db()
-
-	user = frappe.session.user
-	sva_user = frappe.db.get_value("SVA User", {"email": user}, "name")
-
-	# Get workflow info
-	workflow, workflow_state_field, current_state = _get_workflow_state_info(doc)
-	if not workflow:
-		return None
-
-	# Get custom workflow doc
-	custom_workflow_doc = _get_custom_workflow_doc(doc, current_state)
-	if not custom_workflow_doc or not custom_workflow_doc.approval_assignments:
-		return None
-
-	# Find user assignment
-	user_assignment = _get_user_assignment(custom_workflow_doc, user, sva_user)
-	if not user_assignment:
-		return None
-
-	# Get transition data
-	transition_data = _get_custom_transition_data(workflow, current_state)
-	if not transition_data:
-		return None
-
-	# Check if user has already taken action
-	has_taken_action = user_assignment.action in ["Approved", "Rejected"]
-
-	return {
-		"has_assignment": True,
-		"has_taken_action": has_taken_action,
-		"current_action": user_assignment.action,
-		"transition": {
-			"action": transition_data.action,
-			"custom_positive_state": transition_data.custom_positive_state,
-			"custom_negative_state": transition_data.custom_negative_state,
-			"custom_comment": transition_data.custom_comment,
-			"custom_comment_required": transition_data.custom_comment_required,
-		},
-		"assignment": {
-			"user": user_assignment.user,
-			"required": user_assignment.required,
-			"action": user_assignment.action,
-			"assignment_remark": user_assignment.assignment_remark,
-		},
-	}
 
 
 @frappe.whitelist()
