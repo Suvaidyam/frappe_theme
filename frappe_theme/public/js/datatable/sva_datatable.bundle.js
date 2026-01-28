@@ -769,7 +769,9 @@ class SvaDataTable {
 
 		// Add to title actions
 		title_actions.appendChild(custom_button_section);
-		title_actions.appendChild(refresh_button);
+		if (!this.connection?.hide_refresh_button){
+			title_actions.appendChild(refresh_button);
+		}
 		title_actions.appendChild(action_button);
 
 		// Add to title row
@@ -878,8 +880,12 @@ class SvaDataTable {
 		}
 
 		// Add to filter controls
-		filter_controls.appendChild(list_filter);
-		filter_controls.appendChild(sva_sort_selector);
+		if (!this.connection?.hide_filter){
+			filter_controls.appendChild(list_filter);
+		}
+		if (!this.connection?.hide_sorting){
+			filter_controls.appendChild(sva_sort_selector);
+		}
 
 		// Add to filter row
 		filter_row.appendChild(standard_filters_wrapper);
@@ -914,7 +920,7 @@ class SvaDataTable {
 	async setupWrapper(wrapper) {
 		wrapper.style = `max-width:${this.options?.style?.width || "100%"}; width:${
 			this.options?.style?.width || "100%"
-		};margin:0px !important;`;
+		};margin:0px !important; ${this.connection?.enable_card_view ? 'padding: 10px 10px 5px 10px; border-radius: 10px;border: 1px solid #dcdcdc;' : ''}`;
 		if (!wrapper.querySelector("div#header-element")) {
 			wrapper.appendChild(await this.setupHeader());
 		}
