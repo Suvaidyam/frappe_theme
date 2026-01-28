@@ -1,0 +1,202 @@
+import frappe
+
+# from frappe_theme.apis.meta import get_possible_link_filters
+
+
+class DTFilters:
+	@staticmethod
+	def validate_doctype_filters(doctype, docname, filters, base_doctype=None):
+		renderer_dt = frappe.get_meta(doctype, True)
+		if renderer_dt.get("is_dashboard") != 1:
+			return filters, []
+
+		valid_filters = []
+		invalid_filters = []
+		if doctype is None or docname is None:
+			return filters, []
+		if doctype != docname:
+			return filters, []
+		else:
+			if not filters:
+				return valid_filters, invalid_filters
+
+			if isinstance(filters, str):
+				filters = frappe.parse_json(filters)
+			fields = [f.as_dict() for f in renderer_dt.get("fields", [])]
+			base_fields = [f.as_dict() for f in frappe.get_meta(base_doctype, True).get("fields", [])]
+			if isinstance(filters, dict):
+				valid_filters = {}
+			if isinstance(filters, list):
+				valid_filters = []
+			invalid_filters = []
+			filter_keys = []
+			if isinstance(filters, dict):
+				filter_keys = list(filters.keys())
+			elif isinstance(filters, list):
+				filter_keys = [f[1] for f in filters if len(f) >= 2]
+
+			for key in filter_keys:
+				filter_field = next((f.as_dict() for f in fields if f.get("fieldname") == key), None)
+				if filter_field.fieldtype == "Link":
+					DTFilters.process_link_fields_as_filters(
+						base_fields, filter_field, base_doctype, filters, key, valid_filters, invalid_filters
+					)
+				elif filter_field.fieldtype == "Table MultiSelect":
+					first_link_field = DTFilters.get_conf_for_multi_slect_link_field(
+						filter_field.get("options")
+					)
+					DTFilters.process_link_fields_as_filters(
+						base_fields,
+						first_link_field,
+						base_doctype,
+						filters,
+						key,
+						valid_filters,
+						invalid_filters,
+					)
+				else:
+					invalid_filters.append(filter_field)
+		return valid_filters, invalid_filters
+
+	@staticmethod
+	def validate_query_report_filters(doctype, docname, report_name, filters, is_script_report=False):
+		try:
+			renderer_dt = frappe.get_meta(doctype, True)
+			if renderer_dt.get("is_dashboard") != 1:
+				return filters, []
+			valid_filters = {}
+			invalid_filters = []
+			if doctype == docname:
+				fields = frappe.get_meta(doctype, True).get("fields", [])
+				report = frappe.get_doc("Report", report_name)
+				report_columns = report.get("columns", []) or []
+				report_filters = report.get("filters", []) or []
+
+				if isinstance(filters, str):
+					filters = frappe.parse_json(filters)
+
+				base_fields = (report_columns if not is_script_report else []) + report_filters
+
+				if isinstance(filters, dict):
+					valid_filters = {}
+				if isinstance(filters, list):
+					valid_filters = []
+
+				filter_keys = []
+				if isinstance(filters, dict):
+					filter_keys = list(filters.keys())
+				elif isinstance(filters, list):
+					filter_keys = [f[1] for f in filters if len(f) >= 2]
+
+				for key in filter_keys:
+					filter_field = next((f.as_dict() for f in fields if f.get("fieldname") == key), None)
+					if filter_field.fieldtype == "Link":
+						DTFilters.process_link_fields_as_filters(
+							base_fields, filter_field, doctype, filters, key, valid_filters, invalid_filters
+						)
+					elif filter_field.fieldtype == "Table MultiSelect":
+						first_link_field = DTFilters.get_conf_for_multi_slect_link_field(
+							filter_field.get("options")
+						)
+						DTFilters.process_link_fields_as_filters(
+							base_fields,
+							first_link_field,
+							doctype,
+							filters,
+							key,
+							valid_filters,
+							invalid_filters,
+						)
+					else:
+						invalid_filters.append(filter_field)
+
+			return valid_filters, invalid_filters
+		except Exception as e:
+			frappe.log_error(f"Error in validate_query_report_filters: {str(e)}")
+			return {}, []
+
+	@staticmethod
+	def get_conf_for_multi_slect_link_field(child_doctype):
+		child_meta = frappe.get_meta(child_doctype)
+		return next((f.as_dict() for f in child_meta.fields if f.fieldtype == "Link" and not f.hidden), None)
+
+	@staticmethod
+	def process_link_fields_as_filters(
+		base_fields, filter_field, base_doctype, filters, key, valid_filters, invalid_filters
+	):
+		relevant_field_from_base = next(
+			(f.as_dict() for f in base_fields if f.get("options") == filter_field.get("options")), None
+		)
+		if isinstance(filter_field, str):
+			filter_field = frappe.parse_json(filter_field or "{}")
+		if not relevant_field_from_base:
+			if filter_field.get("options") == base_doctype:
+				if isinstance(filters[key], list):
+					valid_filters["name"] = [
+						"in",
+						[v.get(filter_field.get("fieldname")) for v in filters[key]],
+					]
+				else:
+					valid_filters["name"] = filters[key]
+			else:
+				ref_dt = next(
+					(x for x in base_fields if x.fieldtype == "Link" and x.options == "DocType"), None
+				)
+				if ref_dt:
+					ref_dn = next(
+						(
+							x
+							for x in base_fields
+							if x.fieldtype == "Dynamic Link" and x.options == ref_dt.get("fieldname")
+						),
+						None,
+					)
+					if ref_dn:
+						if isinstance(filters, list):
+							valid_filters.append(
+								[base_doctype, ref_dt.get("fieldname"), "=", filter_field.get("options")]
+							)
+							if isinstance(filters[key], list):
+								valid_filters.append(
+									[
+										base_doctype,
+										ref_dn.get("fieldname"),
+										"in",
+										[v.get(filter_field.get("fieldname")) for v in filters[key]],
+									]
+								)
+							else:
+								valid_filters.append(
+									[base_doctype, ref_dn.get("fieldname"), "=", filters[key]]
+								)
+						else:
+							valid_filters[ref_dt.get("fieldname")] = filter_field.get("options")
+							if isinstance(filters[key], list):
+								valid_filters[ref_dn.get("fieldname")] = [
+									"in",
+									[v.get(filter_field.get("fieldname")) for v in filters[key]],
+								]
+							else:
+								valid_filters[ref_dn.get("fieldname")] = filters[key]
+					else:
+						invalid_filters.append(filter_field)
+				else:
+					invalid_filters.append(filter_field)
+					return
+		else:
+			if isinstance(filters, list):
+				for f in filters:
+					if f[1] == key:
+						f[1] = relevant_field_from_base.get("fieldname")
+						if isinstance(f[3], list):
+							f[2] = "in"
+							f[3] = [v.get(filter_field.get("fieldname")) for v in f[3]]
+						valid_filters.append(f)
+			else:
+				if isinstance(filters[key], list):
+					valid_filters[relevant_field_from_base.get("fieldname")] = [
+						"in",
+						[v.get(filter_field.get("fieldname")) for v in filters[key]],
+					]
+				else:
+					valid_filters[relevant_field_from_base.get("fieldname")] = filters[key]

@@ -16,8 +16,6 @@
   "doc_field",
   "chart",
   "html_block",
-  "show_legend",
-  "card_sequence",
   "column_break_vafi",
   "label",
   "info",
@@ -82,6 +80,10 @@
   "full_screen_dialog",
   "disable_workflow",
   "enable_auto_transpose",
+  "enable_card_view",
+  "hide_filter",
+  "hide_sorting",
+  "hide_refresh_button",
   "section_break_okbe",
   "child_confs",
   "heat_map_section",
@@ -137,7 +139,7 @@
    "fieldname": "property_type",
    "fieldtype": "Select",
    "label": "Property Type",
-   "options": "DocType (Direct)\nDocType (Indirect)\nDocType (Referenced)\nDocType (Unfiltered)\nReport\nIs Custom Design\nHeatmap (India Map)\nDocField\nNumber Card\nDashboard Chart\nCustom HTML Block"
+   "options": "\nDocType (Direct)\nDocType (Indirect)\nDocType (Referenced)\nDocType (Unfiltered)\nReport\nIs Custom Design\nHeatmap (India Map)\nDocField\nNumber Card\nDashboard Chart\nCustom HTML Block"
   },
   {
    "depends_on": "eval:doc.property_type=='Dashboard Chart'",
@@ -219,11 +221,6 @@
    "label": "Value Color"
   },
   {
-   "fieldname": "card_sequence",
-   "fieldtype": "Int",
-   "label": "Sequence"
-  },
-  {
    "fieldname": "background_color",
    "fieldtype": "Color",
    "label": "Background Color"
@@ -247,13 +244,6 @@
    "fieldname": "hover_border_color",
    "fieldtype": "Color",
    "label": "Border Color"
-  },
-  {
-   "default": "0",
-   "depends_on": "eval:doc.property_type=='Dashboard Chart'",
-   "fieldname": "show_legend",
-   "fieldtype": "Check",
-   "label": "Show Legend"
   },
   {
    "depends_on": "eval:doc.property_type != \"Is Custom Design\"",
@@ -669,13 +659,41 @@
    "fieldname": "enable_auto_transpose",
    "fieldtype": "Check",
    "label": "Transpose"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.connection_type",
+   "fieldname": "enable_card_view",
+   "fieldtype": "Check",
+   "label": "Enable Card View"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.connection_type",
+   "fieldname": "hide_refresh_button",
+   "fieldtype": "Check",
+   "label": "Hide Refresh Button"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.connection_type",
+   "fieldname": "hide_sorting",
+   "fieldtype": "Check",
+   "label": "Hide Sorting"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.connection_type",
+   "fieldname": "hide_filter",
+   "fieldtype": "Check",
+   "label": "Hide Filter"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_virtual": 1,
  "links": [],
- "modified": "2025-12-30 13:23:59.338473",
+ "modified": "2026-01-27 11:05:42.292002",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Custom Property Setter",

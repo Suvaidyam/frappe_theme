@@ -2,6 +2,8 @@ import json
 
 import frappe
 
+from .filters import DTFilters
+
 
 class NumberCard:
 	# Consolidated function mappings
@@ -49,41 +51,59 @@ class NumberCard:
 	def get_number_card_count(
 		type: str,
 		details: str,
-		report: str | None = None,
+		report: dict | None = None,
 		doctype: str | None = None,
 		docname: str | None = None,
+		filters: dict | list | None = None,
 	) -> dict:
 		"""Get count based on card type."""
 		try:
 			if isinstance(details, str):
-				details = json.loads(details)
+				details = json.loads(details or "{}")
 			if isinstance(report, str):
-				report = json.loads(report)
-
+				report = json.loads(report or "{}")
 			if type == "Report":
-				return NumberCard.card_type_report(details, report, doctype, docname)
+				return NumberCard.card_type_report(details, report, doctype, docname, filters)
 			elif type == "Document Type":
-				return NumberCard.card_type_docype(details, doctype, docname)
-			return {"count": 0, "message": "Invalid type", "field_type": None}
+				return NumberCard.card_type_doctype(details, doctype, docname, filters)
+			return {"count": 0, "message": "Invalid type", "column": {"fieldtype": "Int"}}
 		except Exception as e:
 			frappe.log_error(f"Error in get_number_card_count: {str(e)}")
-			return {"count": 0, "message": str(e), "field_type": None}
+			return {
+				"count": 0,
+				"message": f"Error from get_number_card_count : {str(e)}",
+				"column": {"fieldtype": "Int"},
+			}
 
 	@staticmethod
 	def card_type_report(
-		details: dict, report: dict | None = None, doctype: str | None = None, docname: str | None = None
+		details: dict,
+		report: dict | None = None,
+		doctype: str | None = None,
+		docname: str | None = None,
+		filters: dict | list | None = None,
 	) -> dict:
 		"""Handle report type number cards."""
 		try:
+			if report:
+				report = frappe.get_cached_doc("Report", report.get("name"))
+			filters_json = frappe.parse_json(details.get("filters_json") or "{}")
 			if report.get("report_type") == "Script Report":
 				from frappe.desk.query_report import run
 
-				report_data = run(report.get("name"), filters={}, ignore_prepared_report=True)
+				valid_filters, invalid_filters = {}, []
+				if filters:
+					valid_filters, invalid_filters = DTFilters.validate_query_report_filters(
+						doctype, docname, report.get("name"), filters, is_script_report=True
+					)
+				column = {"fieldtype": "Int"}
+				report_data = run(
+					report.get("name"), filters={**valid_filters, **filters_json}, ignore_prepared_report=True
+				)
 				if report_data and report_data.get("result"):
 					if details.get("report_function"):
 						function = NumberCard.AGGREGATE_FUNCTIONS.get(details.get("report_function"))
 						field_name = details.get("report_field")
-
 						matching_link_field = None
 						if doctype and docname:
 							if doctype != docname and report_data.get("columns"):
@@ -96,12 +116,20 @@ class NumberCard:
 									None,
 								)
 
+						report_field_column = next(
+							(col for col in report_data.get("columns") if col.get("fieldname") == field_name),
+							None,
+						)
+						if report_field_column:
+							column = report_field_column
+
 						values = []
 						for row in report_data.get("result"):
 							if isinstance(row, dict):
 								if matching_link_field:
 									if row.get(matching_link_field.get("fieldname")) != docname:
 										continue
+
 								values.append(row.get(field_name))
 							else:
 								if matching_link_field:
@@ -127,60 +155,90 @@ class NumberCard:
 						elif function == "COUNT":
 							count = len(values) or 0
 						else:
-							return {"count": 0, "message": "Invalid function", "field_type": None}
-				return {"count": count, "message": "Invalid doctype or docname", "field_type": None}
-
-			if not report or not report.get("query"):
-				return {"count": 0, "message": "Report type is not query report", "field_type": None}
-
-			conditions = "WHERE 1=1"
-			field_type = None
-
-			# Build conditions
-			if doctype != docname:
+							return {"count": 0, "message": "Invalid function", "column": column}
+				return {"count": count, "message": "Script Report Response", "column": column}
+			elif report.get("report_type") == "Query Report":
+				column = {"fieldtype": "Int"}
+				# Find the column details
 				for f in report.get("columns", []):
-					if f.get("fieldtype") == "Link" and f.get("options") == doctype:
-						conditions += f" AND t.{f.get('fieldname')} = '{docname}'"
-					field_type = f.get("fieldtype")
+					if details.get("report_field") == f.get("fieldname"):
+						column = f
+						break
 
-			field_name = details.get("report_field")
-			function = NumberCard.AGGREGATE_FUNCTIONS.get(details.get("report_function"))
+				valid_filters, invalid_filters = {}, []
+				if isinstance(filters, str):
+					filters = json.loads(filters or "{}")
+				if filters:
+					valid_filters, invalid_filters = DTFilters.validate_query_report_filters(
+						doctype, docname, report.get("name"), filters
+					)
+				executable_query = report.execute_query_report(
+					additional_filters=valid_filters,
+					filters=filters_json,
+					ref_doctype=doctype,
+					ref_docname=docname,
+					unfiltered=0,
+					return_query=True,
+				)
+				field_name = details.get("report_field")
+				function = NumberCard.AGGREGATE_FUNCTIONS.get(details.get("report_function"))
+				if not function:
+					return {"count": 0, "message": "Invalid function", "column": column}
 
-			if not function:
-				return {"count": 0, "message": "Invalid function", "field_type": field_type}
+				query = f"SELECT {function}(t.{field_name}) AS count FROM ({executable_query}) AS t"
+				count = frappe.db.sql(query, filters_json, as_dict=True)
 
-			query = (
-				f"SELECT {function}(t.{field_name}) AS count FROM ({report.get('query')}) AS t {conditions}"
-			)
-			count = frappe.db.sql(query, as_dict=True)
-
-			return {
-				"count": count[0].get("count") if count else 0,
-				"message": "Report",
-				"field_type": field_type,
-			}
+				return {
+					"count": count[0].get("count") if count else 0,
+					"message": "Query Report Response",
+					"column": column,
+				}
+			return {"count": 0, "message": "Invalid report type", "column": {"fieldtype": "Int"}}
 		except Exception as e:
 			frappe.log_error(f"Error in card_type_report: {str(e)}")
-			return {"count": 0, "message": str(e), "field_type": None}
+			return {"count": 0, "message": str(e), "column": {"fieldtype": "Int"}}
 
 	@staticmethod
-	def card_type_docype(details: dict, doctype: str | None = None, docname: str | None = None) -> dict:
+	def card_type_doctype(
+		details: dict,
+		doctype: str | None = None,
+		docname: str | None = None,
+		filters: dict | list | None = None,
+	) -> dict:
 		"""Handle document type number cards."""
 		try:
-			filters = json.loads(details.get("filters_json", "[]"))
-
+			column = {"fieldtype": "Int"}
+			_filters = json.loads(details.get("filters_json", "[]"))
+			valid_filters, invalid_filters = {}, []
 			# Clean up filters
-			filters = [
+			_filters = [
 				f
-				for f in filters
+				for f in _filters
 				if f and len(f) >= 4 and (not isinstance(f[3], list) or any(x is not None for x in f[3]))
 			]
 
 			# Remove false from filter conditions
-			filters = [f[:-1] if len(f) > 4 and f[4] is False else f for f in filters]
+			_filters = [_f[:-1] if len(_f) > 4 and _f[4] is False else _f for _f in _filters]
 
-			if doctype and docname:
-				meta = frappe.get_meta(details.get("document_type"))
+			if isinstance(filters, str):
+				filters = json.loads(filters or "{}")
+			if filters:
+				valid_filters, invalid_filters = DTFilters.validate_doctype_filters(
+					doctype, docname, filters, details.get("document_type")
+				)
+				if isinstance(valid_filters, dict):
+					for key, value in valid_filters.items():
+						if isinstance(value, list):
+							operator = value[0]
+							val = value[1]
+							_filters.append([details.get("document_type"), key, operator, val])
+						else:
+							_filters.append([details.get("document_type"), key, "=", value])
+				elif isinstance(valid_filters, list):
+					_filters.extend(valid_filters)
+
+			meta = frappe.get_meta(details.get("document_type"))
+			if doctype and docname and doctype != docname:
 				if meta.fields:
 					# Add direct link field filter
 					direct_link = next(
@@ -194,7 +252,7 @@ class NumberCard:
 						None,
 					)
 					if direct_link:
-						filters.append(
+						_filters.append(
 							[details.get("document_type"), direct_link.get("fieldname"), "=", docname]
 						)
 
@@ -212,7 +270,7 @@ class NumberCard:
 							None,
 						)
 						if ref_dn:
-							filters.extend(
+							_filters.extend(
 								[
 									[details.get("document_type"), ref_dt.get("fieldname"), "=", doctype],
 									[details.get("document_type"), ref_dn.get("fieldname"), "=", docname],
@@ -221,19 +279,43 @@ class NumberCard:
 
 			function = details.get("function")
 			if function == "Count":
-				count = frappe.db.count(details.get("document_type"), filters=filters)
+				count = frappe.db.count(details.get("document_type"), filters=_filters)
 			else:
 				agg_function = NumberCard.AGGREGATE_FUNCTIONS.get(function)
 				if not agg_function:
-					return {"count": 0, "message": "Invalid function", "field_type": None}
+					return {
+						"count": 0,
+						"message": "Invalid function",
+						"column": {"fieldtype": "Int"},
+						"valid_filters": valid_filters,
+						"invalid_filters": invalid_filters,
+					}
+				count_column = next(
+					(f for f in meta.fields if f.fieldname == details.get("aggregate_function_based_on")),
+					None,
+				)
+				if count_column:
+					column = count_column
 
 				count = frappe.db.get_value(
 					details.get("document_type"),
 					filters,
-					f"{agg_function}({details.get('aggregate_function_based_on')})",
+					[{agg_function: details.get("aggregate_function_based_on")}],
 				)
 
-			return {"count": count or 0, "message": details, "field_type": None}
+			return {
+				"count": count or 0,
+				"message": "DocType Number Card Response",
+				"column": column,
+				"valid_filters": valid_filters,
+				"invalid_filters": invalid_filters,
+			}
 		except Exception as e:
-			frappe.log_error(f"Error in card_type_docype: {str(e)}")
-			return {"count": 0, "message": str(e), "field_type": None}
+			frappe.log_error(f"Error in card_type_doctype: {str(e)}")
+			return {
+				"count": 0,
+				"message": str(e),
+				"column": {"fieldtype": "Int"},
+				"valid_filters": None,
+				"invalid_filters": [],
+			}

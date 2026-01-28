@@ -10,6 +10,8 @@ from frappe.desk.doctype.dashboard_chart.dashboard_chart import (
 )
 from frappe.utils import get_datetime
 
+from frappe_theme.controllers.filters import DTFilters
+
 
 class Chart:
 	@staticmethod
@@ -99,6 +101,7 @@ class Chart:
 		report: str | None = None,
 		doctype: str | None = None,
 		docname: str | None = None,
+		filters: dict | list | None = None,
 	) -> dict:
 		"""Get chart data based on type and parameters."""
 		try:
@@ -106,9 +109,9 @@ class Chart:
 			report = json.loads(report) if report else None
 
 			if type == "Report":
-				return Chart.chart_report(details, report, doctype, docname)
+				return Chart.chart_report(details, report, doctype, docname, filters)
 			elif type == "Document Type":
-				return Chart.chart_doc_type(details, doctype, docname)
+				return Chart.chart_doc_type(details, doctype, docname, filters)
 			else:
 				return Chart._get_empty_chart_data(f"Invalid chart type: {type}")
 		except Exception as e:
@@ -131,15 +134,26 @@ class Chart:
 		return colors
 
 	@staticmethod
-	def chart_doc_type(chart_doc: dict, doctype: str | None = None, docname: str | None = None) -> dict:
+	def chart_doc_type(
+		chart_doc: dict, doctype: str | None = None, docname: str | None = None, filters=None
+	) -> dict:
 		try:
-			filters = Chart._process_filters(json.loads(chart_doc.get("filters_json", "[]")))
-
+			filters_json = Chart._process_filters(json.loads(chart_doc.get("filters_json", "[]")))
+			final_filters = []
+			if len(filters_json):
+				final_filters.extend(filters_json)
 			if doctype and docname:
-				filters.extend(Chart._get_doc_filters(chart_doc.get("document_type"), doctype, docname))
+				final_filters.extend(Chart._get_doc_filters(chart_doc.get("document_type"), doctype, docname))
+			valid_filters, invalid_filters = {}, []
+			if filters:
+				valid_filters, invalid_filters = DTFilters.validate_doctype_filters(
+					doctype, docname, filters, chart_doc.get("document_type")
+				)
+				if len(valid_filters):
+					final_filters.extend(valid_filters)
 
 			# Use the core chart generator to respect timespan, intervals, etc.
-			chart_config = Chart.get(chart_doc.get("name"), filters=filters)
+			chart_config = Chart.get(chart_doc.get("name"), filters=final_filters)
 
 			if not chart_config:
 				return Chart._get_empty_chart_data("No data available")
@@ -364,29 +378,33 @@ class Chart:
 
 	@staticmethod
 	def chart_report(
-		details: dict, report: dict | None = None, doctype: str | None = None, docname: str | None = None
+		details: dict,
+		report: dict | None = None,
+		doctype: str | None = None,
+		docname: str | None = None,
+		filters: (dict | list | None) = None,
 	) -> dict:
 		"""Generate chart data for report type."""
 		try:
 			if not report:
 				return Chart._get_empty_chart_data("Report not found.")
 			chart_data = Chart._get_empty_chart_data("No data available.")
+			filters_json = frappe.parse_json(details.get("filters_json") or "{}")
+			if report:
+				report_doc = frappe.get_doc("Report", report.get("name"))
 			if report.get("report_type") == "Query Report" and report.get("query"):
-				conditions = "WHERE 1=1"
-				if (doctype and docname) and doctype != docname:
-					for f in report.get("columns", []):
-						if f.get("fieldtype") == "Link" and f.get("options") == doctype:
-							conditions += f" AND t.{f.get('fieldname')} = '{docname}'"
+				valid_filters, invalid_filters = {}, []
+				if filters:
+					valid_filters, invalid_filters = DTFilters.validate_query_report_filters(
+						doctype=doctype, docname=docname, report_name=report.get("name"), filters=filters
+					)
 
-				query = f"""
-                    SELECT
-                        t.*
-                    FROM
-                        ({report.get('query')}) AS t {conditions}
-                """
-
-				data = frappe.db.sql(query, as_dict=True)
-				columns = report.get("columns", [])
+				columns, data = report_doc.execute_query_report(
+					additional_filters=valid_filters,
+					ref_doctype=doctype,
+					ref_docname=docname,
+					filters=filters_json,
+				)
 
 				if details.get("type") in ["Bar", "Line"]:
 					chart_data = Chart.process_response_for_bar_or_line_chart(details, data, columns)
@@ -396,7 +414,17 @@ class Chart:
 			if report.get("report_type") == "Script Report":
 				from frappe.desk.query_report import run
 
-				response = run(report.get("name"), filters={})
+				valid_filters, invalid_filters = {}, []
+				if filters:
+					valid_filters, invalid_filters = DTFilters.validate_query_report_filters(
+						doctype=doctype,
+						docname=docname,
+						report_name=report.get("name"),
+						filters=filters,
+						is_script_report=True,
+					)
+
+				response = run(report.get("name"), filters={**valid_filters, **filters_json} or {})
 				data = response.get("result", [])
 				columns = response.get("columns", [])
 				data = Chart.filter_script_report_data(data, columns, doctype, docname)
