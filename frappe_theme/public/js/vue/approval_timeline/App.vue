@@ -185,6 +185,7 @@
 									item.approval_assignments.length > 0
 								"
 								class="field-item approval-assignments-field"
+								style="margin-bottom: 10px"
 							>
 								<div class="field-label">Approval Assignments</div>
 								<div class="field-value">

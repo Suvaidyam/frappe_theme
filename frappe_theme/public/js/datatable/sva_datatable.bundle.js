@@ -2984,6 +2984,12 @@ class SvaDataTable {
 					.xcall("frappe.model.workflow.apply_workflow", {
 						doc: updateFields,
 						action: selected_state_info.action,
+						is_custom_transition: selected_state_info.is_custom_transition || 0,
+						is_comment_required: selected_state_info.is_comment_required || 0,
+						custom_comment:
+							selected_state_info.is_comment_required == 1
+								? values?.wf_comment || ""
+								: "",
 					})
 					.then(async (doc) => {
 						const row = me.rows.find((r) => r.name === docname);
