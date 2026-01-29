@@ -96,6 +96,9 @@ class NumberCard:
 					valid_filters, invalid_filters = DTFilters.validate_query_report_filters(
 						doctype, docname, report.get("name"), filters, is_script_report=True
 					)
+				if isinstance(valid_filters, str):
+					valid_filters = json.loads(valid_filters or "{}")
+
 				column = {"fieldtype": "Int"}
 				report_data = run(
 					report.get("name"), filters={**valid_filters, **filters_json}, ignore_prepared_report=True

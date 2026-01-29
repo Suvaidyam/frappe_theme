@@ -485,6 +485,7 @@ const field_changes = {
 			let affected_fields = [
 				{ fn: "primary_target", ft: "Select" },
 				{ fn: "target_fields", ft: "Code" },
+				{ fn: "state_name_column", ft: "Data" },
 				{ fn: "block_height", ft: "Int" },
 				{ fn: "min_data_color", ft: "Color" },
 				{ fn: "max_data_color", ft: "Color" },
@@ -501,9 +502,10 @@ const field_changes = {
 				return;
 			} else {
 				// check if tere is at least state or district field
-				let has_location_field = res.message?.columns?.some((col) => {
-					return ["State", "District"].includes(col.options);
-				});
+				let has_location_field =
+					res.message?.columns?.some((col) => {
+						return ["State", "District"].includes(col.options);
+					}) || row?.state_name_column;
 				if (!has_location_field) {
 					frappe.throw(
 						__(
@@ -536,10 +538,12 @@ const field_changes = {
 			if (!res.message?.columns) {
 				frappe.throw(__("The selected report does not have any columns."));
 			} else {
+				console.log(res.message, "res.message?.columns");
 				// check if tere is at least state or district field
-				let has_location_field = res.message?.columns?.some((col) => {
-					return ["State", "District"].includes(col.options);
-				});
+				let has_location_field =
+					res.message?.columns?.some((col) => {
+						return ["State", "District"].includes(col.options);
+					}) || row?.state_name_column;
 				if (!has_location_field) {
 					frappe.throw(
 						__(
