@@ -86,7 +86,12 @@ def get_workflow_audit(doctype=None, reference_name=None, limit=100):
 					fields=["fieldname", "fieldtype", "value"],
 					order_by="idx asc",
 				)
-
+				approval_assignments = frappe.get_all(
+					"Approval Assignment Child",
+					filters={"parent": action.name, "parenttype": "SVA Workflow Action"},
+					fields=["user", "action", "comment", "assignment_remark", "name"],
+					order_by="idx asc",
+				)
 				# Process each field value
 				for item in action_data:
 					fieldname = item.get("fieldname")
@@ -136,6 +141,47 @@ def get_workflow_audit(doctype=None, reference_name=None, limit=100):
 						# But check if options suggest it's a link
 						pass
 
+				# Process approval assignments into label/value pairs
+				approval_assignment_meta = frappe.get_meta("Approval Assignment Child")
+				approval_field_label_map = {df.fieldname: df.label for df in approval_assignment_meta.fields}
+				approval_field_meta_map = {df.fieldname: df for df in approval_assignment_meta.fields}
+
+				processed_assignments = []
+				for assignment in approval_assignments:
+					assignment_fields = []
+					# Process each field in the assignment
+					for fieldname in ["user", "action", "comment", "assignment_remark"]:
+						value = assignment.get(fieldname)
+						# if value is None:
+						# 	continue
+
+						field_meta = approval_field_meta_map.get(fieldname)
+						# if not field_meta:
+						# 	continue
+
+						label = approval_field_label_map.get(fieldname, fieldname)
+						fieldtype = field_meta.fieldtype
+
+						field_data = {
+							"label": label,
+							"value": value,
+							"fieldname": fieldname,
+							"fieldtype": fieldtype,
+						}
+
+						# Handle Link field (user field)
+						if fieldtype == "Link" and field_meta.options:
+							link_doctype = field_meta.options
+							field_data["reference_doctype"] = link_doctype
+							field_data["value"] = get_link_title(link_doctype, value)
+
+						assignment_fields.append(field_data)
+
+					processed_assignments.append(
+						{"name": assignment.get("name"), "fields": assignment_fields}
+					)
+
+				action["approval_assignments"] = processed_assignments
 				action["action_data"] = action_data
 
 		return {

@@ -21,7 +21,8 @@
   "workflow_state_current",
   "section_break_hxnp",
   "comment",
-  "action_data"
+  "action_data",
+  "approval_assignments"
  ],
  "fields": [
   {
@@ -121,11 +122,18 @@
   {
    "fieldname": "column_break_oybi",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "approval_assignments",
+   "fieldtype": "Table",
+   "label": "Approval Assignments",
+   "options": "Approval Assignment Child",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "links": [],
- "modified": "2025-12-22 14:49:59.182135",
+ "modified": "2026-01-21 22:47:24.853490",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "SVA Workflow Action",

@@ -669,13 +669,13 @@
    "fieldname": "hd_url",
    "fieldtype": "Data",
    "label": "URL",
-   "mandatory_depends_on": "eval:doc.hd_creds!=''"
+   "mandatory_depends_on": "eval:doc.hd_creds"
   },
   {
    "fieldname": "hd_creds",
    "fieldtype": "Data",
    "label": "Creds",
-   "mandatory_depends_on": "eval:doc.hd_url!=''"
+   "mandatory_depends_on": "eval:doc.hd_url"
   },
   {
    "fieldname": "helpdesk_section",
@@ -691,7 +691,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-01-14 16:31:49.487314",
+ "modified": "2026-01-21 16:54:16.845937",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "My Theme",
