@@ -64,7 +64,7 @@ async function has_active_workflow(doctype) {
 		return false;
 	}
 }
-
+frappe.handleDTHeader = handleDTHeader;
 frappe.ui.form.on("*", {
 	async validate(frm) {
 		const regex_props = await frappe.call(
