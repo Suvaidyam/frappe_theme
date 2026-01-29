@@ -158,6 +158,12 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 													wf_dialog_fields: values ? values : {},
 												},
 												action: action,
+												is_custom_transition: d?.is_custom_transition || 0,
+												is_comment_required: d?.is_comment_required || 0,
+												custom_comment:
+													d?.is_comment_required == 1
+														? values?.wf_comment || ""
+														: "",
 											})
 											.then((doc) => {
 												frappe.model.sync(doc);
@@ -186,6 +192,7 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 									.xcall("frappe.model.workflow.apply_workflow", {
 										doc: me.frm.doc,
 										action: d.action,
+										is_custom_transition: d?.is_custom_transition || 0,
 									})
 									.then((doc) => {
 										frappe.model.sync(doc);

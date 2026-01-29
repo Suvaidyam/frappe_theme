@@ -48,10 +48,6 @@ def get_custom_transitions(
 		for row in (custom_workflow_doc.approval_assignments or [])
 		if (row.user == sva_user or user == "Administrator") and row.action == "Pending"
 	]
-	print(
-		len(user_assignments),
-		"????????????????????????????????????????????????=============================??",
-	)
 	if not len(user_assignments):
 		return []
 	if user_assignments and len(user_assignments) > 0:
@@ -69,6 +65,8 @@ def make_custom_transitions(custom_workflow_doc):
 			"action": "Approve",
 			"next_state": custom_workflow_doc.workflow_state_current,
 			"allowed": "All",
+			"is_custom_transition": 1,
+			"is_comment_required": 1,
 		}
 	)
 	custom_transitions.append(
@@ -77,6 +75,8 @@ def make_custom_transitions(custom_workflow_doc):
 			"action": "Reject",
 			"next_state": custom_workflow_doc.workflow_state_current,
 			"allowed": "All",
+			"is_custom_transition": 1,
+			"is_comment_required": 1,
 		}
 	)
 	return custom_transitions
@@ -162,7 +162,6 @@ def _get_next_state(custom_workflow_doc, current_state, transition):
 	"""Helper function to get next state based on transition data"""
 	if not transition:
 		return current_state
-
 	assignments = custom_workflow_doc.approval_assignments
 	required_assignments = [a for a in assignments if a.required]
 
@@ -209,14 +208,9 @@ def _get_next_state(custom_workflow_doc, current_state, transition):
 
 
 @frappe.whitelist()
-def handle_custom_approval_action(doc, action, comment=None):
+def handle_custom_approval_action(doc, action, custom_comment=""):
 	"""
 	Handle custom approval action (Approve/Reject) for users in approval_assignments.
-
-	Args:
-	        doc: Document dict or name
-	        action: "Approve" or "Reject"
-	        comment: Optional comment for the action
 	"""
 	# Parse incoming doc
 	doc = frappe.get_doc(frappe.parse_json(doc))
@@ -253,11 +247,10 @@ def handle_custom_approval_action(doc, action, comment=None):
 
 	# Update the assignment
 	user_assignment.action = "Approved" if action == "Approve" else "Rejected"
-	if comment:
-		user_assignment.comment = comment
+	if custom_comment:
+		user_assignment.comment = custom_comment
 
 	next_state = _get_next_state(custom_workflow_doc, current_state, transition)
-
 	# Update the custom workflow doc
 	custom_workflow_doc.approval_assignments = custom_workflow_doc.approval_assignments
 	custom_workflow_doc.save(ignore_permissions=True)
@@ -283,18 +276,234 @@ def handle_custom_approval_action(doc, action, comment=None):
 	return doc
 
 
+# @frappe.whitelist()
+# def custom_apply_workflow(doc, action, is_custom_transition=0, is_comment_required=0, custom_comment=''):
+# 	doc = frappe.parse_json(doc)
+# 	if is_custom_transition in (1, '1', True):
+# 		return handle_custom_approval_action(doc, action, custom_comment)
+# 	else:
+# 		workflow = get_workflow(doc.doctype)
+# 		transitions = get_transitions(doc, workflow)
+# 		selected_transition = next(
+# 			(t for t in (transitions or []) if t.action == action),
+# 			None,
+# 		)
+
+# 		if not selected_transition:
+# 			frappe.throw(f"Invalid workflow action: {action}")
+
+# 		action_fields = json.loads(selected_transition.custom_selected_fields or "[]")
+
+# 		if selected_transition.custom_allow_assignment:
+# 			action_fields.append(
+# 				{
+# 					"fieldname": "approval_assignments",
+# 					"label": "Approval Assignments",
+# 					"read_only": False,
+# 					"reqd": True,
+# 					"fetch_if_exists": False,
+# 				}
+# 			)
+# 		if selected_transition.custom_comment:
+# 			action_fields.append(
+# 				{
+# 					"fieldname": "wf_comment",
+# 					"label": "Comment",
+# 					"read_only": False,
+# 					"reqd": True if selected_transition.custom_comment_required else False,
+# 					"fetch_if_exists": False,
+# 				}
+# 			)
+# 		if action_fields:
+# 			required_fields = [
+# 				{"fieldname": f["fieldname"], "label": f.get("label", f["fieldname"])}
+# 				for f in action_fields
+# 				if f.get("reqd", 0)
+# 			]
+# 		else:
+# 			props = frappe.get_all(
+# 				"Property Setter",
+# 				fields=["field_name"],
+# 				filters={
+# 					"doc_type": doc.doctype,
+# 					"property": "wf_state_field",
+# 					"value": action,
+# 				},
+# 				ignore_permissions=True,
+# 			)
+# 			required_fields = [{"fieldname": p["field_name"], "label": p["field_name"]} for p in props]
+
+# 		# -------------------------------
+# 		# Validate dialog fields
+# 		# -------------------------------
+# 		wf_dialog_fields = doc.get("wf_dialog_fields") or {}
+
+# 		if required_fields:
+# 			missing = [f for f in required_fields if not wf_dialog_fields.get(f["fieldname"])]
+# 			if missing:
+# 				field_list = "".join(f"<li>{f['label']}</li>" for f in missing)
+# 				frappe.throw(f"Required workflow data is missing or incomplete." f"<br><ul>{field_list}</ul>")
+
+# 		# -------------------------------
+# 		# Load actual document
+# 		# -------------------------------
+# 		data_doc = frappe.get_doc(doc.doctype, doc.name)
+# 		meta = frappe.get_meta(doc.doctype)
+
+# 		comment_fields = [
+# 			"custom_comment",
+# 			"custom_wf_comment",
+# 			"wf_comment",
+# 			"comment",
+# 		]
+
+# 		updated = False
+
+# 		# -------------------------------
+# 		# Prepare workflow action log
+# 		# -------------------------------
+# 		wf_action_data = {
+# 			"workflow_action": action,
+# 			"comment": "",
+# 			"action_data": [],
+# 			"reference_doctype": doc.doctype,
+# 			"reference_name": doc.name,
+# 			"workflow_state_previous": selected_transition.state,
+# 			"workflow_state_current": selected_transition.next_state,
+# 			"role": selected_transition.allowed,
+# 			"user": frappe.session.user,
+# 		}
+
+# 		# -------------------------------
+# 		# Apply dialog values
+# 		# -------------------------------
+# 		for fieldname, raw_value in wf_dialog_fields.items():
+# 			if raw_value is None:
+# 				continue
+# 			if fieldname == "wf_comment" and selected_transition.custom_comment and is_comment_required in (0, '0', False):
+# 				wf_action_data["comment"] = raw_value
+# 			if fieldname == "approval_assignments" and selected_transition.custom_allow_assignment:
+# 				wf_action_data.setdefault("approval_assignments", [])
+
+# 				# Normalize into list
+# 				if isinstance(raw_value, dict):
+# 					raw_value = [raw_value]
+# 				elif isinstance(raw_value, str):
+# 					try:
+# 						raw_value = frappe.parse_json(raw_value)
+# 					except Exception:
+# 						raw_value = []
+
+# 				# Only allow dict rows
+# 				for row in raw_value:
+# 					if isinstance(row, dict):
+# 						row.pop("__islocal", None)
+# 						row.pop("name", None)
+# 						wf_action_data["approval_assignments"].append(row)
+
+# 			field = meta.get_field(fieldname)
+# 			if not field:
+# 				continue
+
+# 			value = raw_value
+# 			# ---------- CHILD TABLE ----------
+# 			if field.fieldtype in ("Table", "Table MultiSelect"):
+# 				if not isinstance(value, list):
+# 					frappe.throw(f"{fieldname} must be a list")
+
+# 				data_doc.set(fieldname, [])
+# 				for row in value:
+# 					if isinstance(row, dict):
+# 						data_doc.append(fieldname, row)
+
+# 			# ---------- NORMAL FIELDS ----------
+# 			else:
+# 				if field.fieldtype == "Date":
+# 					value = getdate(value)
+
+# 				elif field.fieldtype == "Check":
+# 					value = 1 if str(value) in ("1", "true", "True") else 0
+
+# 				elif field.fieldtype in ("Int", "Float", "Currency", "Percent"):
+# 					try:
+# 						value = (
+# 							float(value) if field.fieldtype in ("Float", "Currency", "Percent") else int(value)
+# 						)
+# 					except ValueError:
+# 						frappe.throw(f"Invalid value for field {fieldname}")
+
+# 				data_doc.set(fieldname, value)
+# 			# ---------- LOG ACTION DATA (SAFE) ----------
+# 			safe_value = value
+# 			if isinstance(value, (list | dict)):
+# 				safe_value = json.dumps(value)
+
+# 			if fieldname in comment_fields:
+# 				wf_action_data["comment"] = safe_value
+# 			else:
+# 				wf_action_data["action_data"].append(
+# 					{
+# 						"fieldname": fieldname,
+# 						"fieldtype": field.fieldtype,
+# 						"value": safe_value,
+# 					}
+# 				)
+# 			updated = True
+
+# 		# -------------------------------
+# 		# Save document
+# 		# -------------------------------
+# 		if updated:
+# 			data_doc.save()
+# 		wf_action_doc = frappe.new_doc("SVA Workflow Action")
+# 		wf_action_doc.update(wf_action_data)
+# 		wf_action_doc.insert(ignore_permissions=True)
+
+# 		# -------------------------------
+# 		# Apply actual workflow
+# 		# -------------------------------
+# 		return original_apply_workflow(
+# 			frappe.as_json(doc),
+# 			action,
+# 		)
+
+
 @frappe.whitelist()
-def custom_apply_workflow(doc, action):
-	# -------------------------------
-	# Parse incoming doc
-	# -------------------------------
+def custom_apply_workflow(doc, action, is_custom_transition=0, is_comment_required=0, custom_comment=""):
 	doc = frappe.parse_json(doc)
 
-	# -------------------------------
-	# Get workflow + transition
-	# -------------------------------
+	if is_custom_transition in (1, "1", True):
+		return handle_custom_approval_action(doc, action, custom_comment)
+
+	selected_transition = _get_selected_transition(doc, action)
+
+	required_fields = _get_action_and_required_fields(doc, selected_transition)
+
+	wf_dialog_fields = _validate_dialog_fields(required_fields, doc)
+
+	data_doc, meta = _load_document(doc)
+
+	wf_action_data = _prepare_workflow_action_log(doc, action, selected_transition)
+
+	updated = _apply_dialog_values(
+		wf_dialog_fields, data_doc, meta, selected_transition, is_comment_required, wf_action_data
+	)
+
+	if updated:
+		data_doc.save()
+
+	_insert_workflow_action_log(wf_action_data)
+
+	return original_apply_workflow(
+		frappe.as_json(doc),
+		action,
+	)
+
+
+def _get_selected_transition(doc, action):
 	workflow = get_workflow(doc.doctype)
 	transitions = get_transitions(doc, workflow)
+
 	selected_transition = next(
 		(t for t in (transitions or []) if t.action == action),
 		None,
@@ -303,13 +512,12 @@ def custom_apply_workflow(doc, action):
 	if not selected_transition:
 		frappe.throw(f"Invalid workflow action: {action}")
 
-	# -------------------------------
-	# Resolve required fields
-	# -------------------------------
+	return selected_transition
+
+
+def _get_action_and_required_fields(doc, selected_transition):
 	action_fields = json.loads(selected_transition.custom_selected_fields or "[]")
-	# -------------------------------
-	# Add approval assignments field if custom assign to is enabled
-	# -------------------------------
+
 	if selected_transition.custom_allow_assignment:
 		action_fields.append(
 			{
@@ -320,6 +528,7 @@ def custom_apply_workflow(doc, action):
 				"fetch_if_exists": False,
 			}
 		)
+
 	if selected_transition.custom_comment:
 		action_fields.append(
 			{
@@ -330,6 +539,7 @@ def custom_apply_workflow(doc, action):
 				"fetch_if_exists": False,
 			}
 		)
+
 	if action_fields:
 		required_fields = [
 			{"fieldname": f["fieldname"], "label": f.get("label", f["fieldname"])}
@@ -343,42 +553,35 @@ def custom_apply_workflow(doc, action):
 			filters={
 				"doc_type": doc.doctype,
 				"property": "wf_state_field",
-				"value": action,
+				"value": selected_transition.action,
 			},
 			ignore_permissions=True,
 		)
 		required_fields = [{"fieldname": p["field_name"], "label": p["field_name"]} for p in props]
 
-	# -------------------------------
-	# Validate dialog fields
-	# -------------------------------
+	return required_fields
+
+
+def _validate_dialog_fields(required_fields, doc):
 	wf_dialog_fields = doc.get("wf_dialog_fields") or {}
 
 	if required_fields:
 		missing = [f for f in required_fields if not wf_dialog_fields.get(f["fieldname"])]
 		if missing:
 			field_list = "".join(f"<li>{f['label']}</li>" for f in missing)
-			frappe.throw(f"Required workflow data is missing or incomplete." f"<br><ul>{field_list}</ul>")
+			frappe.throw("Required workflow data is missing or incomplete." f"<br><ul>{field_list}</ul>")
 
-	# -------------------------------
-	# Load actual document
-	# -------------------------------
+	return wf_dialog_fields
+
+
+def _load_document(doc):
 	data_doc = frappe.get_doc(doc.doctype, doc.name)
 	meta = frappe.get_meta(doc.doctype)
+	return data_doc, meta
 
-	comment_fields = [
-		"custom_comment",
-		"custom_wf_comment",
-		"wf_comment",
-		"comment",
-	]
 
-	updated = False
-
-	# -------------------------------
-	# Prepare workflow action log
-	# -------------------------------
-	wf_action_data = {
+def _prepare_workflow_action_log(doc, action, selected_transition):
+	return {
 		"workflow_action": action,
 		"comment": "",
 		"action_data": [],
@@ -390,19 +593,33 @@ def custom_apply_workflow(doc, action):
 		"user": frappe.session.user,
 	}
 
-	# -------------------------------
-	# Apply dialog values
-	# -------------------------------
+
+def _apply_dialog_values(
+	wf_dialog_fields, data_doc, meta, selected_transition, is_comment_required, wf_action_data
+):
+	comment_fields = [
+		"custom_comment",
+		"custom_wf_comment",
+		"wf_comment",
+		"comment",
+	]
+
+	updated = False
+
 	for fieldname, raw_value in wf_dialog_fields.items():
 		if raw_value is None:
 			continue
 
-		if fieldname == "wf_comment" and selected_transition.custom_comment:
+		if (
+			fieldname == "wf_comment"
+			and selected_transition.custom_comment
+			and is_comment_required in (0, "0", False)
+		):
 			wf_action_data["comment"] = raw_value
+
 		if fieldname == "approval_assignments" and selected_transition.custom_allow_assignment:
 			wf_action_data.setdefault("approval_assignments", [])
 
-			# Normalize into list
 			if isinstance(raw_value, dict):
 				raw_value = [raw_value]
 			elif isinstance(raw_value, str):
@@ -411,7 +628,6 @@ def custom_apply_workflow(doc, action):
 				except Exception:
 					raw_value = []
 
-			# Only allow dict rows
 			for row in raw_value:
 				if isinstance(row, dict):
 					row.pop("__islocal", None)
@@ -423,7 +639,7 @@ def custom_apply_workflow(doc, action):
 			continue
 
 		value = raw_value
-		# ---------- CHILD TABLE ----------
+
 		if field.fieldtype in ("Table", "Table MultiSelect"):
 			if not isinstance(value, list):
 				frappe.throw(f"{fieldname} must be a list")
@@ -433,7 +649,6 @@ def custom_apply_workflow(doc, action):
 				if isinstance(row, dict):
 					data_doc.append(fieldname, row)
 
-		# ---------- NORMAL FIELDS ----------
 		else:
 			if field.fieldtype == "Date":
 				value = getdate(value)
@@ -450,10 +665,8 @@ def custom_apply_workflow(doc, action):
 					frappe.throw(f"Invalid value for field {fieldname}")
 
 			data_doc.set(fieldname, value)
-		# ---------- LOG ACTION DATA (SAFE) ----------
-		safe_value = value
-		if isinstance(value, (list | dict)):
-			safe_value = json.dumps(value)
+
+		safe_value = json.dumps(value) if isinstance(value, list | dict) else value
 
 		if fieldname in comment_fields:
 			wf_action_data["comment"] = safe_value
@@ -465,21 +678,13 @@ def custom_apply_workflow(doc, action):
 					"value": safe_value,
 				}
 			)
+
 		updated = True
 
-	# -------------------------------
-	# Save document
-	# -------------------------------
-	if updated:
-		data_doc.save()
+	return updated
+
+
+def _insert_workflow_action_log(wf_action_data):
 	wf_action_doc = frappe.new_doc("SVA Workflow Action")
 	wf_action_doc.update(wf_action_data)
 	wf_action_doc.insert(ignore_permissions=True)
-
-	# -------------------------------
-	# Apply actual workflow
-	# -------------------------------
-	return original_apply_workflow(
-		frappe.as_json(doc),
-		action,
-	)
