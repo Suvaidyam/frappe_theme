@@ -77,6 +77,11 @@ def get_workflow_audit(doctype=None, reference_name=None, limit=100):
 			limit=limit,
 		)
 
+		# Process approval assignments into label/value pairs
+		approval_assignment_meta = frappe.get_meta("Approval Assignment Child")
+		approval_field_label_map = {df.fieldname: df.label for df in approval_assignment_meta.fields}
+		approval_field_meta_map = {df.fieldname: df for df in approval_assignment_meta.fields}
+
 		# Enrich with action data (dialog fields)
 		if len(actions):
 			for action in actions:
@@ -141,23 +146,13 @@ def get_workflow_audit(doctype=None, reference_name=None, limit=100):
 						# But check if options suggest it's a link
 						pass
 
-				# Process approval assignments into label/value pairs
-				approval_assignment_meta = frappe.get_meta("Approval Assignment Child")
-				approval_field_label_map = {df.fieldname: df.label for df in approval_assignment_meta.fields}
-				approval_field_meta_map = {df.fieldname: df for df in approval_assignment_meta.fields}
-
 				processed_assignments = []
 				for assignment in approval_assignments:
 					assignment_fields = []
 					# Process each field in the assignment
 					for fieldname in ["user", "action", "comment", "assignment_remark"]:
 						value = assignment.get(fieldname)
-						# if value is None:
-						# 	continue
-
 						field_meta = approval_field_meta_map.get(fieldname)
-						# if not field_meta:
-						# 	continue
 
 						label = approval_field_label_map.get(fieldname, fieldname)
 						fieldtype = field_meta.fieldtype

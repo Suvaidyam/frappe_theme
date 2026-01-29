@@ -246,13 +246,15 @@ def handle_custom_approval_action(doc, action, custom_comment=""):
 	transition = transition_data
 
 	# Update the assignment
-	user_assignment.action = "Approved" if action == "Approve" else "Rejected"
+	valid_actions = {"Approve": "Approved", "Reject": "Rejected"}
+	if action not in valid_actions:
+		frappe.throw(_("Invalid workflow action: {0}").format(action))
+	user_assignment.action = valid_actions[action]
 	if custom_comment:
 		user_assignment.comment = custom_comment
 
 	next_state = _get_next_state(custom_workflow_doc, current_state, transition)
 	# Update the custom workflow doc
-	custom_workflow_doc.approval_assignments = custom_workflow_doc.approval_assignments
 	custom_workflow_doc.save(ignore_permissions=True)
 
 	if next_state != current_state:
@@ -474,7 +476,9 @@ def _apply_dialog_values(
 
 			data_doc.set(fieldname, value)
 
-		safe_value = json.dumps(value) if isinstance(value, list | dict) else value
+		safe_value = value
+		if isinstance(value, (list | dict)):
+			safe_value = json.dumps(value)
 
 		if fieldname in comment_fields:
 			wf_action_data["comment"] = safe_value

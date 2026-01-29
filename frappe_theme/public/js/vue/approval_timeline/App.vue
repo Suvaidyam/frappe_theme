@@ -1329,21 +1329,6 @@ defineExpose({
 	margin: 0 auto 12px;
 }
 
-/* Approval Assignments Section */
-.assignment-item {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-	border: 1px solid #e2e8f0;
-	border-radius: 4px;
-	padding: 8px 10px;
-}
-
-.assignment {
-	font-size: 11px;
-	color: #1e293b;
-}
-
 /* Responsive */
 @media (max-width: 768px) {
 	.timeline-item {
