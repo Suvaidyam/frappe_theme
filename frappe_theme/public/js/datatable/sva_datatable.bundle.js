@@ -2,6 +2,7 @@ import SVASortSelector from "./sva_sort_selector.bundle.js";
 import SVAListSettings from "./list_settings.bundle.js";
 import SVAFilterArea from "./filters/filter_area.bundle.js";
 import DTAction from "../vue/dt_action/dt.action.bundle.js";
+import { add_custom_approval_assignments_fields } from "../utils.bundle.js";
 
 class SvaDataTable {
 	/**
@@ -2935,6 +2936,8 @@ class SvaDataTable {
 					};
 				});
 		}
+		// Add custom fields that don't exist in meta fields
+		const customFields = await add_custom_approval_assignments_fields(selected_state_info);
 		const popupFields = [
 			{
 				label: "Action Test",
@@ -2944,6 +2947,7 @@ class SvaDataTable {
 					bg?.style?.toLowerCase() || "secondary"
 				}">${selected_state_info.action}</span></p>`,
 			},
+			...(customFields || []),
 			...(fields ? fields : []),
 		];
 		if (!this.skip_workflow_confirmation) {
@@ -3013,6 +3017,12 @@ class SvaDataTable {
 					.xcall("frappe.model.workflow.apply_workflow", {
 						doc: updateFields,
 						action: selected_state_info.action,
+						is_custom_transition: selected_state_info.is_custom_transition || 0,
+						is_comment_required: selected_state_info.is_comment_required || 0,
+						custom_comment:
+							selected_state_info.is_comment_required == 1
+								? values?.wf_comment || ""
+								: "",
 					})
 					.then(async (doc) => {
 						const row = me.rows.find((r) => r.name === docname);
