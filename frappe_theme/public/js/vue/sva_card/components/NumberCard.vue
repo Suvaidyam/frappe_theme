@@ -140,6 +140,11 @@ const handleAction = async (action) => {
 
 		if (props.card?.details?.type == "Report") {
 			table_options.connection["link_report"] = props.card.details?.report_name;
+			if (props.card?.details?.report_field) {
+				table_options.connection["highlighted_columns"] = [
+					props.card.details?.report_field,
+				];
+			}
 			table_options.connection["connection_type"] = "Report";
 		} else if (props.card?.details?.type == "Document Type") {
 			table_options.doctype = props.card.details?.document_type;

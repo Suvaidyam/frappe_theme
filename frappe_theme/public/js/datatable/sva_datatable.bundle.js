@@ -55,6 +55,7 @@ class SvaDataTable {
 		this.wrapper = wrapper;
 		this.rows = rows;
 		this.columns = columns;
+		this.highlighted_columns = connection?.highlighted_columns || [];
 
 		// pagination
 		this.page = 1;
@@ -2238,6 +2239,11 @@ class SvaDataTable {
 		this.columns.forEach((column) => {
 			const th = document.createElement("th");
 			let col = this.header.find((h) => h.fieldname === column.fieldname);
+			// let highlight = this.highlighted_columns.includes(column.fieldname);
+			// if (highlight) {
+			// 	th.style.backgroundColor = frappe.boot?.my_theme?.button_background_color || "#2196F3";
+			// 	th.style.color = frappe.boot.my_theme.button_text_color || "white";
+			// }
 			if (col?.width) {
 				th.style = `min-width:${Number(col?.width) * 50}px !important;max-width:${
 					Number(col?.width) * 50
@@ -3247,6 +3253,11 @@ class SvaDataTable {
 			read_only: 1,
 			description: "",
 		};
+		let highlight = this.highlighted_columns?.includes(column.fieldname);
+		if (highlight) {
+			td.style.backgroundColor = frappe.boot?.my_theme?.button_background_color || "#2196F3";
+			td.style.color = frappe.boot.my_theme.button_text_color || "white";
+		}
 		if (column.fieldname === this?.workflow?.workflow_state_field) {
 			if (
 				this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
