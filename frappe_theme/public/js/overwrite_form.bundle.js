@@ -577,6 +577,9 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			await this.handleBlocks(frm, tab_fields, signal);
 			await this.initializeDashboards(this.dts, frm, tab_fields, signal);
 			await this.processDataTables(dtFields, frm, this.dts, signal);
+			if (frm?.events?.after_sva_dt_load) {
+				frm.events.after_sva_dt_load(frm);
+			}
 		} catch (error) {
 			if (error.name === "AbortError") {
 				console.error("Request aborted due to tab switch");
