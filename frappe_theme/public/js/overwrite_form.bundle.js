@@ -79,15 +79,29 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			console.error("Error in handleDTHeader:", error);
 		}
 	}
+	custom_onload(frm) {
+		this.handleDTHeader(frm);
+		this.dashboard_handlers(frm);
+	}
 	setupHandlers() {
 		if (!frappe.ui.form.handlers[this.doctype]) {
 			frappe.ui.form.handlers[this.doctype] = {
+				onload: [this.custom_onload.bind(this)],
 				refresh: [this.custom_refresh.bind(this)],
 				on_tab_change: [this._activeTab.bind(this)],
 				after_save: [this.custom_after_save.bind(this)],
 				onload_post_render: [this.custom_onload_post_render.bind(this)],
 			};
 			return;
+		}
+
+		// Setup custom setup handlers
+		if (!frappe.ui.form.handlers[this.doctype].onload) {
+			frappe.ui.form.handlers[this.doctype].onload = [this.custom_onload.bind(this)];
+		} else if (
+			!frappe.ui.form.handlers[this.doctype].onload.includes(this.custom_onload.bind(this))
+		) {
+			frappe.ui.form.handlers[this.doctype].onload.push(this.custom_onload.bind(this));
 		}
 
 		// Setup refresh handlers
@@ -151,7 +165,6 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			// 		console.error(e);
 			// 	}
 			// });
-			this.handleDTHeader(frm);
 			setupFieldComments(frm);
 			this.goToCommentButton(frm);
 			if (frm.doctype == "DocType") {
@@ -228,6 +241,76 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			await this.tabContent(frm, tab_field);
 		} catch (error) {
 			console.error("Error in custom_refresh:", error);
+		}
+	}
+	dashboard_handlers(frm) {
+		try {
+			if (frm?.meta?.issingle && frm?.meta?.is_dashboard) {
+				frm.disable_save();
+				if (!frm.meta.header_html) {
+					let wrapper = $(
+						document.querySelector(
+							`#page-${frm.meta.name.replace(/ /g, "\\ ")} .page-head`
+						)
+					);
+					if (wrapper.length) {
+						let header_element = document.createElement("div");
+						header_element.id = "dashboard-header-element";
+						header_element.style =
+							"width: 100%; padding: 10px 14px;display:flex; justify-content: space-between; align-items: center;";
+
+						let title_element = document.createElement("h4");
+						title_element.id = "dashboard-header-title";
+						title_element.style = "margin:0px; padding:0px;";
+						title_element.innerText = __(frm.doctype || frm.meta.name);
+
+						let refresh_button = document.createElement("button");
+						refresh_button.id = "dashboard-refresh_button";
+						refresh_button.classList.add(
+							"text-muted",
+							"btn",
+							"btn-default",
+							"icon-btn"
+						);
+						refresh_button.innerHTML = `
+							<svg class="es-icon es-line icon-sm" style="" aria-hidden="true">
+								<use class="" href="#es-line-reload"></use>
+							</svg>
+						`;
+						refresh_button.onclick = function () {
+							if (Object.entries(frm.sva_ft_instances).length) {
+								for (const [key, instance] of Object.entries(
+									frm.sva_ft_instances
+								)) {
+									if (
+										instance.refresh &&
+										typeof instance.refresh === "function"
+									) {
+										instance.refresh();
+									} else if (
+										instance.reloadTable &&
+										typeof instance.reloadTable === "function"
+									) {
+										instance.reloadTable();
+									}
+								}
+							}
+						};
+						wrapper.get(0).innerHTML = "";
+						if (!header_element.querySelector("#dashboard-header-title")) {
+							header_element.appendChild(title_element);
+						}
+						if (!header_element.querySelector("#dashboard-refresh_button")) {
+							header_element.appendChild(refresh_button);
+						}
+						if (!wrapper.get(0).querySelector("#dashboard-header-element")) {
+							wrapper.get(0).appendChild(header_element);
+						}
+					}
+				}
+			}
+		} catch (error) {
+			console.error("Error in dashboard_handlers:", error);
 		}
 	}
 	async custom_after_save(frm) {
@@ -494,6 +577,9 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			await this.handleBlocks(frm, tab_fields, signal);
 			await this.initializeDashboards(this.dts, frm, tab_fields, signal);
 			await this.processDataTables(dtFields, frm, this.dts, signal);
+			if (frm?.events?.after_sva_dt_load) {
+				frm.events.after_sva_dt_load(frm);
+			}
 		} catch (error) {
 			if (error.name === "AbortError") {
 				console.error("Request aborted due to tab switch");

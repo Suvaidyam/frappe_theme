@@ -148,36 +148,42 @@ class SvaDataTable {
 					!this.connection?.disable_workflow &&
 					this.connection.connection_type !== "Report"
 				) {
-					let workflow = await this.sva_db.get_value("Workflow", {
+					let exists = await this.sva_db.exists("Workflow", {
 						document_type: this.doctype,
 						is_active: 1,
 					});
-					if (workflow) {
-						this.workflow = await this.sva_db.get_doc("Workflow", workflow);
-						if (this.workflow.states?.length) {
-							this.wf_positive_closure = this.workflow.states.find(
-								(tr) => tr.custom_closure === "Positive"
-							)?.state;
-							this.wf_negative_closure = this.workflow.states.find(
-								(tr) => tr.custom_closure === "Negative"
-							)?.state;
-						}
-						this.workflow_state_bg = await this.sva_db.get_list("Workflow State", {
-							fields: ["name", "style"],
-							filters: {
-								workflow_state_name: [
-									"IN",
-									this.workflow?.states?.map((e) => e.state),
-								],
-							},
-							limit_page_length: 100,
+					if (exists) {
+						let workflow = await this.sva_db.get_value("Workflow", {
+							document_type: this.doctype,
+							is_active: 1,
 						});
-						this.wf_editable_allowed = this.workflow?.states?.some((tr) =>
-							frappe.user_roles.includes(tr?.allow_edit)
-						);
-						this.wf_transitions_allowed = this.workflow?.transitions?.some((tr) =>
-							frappe.user_roles.includes(tr?.allowed)
-						);
+						if (workflow) {
+							this.workflow = await this.sva_db.get_doc("Workflow", workflow);
+							if (this.workflow.states?.length) {
+								this.wf_positive_closure = this.workflow.states.find(
+									(tr) => tr.custom_closure === "Positive"
+								)?.state;
+								this.wf_negative_closure = this.workflow.states.find(
+									(tr) => tr.custom_closure === "Negative"
+								)?.state;
+							}
+							this.workflow_state_bg = await this.sva_db.get_list("Workflow State", {
+								fields: ["name", "style"],
+								filters: {
+									workflow_state_name: [
+										"IN",
+										this.workflow?.states?.map((e) => e.state),
+									],
+								},
+								limit_page_length: 100,
+							});
+							this.wf_editable_allowed = this.workflow?.states?.some((tr) =>
+								frappe.user_roles.includes(tr?.allow_edit)
+							);
+							this.wf_transitions_allowed = this.workflow?.transitions?.some((tr) =>
+								frappe.user_roles.includes(tr?.allowed)
+							);
+						}
 					}
 				}
 				// ================================ Workflow End ================================
@@ -189,7 +195,7 @@ class SvaDataTable {
 						meta_attached: true,
 					});
 					let columns = response.fields;
-					this.meta = response.meta;
+					this.meta = response?.meta || {};
 					if (this.meta?.title_field) {
 						this.title_field = this.meta.title_field;
 					}
@@ -688,7 +694,9 @@ class SvaDataTable {
 	async getUserWiseListSettings() {
 		let res = await this.sva_db.call({
 			method: "frappe_theme.dt_api.get_user_list_settings",
-			parent_id: this.connection.parent,
+			parent_id:
+				this.connection.parent ||
+				`${this.doctype || this.link_report}-${this.connection.html_field}`,
 			child_dt: this.doctype || this.link_report,
 		});
 		return res.message;
@@ -769,7 +777,9 @@ class SvaDataTable {
 
 		// Add to title actions
 		title_actions.appendChild(custom_button_section);
-		title_actions.appendChild(refresh_button);
+		if (!this.connection?.hide_refresh_button) {
+			title_actions.appendChild(refresh_button);
+		}
 		title_actions.appendChild(action_button);
 
 		// Add to title row
@@ -813,7 +823,7 @@ class SvaDataTable {
 				method: "frappe_theme.dt_api.get_report_filters",
 				doctype: this.link_report,
 			});
-			report_filters = message;
+			report_filters = message || [];
 		}
 
 		// List filter
@@ -823,6 +833,7 @@ class SvaDataTable {
 			display: flex;
 			align-items: center;
 		`;
+
 		this.filter_area = new SVAFilterArea({
 			wrapper: list_filter,
 			doctype: this.doctype || this.link_report,
@@ -831,10 +842,10 @@ class SvaDataTable {
 					this.connection.connection_type == "Report"
 						? Object.assign(this, {
 								columns: this.frm
-									? report_filters.filter(
+									? report_filters?.filter(
 											(f) => f.options != this.frm?.doc?.doctype
 									  )
-									: report_filters,
+									: report_filters || [],
 						  })
 						: this,
 				header:
@@ -878,8 +889,12 @@ class SvaDataTable {
 		}
 
 		// Add to filter controls
-		filter_controls.appendChild(list_filter);
-		filter_controls.appendChild(sva_sort_selector);
+		if (!this.connection?.hide_filter) {
+			filter_controls.appendChild(list_filter);
+		}
+		if (!this.connection?.hide_sorting) {
+			filter_controls.appendChild(sva_sort_selector);
+		}
 
 		// Add to filter row
 		filter_row.appendChild(standard_filters_wrapper);
@@ -914,7 +929,11 @@ class SvaDataTable {
 	async setupWrapper(wrapper) {
 		wrapper.style = `max-width:${this.options?.style?.width || "100%"}; width:${
 			this.options?.style?.width || "100%"
-		};margin:0px !important;`;
+		};margin:0px !important; ${
+			this.connection?.enable_card_view
+				? "padding: 10px 10px 5px 10px; border-radius: 10px;border: 1px solid #dcdcdc;"
+				: ""
+		}`;
 		if (!wrapper.querySelector("div#header-element")) {
 			wrapper.appendChild(await this.setupHeader());
 		}
@@ -979,7 +998,11 @@ class SvaDataTable {
 						} else {
 							await this.sva_db.call({
 								method: "frappe_theme.dt_api.setup_user_list_settings",
-								parent_id: this.connection.parent,
+								parent_id:
+									this.connection.parent ||
+									`${this.doctype || this.link_report}-${
+										this.connection.html_field
+									}`,
 								child_dt: this.doctype || this.link_report,
 								listview_settings: JSON.stringify(listview_settings ?? []),
 							});
@@ -988,8 +1011,12 @@ class SvaDataTable {
 					} else {
 						await this.sva_db.call({
 							method: "frappe_theme.dt_api.delete_user_list_settings",
-							parent_id: this.connection.parent,
-							child_dt: this.doctype,
+							parent_id:
+								this.connection.parent ||
+								`${this.doctype || this.link_report}-${
+									this.connection.html_field
+								}`,
+							child_dt: this.doctype || this.link_report,
 						});
 						this.user_has_list_settings = false;
 					}
@@ -3902,7 +3929,10 @@ class SvaDataTable {
 					column.fieldname
 				]
 			) {
-				let formatter = this.frm.dt_events[this.doctype].formatter[column.fieldname];
+				let formatter =
+					this.frm.dt_events[this.doctype || this.link_report].formatter[
+						column.fieldname
+					];
 				td.innerHTML = formatter(row[column.fieldname], column, row, this);
 			} else {
 				td.innerHTML = `<span title="${row[column.fieldname] || ""}">${
@@ -4073,6 +4103,7 @@ class SvaDataTable {
 			});
 			return res.message;
 		} catch (error) {
+			console.error(error);
 			return [];
 		}
 	}

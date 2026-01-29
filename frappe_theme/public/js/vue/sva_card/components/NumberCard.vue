@@ -92,7 +92,7 @@ const props = defineProps({
 
 const getCardStyles = computed(() => {
 	const styles = {
-		padding: "8px 8px 8px 12px",
+		padding: "12px 12px 12px 12px",
 		backgroundColor: props.card.background_color || "white",
 		"--text-color": props.card.text_color || "inherit",
 		"--hover-bg-color":
@@ -286,7 +286,8 @@ h4 {
 
 	&:hover {
 		background-color: var(--hover-bg-color) !important;
-
+		transition: transform 0.3s ease;
+		transform: scale(1.01);
 		.card-label {
 			color: var(--hover-text-color) !important;
 		}
