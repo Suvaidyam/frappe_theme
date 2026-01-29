@@ -3265,8 +3265,11 @@ class SvaDataTable {
 		};
 		let highlight = this.highlighted_columns?.includes(column.fieldname);
 		if (highlight) {
-			td.style.backgroundColor = frappe.boot?.my_theme?.button_background_color || "#2196F3";
-			td.style.color = frappe.boot.my_theme.button_text_color || "white";
+			td.style.backgroundColor = frappe.utils.get_lighter_shade_of_hex_color(
+				frappe.boot?.my_theme?.button_background_color || "#2196F3",
+				85
+			);
+			// td.style.color = frappe.boot.my_theme.button_text_color || "white";
 		}
 		if (column.fieldname === this?.workflow?.workflow_state_field) {
 			if (
