@@ -433,9 +433,14 @@ class SvaDataTable {
 
 			const serialNumber =
 				this.page > 1 ? (this.page - 1) * this.limit + (rowIndex + 1) : rowIndex + 1;
-
-			serialTd.innerHTML = `<p style="cursor: pointer; text-decoration:underline;" data-docname="${row.name}">${serialNumber}</p>`;
-			serialTd.querySelector("p").addEventListener("click", () => {
+			if (this.frm?.dt_events?.[this.doctype ?? this.link_report]?.formatter?.["#"]) {
+				let formatter =
+					this.frm.dt_events[this.doctype ?? this.link_report].formatter["#"];
+				serialTd.innerHTML = formatter(serialNumber, row, this);
+			} else {
+				serialTd.innerHTML = `<p style="cursor: pointer; text-decoration:underline;" data-docname="${row.name}">${serialNumber}</p>`;
+			}
+			serialTd.addEventListener("click", () => {
 				let route = frappe.get_route();
 				frappe
 					.set_route(
@@ -2646,9 +2651,16 @@ class SvaDataTable {
 						this.page > 1
 							? (this.page - 1) * this.limit + (rowIndex + 1)
 							: rowIndex + 1;
-
-					serialTd.innerHTML = `<p style="cursor: pointer; text-decoration:underline;">${serialNumber}</p>`;
-					serialTd.querySelector("p").addEventListener("click", () => {
+					if (
+						this.frm?.dt_events?.[this.doctype ?? this.link_report]?.formatter?.["#"]
+					) {
+						let formatter =
+							this.frm.dt_events[this.doctype ?? this.link_report].formatter["#"];
+						serialTd.innerHTML = formatter(serialNumber, row, this);
+					} else {
+						serialTd.innerHTML = `<p style="cursor: pointer; text-decoration:underline;" data-docname="${row.name}">${serialNumber}</p>`;
+					}
+					serialTd.addEventListener("click", () => {
 						let route = frappe.get_route();
 						frappe
 							.set_route(
