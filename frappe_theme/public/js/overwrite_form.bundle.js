@@ -315,7 +315,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 		}
 	}
 	async dashboard_form_events_handler(frm) {
-		function apply_dashboard_filters(frm, fields, apply_button ,reset_button=null) {
+		function apply_dashboard_filters(frm, fields, apply_button, reset_button = null) {
 			let filters = {};
 			fields.forEach((field) => {
 				if (Array.isArray(frm.doc[field.fieldname])) {
@@ -349,25 +349,25 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 						continue;
 					}
 				}
-				frm['sva_active_filters'] = filters;
-				if (reset_button != null){
-					frm.set_df_property(reset_button.fieldname, 'hidden', 0);
+				frm["sva_active_filters"] = filters;
+				if (reset_button != null) {
+					frm.set_df_property(reset_button.fieldname, "hidden", 0);
 				}
 				// if (apply_button){
 				// 	frm.set_df_property(apply_button.fieldname, 'hidden', 1);
 				// }
-			}else{
+			} else {
 				return;
 			}
 		}
 
 		function reset_dashboard_filters(frm, fields, reset_button, apply_button = null) {
-			if (!frm['sva_active_filters']){
+			if (!frm["sva_active_filters"]) {
 				return;
 			}
 			fields.forEach((field) => {
 				if (field.fieldtype == "Link") {
-					frm.set_value(field.fieldname, '');
+					frm.set_value(field.fieldname, "");
 				} else if (field.fieldtype == "Table MultiSelect") {
 					frm.set_value(field.fieldname, []);
 				}
@@ -384,9 +384,9 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					continue;
 				}
 			}
-			frm['sva_active_filters'] = null;
-			if (reset_button){
-				frm.set_df_property(reset_button.fieldname, 'hidden', 1);
+			frm["sva_active_filters"] = null;
+			if (reset_button) {
+				frm.set_df_property(reset_button.fieldname, "hidden", 1);
 			}
 			// if (apply_button != null){
 			// 	frm.set_df_property(apply_button.fieldname, 'hidden', 0);
@@ -396,19 +396,33 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			let active_tab = await frm.get_active_tab();
 			let tab_fields = await this.getTabFieldsJSON(frm, active_tab?.df?.fieldname);
 
-			let apply_button = tab_fields.find(f => f.fieldtype == "Button" && f?.is_apply_button);
-			let reset_button = tab_fields.find(f => f.fieldtype == "Button" && f?.is_reset_button);
+			let apply_button = tab_fields.find(
+				(f) => f.fieldtype == "Button" && f?.is_apply_button
+			);
+			let reset_button = tab_fields.find(
+				(f) => f.fieldtype == "Button" && f?.is_reset_button
+			);
 
 			if (apply_button) {
 				frappe.ui.form.on(frm.doctype, apply_button.fieldname, function (frm) {
-					apply_dashboard_filters(frm, tab_fields, apply_button, reset_button? reset_button : null)
-				})
+					apply_dashboard_filters(
+						frm,
+						tab_fields,
+						apply_button,
+						reset_button ? reset_button : null
+					);
+				});
 			}
 			if (reset_button) {
-				frm.set_df_property(reset_button.fieldname, 'hidden', 1);
+				frm.set_df_property(reset_button.fieldname, "hidden", 1);
 				frappe.ui.form.on(frm.doctype, reset_button.fieldname, function (frm) {
-					reset_dashboard_filters(frm, tab_fields, reset_button, apply_button? apply_button : null);
-				})
+					reset_dashboard_filters(
+						frm,
+						tab_fields,
+						reset_button,
+						apply_button ? apply_button : null
+					);
+				});
 			}
 		}
 	}
@@ -821,6 +835,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 						card_doc.report = await frappe.db.get_doc("Report", card_doc.report_name);
 					}
 					let item = {
+						html_field: field.fieldname,
 						fetch_from: "Number Card",
 						number_card: field.sva_ft.number_card,
 						card_label: field.sva_ft.label || card_doc.label || "Untitled",
@@ -860,6 +875,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 						chart_label: field.sva_ft.label || chart_doc.chart_name,
 						details: chart_doc,
 						report: report_doc,
+						html_field: field.fieldname,
 					};
 					let { _wrapper, ref } = new SVADashboardManager({
 						wrapper,
@@ -894,6 +910,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 				frm.sva_ft_instances[field.fieldname] = new SVAHeatmap({
 					wrapper: $(wrapper),
 					...(field?.sva_ft || {}),
+					html_field: field.fieldname,
 					frm,
 				});
 				break;
@@ -968,8 +985,8 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					field?.connection_type === "Is Custom Design"
 						? field?.template
 						: ["Direct", "Unfiltered", "Indirect"].includes(field.connection_type)
-							? field.link_doctype
-							: field.referenced_link_doctype
+						? field.link_doctype
+						: field.referenced_link_doctype
 				)} items`
 			);
 			element.innerHTML = `

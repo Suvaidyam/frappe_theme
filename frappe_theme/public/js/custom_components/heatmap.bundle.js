@@ -3,6 +3,7 @@ import SvaDataTable from "../datatable/sva_datatable.bundle.js";
 
 class SVAHeatmap {
 	constructor(opts) {
+		this.html_field = opts.html_field || "";
 		this.reportName = opts.report || "";
 		this.wrapper = opts.wrapper;
 		this.stateGeoJsonUrl = "/assets/frappe_theme/boundaries/state_boundries.json";
@@ -299,19 +300,27 @@ class SVAHeatmap {
 		new SvaDataTable(table_options);
 	}
 
-	fetchData() {
+	async fetchData() {
 		if (!this.reportName) {
 			this.hideLoader();
 			return;
 		}
-
+		console.log(this.frm, "this.frm");
+		let pre_filters = {};
+		if (this.frm) {
+			if (this.frm?.["dt_events"]?.[this?.html_field]?.get_filters) {
+				let get_filters = this.frm?.["dt_events"]?.[this?.html_field]?.get_filters;
+				pre_filters = (await get_filters(this.reportName, this.html_field)) || {};
+			}
+		}
+		console.log(pre_filters, "pre_filters heatmap");
 		frappe.call({
 			method: "frappe_theme.dt_api.get_dt_list",
 			args: {
 				doctype: this.reportName,
 				doc: this.frm?.doc?.name,
 				ref_doctype: this.frm?.doc?.doctype,
-				filters: { ...this.standard_filters, ...this.filters },
+				filters: { ...this.standard_filters, ...this.filters, ...pre_filters },
 				fields: ["*"],
 				_type: "Report",
 				return_columns: true,

@@ -14,7 +14,9 @@
 							aria-haspopup="true"
 							aria-expanded="false"
 						>
-							<svg class="icon icon-sm"><use href="#icon-dot-horizontal"></use></svg>
+							<svg class="icon icon-sm">
+								<use href="#icon-dot-horizontal"></use>
+							</svg>
 						</span>
 						<div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
 							<a
@@ -403,6 +405,19 @@ const getCount = async () => {
 		type = "Document Type";
 		details = props.chart.details;
 	}
+	let pre_filters = {};
+	if (props.frm) {
+		if (
+			props.frm?.["dt_events"]?.[details.name]?.get_filters ||
+			props.frm?.["dt_events"]?.[props?.chart?.html_field]?.get_filters
+		) {
+			let get_filters =
+				props.frm?.["dt_events"]?.[details.name]?.get_filters ||
+				props.frm?.["dt_events"]?.[props?.chart?.html_field]?.get_filters;
+			pre_filters =
+				(await get_filters(details, props.frm || {}, props?.chart?.html_field)) || {};
+		}
+	}
 	try {
 		loading.value = true;
 		let res = await frappe.call({
@@ -413,7 +428,7 @@ const getCount = async () => {
 				report: report,
 				doctype: cur_frm.doc.doctype,
 				docname: cur_frm.doc.name,
-				filters: props.filters,
+				filters: { ...(props.filters || {}), ...pre_filters },
 			},
 		});
 		if (res.message) {
