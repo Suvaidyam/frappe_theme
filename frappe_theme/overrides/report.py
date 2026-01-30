@@ -118,10 +118,12 @@ class CustomReport(Report):
 		"""
 		conditions = []
 		for col in columns:
+			if not isinstance(col, dict) and hasattr(col, "as_dict"):
+				col = col.as_dict()
+
 			if isinstance(col, dict) and col.get("fieldtype") == "Link":
 				linked_dt = col.get("options")
 				fieldname = col.get("fieldname")
-
 				if not linked_dt or not fieldname:
 					continue
 				# Frappe’s internal match condition builder
