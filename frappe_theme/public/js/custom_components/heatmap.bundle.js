@@ -9,7 +9,7 @@ class SVAHeatmap {
 		this.stateGeoJsonUrl = "/assets/frappe_theme/boundaries/state_boundries.json";
 		this.districtGeoJsonUrl = "/assets/frappe_theme/boundaries/districts_boundaries.json";
 		this.defaultView = opts.default_view || "State";
-		this.blockHeight = opts.block_height || 280;
+		this.blockHeight = opts.block_height || 445;
 		this.label = opts.label || "";
 		this.map = null;
 		this.frm = opts.frm || null;
@@ -305,7 +305,6 @@ class SVAHeatmap {
 			this.hideLoader();
 			return;
 		}
-		console.log(this.frm, "this.frm");
 		let pre_filters = {};
 		if (this.frm) {
 			if (this.frm?.["dt_events"]?.[this?.html_field]?.get_filters) {
@@ -313,7 +312,6 @@ class SVAHeatmap {
 				pre_filters = (await get_filters(this.reportName, this.html_field)) || {};
 			}
 		}
-		console.log(pre_filters, "pre_filters heatmap");
 		frappe.call({
 			method: "frappe_theme.dt_api.get_dt_list",
 			args: {
