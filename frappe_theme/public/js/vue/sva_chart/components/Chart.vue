@@ -47,13 +47,15 @@
 						v-if="chart?.details?.type === 'Pie'"
 						:data="data"
 						:options="{ ...options, ...data?.options }"
-						:height="400"
+						:height="370"
+						:style="{ padding: '15px 25px' }"
 					/>
 					<Doughnut
 						v-if="chart?.details?.type === 'Donut'"
 						:data="data"
 						:options="{ ...options, ...data?.options }"
-						:height="400"
+						:height="370"
+						:style="{ padding: '15px 25px' }"
 					/>
 				</div>
 				<div class="frappe-theme-no-data" v-else>No data</div>
