@@ -3,10 +3,10 @@ import re
 from hashlib import md5
 
 import frappe
-from frappe.desk.query_report import get_script, run
-from frappe.utils.safe_exec import read_sql
+from frappe.desk.query_report import run
 
 from frappe_theme.controllers.chart import Chart
+from frappe_theme.controllers.filters import DTFilters
 from frappe_theme.controllers.number_card import NumberCard
 
 
@@ -107,11 +107,11 @@ class DTConf:
 					return response.get("columns")
 			elif report.report_type == "Query Report":
 				if meta_attached:
-					return {"fields": report.columns, "meta": {}}
+					return {"fields": report.get("columns"), "meta": {}}
 				else:
 					return report.columns
 		else:
-			meta_fields = frappe.get_meta(doctype).fields
+			meta_fields = frappe.get_meta(doctype, True).fields
 			property_setters = frappe.get_all(
 				"Property Setter",
 				filters={"doc_type": doctype},
@@ -127,7 +127,7 @@ class DTConf:
 						# Dynamically set the field property
 						field[ps.property] = ps.value
 			if meta_attached:
-				return {"fields": fields_dict, "meta": frappe.get_meta(doctype).as_dict()}
+				return {"fields": fields_dict, "meta": frappe.get_meta(doctype, True).as_dict()}
 			else:
 				return fields_dict
 
@@ -149,7 +149,9 @@ class DTConf:
 				doctype, doc, ref_doctype, filters, limit_page_length, limit_start, unfiltered, return_columns
 			)
 		else:
-			return DTConf.doc_type_list(doctype, filters, fields, limit_page_length, order_by, limit_start)
+			return DTConf.doc_type_list(
+				doctype, filters, fields, limit_page_length, order_by, limit_start, doc, ref_doctype
+			)
 
 	def report_list(
 		doctype,
@@ -166,49 +168,38 @@ class DTConf:
 		if filters is None:
 			filters = []
 
-		doc_filters = DTConf.get_report_filters(doctype)
 		data = frappe.get_doc("Report", doctype)
 		if data.report_type == "Query Report":
-			# convert filters to sql conditions
-			conditions = ""
-			if ref_doctype:
-				for f in doc_filters:
-					if (
-						f.get("fieldname")
-						and f.get("fieldname") not in filters
-						and f.get("options") == ref_doctype
-						and unfiltered == 0
-					):
-						conditions += f" AND t.{f.get('fieldname')} = '{doc}'"
+			valid_filters, invalid_filters = {}, []
+			if filters:
+				valid_filters, invalid_filters = DTFilters.validate_query_report_filters(
+					ref_doctype, doc, doctype, filters
+				)
 
-				for f in data.get("columns"):
-					if (
-						f.get("fieldname")
-						and f.get("fieldname") not in filters
-						and f.get("options") == ref_doctype
-						and unfiltered == 0
-					):
-						conditions += f" AND t.{f.get('fieldname')} = '{doc}'"
-			if len(filters):
-				conditions += " AND " + DTConf.filters_to_sql_conditions(filters)
-
-			if limit_page_length and limit_start is not None:
-				conditions += f" LIMIT {limit_start}, {limit_page_length}"
-
-			query = data.get("query")
-			sub_query = re.sub(r";\s*\)", ")", query)
-			query = sub_query.rstrip(";")
-			final_sql = f"SELECT * FROM ({query}) AS t WHERE 1=1 {conditions}"
-			result = read_sql(final_sql, as_dict=1)
+			columns, result = data.execute_query_report(
+				additional_filters=valid_filters,
+				filters={},
+				ref_doctype=ref_doctype,
+				ref_docname=doc,
+				limit_page_length=limit_page_length,
+				limit_start=limit_start,
+				unfiltered=unfiltered,
+			)
 			if return_columns:
 				return {"result": result, "columns": data.get("columns")}
 			else:
 				return result
 		elif data.report_type == "Script Report":
 			filters = filters
-			if isinstance(filters, list):
-				filters = {f[1]: f[3] for f in filters}
-			response = run(doctype, filters=filters)
+			valid_filters, invalid_filters = {}, []
+			if filters:
+				valid_filters, invalid_filters = DTFilters.validate_query_report_filters(
+					ref_doctype, doc, doctype, filters, is_script_report=True
+				)
+				if isinstance(filters, list):
+					valid_filters = {f[1]: [f[2], f[3]] for f in filters}
+
+			response = run(doctype, filters=valid_filters)
 
 			data = response.get("result")
 			columns = response.get("columns")
@@ -224,13 +215,27 @@ class DTConf:
 				return result
 
 	def doc_type_list(
-		doctype, filters=None, fields=None, limit_page_length=None, order_by=None, limit_start=None
+		doctype,
+		filters=None,
+		fields=None,
+		limit_page_length=None,
+		order_by=None,
+		limit_start=None,
+		doc=None,
+		ref_doctype=None,
 	):
 		if filters is not None and not isinstance(filters, (dict | list)):
 			filters = {}
+
+		valid_filters, invalid_filters = filters, []
+		if ref_doctype == doc:
+			valid_filters, invalid_filters = DTFilters.validate_doctype_filters(
+				doctype=ref_doctype, docname=doc, base_doctype=doctype, filters=filters
+			)
+
 		return frappe.get_list(
 			doctype,
-			filters=filters,
+			filters=valid_filters,
 			fields=fields,
 			limit_page_length=limit_page_length,
 			order_by=order_by,
@@ -241,31 +246,25 @@ class DTConf:
 		if _type == "Report":
 			data = frappe.get_doc("Report", doctype)
 			if data.report_type == "Query Report":
-				doc_filters = DTConf.get_report_filters(doctype)
-				# convert filters to sql conditions
-				conditions = ""
-				for f in doc_filters:
-					if (
-						f.get("fieldname")
-						and f.get("fieldname") not in filters
-						and f.get("options") == ref_doctype
-						and unfiltered == 0
-					):
-						conditions += f" AND t.{f.get('fieldname')} = '{doc}'"
-				if filters:
-					conditions = conditions + " AND " + DTConf.filters_to_sql_conditions(filters)
-				# return conditions
-				query = data.get("query")
-				sub_query = re.sub(r";\s*\)", ")", query)
-				query = sub_query.rstrip(";")
-				final_sql = f"SELECT COUNT(*) AS count FROM ({query}) AS t WHERE 1=1 {conditions}"
-				result = read_sql(final_sql, as_dict=1)
-				return result[0].get("count")
+				if isinstance(filters, str):
+					filters = json.loads(filters)
+				valid_filters, invalid_filters = DTFilters.validate_query_report_filters(
+					ref_doctype, doc, doctype, filters
+				)
+				count = data.execute_and_count_query_report_rows(
+					filters=valid_filters, ref_doctype=ref_doctype, ref_docname=doc, unfiltered=unfiltered
+				)
+				return count or 0
 			elif data.report_type == "Script Report":
 				filters = filters
+				valid_filters, invalid_filters = {}, []
+				if filters:
+					valid_filters, invalid_filters = DTFilters.validate_query_report_filters(
+						ref_doctype, doc, doctype, filters, is_script_report=True
+					)
 				if isinstance(filters, list):
-					filters = {f[1]: f[3] for f in filters}
-				response = run(doctype, filters=filters)
+					valid_filters = {f[1]: [f[2], f[3]] for f in filters}
+				response = run(doctype, filters=valid_filters)
 				data = response.get("result")
 				columns = response.get("columns")
 				result = Chart.filter_script_report_data(data, columns, ref_doctype, doc)
@@ -436,8 +435,9 @@ class DTConf:
 
 	def get_report_filters(doctype):
 		if doctype:
-			filters = get_script(doctype)
-			return filters.get("filters")
+			report = frappe.get_cached_doc("Report", doctype)
+			report = report.as_dict()
+			return report.get("filters")
 		else:
 			return []
 
