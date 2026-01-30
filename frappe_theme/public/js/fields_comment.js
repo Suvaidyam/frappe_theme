@@ -1146,6 +1146,21 @@ function setupFieldComments(frm) {
 		if (frappe.boot.my_theme && frappe.boot.my_theme.hide_fields_comment) {
 			return;
 		}
+		meta = frappe.get_meta(frm.doc.doctype);
+		let is_core_module = ["Core", "Website", "Integrations", "Automation"].includes(
+			meta?.module
+		);
+		let is_core_doctype = [
+			"Comment",
+			"DocType Field Comment",
+			"Workflow",
+			"Notification",
+			"Notification Log",
+		].includes(meta?.name);
+		if (is_core_module || is_core_doctype) {
+			return;
+		}
+
 		// Check permissions first
 		check_comment_permissions().then((permissions) => {
 			// Only proceed if user has read permission

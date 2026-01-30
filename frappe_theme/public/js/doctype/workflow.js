@@ -1,6 +1,47 @@
+frappe.format = function (value, df, options, doc) {
+	let mask_readonly = false;
+	if (df?.parent) {
+		const mask_fields = frappe.get_meta(df.parent)?.masked_fields;
+		mask_readonly = mask_fields?.includes(df.fieldname);
+	}
+
+	if (!df || mask_readonly) df = { fieldtype: "Data" };
+	if (df.fieldname == "_user_tags") df = { ...df, fieldtype: "Tag" };
+	var fieldtype = df.fieldtype || "Data";
+
+	// format Dynamic Link as a Link
+	if (fieldtype === "Dynamic Link") {
+		fieldtype = "Link";
+		df._options = doc ? doc[df.options] : null;
+	}
+
+	var formatter = df.formatter || frappe.form.get_formatter(fieldtype);
+
+	var formatted = formatter(value, df, options, doc);
+
+	if (typeof formatted == "string") formatted = frappe.dom.remove_script_and_style(formatted);
+
+	return formatted;
+};
+
 frappe.ui.form.on("Workflow", {
 	refresh(frm) {
-		// 		console.log('workflow')
+		let states = frm.doc.states || [];
+		let state_names = states?.map((state) => state.state);
+		frm.set_query("custom_positive_state", "transitions", function () {
+			return {
+				filters: {
+					workflow_state_name: ["in", state_names],
+				},
+			};
+		});
+		frm.set_query("custom_negative_state", "transitions", function () {
+			return {
+				filters: {
+					workflow_state_name: ["in", state_names],
+				},
+			};
+		});
 	},
 });
 frappe.ui.form.on("Workflow Transition", {
@@ -333,5 +374,63 @@ frappe.ui.form.on("Workflow Transition", {
 					});
 			}, 0);
 		});
+	},
+	custom_select_role_profile: async function (frm, cdt, cdn) {
+		const row = locals[cdt][cdn];
+
+		let existing_values = [];
+		if (row.custom_selected_role_profile) {
+			try {
+				existing_values = JSON.parse(row.custom_selected_role_profile);
+			} catch (e) {
+				console.warn("Invalid JSON in custom_selected_role_profile");
+			}
+		}
+		let user_role_profile_fields = await frappe.xcall("frappe_theme.dt_api.get_meta_fields", {
+			doctype: "User Role Profile",
+			_type: "Direct",
+		});
+		const dialog = new frappe.ui.Dialog({
+			title: "Select Role Profiles",
+			size: "medium",
+			fields: [
+				{
+					fieldname: "role_profiles",
+					label: "Role Profiles",
+					options: "User Role Profile",
+					fieldtype: "Table MultiSelect",
+					fields: user_role_profile_fields,
+					reqd: 0,
+				},
+			],
+			primary_action_label: "Save Selection",
+			primary_action(values) {
+				const selected = values.role_profiles || [];
+				frappe.model.set_value(
+					cdt,
+					cdn,
+					"custom_selected_role_profile",
+					JSON.stringify(selected)
+				);
+
+				frappe.show_alert({
+					message: __("Role Profiles saved"),
+					indicator: "green",
+				});
+				dialog.hide();
+			},
+			secondary_action_label: "Clear Selection",
+			secondary_action() {
+				frappe.model.set_value(cdt, cdn, "custom_selected_role_profile", "");
+				frappe.show_alert({
+					message: __("Role Profiles cleared"),
+					indicator: "green",
+				});
+				dialog.hide();
+			},
+		});
+
+		dialog.show();
+		dialog.set_value("role_profiles", existing_values);
 	},
 });
