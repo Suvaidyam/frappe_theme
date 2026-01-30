@@ -89,6 +89,7 @@
   "heat_map_section",
   "heatmap_report",
   "default_view",
+  "state_name_column",
   "block_height",
   "min_data_color",
   "max_data_color",
@@ -687,13 +688,19 @@
    "fieldname": "hide_filter",
    "fieldtype": "Check",
    "label": "Hide Filter"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
+   "fieldname": "state_name_column",
+   "fieldtype": "Data",
+   "label": "State Name Column"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_virtual": 1,
  "links": [],
- "modified": "2026-01-27 11:05:42.292002",
+ "modified": "2026-01-29 00:59:41.562999",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Custom Property Setter",

@@ -20,7 +20,7 @@ class SVAHeatmap {
 		this.targetFields = JSON.parse(opts.target_fields || "[]")?.filter(
 			(field) => field.fieldname !== this.primaryTargetField
 		);
-		this.stateField = opts.stateField;
+		this.stateField = opts.stateField || opts?.state_name_column;
 		this.districtField = opts.districtField;
 		this.isLoadingDistricts = null;
 
@@ -338,7 +338,7 @@ class SVAHeatmap {
 							(col) => col.options === "District"
 						).fieldname;
 					}
-					if (hasStateColumn) {
+					if (this.stateField || hasStateColumn) {
 						this.applyDataToMap();
 					} else {
 						this.hideLoader();
@@ -367,10 +367,9 @@ class SVAHeatmap {
 	}
 
 	applyDataToMap() {
-		if (!this.reportData || !this.stateLayer) return;
-
+		if (!this.stateLayer) return;
 		this.stateData = {};
-		this.reportData.result.forEach((row) => {
+		this.reportData?.result?.forEach((row) => {
 			const stateId = row[this.stateField];
 			if (!this.stateData[stateId]) {
 				this.stateData[stateId] = {
@@ -399,7 +398,8 @@ class SVAHeatmap {
 
 		this.stateLayer.eachLayer((layer) => {
 			const stateID = layer.feature.properties.id;
-			const data = this.stateData[stateID];
+			const stateName = layer.feature.properties.name;
+			const data = this.stateData[stateID] || this.stateData[stateName];
 			if (data) {
 				layer.setStyle({
 					fillColor: this.getColorByValue(data.count),
@@ -408,7 +408,7 @@ class SVAHeatmap {
 				});
 			} else {
 				layer.setStyle({
-					fillColor: "#d4d4d4",
+					fillColor: "#f3f3f3",
 					color: "#333333",
 				});
 			}
@@ -588,7 +588,8 @@ class SVAHeatmap {
 							mouseover: (e) => {
 								const stateName = feature.properties.name;
 								const stateId = feature.properties.id;
-								const data = this.stateData?.[stateId] || { count: 0, data: {} };
+								const data = this.stateData?.[stateId] ||
+									this.stateData?.[stateName] || { count: 0, data: {} };
 
 								this.refreshButton.hide();
 								this.fixedPopupContainer
@@ -723,7 +724,7 @@ class SVAHeatmap {
 							});
 						} else {
 							layer.setStyle({
-								fillColor: "#d4d4d4",
+								fillColor: "#f3f3f3",
 								color: "#333333",
 							});
 						}
