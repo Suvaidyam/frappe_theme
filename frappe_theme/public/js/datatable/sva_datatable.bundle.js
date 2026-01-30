@@ -2,6 +2,7 @@ import SVASortSelector from "./sva_sort_selector.bundle.js";
 import SVAListSettings from "./list_settings.bundle.js";
 import SVAFilterArea from "./filters/filter_area.bundle.js";
 import DTAction from "../vue/dt_action/dt.action.bundle.js";
+import { add_custom_approval_assignments_fields } from "../utils.bundle.js";
 
 class SvaDataTable {
 	/**
@@ -55,6 +56,7 @@ class SvaDataTable {
 		this.wrapper = wrapper;
 		this.rows = rows;
 		this.columns = columns;
+		this.highlighted_columns = connection?.highlighted_columns || [];
 
 		// pagination
 		this.page = 1;
@@ -2238,6 +2240,11 @@ class SvaDataTable {
 		this.columns.forEach((column) => {
 			const th = document.createElement("th");
 			let col = this.header.find((h) => h.fieldname === column.fieldname);
+			// let highlight = this.highlighted_columns.includes(column.fieldname);
+			// if (highlight) {
+			// 	th.style.backgroundColor = frappe.boot?.my_theme?.button_background_color || "#2196F3";
+			// 	th.style.color = frappe.boot.my_theme.button_text_color || "white";
+			// }
 			if (col?.width) {
 				th.style = `min-width:${Number(col?.width) * 50}px !important;max-width:${
 					Number(col?.width) * 50
@@ -2929,6 +2936,8 @@ class SvaDataTable {
 					};
 				});
 		}
+		// Add custom fields that don't exist in meta fields
+		const customFields = await add_custom_approval_assignments_fields(selected_state_info);
 		const popupFields = [
 			{
 				label: "Action Test",
@@ -2938,6 +2947,7 @@ class SvaDataTable {
 					bg?.style?.toLowerCase() || "secondary"
 				}">${selected_state_info.action}</span></p>`,
 			},
+			...(customFields || []),
 			...(fields ? fields : []),
 		];
 		if (!this.skip_workflow_confirmation) {
@@ -3007,6 +3017,12 @@ class SvaDataTable {
 					.xcall("frappe.model.workflow.apply_workflow", {
 						doc: updateFields,
 						action: selected_state_info.action,
+						is_custom_transition: selected_state_info.is_custom_transition || 0,
+						is_comment_required: selected_state_info.is_comment_required || 0,
+						custom_comment:
+							selected_state_info.is_comment_required == 1
+								? values?.wf_comment || ""
+								: "",
 					})
 					.then(async (doc) => {
 						const row = me.rows.find((r) => r.name === docname);
@@ -3247,6 +3263,14 @@ class SvaDataTable {
 			read_only: 1,
 			description: "",
 		};
+		let highlight = this.highlighted_columns?.includes(column.fieldname);
+		if (highlight) {
+			td.style.backgroundColor = frappe.utils.get_lighter_shade_of_hex_color(
+				frappe.boot?.my_theme?.button_background_color || "#2196F3",
+				85
+			);
+			// td.style.color = frappe.boot.my_theme.button_text_color || "white";
+		}
 		if (column.fieldname === this?.workflow?.workflow_state_field) {
 			if (
 				this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[

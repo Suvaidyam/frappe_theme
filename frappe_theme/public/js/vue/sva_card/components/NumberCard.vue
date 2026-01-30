@@ -140,6 +140,11 @@ const handleAction = async (action) => {
 
 		if (props.card?.details?.type == "Report") {
 			table_options.connection["link_report"] = props.card.details?.report_name;
+			if (props.card?.details?.report_field) {
+				table_options.connection["highlighted_columns"] = [
+					props.card.details?.report_field,
+				];
+			}
 			table_options.connection["connection_type"] = "Report";
 		} else if (props.card?.details?.type == "Document Type") {
 			table_options.doctype = props.card.details?.document_type;
@@ -209,6 +214,20 @@ const getCount = async () => {
 				loading.value = false;
 			}, 500);
 		} else {
+			let pre_filters = {};
+			if (props.frm) {
+				if (
+					props.frm?.["dt_events"]?.[details.name]?.get_filters ||
+					props.frm?.["dt_events"]?.[props?.card?.html_field]?.get_filters
+				) {
+					let get_filters =
+						props.frm?.["dt_events"]?.[details.name]?.get_filters ||
+						props.frm?.["dt_events"]?.[props?.card?.html_field]?.get_filters;
+					pre_filters =
+						(await get_filters(details, props.frm || {}, props?.card?.html_field)) ||
+						{};
+				}
+			}
 			let res = await frappe.call({
 				method: "frappe_theme.dt_api.get_number_card_count",
 				args: {
@@ -217,7 +236,7 @@ const getCount = async () => {
 					report: report,
 					doctype: cur_frm.doc.doctype,
 					docname: cur_frm.doc.name,
-					filters: props.filters,
+					filters: { ...(props.filters || {}), ...pre_filters },
 				},
 			});
 			if (res.message) {
