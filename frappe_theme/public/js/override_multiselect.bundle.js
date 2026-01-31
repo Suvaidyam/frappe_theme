@@ -1,400 +1,724 @@
 frappe.ui.form.ControlTableMultiSelect = class DashboardControlTableMultiSelect extends (
 	frappe.ui.form.ControlTableMultiSelect
 ) {
-	get_link_field() {
-		if (!this._link_field) {
-			const meta = frappe.get_meta(this.df.options);
-			this._link_field =
-				meta?.fields?.find((df) => df.fieldtype === "Link") ||
-				this.df?.fields?.find((df) => df.fieldtype === "Link");
-			if (!this._link_field) {
-				throw new Error("Table MultiSelect requires a Table with atleast one Link field");
-			}
-		}
-		return this._link_field;
-	}
 	make_input() {
-		super.make_input();
-
-		// Make input invisible but keep it functional for awesomplete
-		this.$input.css({
-			position: "absolute",
-			left: "-9999px",
-			opacity: "0",
-			width: "1px",
-			height: "1px",
-		});
-
-		// Style the input area to be clickable
-		this.$input_area.css({
-			cursor: "pointer",
-			"border-radius": "8px",
-			padding: "3px",
-			"min-height": "32px",
-			display: "flex",
-			"align-items": "center",
-			"flex-wrap": "wrap",
-			gap: "1px",
-		});
-
-		// Click input area to open dropdown
-		const me = this;
-		this.$input_area.on("click", function (e) {
-			if (!$(e.target).closest(".btn-remove").length) {
-				me.$input.val("");
-				me.$input.focus();
-				setTimeout(() => {
-					if (me.awesomplete) {
-						me.awesomplete.evaluate();
-					}
-				}, 50);
-			}
-		});
-
-		// Enhance dropdown
-		if (this.awesomplete) {
-			this.customize_awesomplete_display();
-			this.setup_click_outside_handler();
+		if (this?.frm?.meta?.issingle && this.frm?.meta?.is_dashboard) {
+			this.sva_multiselect = new FrappeMultiselect(this);
+		} else {
+			super.make_input();
 		}
-	}
-
-	// Do not hide already-selected items; allow re-select to toggle
-	custom_awesomplete_filter(awesomplete) {
-		let me = this;
-		awesomplete.filter = function (item) {
-			// Don't filter here; rely on API search to provide filtered results
-			return true;
-		};
-	}
-
-	setup_click_outside_handler() {
-		const me = this;
-		$(document).on("click", (e) => {
-			if (
-				!$(e.target).closest(".awesomplete").length &&
-				!$(e.target).closest(me.$input_area).length
-			) {
-				if (me.awesomplete && me.awesomplete.container) {
-					me.awesomplete.container.querySelector(".dropdown-search-input")?.remove();
-					me.awesomplete.close();
-				}
-			}
-		});
-		this.$input.on("blur", () => {
-			if (me.awesomplete) me.awesomplete.close();
-		});
-	}
-
-	customize_awesomplete_display() {
-		if (!this.awesomplete) return;
-
-		const original_item = this.awesomplete.item;
-		const original_open = this.awesomplete.open;
-		const original_close = this.awesomplete.close;
-		const original_evaluate = this.awesomplete.evaluate;
-		const original_select = this.awesomplete.select;
-		const me = this;
-		me.df.only_select = true;
-
-		let searchInputElement = null;
-		let searchContainer = null;
-		let isEvaluating = false;
-		let evaluateTimeout = null;
-
-		// Toggle on re-select
-		this.awesomplete.select = function (selected, callback) {
-			console.log("select called....");
-			if (selected && selected.querySelector("#is_no_data_found")) {
-				this.close();
-				return false;
-			}
-			if (
-				selected &&
-				selected.value &&
-				me._rows_list &&
-				me._rows_list.includes(selected.value)
-			) {
-				me.remove_selected_value(selected.value);
-				this.close();
-				return false;
-			}
-			return original_select.call(this, selected, callback);
-		};
-
-		// Keep sticky search and filter out create/advanced options
-		this.awesomplete.evaluate = function () {
-			console.log("evaluluate called...");
-			// Debounce evaluate calls to prevent infinite loop in dialog context
-			if (evaluateTimeout) {
-				clearTimeout(evaluateTimeout);
-			}
-			evaluateTimeout = setTimeout(() => {
-				if (isEvaluating) {
-					evaluateTimeout = null;
-					return;
-				}
-				isEvaluating = true;
-				try {
-					const existingContainer = this.container
-						? this.container.querySelector(".dropdown-search-input")
-						: null;
-					original_evaluate.call(this);
-					// Remove hidden items from DOM
-					if (this.container) {
-						this.container
-							.querySelectorAll('li[style*="display: none"]')
-							.forEach((li) => li.remove());
-					}
-					if (
-						existingContainer &&
-						this.container &&
-						!this.container.querySelector(".dropdown-search-input")
-					) {
-						this.container.insertBefore(searchContainer, this.container.firstChild);
-					}
-				} finally {
-					isEvaluating = false;
-					evaluateTimeout = null;
-				}
-			}, 500);
-		};
-
-		// Add sticky search input
-		this.awesomplete.open = function () {
-			console.log("open called...");
-			original_open.call(this);
-			// Remove hidden items from DOM
-			if (this.container) {
-				this.container
-					.querySelectorAll('li[style*="display: none"]')
-					.forEach((li) => li.remove());
-			}
-
-			if (!searchContainer) {
-				searchContainer = document.createElement("li");
-				searchContainer.className = "dropdown-search-input";
-				searchContainer.style.cssText =
-					"position: sticky; top: 0; background: white; z-index: 10; padding: 8px; border-bottom: 1px solid #d1d8dd; margin: 0; list-style: none;";
-
-				searchInputElement = document.createElement("input");
-				searchInputElement.type = "text";
-				searchInputElement.placeholder = "Search...";
-				searchInputElement.className = "form-control";
-				searchInputElement.style.cssText =
-					"width:100%;padding:8px;margin:0;border:1px solid #d1d8dd;border-radius:3px;font-size:13px;font-family:inherit;color:#333;background:white;box-sizing:border-box;";
-
-				// Create debounced search function
-				const debouncedSearch = frappe.utils.debounce(async function (term) {
-					const doctype = me.get_options();
-					if (!doctype) return;
-					if (!me.$input.cache) me.$input.cache = {};
-					if (!me.$input.cache[doctype]) me.$input.cache[doctype] = {};
-
-					if (me.$input.cache[doctype][term] != null) {
-						me.awesomplete.list = me.$input.cache[doctype][term];
-						// Don't call evaluate - just update list
-						return;
-					}
-
-					const args = {
-						txt: term,
-						doctype: doctype,
-						ignore_user_permissions: me.df.ignore_user_permissions,
-						reference_doctype: me.get_reference_doctype() || "",
-						page_length: cint(frappe.boot.sysdefaults?.link_field_results_limit) || 10,
-					};
-					me.set_custom_query(args);
-
-					try {
-						const r = await frappe.call({
-							type: "POST",
-							method: "frappe.desk.search.search_link",
-							no_spinner: true,
-							args: args,
-						});
-
-						if (r.message.length > 0) {
-							r.message = me.merge_duplicates(r.message);
-							let filter_string = me.df.filter_description
-								? me.df.filter_description
-								: args.filters
-								? me.get_filter_description(args.filters)
-								: null;
-							if (filter_string) {
-								r.message.push({
-									html: `<span class="text-muted" style="line-height: 1.5">${filter_string}</span>`,
-									value: "",
-									action: () => {},
-								});
-							}
-							me.$input.cache[doctype][term] = r.message;
-							me.awesomplete.list = me.$input.cache[doctype][term];
-							r.message.forEach((item) => {
-								frappe.utils.add_link_title(doctype, item.value, item.label);
-							});
-							// Don't call evaluate - just update list
-						} else {
-							r.message = [];
-							r.message.push({
-								label: "HTML",
-								value: `<span class="text-muted" style="line-height: 1.5">No results found</span>`,
-								action: () => {},
-							});
-							me.$input.cache[doctype][term] = r.message;
-							me.awesomplete.list = me.$input.cache[doctype][term];
-							// Don't call evaluate - just update list
-						}
-					} catch (error) {
-						console.error("Search error:", error);
-					}
-				}, 500);
-
-				searchInputElement.addEventListener("input", (e) => {
-					e.stopPropagation();
-					const term = e.target.value || "";
-					debouncedSearch(term);
-				});
-				searchInputElement.addEventListener("keydown", (e) => {
-					if (e.key === "Enter") e.preventDefault();
-					e.stopPropagation();
-				});
-				searchInputElement.addEventListener("click", (e) => e.stopPropagation());
-				searchContainer.appendChild(searchInputElement);
-			}
-
-			if (!this.container.querySelector(".dropdown-search-input")) {
-				this.container.insertBefore(searchContainer, this.container.firstChild);
-			}
-
-			setTimeout(() => {
-				if (searchInputElement) searchInputElement.focus();
-			}, 50);
-		};
-
-		this.awesomplete.close = function () {
-			console.log("close called...");
-			if (searchInputElement) searchInputElement.value = "";
-			original_close.call(this);
-		};
-
-		// Checkbox and highlight for selected
-		this.awesomplete.item = function (option, input, item_id) {
-			console.log("item called...");
-			let text = option;
-			const html = original_item.call(this, text, input, item_id);
-			const $html = $(html);
-			const is_selected = me._rows_list && me._rows_list.includes(option.value);
-			$html.attr("aria-selected", is_selected ? "true" : "false");
-			$html.empty();
-			if (option.label == "HTML") {
-				option["html"] = option.value;
-				option["value"] = "";
-			}
-			const content = `
-				<div style="display:flex;align-items:center;gap:8px;">
-					${
-						option?.value
-							? `<input type="checkbox" ${
-									is_selected ? "checked" : ""
-							  } disabled style="margin:0;pointer-events:none;flex-shrink:0;"/>`
-							: ""
-					}
-					<div style="display:flex;flex-direction:column;">
-                        ${
-							option?.html
-								? `<div id="is_no_data_found">${option.html}</div>`
-								: `
-                            ${
-								option.label
-									? `<span>${option?.label}</span>`
-									: `<span>${option?.value}</span>`
-							}
-                            <div style="font-size: 0.9em; color: #666; display: flex; gap: 3px;">
-                                ${option?.label ? `<span>${option?.value}</span>` : ""}
-                                ${
-									option?.description
-										? `, <span>${option?.description}</span>`
-										: ""
-								}
-                            </div>
-                        `
-						}
-                    </div>
-				</div>`;
-			$html.html(content);
-			if (is_selected) {
-				$html.css({
-					"background-color": frappe.boot.my_theme.navbar_color
-						? frappe.utils.get_lighter_shade_of_hex_color(
-								frappe.boot.my_theme.navbar_color,
-								95
-						  )
-						: "#4caf50",
-					"border-left": `3px solid ${frappe.boot.my_theme.navbar_color || "#4caf50"}`,
-				});
-			} else {
-				$html.css({ "background-color": "inherit" });
-			}
-			return $html[0];
-		};
-	}
-
-	remove_selected_value(value) {
-		let current_value = this.get_value();
-		if (!Array.isArray(current_value)) current_value = [];
-		const filtered = current_value.filter((item) => {
-			const v = typeof item === "object" ? item.value || item.name : item;
-			return v !== value;
-		});
-		this.set_value(filtered);
-	}
-
-	// Toggle behavior: re-select removes
-	parse(value, label) {
-		const link_field = this.get_link_field();
-		if (value && this._rows_list && this._rows_list.includes(value)) {
-			this.rows = (this.rows || []).filter((row) => row[link_field.fieldname] !== value);
-			this._rows_list = this.rows.map((row) => row[link_field.fieldname]);
-			this.set_pill_html(this._rows_list);
-			console.log("closed from this.awesomplete 1");
-			if (this.awesomplete) {
-				this.awesomplete.close();
-				this.awesomplete.evaluate();
-			}
-			return this.rows;
-		}
-		const result = super.parse(value, label);
-		console.log("closed from this.awesomplete result", result);
-		if (this.awesomplete) {
-			this.awesomplete.close();
-			this.awesomplete.evaluate();
-		}
-		return result;
-	}
-
-	// Compact pills: first + count
-	set_pill_html(values) {
-		this.$input_area.find(".tb-selected-value").remove();
-		if (!values || values.length === 0) return;
-		let html = "";
-		if (values.length) {
-			const link_field = this.get_link_field();
-			const first_value = values[0];
-			const pill_name =
-				frappe.utils.get_link_title(link_field.options, first_value) || first_value;
-			const additional_count = values.length - 1;
-			html = `<button style="width: 100%;" class="data-pill btn tb-selected-value">
-						<span class="">${__(frappe.utils.escape_html(pill_name))} ${
-				additional_count > 0
-					? `<span style="margin-left: 5px; padding: 2px 5px;font-size: 12px; border-radius: 10px; background-color : ${
-							frappe.boot?.my_theme.navbar_color || "#4caf50"
-					  };color: ${
-							frappe.boot?.my_theme?.navbar_text_color || "white"
-					  };">+${additional_count}</span>`
-					: ""
-			}</span>
-					</button>`;
-		}
-		this.$input_area.prepend(html);
 	}
 };
+
+class FrappeMultiselect {
+	constructor(field) {
+		// Frappe field object
+		this.field = field;
+		this.df = field.df;
+		this.frm = field.frm;
+
+		this.wrapper = field.$wrapper ? field.$wrapper[0] : field.wrapper;
+		this.fieldname = this.df.fieldname;
+		this.label = this.df.label || "";
+		this.placeholder = this.df.placeholder || "Select options...";
+		this._linkField = null;
+
+		this.options = [];
+		this.selectedValues = new Set();
+		this.maxDisplayTags = 1;
+
+		this.isOpen = false;
+		this.searchTerm = "";
+		this.loading = false;
+		this.init();
+	}
+
+	getLinkField() {
+		if (this.field?._linkField) return this.field._linkField;
+		const meta = this.df?.options ? frappe.get_meta(this.df.options) : null;
+		this._linkField =
+			meta?.fields?.find((df) => df.fieldtype === "Link") ||
+			this.df?.fields?.find((df) => df.fieldtype === "Link") ||
+			null;
+		return this._linkField;
+	}
+
+	normalizeValues(values) {
+		if (values == null) return [];
+		const linkFieldName = this.getLinkField()?.fieldname;
+		const list = Array.isArray(values) ? values : [values];
+		return list
+			.map((item) => {
+				if (item && typeof item === "object") {
+					return (
+						(linkFieldName && item[linkFieldName]) ||
+						item.value ||
+						item.name ||
+						item.label
+					);
+				}
+				return item;
+			})
+			.filter(Boolean);
+	}
+
+	getChildTableValue() {
+		const values = this.getValue();
+		const linkFieldName = this.getLinkField()?.fieldname;
+		if (!linkFieldName) return values;
+		return values.map((value) => ({ [linkFieldName]: value }));
+	}
+
+	async init() {
+		this.render();
+		this.bindEvents();
+		this.loadExistingValue();
+		this.updateDisplay();
+		this.fetchOptionsDebounced();
+	}
+
+	// Fetch options from Frappe
+	async fetchOptions() {
+		let link_field = this.getLinkField();
+		if (!link_field) {
+			console.warn("No link doctype specified for multiselect");
+			return;
+		}
+
+		this.setLoading(true);
+
+		try {
+			const response = await frappe.call({
+				method: "frappe.desk.search.search_link",
+				args: {
+					txt: this.searchTerm,
+					doctype: link_field.options,
+					reference_doctype: this.frm?.doctype,
+					page_length: 10,
+					ignore_user_permissions: 0,
+				},
+				async: true,
+			});
+			if (response && response.message) {
+				this.options = response.message;
+				this.renderOptions();
+			}
+		} catch (error) {
+			console.error("Error fetching options:", error);
+			frappe.msgprint({
+				title: __("Error"),
+				indicator: "red",
+				message: __("Failed to load options for {0}", [this.label]),
+			});
+		} finally {
+			this.setLoading(false);
+		}
+	}
+
+	// Load existing value from form
+	loadExistingValue() {
+		if (this.frm && this.frm.doc[this.fieldname]) {
+			const value = this.frm.doc[this.fieldname];
+			// Handle both comma-separated string and JSON array
+			let values = [];
+			if (typeof value === "string") {
+				try {
+					values = JSON.parse(value);
+				} catch {
+					values = value
+						.split(",")
+						.map((v) => v.trim())
+						.filter(Boolean);
+				}
+			} else if (Array.isArray(value)) {
+				values = value;
+			}
+			this.selectedValues = new Set(this.normalizeValues(values));
+		}
+	}
+
+	setLoading(loading) {
+		this.loading = loading;
+		if (this.loadingEl) {
+			this.loadingEl.style.display = loading ? "block" : "none";
+		}
+		if (this.optionsList) {
+			this.optionsList.style.display = loading ? "none" : "block";
+		}
+	}
+
+	render() {
+		this.wrapper.innerHTML = "";
+		this.wrapper.classList.add("frappe-multiselect-wrapper");
+
+		this.container = document.createElement("div");
+		this.container.className = "frappe-multiselect";
+		this.container.setAttribute("tabindex", "0");
+
+		// Selection area
+		this.selectionArea = document.createElement("div");
+		this.selectionArea.className = "frappe-multiselect-selection";
+
+		this.tagsContainer = document.createElement("div");
+		this.tagsContainer.className = "frappe-multiselect-tags";
+
+		this.placeholderEl = document.createElement("span");
+		this.placeholderEl.className = "frappe-multiselect-placeholder";
+		this.placeholderEl.textContent = this.placeholder;
+
+		this.arrowIcon = document.createElement("span");
+		this.arrowIcon.className = "frappe-multiselect-arrow";
+		this.arrowIcon.innerHTML = `<svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>`;
+
+		this.selectionArea.appendChild(this.tagsContainer);
+		this.selectionArea.appendChild(this.placeholderEl);
+		this.selectionArea.appendChild(this.arrowIcon);
+		this.container.appendChild(this.selectionArea);
+
+		// Dropdown
+		this.dropdown = document.createElement("div");
+		this.dropdown.className = "frappe-multiselect-dropdown";
+
+		// Search
+		this.searchWrapper = document.createElement("div");
+		this.searchWrapper.className = "frappe-multiselect-search-wrapper";
+
+		this.searchInput = document.createElement("input");
+		this.searchInput.type = "text";
+		this.searchInput.className = "frappe-multiselect-search";
+		this.searchInput.placeholder = __("Search...");
+
+		this.searchWrapper.appendChild(this.searchInput);
+		this.dropdown.appendChild(this.searchWrapper);
+
+		// Loading indicator
+		this.loadingEl = document.createElement("div");
+		this.loadingEl.className = "frappe-multiselect-loading";
+		this.loadingEl.innerHTML = '<span class="loading-spinner"></span> ' + __("Loading...");
+		this.loadingEl.style.display = "none";
+		this.dropdown.appendChild(this.loadingEl);
+
+		// Options list
+		this.optionsList = document.createElement("div");
+		this.optionsList.className = "frappe-multiselect-options";
+		this.dropdown.appendChild(this.optionsList);
+
+		// Actions
+		this.actionsBar = document.createElement("div");
+		this.actionsBar.className = "frappe-multiselect-actions";
+
+		this.selectAllBtn = document.createElement("button");
+		this.selectAllBtn.type = "button";
+		this.selectAllBtn.className = "btn btn-xs btn-default";
+		this.selectAllBtn.textContent = __("Select All");
+
+		this.clearAllBtn = document.createElement("button");
+		this.clearAllBtn.type = "button";
+		this.clearAllBtn.className = "btn btn-xs btn-default";
+		this.clearAllBtn.textContent = __("Clear All");
+
+		this.actionsBar.appendChild(this.selectAllBtn);
+		this.actionsBar.appendChild(this.clearAllBtn);
+		this.dropdown.appendChild(this.actionsBar);
+
+		this.container.appendChild(this.dropdown);
+		this.wrapper.appendChild(this.container);
+
+		this.injectStyles();
+	}
+
+	renderOptions() {
+		this.optionsList.innerHTML = "";
+		const filteredOptions = this.getFilteredOptions();
+		const sortedOptions = this.getSortedOptions(filteredOptions);
+
+		if (sortedOptions.length === 0) {
+			const noResults = document.createElement("div");
+			noResults.className = "frappe-multiselect-no-results";
+			noResults.textContent = this.searchTerm
+				? __("No matching options")
+				: __("No options available");
+			this.optionsList.appendChild(noResults);
+			return;
+		}
+
+		sortedOptions.forEach((option, index) => {
+			const optionEl = this.createOptionElement(option, index);
+			this.optionsList.appendChild(optionEl);
+		});
+	}
+
+	createOptionElement(option, index) {
+		const value = typeof option === "object" ? option.value : option;
+		const label = typeof option === "object" ? option.label : option;
+		const description = typeof option === "object" ? option.description : "";
+		const isSelected = this.selectedValues.has(value);
+
+		const optionEl = document.createElement("div");
+		optionEl.className = `frappe-multiselect-option ${isSelected ? "selected" : ""}`;
+		optionEl.setAttribute("data-value", value);
+
+		const checkbox = document.createElement("div");
+		checkbox.className = `frappe-multiselect-checkbox ${isSelected ? "checked" : ""}`;
+		checkbox.innerHTML = isSelected
+			? `<svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                <path d="M2 5L4 7L8 3" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>`
+			: "";
+
+		const labelEl = document.createElement("span");
+		labelEl.className = "frappe-multiselect-option-label";
+		labelEl.textContent = label;
+
+		const textArea = document.createElement("div");
+		textArea.className = "frappe-multiselect-option-text";
+		textArea.appendChild(labelEl);
+
+		if (description) {
+			const descEl = document.createElement("div");
+			descEl.className = "frappe-multiselect-option-description";
+			descEl.textContent = description;
+			textArea.appendChild(descEl);
+		}
+
+		optionEl.appendChild(checkbox);
+		optionEl.appendChild(textArea);
+
+		return optionEl;
+	}
+
+	getFilteredOptions() {
+		if (!this.searchTerm) return this.options;
+		const term = this.searchTerm.toLowerCase();
+		return this.options.filter((option) => {
+			const label = typeof option === "object" ? option.label : option;
+			return label.toLowerCase().includes(term);
+		});
+	}
+
+	getSortedOptions(options) {
+		const selected = [];
+		const unselected = [];
+
+		options.forEach((option) => {
+			const value = typeof option === "object" ? option.value : option;
+			if (this.selectedValues.has(value)) {
+				selected.push(option);
+			} else {
+				unselected.push(option);
+			}
+		});
+
+		const sortAlpha = (a, b) => {
+			const labelA = (typeof a === "object" ? a.label : a).toLowerCase();
+			const labelB = (typeof b === "object" ? b.label : b).toLowerCase();
+			return labelA.localeCompare(labelB);
+		};
+
+		selected.sort(sortAlpha);
+		unselected.sort(sortAlpha);
+
+		return selected.length > 0 ? [...selected, ...unselected] : unselected;
+	}
+
+	updateDisplay() {
+		this.tagsContainer.innerHTML = "";
+		const selectedArray = this.selectedValues ? Array.from(this.selectedValues) : [];
+		if (selectedArray.length === 0) {
+			this.placeholderEl.style.display = "block";
+			this.tagsContainer.style.display = "none";
+		} else {
+			this.placeholderEl.style.display = "none";
+			this.tagsContainer.style.display = "flex";
+
+			const displayCount = Math.min(selectedArray.length, this.maxDisplayTags);
+
+			for (let i = 0; i < displayCount; i++) {
+				const value = selectedArray[i];
+				const opt = this.options.find((option) => {
+					if (typeof option === "object") {
+						return option.value === value;
+					}
+					return option === value;
+				});
+				console.log(opt, "opt test");
+				const tag = this.createTag(
+					value,
+					opt
+						? typeof opt === "object"
+							? opt?.label
+								? opt.label
+								: opt.value
+							: opt
+						: value
+				);
+				this.tagsContainer.appendChild(tag);
+			}
+
+			if (selectedArray.length > this.maxDisplayTags) {
+				const moreTag = document.createElement("span");
+				moreTag.className = "frappe-multiselect-tag frappe-multiselect-tag-more";
+				moreTag.textContent = `+${selectedArray.length - this.maxDisplayTags} more`;
+				this.tagsContainer.appendChild(moreTag);
+			}
+		}
+	}
+
+	createTag(value, label) {
+		const tag = document.createElement("span");
+		tag.className = "frappe-multiselect-tag";
+		tag.setAttribute("data-value", value);
+
+		const tagLabel = document.createElement("span");
+		tagLabel.className = "frappe-multiselect-tag-label";
+		tagLabel.textContent = label;
+
+		const removeBtn = document.createElement("span");
+		removeBtn.className = "frappe-multiselect-tag-remove";
+		removeBtn.innerHTML = "&times;";
+
+		tag.appendChild(tagLabel);
+		tag.appendChild(removeBtn);
+
+		return tag;
+	}
+
+	fetchOptionsDebounced = frappe.utils.debounce(() => this.fetchOptions(), 1000);
+
+	bindEvents() {
+		this.selectionArea.addEventListener("click", (e) => {
+			e.stopPropagation();
+			if (e.target.closest(".frappe-multiselect-tag-remove")) {
+				const tag = e.target.closest(".frappe-multiselect-tag");
+				const value = tag.getAttribute("data-value");
+				this.deselectValue(value);
+				return;
+			}
+			if (!this.options?.length) {
+				this.fetchOptionsDebounced();
+			}
+			this.toggle();
+		});
+
+		this.dropdown.addEventListener("click", (e) => e.stopPropagation());
+
+		this.optionsList.addEventListener("click", (e) => {
+			e.stopPropagation();
+			const optionEl = e.target.closest(".frappe-multiselect-option");
+			if (optionEl) {
+				const value = optionEl.getAttribute("data-value");
+				this.toggleValue(value);
+			}
+		});
+
+		this.searchInput.addEventListener("input", (e) => {
+			e.stopPropagation();
+			this.searchTerm = e.target.value;
+			this.fetchOptionsDebounced();
+		});
+
+		this.searchInput.addEventListener("click", (e) => e.stopPropagation());
+
+		this.selectAllBtn.addEventListener("click", (e) => {
+			e.stopPropagation();
+			this.selectAll();
+		});
+
+		this.clearAllBtn.addEventListener("click", (e) => {
+			e.stopPropagation();
+			this.clearAll();
+		});
+
+		document.addEventListener("click", (e) => {
+			console.log(this.wrapper.contains(e.target), "");
+			if (!this.wrapper.contains(e.target)) this.close();
+		});
+	}
+
+	toggle() {
+		console.log("toggle called...", this.isOpen);
+		this.isOpen ? this.close() : this.open();
+	}
+
+	open() {
+		this.isOpen = true;
+		this.dropdown.classList.add("open");
+		this.arrowIcon.classList.add("open");
+		this.searchInput.focus();
+		this.renderOptions();
+	}
+
+	close() {
+		this.isOpen = false;
+		this.dropdown.classList.remove("open");
+		this.arrowIcon.classList.remove("open");
+		this.searchInput.value = "";
+		this.searchTerm = "";
+	}
+
+	toggleValue(value) {
+		this.selectedValues.has(value) ? this.deselectValue(value) : this.selectValue(value);
+	}
+
+	selectValue(value) {
+		this.selectedValues.add(value);
+		this.updateDisplay();
+		this.renderOptions();
+		this.syncToFrappe();
+	}
+
+	deselectValue(value) {
+		this.selectedValues.delete(value);
+		this.updateDisplay();
+		this.renderOptions();
+		this.syncToFrappe();
+	}
+
+	selectAll() {
+		this.getFilteredOptions().forEach((option) => {
+			const value = typeof option === "object" ? option.value : option;
+			this.selectedValues.add(value);
+		});
+		this.updateDisplay();
+		this.renderOptions();
+		this.syncToFrappe();
+	}
+
+	clearAll() {
+		this.selectedValues.clear();
+		this.updateDisplay();
+		this.renderOptions();
+		this.syncToFrappe();
+	}
+
+	// Sync value back to Frappe form
+	syncToFrappe() {
+		const childTableValue = this.getChildTableValue();
+
+		if (this.frm) {
+			// Store as child table array of objects
+			this.frm.set_value(this.fieldname, childTableValue);
+		}
+
+		// Trigger field's change event if defined
+		if (this.df.change) {
+			this.df.change(childTableValue);
+		}
+
+		// Dispatch custom event
+		const event = new CustomEvent("change", {
+			detail: { value: childTableValue, fieldname: this.fieldname },
+		});
+		this.wrapper.dispatchEvent(event);
+	}
+
+	getValue() {
+		return Array.from(this.selectedValues);
+	}
+
+	setValue(values) {
+		this.selectedValues = new Set(this.normalizeValues(values));
+		this.updateDisplay();
+		this.renderOptions();
+	}
+
+	refresh() {
+		this.fetchOptions();
+	}
+
+	injectStyles() {
+		if (document.getElementById("frappe-multiselect-styles")) return;
+
+		const styles = document.createElement("style");
+		styles.id = "frappe-multiselect-styles";
+		styles.textContent = `
+            .frappe-multiselect-wrapper {
+                position: relative;
+                font-size: var(--text-md);
+            }
+            .frappe-multiselect {
+                position: relative;
+                outline: none;
+            }
+            .frappe-multiselect-selection {
+                display: flex;
+                align-items: center;
+                min-height: 34px;
+                padding: 4px 32px 4px 10px;
+                border: 1px solid var(--border-color, #d1d8dd);
+                border-radius: var(--border-radius, 6px);
+                background: var(--control-bg, #fff);
+                cursor: pointer;
+                transition: border-color 0.15s, box-shadow 0.15s;
+                position: relative;
+            }
+            .frappe-multiselect-selection:hover {
+                border-color: var(--primary, #2490ef);
+            }
+            .frappe-multiselect-placeholder {
+                color: var(--text-muted, #8d99a6);
+            }
+            .frappe-multiselect-tags {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 4px;
+                flex: 1;
+            }
+            .frappe-multiselect-tag {
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+                padding: 2px 6px;
+                background: var(--bg-blue, #e8f4fd);
+                color: var(--text-color, #333);
+                border-radius: var(--border-radius-sm, 4px);
+                font-size: var(--text-sm, 12px);
+                max-width: 120px;
+            }
+            .frappe-multiselect-tag-label {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .frappe-multiselect-tag-remove {
+                cursor: pointer;
+                font-size: 14px;
+                line-height: 1;
+                opacity: 0.7;
+            }
+            .frappe-multiselect-tag-remove:hover {
+                opacity: 1;
+            }
+            .frappe-multiselect-tag-more {
+                background: var(--bg-light-gray, #f0f0f0);
+                color: var(--text-muted, #666);
+            }
+            .frappe-multiselect-arrow {
+                position: absolute;
+                right: 10px;
+                top: 50%;
+                transform: translateY(-50%);
+                color: var(--text-muted, #8d99a6);
+                transition: transform 0.2s;
+            }
+            .frappe-multiselect-arrow.open {
+                transform: translateY(-50%) rotate(180deg);
+            }
+            .frappe-multiselect-dropdown {
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                margin-top: 4px;
+                background: var(--fg-color, #fff);
+                border: 1px solid var(--border-color, #d1d8dd);
+                border-radius: var(--border-radius, 6px);
+                box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.1));
+                z-index: 1000;
+                opacity: 0;
+                visibility: hidden;
+                transform: translateY(-8px);
+                transition: all 0.15s;
+            }
+            .frappe-multiselect-dropdown.open {
+                opacity: 1;
+                visibility: visible;
+                transform: translateY(0);
+            }
+            .frappe-multiselect-search-wrapper {
+                padding: 8px;
+                border-bottom: 1px solid var(--border-color, #d1d8dd);
+            }
+            .frappe-multiselect-search {
+                width: 100%;
+                padding: 6px 10px;
+                border: 1px solid var(--border-color, #d1d8dd);
+                border-radius: var(--border-radius-sm, 4px);
+                font-size: var(--text-md, 13px);
+                outline: none;
+            }
+            .frappe-multiselect-search:focus {
+                border-color: var(--primary, #2490ef);
+            }
+            .frappe-multiselect-loading {
+                padding: 16px;
+                text-align: center;
+                color: var(--text-muted, #8d99a6);
+            }
+            .frappe-multiselect-loading .loading-spinner {
+                display: inline-block;
+                width: 14px;
+                height: 14px;
+                border: 2px solid var(--border-color, #d1d8dd);
+                border-top-color: var(--primary, #2490ef);
+                border-radius: 50%;
+                animation: spin 0.8s linear infinite;
+            }
+            @keyframes spin {
+                to { transform: rotate(360deg); }
+            }
+            .frappe-multiselect-options {
+                max-height: 200px;
+                overflow-y: auto;
+				overflow-x: hidden;
+				white-space: wrap;
+                padding: 4px 0;
+            }
+            .frappe-multiselect-option {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 8px 12px;
+                cursor: pointer;
+                transition: background 0.1s;
+            }
+            .frappe-multiselect-option:hover {
+                background: var(--bg-light-gray, #f5f7fa);
+            }
+            .frappe-multiselect-option.selected {
+                background: var(--bg-blue, #e8f4fd);
+            }
+            .frappe-multiselect-option.selected:hover {
+                background: var(--bg-blue, #d4ebfc);
+            }
+            .frappe-multiselect-checkbox {
+                width: 16px;
+                height: 16px;
+                border: 2px solid var(--border-color, #d1d8dd);
+                border-radius: 3px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+                transition: all 0.15s;
+            }
+            .frappe-multiselect-checkbox.checked {
+                background: var(--primary, #2490ef);
+                border-color: var(--primary, #2490ef);
+            }
+            .frappe-multiselect-option-label {
+                flex: 1;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .frappe-multiselect-no-results {
+                padding: 16px;
+                text-align: center;
+                color: var(--text-muted, #8d99a6);
+            }
+            .frappe-multiselect-actions {
+                display: flex;
+                gap: 8px;
+                padding: 8px;
+                border-top: 1px solid var(--border-color, #d1d8dd);
+            }
+            .frappe-multiselect-actions .btn {
+                flex: 1;
+            }
+        `;
+		document.head.appendChild(styles);
+	}
+}
