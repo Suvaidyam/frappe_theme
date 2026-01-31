@@ -168,9 +168,7 @@ class FrappeMultiselect {
 
 		this.arrowIcon = document.createElement("span");
 		this.arrowIcon.className = "frappe-multiselect-arrow";
-		this.arrowIcon.innerHTML = `<svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        </svg>`;
+		this.arrowIcon.innerHTML = frappe.utils.icon("select", "sm");
 
 		this.selectionArea.appendChild(this.tagsContainer);
 		this.selectionArea.appendChild(this.placeholderEl);
@@ -343,7 +341,6 @@ class FrappeMultiselect {
 					}
 					return option === value;
 				});
-				console.log(opt, "opt test");
 				const tag = this.createTag(
 					value,
 					opt
@@ -389,7 +386,6 @@ class FrappeMultiselect {
 
 	bindEvents() {
 		this.selectionArea.addEventListener("click", (e) => {
-			e.stopPropagation();
 			if (e.target.closest(".frappe-multiselect-tag-remove")) {
 				const tag = e.target.closest(".frappe-multiselect-tag");
 				const value = tag.getAttribute("data-value");
@@ -405,7 +401,6 @@ class FrappeMultiselect {
 		this.dropdown.addEventListener("click", (e) => e.stopPropagation());
 
 		this.optionsList.addEventListener("click", (e) => {
-			e.stopPropagation();
 			const optionEl = e.target.closest(".frappe-multiselect-option");
 			if (optionEl) {
 				const value = optionEl.getAttribute("data-value");
@@ -414,7 +409,6 @@ class FrappeMultiselect {
 		});
 
 		this.searchInput.addEventListener("input", (e) => {
-			e.stopPropagation();
 			this.searchTerm = e.target.value;
 			this.fetchOptionsDebounced();
 		});
@@ -422,30 +416,25 @@ class FrappeMultiselect {
 		this.searchInput.addEventListener("click", (e) => e.stopPropagation());
 
 		this.selectAllBtn.addEventListener("click", (e) => {
-			e.stopPropagation();
 			this.selectAll();
 		});
 
 		this.clearAllBtn.addEventListener("click", (e) => {
-			e.stopPropagation();
 			this.clearAll();
 		});
 
 		document.addEventListener("click", (e) => {
-			console.log(this.wrapper.contains(e.target), "");
 			if (!this.wrapper.contains(e.target)) this.close();
 		});
 	}
 
 	toggle() {
-		console.log("toggle called...", this.isOpen);
 		this.isOpen ? this.close() : this.open();
 	}
 
 	open() {
 		this.isOpen = true;
 		this.dropdown.classList.add("open");
-		this.arrowIcon.classList.add("open");
 		this.searchInput.focus();
 		this.renderOptions();
 	}
@@ -453,7 +442,6 @@ class FrappeMultiselect {
 	close() {
 		this.isOpen = false;
 		this.dropdown.classList.remove("open");
-		this.arrowIcon.classList.remove("open");
 		this.searchInput.value = "";
 		this.searchTerm = "";
 	}
@@ -498,8 +486,7 @@ class FrappeMultiselect {
 		const childTableValue = this.getChildTableValue();
 
 		if (this.frm) {
-			// Store as child table array of objects
-			this.frm.set_value(this.fieldname, childTableValue);
+			this.frm.doc[this.fieldname] = childTableValue;
 		}
 
 		// Trigger field's change event if defined
@@ -545,26 +532,26 @@ class FrappeMultiselect {
             .frappe-multiselect-selection {
                 display: flex;
                 align-items: center;
-                min-height: 34px;
                 padding: 4px 32px 4px 10px;
-                border: 1px solid var(--border-color, #d1d8dd);
-                border-radius: var(--border-radius, 6px);
-                background: var(--control-bg, #fff);
+                border: 1px solid #dcdcdc;
+                border-radius: 6px;
+                background: white;
                 cursor: pointer;
                 transition: border-color 0.15s, box-shadow 0.15s;
                 position: relative;
             }
-            .frappe-multiselect-selection:hover {
-                border-color: var(--primary, #2490ef);
-            }
             .frappe-multiselect-placeholder {
-                color: var(--text-muted, #8d99a6);
+                color: #8d99a6;
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
             }
             .frappe-multiselect-tags {
                 display: flex;
-                flex-wrap: wrap;
+                flex-wrap: nowrap;
                 gap: 4px;
-                flex: 1;
+				flex: 1;
+				overflow: hidden;
             }
             .frappe-multiselect-tag {
                 display: inline-flex;
@@ -594,6 +581,7 @@ class FrappeMultiselect {
             .frappe-multiselect-tag-more {
                 background: var(--bg-light-gray, #f0f0f0);
                 color: var(--text-muted, #666);
+				white-space: nowrap;
             }
             .frappe-multiselect-arrow {
                 position: absolute;
