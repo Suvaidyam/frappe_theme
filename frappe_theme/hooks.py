@@ -25,6 +25,8 @@ app_include_js = [
 	"overwrite_workflow.bundle.js",
 	"override_date_field.bundle.js",
 	"frappe_theme.bundle.js",
+	"override_link.bundle.js",
+	"override_select.bundle.js",
 	"override_table_multiselect.bundle.js",
 	f"/assets/frappe_theme/js/svadb.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/fields_comment.js?ver={time.time()}",
@@ -68,7 +70,7 @@ doctype_js = {
 # Svg Icons
 # ------------------
 # include app icons in desk
-# app_include_icons = "frappe_theme/public/icons.svg"
+app_include_icons = "/assets/frappe_theme/icons/oct-icons.svg"
 
 # Home Pages
 # ----------
@@ -172,6 +174,7 @@ doc_events = {
 
 override_whitelisted_methods = {
 	"frappe.model.workflow.apply_workflow": "frappe_theme.overrides.workflow.custom_apply_workflow",
+	"frappe.model.workflow.get_transitions": "frappe_theme.overrides.workflow.get_custom_transitions",
 	"frappe.desk.reportview.get": "frappe_theme.utils.data_protection.mask_doc_list_view",
 	"frappe.desk.listview.get": "frappe_theme.utils.data_protection.mask_doc_list_view",
 	"frappe.desk.query_report.run": "frappe_theme.utils.data_protection.mask_query_report",
@@ -200,7 +203,6 @@ scheduler_events = {
 # override_whitelisted_methods = {
 # 	"frappe.desk.doctype.event.event.get_events": "frappe_theme.event.get_events"
 # }
-
 
 #
 # each overriding function accepts a `data` argument;

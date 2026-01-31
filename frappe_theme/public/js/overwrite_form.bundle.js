@@ -79,15 +79,30 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			console.error("Error in handleDTHeader:", error);
 		}
 	}
+	custom_onload(frm) {
+		this.handleDTHeader(frm);
+		this.dashboard_header_handlers(frm);
+		this.dashboard_form_events_handler(frm);
+	}
 	setupHandlers() {
 		if (!frappe.ui.form.handlers[this.doctype]) {
 			frappe.ui.form.handlers[this.doctype] = {
+				onload: [this.custom_onload.bind(this)],
 				refresh: [this.custom_refresh.bind(this)],
 				on_tab_change: [this._activeTab.bind(this)],
 				after_save: [this.custom_after_save.bind(this)],
 				onload_post_render: [this.custom_onload_post_render.bind(this)],
 			};
 			return;
+		}
+
+		// Setup custom setup handlers
+		if (!frappe.ui.form.handlers[this.doctype].onload) {
+			frappe.ui.form.handlers[this.doctype].onload = [this.custom_onload.bind(this)];
+		} else if (
+			!frappe.ui.form.handlers[this.doctype].onload.includes(this.custom_onload.bind(this))
+		) {
+			frappe.ui.form.handlers[this.doctype].onload.push(this.custom_onload.bind(this));
 		}
 
 		// Setup refresh handlers
@@ -151,7 +166,6 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			// 		console.error(e);
 			// 	}
 			// });
-			this.handleDTHeader(frm);
 			setupFieldComments(frm);
 			this.goToCommentButton(frm);
 			if (frm.doctype == "DocType") {
@@ -228,6 +242,188 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			await this.tabContent(frm, tab_field);
 		} catch (error) {
 			console.error("Error in custom_refresh:", error);
+		}
+	}
+	dashboard_header_handlers(frm) {
+		try {
+			if (frm?.meta?.issingle && frm?.meta?.is_dashboard) {
+				frm.disable_save();
+				if (!frm.meta.header_html) {
+					let wrapper = $(
+						document.querySelector(
+							`#page-${frm.meta.name.replace(/ /g, "\\ ")} .page-head`
+						)
+					);
+					if (wrapper.length) {
+						let header_element = document.createElement("div");
+						header_element.id = "dashboard-header-element";
+						header_element.style =
+							"width: 100%; padding: 10px 14px;display:flex; justify-content: space-between; align-items: center;";
+
+						let title_element = document.createElement("h4");
+						title_element.id = "dashboard-header-title";
+						title_element.style = "margin:0px; padding:0px;";
+						title_element.innerText = __(frm.doctype || frm.meta.name);
+
+						let refresh_button = document.createElement("button");
+						refresh_button.id = "dashboard-refresh_button";
+						refresh_button.classList.add(
+							"text-muted",
+							"btn",
+							"btn-default",
+							"icon-btn"
+						);
+						refresh_button.innerHTML = `
+							<svg class="es-icon es-line icon-sm" style="" aria-hidden="true">
+								<use class="" href="#es-line-reload"></use>
+							</svg>
+						`;
+						refresh_button.onclick = function () {
+							if (Object.entries(frm.sva_ft_instances).length) {
+								for (const [key, instance] of Object.entries(
+									frm.sva_ft_instances
+								)) {
+									if (
+										instance.refresh &&
+										typeof instance.refresh === "function"
+									) {
+										instance.refresh();
+									} else if (
+										instance.reloadTable &&
+										typeof instance.reloadTable === "function"
+									) {
+										instance.reloadTable();
+									}
+								}
+							}
+						};
+						wrapper.get(0).innerHTML = "";
+						if (!header_element.querySelector("#dashboard-header-title")) {
+							header_element.appendChild(title_element);
+						}
+						if (!header_element.querySelector("#dashboard-refresh_button")) {
+							header_element.appendChild(refresh_button);
+						}
+						if (!wrapper.get(0).querySelector("#dashboard-header-element")) {
+							wrapper.get(0).appendChild(header_element);
+						}
+					}
+				}
+			}
+		} catch (error) {
+			console.error("Error in dashboard_header_handlers:", error);
+		}
+	}
+	async dashboard_form_events_handler(frm) {
+		function apply_dashboard_filters(frm, fields, apply_button, reset_button = null) {
+			let filters = {};
+			fields.forEach((field) => {
+				if (Array.isArray(frm.doc[field.fieldname])) {
+					if (frm.doc[field.fieldname].length > 0) {
+						filters[field.fieldname] = frm.doc[field.fieldname];
+					} else {
+						return;
+					}
+				} else if (frm.doc[field.fieldname]) {
+					filters[field.fieldname] = frm.doc[field.fieldname];
+				}
+			});
+			if (Object.keys(filters).length) {
+				for (let key in frm.sva_ft_instances) {
+					let instance = frm.sva_ft_instances[key];
+					if (instance?.connection) {
+						let _filters = [];
+						for (let f in filters) {
+							_filters.push([
+								instance.doctype || instance.linked_report || "RN",
+								f,
+								"=",
+								filters[f],
+							]);
+						}
+						instance.additional_list_filters = _filters;
+						instance.reloadTable();
+						continue;
+					} else {
+						instance.setFilters(filters);
+						continue;
+					}
+				}
+				frm["sva_active_filters"] = filters;
+				if (reset_button != null) {
+					frm.set_df_property(reset_button.fieldname, "hidden", 0);
+				}
+				// if (apply_button){
+				// 	frm.set_df_property(apply_button.fieldname, 'hidden', 1);
+				// }
+			} else {
+				return;
+			}
+		}
+
+		function reset_dashboard_filters(frm, fields, reset_button, apply_button = null) {
+			if (!frm["sva_active_filters"]) {
+				return;
+			}
+			fields.forEach((field) => {
+				if (field.fieldtype == "Link") {
+					frm.set_value(field.fieldname, "");
+				} else if (field.fieldtype == "Table MultiSelect") {
+					frm.set_value(field.fieldname, []);
+				}
+				return;
+			});
+			for (let key in frm.sva_ft_instances) {
+				let instance = frm.sva_ft_instances[key];
+				if (instance?.connection) {
+					instance.additional_list_filters = [];
+					instance.reloadTable();
+					continue;
+				} else {
+					instance.setFilters({});
+					continue;
+				}
+			}
+			frm["sva_active_filters"] = null;
+			if (reset_button) {
+				frm.set_df_property(reset_button.fieldname, "hidden", 1);
+			}
+			// if (apply_button != null){
+			// 	frm.set_df_property(apply_button.fieldname, 'hidden', 0);
+			// }
+		}
+		if (frm?.meta?.issingle && frm?.meta?.is_dashboard) {
+			let active_tab = await frm.get_active_tab();
+			let tab_fields = await this.getTabFieldsJSON(frm, active_tab?.df?.fieldname);
+
+			let apply_button = tab_fields.find(
+				(f) => f.fieldtype == "Button" && f?.is_apply_button
+			);
+			let reset_button = tab_fields.find(
+				(f) => f.fieldtype == "Button" && f?.is_reset_button
+			);
+
+			if (apply_button) {
+				frappe.ui.form.on(frm.doctype, apply_button.fieldname, function (frm) {
+					apply_dashboard_filters(
+						frm,
+						tab_fields,
+						apply_button,
+						reset_button ? reset_button : null
+					);
+				});
+			}
+			if (reset_button) {
+				frm.set_df_property(reset_button.fieldname, "hidden", 1);
+				frappe.ui.form.on(frm.doctype, reset_button.fieldname, function (frm) {
+					reset_dashboard_filters(
+						frm,
+						tab_fields,
+						reset_button,
+						apply_button ? apply_button : null
+					);
+				});
+			}
 		}
 	}
 	async custom_after_save(frm) {
@@ -494,6 +690,9 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			await this.handleBlocks(frm, tab_fields, signal);
 			await this.initializeDashboards(this.dts, frm, tab_fields, signal);
 			await this.processDataTables(dtFields, frm, this.dts, signal);
+			if (frm?.events?.after_sva_dt_load) {
+				frm.events.after_sva_dt_load(frm);
+			}
 		} catch (error) {
 			if (error.name === "AbortError") {
 				console.error("Request aborted due to tab switch");
@@ -529,6 +728,31 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			const f = frm?.meta?.fields[i];
 			if (f.fieldtype === "Tab Break") break;
 			if (f.fieldtype === "HTML") tab_fields.push(f.fieldname);
+		}
+		return tab_fields;
+	}
+
+	getTabFieldsJSON(frm, tab_field) {
+		if (!tab_field) {
+			return (
+				frm?.meta?.fields
+					?.filter((f) => ["Link", "Table MultiSelect", "Button"].includes(f.fieldtype))
+					?.map((f) => f) || []
+			);
+		}
+		const tab_fields = [];
+		const tab_field_index =
+			tab_field === "__details"
+				? 0
+				: frm?.meta?.fields?.findIndex((f) => f.fieldname === tab_field);
+
+		if (tab_field_index === -1 || tab_field_index + 1 > frm?.meta?.fields.length) {
+			return tab_fields;
+		}
+
+		for (let i = tab_field_index + 1; i < frm?.meta?.fields.length; i++) {
+			const f = frm?.meta?.fields[i];
+			if (["Link", "Table MultiSelect", "Button"].includes(f.fieldtype)) tab_fields.push(f);
 		}
 		return tab_fields;
 	}
@@ -611,6 +835,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 						card_doc.report = await frappe.db.get_doc("Report", card_doc.report_name);
 					}
 					let item = {
+						html_field: field.fieldname,
 						fetch_from: "Number Card",
 						number_card: field.sva_ft.number_card,
 						card_label: field.sva_ft.label || card_doc.label || "Untitled",
@@ -619,6 +844,9 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 						icon_value: field.sva_ft.icon || null,
 						icon_color: field.sva_ft.icon_color || null,
 						background_color: field.sva_ft.background_color || null,
+						hover_background_color: field.sva_ft.card_hover_background_color || null,
+						hover_text_color: field.sva_ft.card_hover_text_color || null,
+						hover_value_color: field.sva_ft.card_hover_value_color || null,
 						text_color: field.sva_ft.text_color || null,
 						value_color: field.sva_ft.value_color || null,
 						border_color: field.sva_ft.border_color || null,
@@ -647,6 +875,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 						chart_label: field.sva_ft.label || chart_doc.chart_name,
 						details: chart_doc,
 						report: report_doc,
+						html_field: field.fieldname,
 					};
 					let { _wrapper, ref } = new SVADashboardManager({
 						wrapper,
@@ -681,6 +910,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 				frm.sva_ft_instances[field.fieldname] = new SVAHeatmap({
 					wrapper: $(wrapper),
 					...(field?.sva_ft || {}),
+					html_field: field.fieldname,
 					frm,
 				});
 				break;
@@ -1025,6 +1255,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 
 	async _activeTab(frm) {
 		try {
+			this.dashboard_form_events_handler(frm);
 			frm["sva_cards"] = {};
 			frm["sva_charts"] = {};
 			frm["sva_tables"] = {};
