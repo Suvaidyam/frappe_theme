@@ -524,6 +524,7 @@ class FrappeMultiselect {
             .frappe-multiselect-wrapper {
                 position: relative;
                 font-size: var(--text-md);
+				margin-bottom: 8px;
             }
             .frappe-multiselect {
                 position: relative;
@@ -558,7 +559,7 @@ class FrappeMultiselect {
                 align-items: center;
                 gap: 4px;
                 padding: 2px 6px;
-                background: var(--bg-blue, #e8f4fd);
+                background: #F8F8F8;
                 color: var(--text-color, #333);
                 border-radius: var(--border-radius-sm, 4px);
                 font-size: var(--text-sm, 12px);
@@ -666,7 +667,7 @@ class FrappeMultiselect {
                 background: var(--bg-light-gray, #f5f7fa);
             }
             .frappe-multiselect-option.selected {
-                background: var(--bg-blue, #e8f4fd);
+                background: #F8F8F8;
             }
             .frappe-multiselect-option.selected:hover {
                 background: var(--bg-blue, #d4ebfc);
