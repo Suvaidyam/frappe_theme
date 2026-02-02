@@ -1,11 +1,9 @@
 # Example labeler configuration for Frappe Theme
 # Map file patterns to PR labels. Adjust as needed for your repo structure.
 
-frontend:
+enhancement:
   - paths:
       - "apps/frappe_theme/frontend/**"
-backend:
-  - paths:
       - "apps/frappe_theme/backend/**"
 docs:
   - paths:
