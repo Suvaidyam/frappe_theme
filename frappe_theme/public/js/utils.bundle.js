@@ -65,3 +65,19 @@ export const add_custom_approval_assignments_fields = async (d) => {
 	}
 	return customFields;
 };
+
+export const get_parent_section_field_by_fieldname = (frm, fieldname) => {
+	let section_field = null;
+	for (let field of frm.meta?.fields) {
+		if (field?.fieldtype === "Section Break") {
+			section_field = field;
+			continue;
+		}
+		if (field?.fieldname === fieldname) {
+			return section_field;
+		}
+	}
+	return null;
+};
+
+frappe.utils.get_parent_section_field_by_fieldname = get_parent_section_field_by_fieldname;

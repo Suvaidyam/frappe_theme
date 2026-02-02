@@ -23,6 +23,7 @@ frappe.ui.form.ControlLink = class ControlLinkWithIcon extends frappe.ui.form.Co
 			"border-radius": "6px",
 			"box-shadow": "none",
 			"padding-right": "0px",
+			cursor: "pointer",
 		});
 		this.$wrapper.find("div.clearfix").remove();
 		this.$wrapper
