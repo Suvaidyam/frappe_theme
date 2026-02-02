@@ -1,3 +1,70 @@
+function open_approval_timeline_dialog(doctype, referenceName, documentTitle) {
+	const dialog = new frappe.ui.Dialog({
+		title: __("Approval Timeline"),
+		size: "extra-large",
+		fields: [
+			{
+				fieldname: "approval_timeline",
+				fieldtype: "HTML",
+				options: "",
+			},
+		],
+		primary_action_label: __("Close"),
+		primary_action() {
+			dialog.hide();
+		},
+	});
+
+	let approval_timeline_html = document.createElement("div");
+	dialog.set_df_property("approval_timeline", "options", approval_timeline_html);
+
+	frappe.require("approval_timeline.bundle.js").then(() => {
+		new frappe.ui.CustomApprovalTimeline({
+			wrapper: approval_timeline_html,
+			doctype: doctype,
+			referenceName: referenceName,
+			documentTitle: documentTitle,
+		});
+	});
+
+	dialog.show();
+}
+
+async function handleDTHeader(frm, html) {
+	try {
+		let wrapper = $(
+			document.querySelector(`#page-${frm.meta.name.replace(/ /g, "\\ ")} .page-head`)
+		);
+		if (wrapper.length && html) {
+			frappe.create_shadow_element(wrapper.get(0), html.html, html.style, html.script);
+		}
+	} catch (error) {
+		console.error("Error in handleDTHeader:", error);
+	}
+}
+// Check if doctype has an active workflow
+async function has_active_workflow(doctype) {
+	try {
+		const result = await frappe.call({
+			method: "frappe.client.get_list",
+			args: {
+				doctype: "Workflow",
+				filters: {
+					document_type: doctype,
+					is_active: 1,
+				},
+				fields: ["name"],
+				limit_page_length: 1,
+			},
+		});
+
+		return result.message && result.message.length > 0;
+	} catch (error) {
+		console.error("Error checking workflow:", error);
+		return false;
+	}
+}
+frappe.handleDTHeader = handleDTHeader;
 frappe.ui.form.on("*", {
 	async validate(frm) {
 		const regex_props = await frappe.call(
@@ -30,6 +97,23 @@ frappe.ui.form.on("*", {
 					);
 				}
 			}
+		}
+	},
+	async refresh(frm) {
+		const permResp = await frappe.xcall("frappe_theme.api.get_permissions", {
+			doctype: "SVA Workflow Action",
+		});
+		const hasPermission = permResp.includes("read") ? true : false;
+		frm["has_permission_for_workflow_action_log"] = hasPermission;
+		const hasWorkflow = await has_active_workflow(frm.doctype);
+		if (hasWorkflow && hasPermission) {
+			frm.page.add_menu_item(__("Approval Timeline"), () => {
+				open_approval_timeline_dialog(
+					frm.doctype,
+					frm.doc.name,
+					frm.meta.title_field ? frm.doc[frm.meta.title_field] : ""
+				);
+			});
 		}
 	},
 });

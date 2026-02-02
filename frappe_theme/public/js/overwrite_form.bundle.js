@@ -18,8 +18,10 @@ if (frappe.ui?.FileUploader) {
 	};
 }
 
+import { get_parent_section_field_by_fieldname } from "./utils.bundle.js";
 import Loader from "./loader-element.js";
 import SvaDataTable from "./datatable/sva_datatable.bundle.js";
+import SVAHeatmap from "./custom_components/heatmap.bundle.js";
 import SVADashboardManager from "./sva_dashboard_manager.bundle.js";
 import SVAEmailComponent from "./custom_components/communication.bundle.js";
 import SVAGalleryComponent from "./custom_components/gallery.bundle.js";
@@ -29,6 +31,7 @@ import SVAmGrantTask from "./custom_components/task.bundle.js";
 import SVATimelineGenerator from "./custom_components/timeline.bundle.js";
 import CustomApprovalRequest from "./custom_components/approval_request/approval_request.bundle.js";
 import CustomDynamicHtml from "./custom_components/dynamic_html/dynamic_html.bundle.js";
+import FilterRibbon from "./custom_components/filters_ribbon.bundle.js";
 
 frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 	constructor(...args) {
@@ -55,15 +58,53 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			});
 		}
 	}
+	async handleDTHeader(frm) {
+		try {
+			let header_html_block = frm.meta.header_html;
+			if (header_html_block) {
+				let html = await frappe.db.get_doc("Custom HTML Block", header_html_block);
+				let wrapper = $(
+					document.querySelector(
+						`#page-${frm.meta.name.replace(/ /g, "\\ ")} .page-head`
+					)
+				);
+				if (wrapper.length && html) {
+					frappe.create_shadow_element(
+						wrapper.get(0),
+						html.html,
+						html.style,
+						html.script
+					);
+				}
+			}
+		} catch (error) {
+			console.error("Error in handleDTHeader:", error);
+		}
+	}
+	custom_onload(frm) {
+		this.handleDTHeader(frm);
+		this.dashboard_header_handlers(frm);
+		this.dashboard_form_events_handler(frm);
+	}
 	setupHandlers() {
 		if (!frappe.ui.form.handlers[this.doctype]) {
 			frappe.ui.form.handlers[this.doctype] = {
+				onload: [this.custom_onload.bind(this)],
 				refresh: [this.custom_refresh.bind(this)],
 				on_tab_change: [this._activeTab.bind(this)],
 				after_save: [this.custom_after_save.bind(this)],
 				onload_post_render: [this.custom_onload_post_render.bind(this)],
 			};
 			return;
+		}
+
+		// Setup custom setup handlers
+		if (!frappe.ui.form.handlers[this.doctype].onload) {
+			frappe.ui.form.handlers[this.doctype].onload = [this.custom_onload.bind(this)];
+		} else if (
+			!frappe.ui.form.handlers[this.doctype].onload.includes(this.custom_onload.bind(this))
+		) {
+			frappe.ui.form.handlers[this.doctype].onload.push(this.custom_onload.bind(this));
 		}
 
 		// Setup refresh handlers
@@ -189,11 +230,12 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					method: "frappe_theme.dt_api.get_sva_dt_settings",
 					doctype: frm.doc.doctype,
 				});
-				if (!message) return;
-				this.dts = message;
-				window.sva_datatable_configuration = {
-					[frm.doc.doctype]: this.dts,
-				};
+				if (message) {
+					this.dts = message;
+					window.sva_datatable_configuration = {
+						[frm.doc.doctype]: this.dts,
+					};
+				}
 			} else {
 				this.dts = window.sva_datatable_configuration?.[frm.doc.doctype];
 			}
@@ -202,6 +244,201 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			await this.tabContent(frm, tab_field);
 		} catch (error) {
 			console.error("Error in custom_refresh:", error);
+		}
+	}
+	dashboard_header_handlers(frm) {
+		try {
+			if (frm?.meta?.issingle && frm?.meta?.is_dashboard) {
+				frm.disable_save();
+				if (!frm.meta.header_html) {
+					let wrapper = $(
+						document.querySelector(
+							`#page-${frm.meta.name.replace(/ /g, "\\ ")} .page-head`
+						)
+					);
+					if (wrapper.length) {
+						let header_element = document.createElement("div");
+						header_element.id = "dashboard-header-element";
+						header_element.style =
+							"width: 100%; padding: 10px 14px;display:flex; justify-content: space-between; align-items: center;";
+
+						let title_element = document.createElement("h4");
+						title_element.id = "dashboard-header-title";
+						title_element.style = "margin:0px; padding:0px;";
+						title_element.innerText = __(frm.doctype || frm.meta.name);
+
+						let refresh_button = document.createElement("button");
+						refresh_button.id = "dashboard-refresh_button";
+						refresh_button.classList.add(
+							"text-muted",
+							"btn",
+							"btn-default",
+							"icon-btn"
+						);
+						refresh_button.innerHTML = `
+							<svg class="es-icon es-line icon-sm" style="" aria-hidden="true">
+								<use class="" href="#es-line-reload"></use>
+							</svg>
+						`;
+						refresh_button.onclick = function () {
+							if (Object.entries(frm.sva_ft_instances).length) {
+								for (const [key, instance] of Object.entries(
+									frm.sva_ft_instances
+								)) {
+									if (
+										instance.refresh &&
+										typeof instance.refresh === "function"
+									) {
+										instance.refresh();
+									} else if (
+										instance.reloadTable &&
+										typeof instance.reloadTable === "function"
+									) {
+										instance.reloadTable();
+									}
+								}
+							}
+						};
+						wrapper.get(0).innerHTML = "";
+						if (!header_element.querySelector("#dashboard-header-title")) {
+							header_element.appendChild(title_element);
+						}
+						if (!header_element.querySelector("#dashboard-refresh_button")) {
+							header_element.appendChild(refresh_button);
+						}
+						if (!wrapper.get(0).querySelector("#dashboard-header-element")) {
+							wrapper.get(0).appendChild(header_element);
+						}
+					}
+				}
+			}
+		} catch (error) {
+			console.error("Error in dashboard_header_handlers:", error);
+		}
+	}
+	async dashboard_form_events_handler(frm) {
+		function apply_dashboard_filters(frm, fields, apply_button_field) {
+			let filters = {};
+			fields.forEach((field) => {
+				if (Array.isArray(frm.doc[field.fieldname])) {
+					if (frm.doc[field.fieldname].length > 0) {
+						filters[field.fieldname] = frm.doc[field.fieldname];
+					} else {
+						return;
+					}
+				} else if (frm.doc[field.fieldname]) {
+					filters[field.fieldname] = frm.doc[field.fieldname];
+				}
+			});
+			if (Object.keys(filters).length) {
+				if (!frm?.filters_ribbon) {
+					let parent_section_field = get_parent_section_field_by_fieldname(
+						frm,
+						apply_button_field.fieldname
+					);
+					if (parent_section_field) {
+						let wrapper = frm.$wrapper.find(
+							`[data-fieldname='${parent_section_field.fieldname}']`
+						);
+						if (wrapper.length) {
+							let ribbon_instance = new FilterRibbon({
+								wrapper: wrapper[0],
+								filters: filters,
+								frm: frm,
+							});
+							frm["filters_ribbon"] = ribbon_instance;
+						}
+					}
+				} else {
+					frm.filters_ribbon.updateFilters(filters);
+				}
+				for (let key in frm.sva_ft_instances) {
+					let instance = frm.sva_ft_instances[key];
+					if (instance?.connection) {
+						let _filters = [];
+						for (let f in filters) {
+							_filters.push([
+								instance.doctype || instance.linked_report || "RN",
+								f,
+								"=",
+								filters[f],
+							]);
+						}
+						instance.additional_list_filters = _filters;
+						instance.reloadTable();
+						continue;
+					} else {
+						instance.setFilters(filters);
+						continue;
+					}
+				}
+				frm["sva_active_filters"] = filters;
+			} else {
+				return;
+			}
+		}
+
+		function reset_dashboard_filters(frm, fields) {
+			if (!frm["sva_active_filters"]) {
+				return;
+			}
+			fields.forEach((field) => {
+				if (field.fieldtype == "Link") {
+					frm.set_value(field.fieldname, "");
+				} else if (field.fieldtype == "Table MultiSelect") {
+					frm.set_value(field.fieldname, []);
+				}
+				return;
+			});
+			for (let key in frm.sva_ft_instances) {
+				let instance = frm.sva_ft_instances[key];
+				if (instance?.connection) {
+					instance.additional_list_filters = [];
+					instance.reloadTable();
+					continue;
+				} else {
+					instance.setFilters({});
+					continue;
+				}
+			}
+			frm["sva_active_filters"] = null;
+			if (frm.filters_ribbon) {
+				frm.filters_ribbon.destroy();
+			}
+		}
+		if (frm?.meta?.issingle && frm?.meta?.is_dashboard) {
+			let active_tab = await frm.get_active_tab();
+			let tab_fields = await this.getTabFieldsJSON(frm, active_tab?.df?.fieldname);
+
+			let apply_button = tab_fields.find(
+				(f) => f.fieldtype == "Button" && f?.is_apply_button
+			);
+
+			if (apply_button) {
+				let apply_button_field = frm.get_field(apply_button.fieldname);
+				apply_button_field.apply_action = () => {
+					apply_dashboard_filters(frm, tab_fields, apply_button_field?.df);
+				};
+
+				apply_button_field.reset_action = () => {
+					reset_dashboard_filters(frm, tab_fields, apply_button_field?.df);
+				};
+
+				// apply_button_field.$apply_button.on("click", )
+				// apply_button_field.$reset_button.on("click", );
+			}
+
+			// if (apply_button) {
+			// 	frappe.ui.form.on(frm.doctype, apply_button.fieldname, function (frm) {
+
+			// 	});
+			// }
+			// if (reset_button) {
+			// 	frm.set_df_property(reset_button.fieldname, "hidden", 1);
+			// 	frappe.ui.form.on(frm.doctype, reset_button.fieldname, function (frm) {
+
+			// 	});
+			// }
 		}
 	}
 	async custom_after_save(frm) {
@@ -297,7 +534,6 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			for (const trigger of this.dts.triggers) {
 				let targets = JSON.parse(trigger.targets || "[]");
 				if (!targets.length) continue;
-				// console.log(trigger, 'trigger')
 				if (trigger.table_type == "Custom Design") {
 					this.bindCustomDesignActionEvents(frm, trigger, targets);
 				} else {
@@ -460,16 +696,18 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 		const signal = controller.signal;
 		try {
 			const tab_fields = this.getTabFields(frm, tab_field);
-
 			const { dtFields, vm_fields, vm_all_fields } = this.processConfigurationFields(
 				this.dts,
 				tab_fields
 			);
 			const relevant_html_fields = [...dtFields.map((f) => f.html_field), ...vm_fields];
-
 			this.clearOtherMappedFields(this.dts, relevant_html_fields, vm_all_fields, frm);
+			await this.handleBlocks(frm, tab_fields, signal);
 			await this.initializeDashboards(this.dts, frm, tab_fields, signal);
 			await this.processDataTables(dtFields, frm, this.dts, signal);
+			if (frm?.events?.after_sva_dt_load) {
+				frm.events.after_sva_dt_load(frm);
+			}
 		} catch (error) {
 			if (error.name === "AbortError") {
 				console.error("Request aborted due to tab switch");
@@ -484,8 +722,18 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 	}
 
 	getTabFields(frm, tab_field) {
+		if (!tab_field) {
+			return (
+				frm?.meta?.fields
+					?.filter((f) => f.fieldtype === "HTML")
+					?.map((f) => f.fieldname) || []
+			);
+		}
 		const tab_fields = [];
-		const tab_field_index = frm?.meta?.fields?.findIndex((f) => f.fieldname === tab_field);
+		const tab_field_index =
+			tab_field === "__details"
+				? 0
+				: frm?.meta?.fields?.findIndex((f) => f.fieldname === tab_field);
 
 		if (tab_field_index === -1 || tab_field_index + 1 > frm?.meta?.fields.length) {
 			return tab_fields;
@@ -496,7 +744,31 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			if (f.fieldtype === "Tab Break") break;
 			if (f.fieldtype === "HTML") tab_fields.push(f.fieldname);
 		}
+		return tab_fields;
+	}
 
+	getTabFieldsJSON(frm, tab_field) {
+		if (!tab_field) {
+			return (
+				frm?.meta?.fields
+					?.filter((f) => ["Link", "Table MultiSelect", "Button"].includes(f.fieldtype))
+					?.map((f) => f) || []
+			);
+		}
+		const tab_fields = [];
+		const tab_field_index =
+			tab_field === "__details"
+				? 0
+				: frm?.meta?.fields?.findIndex((f) => f.fieldname === tab_field);
+
+		if (tab_field_index === -1 || tab_field_index + 1 > frm?.meta?.fields.length) {
+			return tab_fields;
+		}
+
+		for (let i = tab_field_index + 1; i < frm?.meta?.fields.length; i++) {
+			const f = frm?.meta?.fields[i];
+			if (["Link", "Table MultiSelect", "Button"].includes(f.fieldtype)) tab_fields.push(f);
+		}
 		return tab_fields;
 	}
 
@@ -506,20 +778,17 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 				(f) => tab_fields.includes(f.html_field) && !f.hide_table
 			) || [];
 
-		const vm_fields = [
-			...(dts?.number_cards?.filter((f) => tab_fields.includes(f.html_field)) || []).map(
-				(f) => f.html_field
-			),
-			...(dts?.charts?.filter((f) => tab_fields.includes(f.html_field)) || []).map(
-				(f) => f.html_field
-			),
-		];
-
+		const cards_fields = (
+			dts?.number_cards?.filter((f) => tab_fields.includes(f.html_field)) || []
+		).map((f) => f.html_field);
+		const charts_fields = (
+			dts?.charts?.filter((f) => tab_fields.includes(f.html_field)) || []
+		).map((f) => f.html_field);
+		const vm_fields = [...cards_fields, ...charts_fields];
 		const vm_all_fields = [
 			...(dts?.number_cards?.map((f) => f.html_field) || []),
 			...(dts?.charts?.map((f) => f.html_field) || []),
 		];
-
 		return { dtFields, vm_fields, vm_all_fields };
 	}
 
@@ -536,7 +805,132 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			frm.set_df_property(field, "options", "");
 		});
 	}
+	async handleBlocks(frm, tab_fields, signal = null) {
+		frm.sva_ft_instances = {};
+		const custom_blocks = frm.meta.fields
+			.filter((f) => tab_fields.includes(f.fieldname))
+			?.filter((f) => f.sva_ft)
+			?.filter((f) => {
+				try {
+					return JSON.parse(f.sva_ft);
+				} catch (error) {
+					return false;
+				}
+			});
+		let promises = [];
+		for (const field of custom_blocks) {
+			let f = { ...field, sva_ft: JSON.parse(field.sva_ft) };
+			promises.push(this.renderCustomBlock(frm, f, signal));
+		}
+		await Promise.all(promises);
+	}
+	renderCustomBlock = async (frm, field, signal = null) => {
+		let wrapper = document.createElement("div");
+		frm.set_df_property(field.fieldname, "options", wrapper);
 
+		switch (field.sva_ft.property_type) {
+			case "Custom HTML Block":
+				if (field.sva_ft.html_block) {
+					let html = await frappe.db.get_doc(
+						"Custom HTML Block",
+						field.sva_ft.html_block
+					);
+					if (html) {
+						frappe.create_shadow_element(wrapper, html.html, html.style, html.script);
+					}
+				}
+				break;
+			case "Number Card":
+				if (field.sva_ft.number_card) {
+					let card_doc = await frappe.db.get_doc(
+						"Number Card",
+						field.sva_ft.number_card
+					);
+					if (card_doc.type == "Report" && card_doc.report_name) {
+						card_doc.report = await frappe.db.get_doc("Report", card_doc.report_name);
+					}
+					let item = {
+						html_field: field.fieldname,
+						fetch_from: "Number Card",
+						number_card: field.sva_ft.number_card,
+						card_label: field.sva_ft.label || card_doc.label || "Untitled",
+						details: card_doc,
+						report: card_doc.report || null,
+						icon_value: field.sva_ft.icon || null,
+						icon_color: field.sva_ft.icon_color || null,
+						background_color: field.sva_ft.background_color || null,
+						hover_background_color: field.sva_ft.card_hover_background_color || null,
+						hover_text_color: field.sva_ft.card_hover_text_color || null,
+						hover_value_color: field.sva_ft.card_hover_value_color || null,
+						text_color: field.sva_ft.text_color || null,
+						value_color: field.sva_ft.value_color || null,
+						border_color: field.sva_ft.border_color || null,
+					};
+					let { _wrapper, ref } = new SVADashboardManager({
+						wrapper,
+						frm,
+						numberCards: [item],
+						signal,
+					});
+					frm.sva_ft_instances[field.fieldname] = ref;
+					wrapper._dashboard = _wrapper;
+				}
+				break;
+
+			case "Dashboard Chart":
+				if (field.sva_ft.chart) {
+					let chart_doc = await frappe.db.get_doc("Dashboard Chart", field.sva_ft.chart);
+					let report_doc = null;
+					if (chart_doc.chart_type === "Report" && chart_doc.report_name) {
+						report_doc = await frappe.db.get_doc("Report", chart_doc.report_name);
+					}
+					let item = {
+						...field.sva_ft,
+						fetch_from: "Dashboard Chart",
+						chart_label: field.sva_ft.label || chart_doc.chart_name,
+						details: chart_doc,
+						report: report_doc,
+						html_field: field.fieldname,
+					};
+					let { _wrapper, ref } = new SVADashboardManager({
+						wrapper,
+						frm,
+						charts: [item],
+						signal,
+					});
+					frm.sva_ft_instances[field.fieldname] = ref;
+					wrapper._dashboard = _wrapper;
+				}
+				break;
+			case "DocType (Direct)":
+			case "DocType (Indirect)":
+			case "DocType (Referenced)":
+			case "DocType (Unfiltered)":
+			case "Report":
+			case "Is Custom Design":
+				if (field.sva_ft.property_type === "Is Custom Design") {
+					field.sva_ft["connection_type"] = "Is Custom Design";
+				}
+				if (!field.sva_ft?.connection_type || field.sva_ft?.hide_table) break;
+				field.sva_ft["html_field"] = field.fieldname;
+				field.sva_ft["configuration_basis"] = "Property Setter";
+				if (frm.is_new()) {
+					await this.renderLocalFormMessage(field.sva_ft, frm);
+				} else {
+					await this.renderSavedFormContent(field.sva_ft, frm, field.sva_ft, signal);
+				}
+				break;
+			case "Heatmap (India Map)":
+				field.sva_ft["report"] = field.sva_ft["heatmap_report"];
+				frm.sva_ft_instances[field.fieldname] = new SVAHeatmap({
+					wrapper: $(wrapper),
+					...(field?.sva_ft || {}),
+					html_field: field.fieldname,
+					frm,
+				});
+				break;
+		}
+	};
 	async initializeDashboards(dts, frm, currentTabFields, signal) {
 		const initDashboard = async (item, type) => {
 			if (!currentTabFields.includes(item.html_field)) return;
@@ -555,9 +949,15 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 				signal,
 			});
 			if (item.parentfield == "number_cards") {
+				if (!frm.sva_cards) {
+					frm.sva_cards = {};
+				}
 				frm.sva_cards[item.number_card] = ref;
 			}
 			if (item.parentfield == "charts") {
+				if (!frm.sva_charts) {
+					frm.sva_charts = {};
+				}
 				frm.sva_charts[item.chart] = ref;
 			}
 			wrapper._dashboard = _wrapper;
@@ -573,7 +973,9 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 	}
 
 	async processDataTables(dtFields, frm, dts, signal) {
-		// this.sva_tables = {};
+		if (!this.sva_tables) {
+			this.sva_tables = {};
+		}
 		for (const field of dtFields) {
 			try {
 				if (signal.aborted) break;
@@ -782,6 +1184,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			if (signal.aborted) return;
 			const ComponentClass = this.getComponentClass(template);
 			let instance = new ComponentClass(frm, el, conf, { signal });
+			frm.sva_ft_instances[fieldname] = instance;
 			// Store cleanup function
 			this.mountedComponents.set(componentId, () => {
 				if (instance.cleanup) {
@@ -805,14 +1208,14 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 	}
 
 	async initializeSvaDataTable(field, frm, dts, signal) {
-		const childLinks = dts.child_confs.filter((f) => f.parent_doctype === field.link_doctype);
+		const childLinks =
+			dts?.child_confs?.filter((f) => f.parent_doctype === field.link_doctype) || [];
 		const wrapper = document.createElement("div");
 		const wrapperId = `sva-datatable-wrapper-${field.html_field}`;
 		wrapper.id = wrapperId;
 
 		let loader = new Loader(wrapper);
 		loader.show();
-		// console.log("loader show", loader);
 
 		// Register component
 		this.activeComponents.add(wrapperId);
@@ -839,6 +1242,10 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			onFieldClick: this.handleFieldEvent("onFieldClick"),
 			onFieldValueChange: this.handleFieldEvent("onFieldValueChange"),
 		});
+		frm.sva_ft_instances[field.html_field] = instance;
+		if (!frm.sva_tables) {
+			frm.sva_tables = {};
+		}
 		frm.sva_tables[
 			["Direct", "Unfiltered"].includes(field.connection_type)
 				? field.link_doctype
@@ -863,6 +1270,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 
 	async _activeTab(frm) {
 		try {
+			this.dashboard_form_events_handler(frm);
 			frm["sva_cards"] = {};
 			frm["sva_charts"] = {};
 			frm["sva_tables"] = {};

@@ -19,11 +19,18 @@ app_include_css = [
 ]
 app_include_js = [
 	"https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
+	"global_exporter.bundle.js",
 	"sva_workspace.bundle.js",
 	"overwrite_form.bundle.js",
 	"overwrite_workflow.bundle.js",
 	"override_date_field.bundle.js",
 	"frappe_theme.bundle.js",
+	"override_link.bundle.js",
+	"override_select.bundle.js",
+	"override_table_multiselect.bundle.js",
+	"override_button.bundle.js",
+	"override_multiselect.bundle.js",
+	"filters_ribbon.bundle.js",
 	f"/assets/frappe_theme/js/svadb.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/fields_comment.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/extended_chart.js?ver={time.time()}",
@@ -33,6 +40,8 @@ app_include_js = [
 	f"/assets/frappe_theme/js/sva_dt_utils.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/customizations.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/doctype/global_doctype.js?ver={time.time()}",
+	f"/assets/frappe_theme/js/breadcrumb_override.js?ver={time.time()}",
+	f"/assets/frappe_theme/js/sidebar_override.js?ver={time.time()}",
 ]
 extend_bootinfo = "frappe_theme.boot.boot_theme"
 # include js, css files in header of web template
@@ -55,8 +64,8 @@ webform_include_js = {
 doctype_js = {
 	"Workflow": "public/js/doctype/workflow.js",
 	"Web Form": "public/js/doctype/web_form.js",
-	"Customize Form": "public/js/download_customizations.js",
-	"DocType": "public/js/doctype/doctype.js",
+	"Customize Form": ["public/js/doctype/property_setter.js", "public/js/doctype/customize_form.js"],
+	"DocType": ["public/js/doctype/property_setter.js", "public/js/doctype/doctype.js"],
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
@@ -64,7 +73,7 @@ doctype_js = {
 # Svg Icons
 # ------------------
 # include app icons in desk
-# app_include_icons = "frappe_theme/public/icons.svg"
+app_include_icons = "/assets/frappe_theme/icons/oct-icons.svg"
 
 # Home Pages
 # ----------
@@ -139,9 +148,7 @@ jinja = {"methods": "frappe_theme.utils.jinja_methods"}
 # ---------------
 # Override standard doctype classes
 
-# override_doctype_class = {
-# 	"ToDo": "custom_app.overrides.CustomToDo"
-# }
+override_doctype_class = {"Report": "frappe_theme.overrides.report.CustomReport"}
 
 # Document Events
 # ---------------
@@ -159,6 +166,9 @@ doc_events = {
 		# "on_cancel": "method",
 		# "on_trash": "method"
 	},
+	"Report": {
+		"before_save": "frappe_theme.overrides.report.before_save",
+	},
 	"File": {
 		"after_insert": "frappe_theme.controllers.sva_integrations.cloud_assets.file_upload_to_cloud",
 		"on_trash": "frappe_theme.controllers.sva_integrations.cloud_assets.delete_from_cloud",
@@ -167,6 +177,7 @@ doc_events = {
 
 override_whitelisted_methods = {
 	"frappe.model.workflow.apply_workflow": "frappe_theme.overrides.workflow.custom_apply_workflow",
+	"frappe.model.workflow.get_transitions": "frappe_theme.overrides.workflow.get_custom_transitions",
 	"frappe.desk.reportview.get": "frappe_theme.utils.data_protection.mask_doc_list_view",
 	"frappe.desk.listview.get": "frappe_theme.utils.data_protection.mask_doc_list_view",
 	"frappe.desk.query_report.run": "frappe_theme.utils.data_protection.mask_query_report",
@@ -176,23 +187,13 @@ override_whitelisted_methods = {
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-# 	"all": [
-# 		"frappe_theme.tasks.all"
-# 	],
-# 	"daily": [
-# 		"frappe_theme.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"frappe_theme.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"frappe_theme.tasks.weekly"
-# 	],
-# 	"monthly": [
-# 		"frappe_theme.tasks.monthly"
-# 	],
-# }
+scheduler_events = {
+	"cron": {
+		"*/10 * * * *": [
+			"frappe_theme.cron.sync_ticket_status.run",
+		]
+	}
+}
 
 # Testing
 # -------
@@ -205,7 +206,6 @@ override_whitelisted_methods = {
 # override_whitelisted_methods = {
 # 	"frappe.desk.doctype.event.event.get_events": "frappe_theme.event.get_events"
 # }
-
 
 #
 # each overriding function accepts a `data` argument;

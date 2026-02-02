@@ -1,13 +1,18 @@
+import Loader from "../loader-element.js";
+import SvaDataTable from "../datatable/sva_datatable.bundle.js";
+
 class SVAHeatmap {
 	constructor(opts) {
+		this.html_field = opts.html_field || "";
 		this.reportName = opts.report || "";
 		this.wrapper = opts.wrapper;
 		this.stateGeoJsonUrl = "/assets/frappe_theme/boundaries/state_boundries.json";
 		this.districtGeoJsonUrl = "/assets/frappe_theme/boundaries/districts_boundaries.json";
 		this.defaultView = opts.default_view || "State";
-		this.blockHeight = opts.block_height || 280;
-
+		this.blockHeight = opts.block_height || 445;
+		this.label = opts.label || "";
 		this.map = null;
+		this.frm = opts.frm || null;
 		this.stateLayer = null;
 		this.districtLayer = null;
 		this.mapId = "map-" + frappe.utils.get_random(8);
@@ -16,7 +21,7 @@ class SVAHeatmap {
 		this.targetFields = JSON.parse(opts.target_fields || "[]")?.filter(
 			(field) => field.fieldname !== this.primaryTargetField
 		);
-		this.stateField = opts.stateField;
+		this.stateField = opts.stateField || opts?.state_name_column;
 		this.districtField = opts.districtField;
 		this.isLoadingDistricts = null;
 
@@ -65,7 +70,15 @@ class SVAHeatmap {
         `;
 		document.head.appendChild(style);
 
+		this.standard_filters = opts.standard_filters || {};
+		this.filters = opts.filters || {};
+
 		this.init();
+	}
+
+	setFilters(filters = {}) {
+		this.filters = filters;
+		this.refreshData();
 	}
 
 	init() {
@@ -81,13 +94,16 @@ class SVAHeatmap {
 				position: "relative",
 				margin: "0 auto",
 				backgroundColor: "#fff",
+				padding: "10px 10px 5px 10px",
+				borderRadius: "10px",
+				border: "1px solid #dcdcdc",
 			});
 
 		// Add title container
 		this.titleContainer = $("<div>").css({
 			position: "absolute",
 			top: "10px",
-			left: "0%",
+			left: "10px",
 			zIndex: 1000,
 			backgroundColor: "#fff",
 			fontWeight: "bold",
@@ -108,7 +124,7 @@ class SVAHeatmap {
 			.css({
 				position: "absolute",
 				top: "10px",
-				right: "10px",
+				right: "45px",
 				zIndex: 1000,
 				padding: "4px 6px",
 				backgroundColor: "#fff",
@@ -118,6 +134,25 @@ class SVAHeatmap {
 			.on("click", () => this.toggleFullscreen());
 
 		this.mapContainer.append(this.fullscreenButton);
+		this.showTableButton = $('<button class="btn btn-secondary btn-sm" title="View Table">')
+			.html(
+				`
+			<svg width="24px" height="24px" viewBox="0 0 24.00 24.00" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M3 9H21M3 15H21M9 9L9 20M15 9L15 20M6.2 20H17.8C18.9201 20 19.4802 20 19.908 19.782C20.2843 19.5903 20.5903 19.2843 20.782 18.908C21 18.4802 21 17.9201 21 16.8V7.2C21 6.0799 21 5.51984 20.782 5.09202C20.5903 4.71569 20.2843 4.40973 19.908 4.21799C19.4802 4 18.9201 4 17.8 4H6.2C5.0799 4 4.51984 4 4.09202 4.21799C3.71569 4.40973 3.40973 4.71569 3.21799 5.09202C3 5.51984 3 6.07989 3 7.2V16.8C3 17.9201 3 18.4802 3.21799 18.908C3.40973 19.2843 3.71569 19.5903 4.09202 19.782C4.51984 20 5.07989 20 6.2 20Z" stroke="#000000" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>
+			`
+			)
+			.css({
+				position: "absolute",
+				top: "10px",
+				right: "10px",
+				zIndex: 1000,
+				padding: "4px 4px",
+				backgroundColor: "#fff",
+				border: "none",
+				cursor: "pointer",
+			})
+			.on("click", () => this.showDataTable());
+
+		this.mapContainer.append(this.showTableButton);
 
 		this.resetButton = $(
 			'<button class="btn btn-secondary btn-sm" title="Reset to Country View">'
@@ -131,7 +166,7 @@ class SVAHeatmap {
 			.css({
 				position: "absolute",
 				top: "10px",
-				right: "75px",
+				right: "105px",
 				zIndex: 1000,
 				padding: "4px 6px",
 				backgroundColor: "#fff",
@@ -147,7 +182,7 @@ class SVAHeatmap {
 			.css({
 				position: "absolute",
 				top: "10px",
-				right: "45px",
+				right: "75px",
 				zIndex: 1000,
 				padding: "4px 6px",
 				backgroundColor: "#fff",
@@ -221,23 +256,78 @@ class SVAHeatmap {
 		}
 	}
 
-	fetchData() {
+	async showDataTable() {
+		const wrapper = document.createElement("div");
+		let loader = new Loader(wrapper);
+		loader.show();
+
+		let table_options = {
+			label: "",
+			wrapper,
+			doctype: "",
+			frm: this.frm || cur_frm,
+			connection: {
+				crud_permissions: JSON.stringify(["read"]),
+				link_report: this.reportName,
+				connection_type: "Report",
+			},
+			childLinks: [],
+			options: {
+				serialNumberColumn: true,
+				editable: false,
+			},
+			loader,
+		};
+
+		let dialog = new frappe.ui.Dialog({
+			title: this.reportName || "Data Table",
+			fields: [
+				{
+					fieldtype: "HTML",
+					fieldname: "data_table_html",
+					options: `<div>Table Loading...</div>`,
+				},
+			],
+			size: "extra-large",
+			primary_action_label: "Close",
+			primary_action: function () {
+				dialog.hide();
+			},
+		});
+		dialog.show();
+		dialog.set_df_property("data_table_html", "options", wrapper);
+
+		new SvaDataTable(table_options);
+	}
+
+	async fetchData() {
 		if (!this.reportName) {
 			this.hideLoader();
 			return;
 		}
-
+		let pre_filters = {};
+		if (this.frm) {
+			if (this.frm?.["dt_events"]?.[this?.html_field]?.get_filters) {
+				let get_filters = this.frm?.["dt_events"]?.[this?.html_field]?.get_filters;
+				pre_filters = (await get_filters(this.reportName, this.html_field)) || {};
+			}
+		}
 		frappe.call({
-			method: "frappe.desk.query_report.run",
+			method: "frappe_theme.dt_api.get_dt_list",
 			args: {
-				report_name: this.reportName,
-				filters: this.filters,
+				doctype: this.reportName,
+				doc: this.frm?.doc?.name,
+				ref_doctype: this.frm?.doc?.doctype,
+				filters: { ...this.standard_filters, ...this.filters, ...pre_filters },
+				fields: ["*"],
+				_type: "Report",
+				return_columns: true,
 			},
 			callback: (r) => {
 				if (r.message) {
 					this.reportData = r.message;
 					// Update title with report name
-					this.titleContainer.text(this.reportName);
+					this.titleContainer.text(this.label || this.reportName);
 
 					const hasStateColumn = this.reportData.columns.some(
 						(col) => col.options === "State"
@@ -255,7 +345,7 @@ class SVAHeatmap {
 							(col) => col.options === "District"
 						).fieldname;
 					}
-					if (hasStateColumn) {
+					if (this.stateField || hasStateColumn) {
 						this.applyDataToMap();
 					} else {
 						this.hideLoader();
@@ -284,10 +374,9 @@ class SVAHeatmap {
 	}
 
 	applyDataToMap() {
-		if (!this.reportData || !this.stateLayer) return;
-
+		if (!this.stateLayer) return;
 		this.stateData = {};
-		this.reportData.result.forEach((row) => {
+		this.reportData?.result?.forEach((row) => {
 			const stateId = row[this.stateField];
 			if (!this.stateData[stateId]) {
 				this.stateData[stateId] = {
@@ -316,11 +405,18 @@ class SVAHeatmap {
 
 		this.stateLayer.eachLayer((layer) => {
 			const stateID = layer.feature.properties.id;
-			const data = this.stateData[stateID];
+			const stateName = layer.feature.properties.name;
+			const data = this.stateData[stateID] || this.stateData[stateName];
 			if (data) {
 				layer.setStyle({
 					fillColor: this.getColorByValue(data.count),
 					fillOpacity: 0.7,
+					color: "#333333",
+				});
+			} else {
+				layer.setStyle({
+					fillColor: "#f3f3f3",
+					color: "#333333",
 				});
 			}
 		});
@@ -381,8 +477,14 @@ class SVAHeatmap {
 				let formattedNextBreak = nextBreak;
 
 				if (column?.fieldtype === "Currency") {
-					formattedBreak = frappe.utils.format_currency(break_, column.options);
-					formattedNextBreak = frappe.utils.format_currency(nextBreak, column.options);
+					formattedBreak = frappe.utils.format_currency(
+						break_,
+						frappe.boot?.sysdefaults?.currency || "INR"
+					);
+					formattedNextBreak = frappe.utils.format_currency(
+						nextBreak,
+						frappe.boot?.sysdefaults?.currency || "INR"
+					);
 				} else {
 					formattedBreak = frappe.utils.shorten_number(
 						break_,
@@ -444,21 +546,25 @@ class SVAHeatmap {
 		if (!range || typeof range.min === "undefined") {
 			return this.lowNumberCode;
 		}
+		if (value == range.min) {
+			return this.lowNumberCode;
+		} else if (value == range.max) {
+			return this.highNumberCode;
+		} else {
+			const percentage = (value - range.min) / (range.max - range.min);
+			// Convert hex colors to RGB for interpolation
+			const lowRGB = this.hexToRGB(this.lowNumberCode);
+			const highRGB = this.hexToRGB(this.highNumberCode);
 
-		const percentage = (value - range.min) / (range.max - range.min);
+			// Interpolate between colors
+			const resultRGB = {
+				r: Math.round(lowRGB.r + (highRGB.r - lowRGB.r) * percentage),
+				g: Math.round(lowRGB.g + (highRGB.g - lowRGB.g) * percentage),
+				b: Math.round(lowRGB.b + (highRGB.b - lowRGB.b) * percentage),
+			};
 
-		// Convert hex colors to RGB for interpolation
-		const lowRGB = this.hexToRGB(this.lowNumberCode);
-		const highRGB = this.hexToRGB(this.highNumberCode);
-
-		// Interpolate between colors
-		const resultRGB = {
-			r: Math.round(lowRGB.r + (highRGB.r - lowRGB.r) * percentage),
-			g: Math.round(lowRGB.g + (highRGB.g - lowRGB.g) * percentage),
-			b: Math.round(lowRGB.b + (highRGB.b - lowRGB.b) * percentage),
-		};
-
-		return `rgb(${resultRGB.r}, ${resultRGB.g}, ${resultRGB.b})`;
+			return `rgb(${resultRGB.r}, ${resultRGB.g}, ${resultRGB.b})`;
+		}
 	}
 
 	// Helper function to convert hex to RGB
@@ -480,6 +586,7 @@ class SVAHeatmap {
 				this.stateLayer = L.geoJSON(data, {
 					style: {
 						color: "#F2F2F3",
+						borderColor: "",
 						weight: 1,
 						fillOpacity: 0.7,
 					},
@@ -488,7 +595,8 @@ class SVAHeatmap {
 							mouseover: (e) => {
 								const stateName = feature.properties.name;
 								const stateId = feature.properties.id;
-								const data = this.stateData?.[stateId] || { count: 0, data: {} };
+								const data = this.stateData?.[stateId] ||
+									this.stateData?.[stateName] || { count: 0, data: {} };
 
 								this.refreshButton.hide();
 								this.fixedPopupContainer
@@ -619,6 +727,12 @@ class SVAHeatmap {
 							layer.setStyle({
 								fillColor: this.getColorByValue(data.count),
 								fillOpacity: 0.7,
+								color: "#333333",
+							});
+						} else {
+							layer.setStyle({
+								fillColor: "#f3f3f3",
+								color: "#333333",
 							});
 						}
 					},
@@ -728,8 +842,11 @@ class SVAHeatmap {
 				.map((field) => {
 					let value = data.data[field.fieldname];
 					if (value) {
-						if (field.fieldtype === "Currency") {
-							value = frappe.utils.format_currency(value, field.options);
+						if (field?.fieldtype === "Currency") {
+							value = frappe.utils.format_currency(
+								value,
+								frappe.boot?.sysdefaults?.currency || "INR"
+							);
 						} else {
 							value = frappe.utils.shorten_number(
 								value,
@@ -746,8 +863,11 @@ class SVAHeatmap {
             <div>
                 <strong>${name}</strong><br/>
                 ${column?.label || "Count"}: ${
-			column.fieldtype == "Currency"
-				? frappe.utils.format_currency(data?.count || 0)
+			column?.fieldtype == "Currency"
+				? frappe.utils.format_currency(
+						data?.count || 0,
+						frappe.boot?.sysdefaults?.currency || "INR"
+				  )
 				: frappe.utils.shorten_number(data?.count || 0, frappe.sys_defaults.country)
 		}
                 ${additionalFields}
@@ -819,4 +939,5 @@ class SVAHeatmap {
 	}
 }
 
+frappe.ui.SVAHeatmap = SVAHeatmap;
 export default SVAHeatmap;
