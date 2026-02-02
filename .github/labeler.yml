@@ -1,24 +1,63 @@
 # Example labeler configuration for Frappe Theme
 # Map file patterns to PR labels. Adjust as needed for your repo structure.
 
+feat:
+  - paths:
+      - "apps/frappe_theme/frontend/**"
+      - "apps/frappe_theme/backend/**"
 enhancement:
   - paths:
       - "apps/frappe_theme/frontend/**"
       - "apps/frappe_theme/backend/**"
+fix:
+  - paths:
+      - "apps/frappe_theme/frontend/**/*.js"
+      - "apps/frappe_theme/backend/**/*.py"
 docs:
   - paths:
       - "**/*.md"
+documentation:
+  - paths:
+      - "docs/**"
 test:
   - paths:
       - "**/test_*.py"
-chore:
-  - paths:
-      - "scripts/**"
 style:
   - paths:
       - "**/*.css"
       - "**/*.scss"
       - "**/*.less"
+chore:
+  - paths:
+      - "scripts/**"
+build:
+  - paths:
+      - "bench-v*/patches.txt"
+ci:
+  - paths:
+      - ".github/workflows/**"
+dependencies:
+  - paths:
+      - "requirements.txt"
+      - "package.json"
 release:
   - paths:
       - "bench-v*/patches.txt"
+refactor:
+  - paths:
+      - "apps/frappe_theme/backend/**/refactor_*.py"
+perf:
+  - paths:
+      - "apps/frappe_theme/backend/**/perf_*.py"
+security:
+  - paths:
+      - "apps/frappe_theme/backend/**/security_*.py"
+infra:
+  - paths:
+      - "infra/**"
+hotfix:
+  - paths:
+      - "hotfix/**"
+wip:
+  - paths:
+      - "wip/**"
