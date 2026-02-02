@@ -59,6 +59,7 @@ frappe.ui.form.on("Approval Tracker", {
 	module: async function (frm) {
 		if (frm.doc.module) {
 			await set_pending_on_options(frm);
+			frm._custom_state_filter = null;
 			show_table(frm, frm.doc.module);
 			setTimeout(() => {
 				apply_pending_on_filter(frm);
