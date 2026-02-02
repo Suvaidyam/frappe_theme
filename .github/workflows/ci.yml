@@ -33,6 +33,9 @@ jobs:
         uses: actions/labeler@v5
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+          configuration-path: .github/labeler.yml
+          sync-labels: false
+          dot: true
 
   label-check:
     name: PR label validation

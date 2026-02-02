@@ -1,0 +1,19 @@
+# Example labeler configuration for Frappe Theme
+# Map file patterns to PR labels. Adjust as needed for your repo structure.
+
+frontend:
+  - "apps/frappe_theme/frontend/**"
+backend:
+  - "apps/frappe_theme/backend/**"
+docs:
+  - "**/*.md"
+test:
+  - "**/test_*.py"
+chore:
+  - "scripts/**"
+style:
+  - "**/*.css"
+  - "**/*.scss"
+  - "**/*.less"
+release:
+  - "bench-v*/patches.txt"
