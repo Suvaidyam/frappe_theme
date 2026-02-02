@@ -1046,7 +1046,7 @@ def get_workflow_count(doctype):
 	sql = f"""
         SELECT
             wfs.state AS state,
-            COALESCE(COUNT(tab.name), 0) AS count,
+            COALESCE(COUNT(DISTINCT tab.name), 0) AS count,
             ws.style
         FROM `tabWorkflow` AS w
         LEFT JOIN `tabWorkflow Document State` AS wfs ON wfs.parent = w.name

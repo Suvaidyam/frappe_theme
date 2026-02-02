@@ -118,10 +118,12 @@ class CustomReport(Report):
 		"""
 		conditions = []
 		for col in columns:
+			if not isinstance(col, dict) and hasattr(col, "as_dict"):
+				col = col.as_dict()
+
 			if isinstance(col, dict) and col.get("fieldtype") == "Link":
 				linked_dt = col.get("options")
 				fieldname = col.get("fieldname")
-
 				if not linked_dt or not fieldname:
 					continue
 				# Frappe’s internal match condition builder
@@ -195,7 +197,7 @@ class CustomReport(Report):
 			if operator.lower() == "between" and isinstance(value, (list | tuple)) and len(value) == 2:
 				condition = f"{field_name} BETWEEN '{value[0]}' AND '{value[1]}'"
 			elif operator.lower() == "like":
-				condition = f"{field_name} LIKE '{value}'"
+				condition = f"{field_name} LIKE '%{value}%'"
 			elif operator.lower() == "in" and isinstance(value, (list | tuple)):
 				in_values = ", ".join(f"'{v}'" for v in value)
 				condition = f"{field_name} IN ({in_values})"
