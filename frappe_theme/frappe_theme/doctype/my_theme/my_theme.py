@@ -4,6 +4,7 @@
 import re
 
 import frappe
+import requests
 from frappe.model.document import Document
 
 from frappe_theme.dt_api import get_number_card_count
@@ -34,3 +35,21 @@ class MyTheme(Document):
 			return res.get("count")
 		else:
 			return 0
+
+	def get_request_post(self, url, data=None, headers=None, json=None, params=None, timeout=None):
+		return requests.post(url, data=data, headers=headers, json=json, params=params, timeout=timeout)
+
+	def get_request_get(self, url, headers=None, params=None, timeout=None):
+		return requests.get(url, headers=headers, params=params, timeout=timeout)
+
+	def get_request_put(self, url, data, headers=None, json=None, params=None, timeout=None):
+		return requests.put(url, data=data, headers=headers, json=json, params=params, timeout=timeout)
+
+	def get_request_delete(self, url, headers=None, params=None, timeout=None):
+		return requests.delete(url, headers=headers, params=params, timeout=timeout)
+
+	def get_request_patch(self, url, data, headers=None, json=None, params=None, timeout=None):
+		return requests.patch(url, data=data, headers=headers, json=json, params=params, timeout=timeout)
+
+	def get_request_head(self, url, headers=None, params=None, timeout=None):
+		return requests.head(url, headers=headers, params=params, timeout=timeout)

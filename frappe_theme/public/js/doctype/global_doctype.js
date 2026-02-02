@@ -38,6 +38,7 @@ async function handleDTHeader(frm, html) {
 		if (wrapper.length && html) {
 			frappe.create_shadow_element(wrapper.get(0), html.html, html.style, html.script);
 		}
+		return wrapper;
 	} catch (error) {
 		console.error("Error in handleDTHeader:", error);
 	}
