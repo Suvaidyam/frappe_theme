@@ -53,7 +53,7 @@ class TestAzureBlobOperations(IntegrationTestCase):
 			blob_client = AzureBlobOperations()
 
 			# Simulate invalid credentials
-			blob_client.BLOB_CLIENT.account_key = "invalid_key"
+			blob_client.BLOB_CLIENT.account_key = frappe.conf.get("db_type")
 
 			try:
 				blob_client.BLOB_CLIENT.list_containers()
