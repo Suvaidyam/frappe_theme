@@ -2,18 +2,25 @@
 # Map file patterns to PR labels. Adjust as needed for your repo structure.
 
 frontend:
-  - "apps/frappe_theme/frontend/**"
+  - paths:
+      - "apps/frappe_theme/frontend/**"
 backend:
-  - "apps/frappe_theme/backend/**"
+  - paths:
+      - "apps/frappe_theme/backend/**"
 docs:
-  - "**/*.md"
+  - paths:
+      - "**/*.md"
 test:
-  - "**/test_*.py"
+  - paths:
+      - "**/test_*.py"
 chore:
-  - "scripts/**"
+  - paths:
+      - "scripts/**"
 style:
-  - "**/*.css"
-  - "**/*.scss"
-  - "**/*.less"
+  - paths:
+      - "**/*.css"
+      - "**/*.scss"
+      - "**/*.less"
 release:
-  - "bench-v*/patches.txt"
+  - paths:
+      - "bench-v*/patches.txt"
