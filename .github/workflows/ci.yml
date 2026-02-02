@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  PYTHON_VERSION: "3.11"
+  PYTHON_VERSION: "3.12"
   NODE_VERSION: "22"
   APP_NAME: "frappe_theme"
   SITE_NAME: "test.localhost"
@@ -21,10 +21,24 @@ env:
   DB_ROOT_PASSWORD: "root"
 
 jobs:
+  auto-label:
+    name: Auto Assign PR Labels
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Labeler
+        uses: actions/labeler@v5
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
   label-check:
     name: PR label validation
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+    needs: auto-label
     steps:
       - name: Check PR labels
         uses: docker://agilepathway/pull-request-label-checker:latest
