@@ -1,5 +1,3 @@
-import SvaCard from "./vue/sva_card/sva_card.bundle";
-
 function getColumnsFromUI(fieldname, frm) {
 	const field = frm.fields_dict[fieldname];
 	if (!field?.wrapper) return 1;
@@ -40,11 +38,11 @@ function getEmbedUrl(url) {
 /* ================= Configuration ================= */
 const responsiveConfig = {
 	"mobile-small": {
-		carouselHeight: 350,
-		imgHeight: "180px",
+		carouselHeight: 450,
+		imgHeight: "270px",
 		titleFontSize: 16,
 		descFontSize: 12,
-		contentPadding: "16px 20px",
+		contentPadding: "8px 12px",
 		navButtonSize: "32px",
 		navIconSize: "18px",
 		navButtonPosition: "8px",
@@ -55,11 +53,11 @@ const responsiveConfig = {
 		pageCounterPadding: "4px 8px",
 	},
 	mobile: {
-		carouselHeight: 400,
-		imgHeight: "220px",
+		carouselHeight: 450,
+		imgHeight: "270px",
 		titleFontSize: 18,
-		descFontSize: 14,
-		contentPadding: "18px 24px",
+		descFontSize: 13,
+		contentPadding: "10px 16px",
 		navButtonSize: "36px",
 		navIconSize: "20px",
 		navButtonPosition: "10px",
@@ -85,7 +83,7 @@ const responsiveConfig = {
 		pageCounterPadding: "6px 12px",
 	},
 	desktop: {
-		carouselHeight: 500,
+		carouselHeight: 450,
 		imgHeight: "none",
 		titleFontSize: 24,
 		descFontSize: 18,
@@ -100,7 +98,7 @@ const responsiveConfig = {
 		pageCounterPadding: "6px 14px",
 	},
 	"desktop-large": {
-		carouselHeight: 550,
+		carouselHeight: 450,
 		imgHeight: "none",
 		titleFontSize: 26,
 		descFontSize: 20,
@@ -128,18 +126,20 @@ function applyConfigOverrides(config, conf, deviceType) {
 
 	if (conf?.carousel_heightin_px) {
 		config.carouselHeight = conf.carousel_heightin_px;
-		if (isMobile) config.imgHeight = `${Math.floor(conf.carousel_heightin_px * 0.55)}px`;
+		if (isMobile) {
+			config.imgHeight = `${Math.floor(conf.carousel_heightin_px * 0.6)}px`;
+		}
 	}
 	if (conf?.title_font_size) {
 		config.titleFontSize = Math.max(
 			conf.title_font_size * multipliers[deviceType],
-			isMobile ? 16 : 18
+			isMobile ? 14 : 18
 		);
 	}
 	if (conf?.desc_font_size) {
 		config.descFontSize = Math.max(
 			conf.desc_font_size * (multipliers[deviceType] + 0.05),
-			isMobile ? 12 : 14
+			isMobile ? 11 : 14
 		);
 	}
 	return config;
@@ -196,7 +196,9 @@ function generateMediaHTML(cd) {
 		return `<div class="bg-video"><video loop muted playsinline><source src="${cd.img}" type="video/mp4"></video></div>
 			<div class="img-wrap video-wrap"><video controls playsinline><source src="${cd.img}" type="video/mp4"></video></div>`;
 	}
-	return `<div class="bg-image" style="background-image:url('${cd.img}')"></div><div class="img-wrap"><img src="${cd.img}" alt="${cd.title}"/></div>`;
+	return `<div class="bg-image" style="background-image:url('${
+		cd.img
+	}')"></div><div class="img-wrap"><img src="${cd.img}" alt="${cd.title || ""}"/></div>`;
 }
 
 function generateCarouselHTML(data) {
@@ -212,9 +214,10 @@ function generateCarouselHTML(data) {
 						cd.img
 					)}">
 				${generateMediaHTML(cd)}
-				<div class="content-wrapper"><div class="content"><h3 class="title">${
-					cd.title
-				}</h3><p class="desc">${cd.description}</p></div></div>
+				<div class="content-wrapper"><div class="content">
+					${cd.title ? `<h3 class="title">${cd.title}</h3>` : ""}
+					${cd.description ? `<p class="desc">${cd.description}</p>` : ""}
+				</div></div>
 			</div>`
 				)
 				.join("")}
@@ -305,6 +308,7 @@ function applyStyles(
 				display: "flex",
 				flexDirection: "column",
 			});
+			// Mobile view section mein (around line 268)
 			if (mw)
 				Object.assign(mw.style, {
 					height: config.imgHeight,
@@ -318,47 +322,79 @@ function applyStyles(
 					flexShrink: "0",
 					position: "relative",
 				});
-			if (me)
+			if (me) {
 				Object.assign(me.style, {
 					width: "100%",
 					height: "100%",
 					objectFit: "cover",
 					display: "block",
 				});
-			Object.assign(c.style, {
-				textAlign: "center",
-				fontFamily: conf?.font_family || "system-ui",
-				color: "#333",
-				padding: isMobileSmall ? "12px 16px" : "14px 20px",
-				overflow: "auto",
-				flex: "1",
-				maxHeight: "none",
-			});
-			Object.assign(t.style, {
-				color: conf?.title_color || "#1a1a1a",
-				background: "transparent",
-				textAlign: conf?.alignment || "center",
-				fontFamily: conf?.font_family || "system-ui",
-				fontSize: `${config.titleFontSize}px`,
-				fontWeight: "600",
-				marginBottom: isMobileSmall ? "8px" : "10px",
-				padding: isMobileSmall ? "6px" : "8px",
-				borderRadius: "5px",
-				lineHeight: "1.3",
-				wordWrap: "break-word",
-			});
-			Object.assign(d.style, {
-				color: conf?.desc_color || "#4a4a4a",
-				background: "transparent",
-				textAlign: conf?.alignment || "center",
-				fontFamily: conf?.font_family || "system-ui",
-				fontSize: `${config.descFontSize}px`,
-				fontWeight: "400",
-				lineHeight: isMobileSmall ? "1.5" : "1.6",
-				padding: isMobileSmall ? "6px" : "8px",
-				borderRadius: "5px",
-				wordWrap: "break-word",
-			});
+
+				// Hide controls for video
+				if (isVideo && me.tagName === "VIDEO") {
+					me.removeAttribute("controls");
+					me.setAttribute("controlsList", "nodownload nofullscreen noremoteplayback");
+					me.setAttribute("disablePictureInPicture", "true");
+				}
+			}
+			if (c) {
+				const imgHeightPx = parseInt(config.imgHeight);
+				const remainingHeight = 450 - imgHeightPx;
+
+				Object.assign(c.style, {
+					textAlign: "center",
+					fontFamily: conf?.font_family || "system-ui",
+					color: "#333",
+					padding: isMobileSmall ? "8px 12px" : "10px 16px",
+					overflow: "auto",
+					flex: "1",
+					display: "flex",
+					flexDirection: "column",
+					justifyContent: "flex-start",
+					alignItems: "stretch",
+					height: `${remainingHeight}px`,
+					maxHeight: `${remainingHeight}px`,
+					minHeight: `${remainingHeight}px`,
+				});
+			}
+			if (t) {
+				Object.assign(t.style, {
+					color: conf?.title_color || "#1a1a1a",
+					background: "transparent",
+					textAlign: conf?.alignment || "center",
+					fontFamily: conf?.font_family || "system-ui",
+					fontSize: `${config.titleFontSize}px`,
+					fontWeight: "600",
+					marginBottom: "6px",
+					padding: "0",
+					borderRadius: "0",
+					lineHeight: "1.3",
+					wordWrap: "break-word",
+					width: "100%",
+					flexShrink: "0",
+					display: "block",
+				});
+			}
+			if (d) {
+				Object.assign(d.style, {
+					color: conf?.desc_color || "#4a4a4a",
+					background: "transparent",
+					textAlign: conf?.alignment || "center",
+					fontFamily: conf?.font_family || "system-ui",
+					fontSize: `${config.descFontSize}px`,
+					fontWeight: "400",
+					lineHeight: isMobileSmall ? "1.4" : "1.5",
+					padding: "0",
+					margin: "0",
+					borderRadius: "0",
+					wordWrap: "break-word",
+					overflowWrap: "break-word",
+					width: "100%",
+					overflow: "auto",
+					flex: "1",
+					display: "block",
+				});
+			}
 		} else {
 			if (bg) {
 				Object.assign(bg.style, {
@@ -403,47 +439,53 @@ function applyStyles(
 				padding: "0",
 			});
 			if (mw) mw.style.display = "none";
-			Object.assign(c.style, {
-				textAlign: conf?.alignment || "left",
-				fontFamily: conf?.font_family || "system-ui",
-				color: conf?.text_color || "#fff",
-				width: "100%",
-				maxHeight: "100%",
-				overflowY: "auto",
-				overflowX: "hidden",
-				padding: config.contentPadding,
-				borderRadius: "8px",
-				scrollbarWidth: "thin",
-				scrollbarColor: "rgba(255,255,255,0.5) transparent",
-				boxSizing: "border-box",
-			});
-			Object.assign(t.style, {
-				color: conf?.title_color || "#fff",
-				background: "transparent",
-				textAlign: conf?.alignment || "left",
-				fontFamily: conf?.font_family || "system-ui",
-				fontSize: `${config.titleFontSize}px`,
-				fontWeight: "600",
-				marginBottom: isTablet ? "14px" : "16px",
-				textShadow: "2px 2px 4px rgba(0,0,0,0.5)",
-				padding: isTablet ? "8px 10px" : "10px",
-				borderRadius: "5px",
-				lineHeight: "1.3",
-				wordWrap: "break-word",
-			});
-			Object.assign(d.style, {
-				color: conf?.desc_color || "#fff",
-				background: "transparent",
-				textAlign: conf?.alignment || "left",
-				fontFamily: conf?.font_family || "system-ui",
-				fontSize: `${config.descFontSize}px`,
-				fontWeight: "400",
-				lineHeight: "1.6",
-				textShadow: "1px 1px 2px rgba(0,0,0,0.5)",
-				padding: isTablet ? "8px 10px" : "10px",
-				borderRadius: "5px",
-				wordWrap: "break-word",
-			});
+			if (c) {
+				Object.assign(c.style, {
+					textAlign: conf?.alignment || "left",
+					fontFamily: conf?.font_family || "system-ui",
+					color: conf?.text_color || "#fff",
+					width: "100%",
+					maxHeight: "100%",
+					overflowY: "auto",
+					overflowX: "hidden",
+					padding: config.contentPadding,
+					borderRadius: "8px",
+					scrollbarWidth: "thin",
+					scrollbarColor: "rgba(255,255,255,0.5) transparent",
+					boxSizing: "border-box",
+				});
+			}
+			if (t) {
+				Object.assign(t.style, {
+					color: conf?.title_color || "#fff",
+					background: "transparent",
+					textAlign: conf?.alignment || "left",
+					fontFamily: conf?.font_family || "system-ui",
+					fontSize: `${config.titleFontSize}px`,
+					fontWeight: "600",
+					marginBottom: isTablet ? "14px" : "16px",
+					textShadow: "2px 2px 4px rgba(0,0,0,0.5)",
+					padding: isTablet ? "8px 10px" : "10px",
+					borderRadius: "5px",
+					lineHeight: "1.3",
+					wordWrap: "break-word",
+				});
+			}
+			if (d) {
+				Object.assign(d.style, {
+					color: conf?.desc_color || "#fff",
+					background: "transparent",
+					textAlign: conf?.alignment || "left",
+					fontFamily: conf?.font_family || "system-ui",
+					fontSize: `${config.descFontSize}px`,
+					fontWeight: "400",
+					lineHeight: "1.6",
+					textShadow: "1px 1px 2px rgba(0,0,0,0.5)",
+					padding: isTablet ? "8px 10px" : "10px",
+					borderRadius: "5px",
+					wordWrap: "break-word",
+				});
+			}
 		}
 	});
 
@@ -608,35 +650,236 @@ function pauseAllVideos(container) {
 }
 
 function playCurrentVideo(container, conf) {
+	// Background video play karo
 	const bgVideo = container.querySelector(".bg-video video");
 	if (bgVideo && conf?.auto_play !== false) {
 		bgVideo.play().catch((e) => console.log("Video autoplay blocked:", e));
 	}
-}
 
-const getReportColumns = (report_name) => {
-	console.log(report_name, "7777777777777777777777777777777777777777777777");
-};
+	// Foreground video bhi play karo (mobile view ke liye)
+	const fgVideo = container.querySelector(".video-wrap video");
+	if (fgVideo && conf?.auto_play !== false) {
+		fgVideo.play().catch((e) => console.log("Video autoplay blocked:", e));
+	}
+}
 
 /* ================= Main Carousel Class ================= */
 class SVACarousel {
 	constructor({ wrapper, conf, html_field, frm }) {
-		// console.log("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT", conf, conf.link_report);
-		// this.wrapper = wrapper;
-		// this.conf = conf;
-		// this.data = conf?.carousel || [];
-		// this.currentIndex = 0;
-		// this.interval = null;
-		// this.touchStartX = 0;
-		// this.touchEndX = 0;
-		// this.forceCardLayout = getColumnsFromUI(html_field, frm) >= 3;
-		// this.init();
-		// if (conf.link_report) {
-		// 	this.getReportColumns(report_name);
-		// }
+		this.wrapper = wrapper;
+		this.conf = conf;
+		this.data = [];
+		this.currentIndex = 0;
+		this.interval = null;
+		this.touchStartX = 0;
+		this.touchEndX = 0;
+		this.forceCardLayout = getColumnsFromUI(html_field, frm) >= 3;
+
+		// Check if report data should be used
+		if (conf.is_report && conf.link_report) {
+			this.loadReportData(conf.link_report);
+		} else {
+			this.data = conf?.carousel || [];
+			this.init();
+		}
+	}
+
+	loadReportData(reportName) {
+		frappe.call({
+			method: "frappe.desk.query_report.run",
+			args: {
+				report_name: reportName,
+				filters: {},
+			},
+			callback: (r) => {
+				if (r.message && r.message.result) {
+					// Check if report has required image/video field
+					const hasMediaField = r.message.result.some(
+						(row) => row.img || row.image || row.video
+					);
+
+					if (!hasMediaField) {
+						// Show error message if no media field found
+						this.wrapper.html(`
+				<div style="
+					height: 100%;
+					width: 100%;
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					min-height: 300px;
+					padding: 40px;
+					text-align: center;
+					background: #f8f9fa;
+					border-radius: 8px;
+					border: 2px dashed #dee2e6;
+				">
+					<div>
+						<h3 style="color: #495057; margin: 0 0 8px 0; font-size: 18px; font-weight: 600;">
+							Invalid Report Configuration
+						</h3>
+						<p style="color: #6c757d; margin: 0; font-size: 14px; line-height: 1.5;">
+							The selected report must contain at least one of these fields:<br>
+							<strong>img</strong>, <strong>image</strong>, or <strong>video</strong>
+						</p>
+						<p style="color: #868e96; margin: 16px 0 0 0; font-size: 12px;">
+							Report: <strong>${this.conf.link_report}</strong>
+						</p>
+					</div>
+				</div>
+			`);
+						console.error(
+							"Report does not contain required media field (img/image/video)"
+						);
+						return;
+					}
+
+					// Report data ko carousel format mein convert karo
+					this.data = r.message.result
+						.filter((row) => row.img || row.image || row.video) // Only rows with media
+						.map((row) => {
+							// Debug: Check what fields are available
+							return {
+								img: row.img || row.image || row.video || "",
+								title: row.title || row.name || "",
+								// Try multiple possible description field names
+								description:
+									row.description ||
+									row.desc ||
+									row.Description ||
+									row.details ||
+									row.Details ||
+									row.content ||
+									row.text ||
+									row.notes ||
+									"",
+							};
+						});
+
+					if (this.data.length === 0) {
+						// Show message if no valid data after filtering
+						this.wrapper.html(`
+				<div style="
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					min-height: 300px;
+					padding: 40px;
+					text-align: center;
+					background: #f8f9fa;
+					border-radius: 8px;
+					border: 1px solid #dee2e6;
+				">
+					<div>
+						<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 16px;">
+							<rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+							<circle cx="8.5" cy="8.5" r="1.5"></circle>
+							<polyline points="21 15 16 10 5 21"></polyline>
+						</svg>
+						<h3 style="color: #495057; margin: 0 0 8px 0; font-size: 18px; font-weight: 600;">
+							No Media Found
+						</h3>
+						<p style="color: #6c757d; margin: 0; font-size: 14px;">
+							The report returned no rows with valid image or video data.
+						</p>
+					</div>
+				</div>
+			`);
+						return;
+					}
+
+					this.init();
+				} else {
+					console.error("No report data found");
+					// Fallback to manual carousel data
+					this.data = this.conf?.carousel || [];
+
+					if (this.data.length === 0) {
+						this.wrapper.html(`
+				<div style="
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					min-height: 300px;
+					padding: 40px;
+					text-align: center;
+					background: #fff3cd;
+					border-radius: 8px;
+					border: 1px solid #ffc107;
+				">
+					<div>
+						<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#856404" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 16px;">
+							<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+							<line x1="12" y1="9" x2="12" y2="13"></line>
+							<line x1="12" y1="17" x2="12.01" y2="17"></line>
+						</svg>
+						<h3 style="color: #856404; margin: 0 0 8px 0; font-size: 18px; font-weight: 600;">
+							No Carousel Data
+						</h3>
+						<p style="color: #856404; margin: 0; font-size: 14px;">
+							Please add carousel items or configure a valid report.
+						</p>
+					</div>
+				</div>
+			`);
+						return;
+					}
+
+					this.init();
+				}
+			},
+			error: (err) => {
+				console.error("Error loading report:", err);
+
+				// Show error message
+				this.wrapper.html(`
+		<div style="
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			min-height: 300px;
+			padding: 40px;
+			text-align: center;
+			background: #f8d7da;
+			border-radius: 8px;
+			border: 1px solid #f5c6cb;
+		">
+			<div>
+				<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#721c24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 16px;">
+					<circle cx="12" cy="12" r="10"></circle>
+					<line x1="15" y1="9" x2="9" y2="15"></line>
+					<line x1="9" y1="9" x2="15" y2="15"></line>
+				</svg>
+				<h3 style="color: #721c24; margin: 0 0 8px 0; font-size: 18px; font-weight: 600;">
+					Error Loading Report
+				</h3>
+				<p style="color: #721c24; margin: 0; font-size: 14px;">
+					Failed to load report data. Please check the report configuration.
+				</p>
+				<p style="color: #721c24; margin: 8px 0 0 0; font-size: 12px; opacity: 0.8;">
+					${err.message || "Unknown error"}
+				</p>
+			</div>
+		</div>
+	`);
+
+				// Fallback to manual carousel data if available
+				this.data = this.conf?.carousel || [];
+				if (this.data.length > 0) {
+					setTimeout(() => this.init(), 2000); // Show error for 2 seconds then load manual data
+				}
+			},
+		});
 	}
 
 	init() {
+		if (!this.data || this.data.length === 0) {
+			this.wrapper.html(
+				'<div style="padding:20px;text-align:center;color:#888;">No carousel data available</div>'
+			);
+			return;
+		}
+
 		this.wrapper.html(generateCarouselHTML(this.data));
 		this.carousel = this.wrapper.find(".sva-carousel")[0];
 		this.viewport = this.wrapper.find(".viewport")[0];
@@ -687,7 +930,15 @@ class SVACarousel {
 		this.track.style.transform = `translateX(-${
 			this.currentIndex * this.viewport.clientWidth
 		}px)`;
-		this.containers.each((i, c) => pauseAllVideos(c));
+
+		// Sabhi videos pause karo EXCEPT current wala
+		this.containers.each((i, c) => {
+			if (i !== this.currentIndex) {
+				pauseAllVideos(c);
+			}
+		});
+
+		// Current video play karo
 		const cur = this.containers[this.currentIndex];
 		if (cur) playCurrentVideo(cur, this.conf);
 
