@@ -803,7 +803,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 		];
 
 		other_mapped_fields.forEach((field) => {
-			frm.set_df_property(field, ">options", "");
+			frm.set_df_property(field, "options", "");
 		});
 	}
 	async handleBlocks(frm, tab_fields, signal = null) {
