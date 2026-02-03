@@ -7,5 +7,6 @@ jobs:
   notice:
     runs-on: ubuntu-latest
     steps:
-      - run: |
-          echo "This workflow is deprecated. Use .github/workflows/ci.yml instead."
+        - run: |
+          echo "This workflow is deprecated and will not run Frappe tests."
+          echo "Please use the main CI – Pipeline workflow (.github/workflows/ci.yml) which supports the required Python version for Frappe."
