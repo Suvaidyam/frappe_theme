@@ -21,6 +21,13 @@
   "label",
   "info",
   "column_break_fwyn",
+  "section_break_ylfd",
+  "sdg_report",
+  "sdg_name_column",
+  "sdg_block_height",
+  "column_break_ykce",
+  "sdg_target_fields",
+  "sdg_setup_target_fields",
   "card_styling_section",
   "card_icon_column",
   "icon",
@@ -152,7 +159,7 @@
    "fieldname": "property_type",
    "fieldtype": "Select",
    "label": "Property Type",
-   "options": "\nCarousel\nDocType (Direct)\nDocType (Indirect)\nDocType (Referenced)\nDocType (Unfiltered)\nReport\nIs Custom Design\nHeatmap (India Map)\nDocField\nNumber Card\nDashboard Chart\nCustom HTML Block"
+   "options": "\nCarousel\nDocType (Direct)\nDocType (Indirect)\nDocType (Referenced)\nDocType (Unfiltered)\nReport\nIs Custom Design\nHeatmap (India Map)\nSDG Wheel\nDocField\nNumber Card\nDashboard Chart\nCustom HTML Block"
   },
   {
    "depends_on": "eval:doc.property_type=='Dashboard Chart'",
@@ -677,7 +684,7 @@
    "fieldname": "carousel",
    "fieldtype": "Table",
    "label": "Carousel Configuration",
-   "mandatory_depends_on": "eval:doc.property_type == \"Carousel\"",
+   "mandatory_depends_on": "eval:(doc.propert_type == \"Carousel\" && !doc.is_report)",
    "options": "Carousel"
   },
   {
@@ -764,13 +771,58 @@
   {
    "fieldname": "column_break_ftkz",
    "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"SDG Wheel\"",
+   "fieldname": "section_break_ylfd",
+   "fieldtype": "Section Break",
+   "label": "SDG Wheel Settings"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"SDG Wheel\"",
+   "fieldname": "sdg_report",
+   "fieldtype": "Link",
+   "label": "Report",
+   "mandatory_depends_on": "eval:doc.property_type == \"SDG Wheel\"",
+   "options": "Report"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"SDG Wheel\"",
+   "fieldname": "sdg_block_height",
+   "fieldtype": "Int",
+   "label": "Block Height (in px)"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"SDG Wheel\"",
+   "fieldname": "sdg_target_fields",
+   "fieldtype": "Code",
+   "label": "Target Fields",
+   "mandatory_depends_on": "eval:doc.property_type == \"SDG Wheel\"",
+   "max_height": "5rem",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"SDG Wheel\"",
+   "fieldname": "sdg_setup_target_fields",
+   "fieldtype": "Button",
+   "label": "Setup Target Fields"
+  },
+  {
+   "fieldname": "column_break_ykce",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"SDG Wheel\"",
+   "fieldname": "sdg_name_column",
+   "fieldtype": "Data",
+   "label": "SDG Name Column"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_virtual": 1,
  "links": [],
- "modified": "2026-02-03 11:46:16.404207",
+ "modified": "2026-02-03 18:08:00.673622",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Custom Property Setter",
