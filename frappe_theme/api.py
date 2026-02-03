@@ -220,13 +220,27 @@ def get_linked_doctype_fields(doc_type, frm_doctype):
 		return None
 
 
-@frappe.whitelist()
-def get_versions(dt, dn, page_length, start, filters=None):
+def build_version_filters(dt, dn, filters=None):
+	"""
+	Build WHERE clause and search conditions for version query.
+	This function can be overridden in other apps to add custom filters.
+
+	Returns:
+	        tuple: (where_clause, search_param_cond, additional_joins, additional_where)
+	"""
+	# Check for hook override first
+	override_func = frappe.get_hook("build_version_filters")
+	if override_func:
+		return override_func[0](dt, dn, filters)
+
 	if isinstance(filters, str):
 		filters = json.loads(filters)
 
 	where_clause = f"ver.ref_doctype = '{dt}' AND ver.docname = '{dn}'"
 	search_param_cond = ""
+	additional_joins = ""
+	additional_where = ""
+
 	if filters and isinstance(filters, dict):
 		if filters.get("doctype"):
 			where_clause += f" AND (ver.custom_actual_doctype = '{filters['doctype']}' OR (COALESCE(ver.custom_actual_doctype, '') = '' AND ver.ref_doctype = '{filters['doctype']}'))"
@@ -236,8 +250,18 @@ def get_versions(dt, dn, page_length, start, filters=None):
 		else:
 			search_param_cond = ""
 
+	return where_clause, search_param_cond, additional_joins, additional_where
+
+
+@frappe.whitelist()
+def get_versions(dt, dn, page_length, start, filters=None):
+	where_clause, search_param_cond, additional_joins, additional_where = build_version_filters(
+		dt, dn, filters
+	)
+
 	sql = f"""
         WITH extracted AS (
+            -- Regular field changes
             SELECT
                 ver.name AS name,
                 ver.owner AS owner,
@@ -249,14 +273,51 @@ def get_versions(dt, dn, page_length, start, filters=None):
                 jt.elem AS changed_elem,
                 JSON_UNQUOTE(JSON_EXTRACT(jt.elem, '$[0]')) AS field_name,
                 JSON_UNQUOTE(JSON_EXTRACT(jt.elem, '$[1]')) AS old_value,
-                JSON_UNQUOTE(JSON_EXTRACT(jt.elem, '$[2]')) AS new_value
-            FROM `tabVersion` AS ver,
-            JSON_TABLE(JSON_EXTRACT(ver.data, '$.changed'), '$[*]'
+                JSON_UNQUOTE(JSON_EXTRACT(jt.elem, '$[2]')) AS new_value,
+                NULL AS child_table_field,
+                NULL AS row_name,
+                0 AS is_child_table
+            FROM `tabVersion` AS ver
+            CROSS JOIN JSON_TABLE(JSON_EXTRACT(ver.data, '$.changed'), '$[*]'
                 COLUMNS (
                     elem JSON PATH '$'
                 )
             ) jt
             WHERE {where_clause}
+            AND JSON_EXTRACT(ver.data, '$.changed') IS NOT NULL
+
+            UNION ALL
+
+            -- Child table row changes
+            SELECT
+                ver.name AS name,
+                ver.owner AS owner,
+                ver.creation AS creation,
+                ver.custom_actual_doctype,
+                ver.custom_actual_document_name,
+                ver.ref_doctype,
+                ver.docname,
+                fc.elem AS changed_elem,
+                JSON_UNQUOTE(JSON_EXTRACT(fc.elem, '$[0]')) AS field_name,
+                JSON_UNQUOTE(JSON_EXTRACT(fc.elem, '$[1]')) AS old_value,
+                JSON_UNQUOTE(JSON_EXTRACT(fc.elem, '$[2]')) AS new_value,
+                JSON_UNQUOTE(JSON_EXTRACT(rc.elem, '$[0]')) AS child_table_field,
+                JSON_UNQUOTE(JSON_EXTRACT(rc.elem, '$[2]')) AS row_name,
+                1 AS is_child_table
+            FROM `tabVersion` AS ver
+            CROSS JOIN JSON_TABLE(JSON_EXTRACT(ver.data, '$.row_changed'), '$[*]'
+                COLUMNS (
+                    elem JSON PATH '$'
+                )
+            ) rc
+            CROSS JOIN JSON_TABLE(JSON_EXTRACT(rc.elem, '$[3]'), '$[*]'
+                COLUMNS (
+                    elem JSON PATH '$'
+                )
+            ) fc
+            WHERE {where_clause}
+            AND JSON_EXTRACT(ver.data, '$.row_changed') IS NOT NULL
+            AND JSON_EXTRACT(rc.elem, '$[3]') IS NOT NULL
         )
         SELECT
             e.custom_actual_doctype,
@@ -267,13 +328,42 @@ def get_versions(dt, dn, page_length, start, filters=None):
             e.docname,
             JSON_ARRAYAGG(
                 JSON_ARRAY(
-                    COALESCE(
-                        (SELECT tf.label FROM `tabDocField` tf WHERE e.field_name = tf.fieldname AND tf.parent = e.ref_doctype LIMIT 1),
-                        (SELECT tf.label FROM `tabDocField` tf WHERE e.field_name = tf.fieldname AND tf.parent = e.custom_actual_doctype LIMIT 1),
-                        (SELECT ctf.label FROM `tabCustom Field` ctf WHERE e.field_name = ctf.fieldname AND ctf.dt = e.ref_doctype LIMIT 1),
-                        (SELECT ctf.label FROM `tabCustom Field` ctf WHERE e.field_name = ctf.fieldname AND ctf.dt = e.custom_actual_doctype LIMIT 1),
-                        e.field_name
-                    ),
+                    CASE
+                        WHEN e.is_child_table = 1 THEN
+                            CONCAT(
+                                COALESCE(
+                                    (SELECT tf.label FROM `tabDocField` tf WHERE e.child_table_field = tf.fieldname AND tf.parent = e.ref_doctype LIMIT 1),
+                                    (SELECT tf.label FROM `tabDocField` tf WHERE e.child_table_field = tf.fieldname AND tf.parent = e.custom_actual_doctype LIMIT 1),
+                                    (SELECT ctf.label FROM `tabCustom Field` ctf WHERE e.child_table_field = ctf.fieldname AND ctf.dt = e.ref_doctype LIMIT 1),
+                                    (SELECT ctf.label FROM `tabCustom Field` ctf WHERE e.child_table_field = ctf.fieldname AND ctf.dt = e.custom_actual_doctype LIMIT 1),
+                                    e.child_table_field
+                                ),
+                                ' > ',
+                                COALESCE(
+                                    (SELECT tf.label FROM `tabDocField` tf
+                                     WHERE e.field_name = tf.fieldname
+                                     AND tf.parent = COALESCE(
+                                         (SELECT tf2.options FROM `tabDocField` tf2 WHERE tf2.fieldname = e.child_table_field AND tf2.parent = COALESCE(e.custom_actual_doctype, e.ref_doctype) LIMIT 1),
+                                         (SELECT ctf2.options FROM `tabCustom Field` ctf2 WHERE ctf2.fieldname = e.child_table_field AND ctf2.dt = COALESCE(e.custom_actual_doctype, e.ref_doctype) LIMIT 1)
+                                     ) LIMIT 1),
+                                    (SELECT ctf.label FROM `tabCustom Field` ctf
+                                     WHERE ctf.fieldname = e.field_name
+                                     AND ctf.dt = COALESCE(
+                                         (SELECT tf2.options FROM `tabDocField` tf2 WHERE tf2.fieldname = e.child_table_field AND tf2.parent = COALESCE(e.custom_actual_doctype, e.ref_doctype) LIMIT 1),
+                                         (SELECT ctf2.options FROM `tabCustom Field` ctf2 WHERE ctf2.fieldname = e.child_table_field AND ctf2.dt = COALESCE(e.custom_actual_doctype, e.ref_doctype) LIMIT 1)
+                                     ) LIMIT 1),
+                                    e.field_name
+                                )
+                            )
+                        ELSE
+                            COALESCE(
+                                (SELECT tf.label FROM `tabDocField` tf WHERE e.field_name = tf.fieldname AND tf.parent = e.ref_doctype LIMIT 1),
+                                (SELECT tf.label FROM `tabDocField` tf WHERE e.field_name = tf.fieldname AND tf.parent = e.custom_actual_doctype LIMIT 1),
+                                (SELECT ctf.label FROM `tabCustom Field` ctf WHERE e.field_name = ctf.fieldname AND ctf.dt = e.ref_doctype LIMIT 1),
+                                (SELECT ctf.label FROM `tabCustom Field` ctf WHERE e.field_name = ctf.fieldname AND ctf.dt = e.custom_actual_doctype LIMIT 1),
+                                e.field_name
+                            )
+                    END,
                     COALESCE(
                         CASE
                             WHEN e.old_value = 'null' OR e.old_value = '' THEN '(blank)'
@@ -285,13 +375,18 @@ def get_versions(dt, dn, page_length, start, filters=None):
                         CASE
                             WHEN e.new_value = 'null' OR e.new_value = '' THEN '(blank)'
                             ELSE e.new_value
-                        END
-                    , '')
+                        END,
+                        ''
+                    ),
+                    e.is_child_table,
+                    e.child_table_field,
+                    e.row_name
                 )
             ) AS changed
         FROM extracted e
         LEFT JOIN `tabUser` AS usr ON e.owner = usr.name
-        {search_param_cond}
+        {additional_joins}
+        WHERE 1=1 {additional_where} {search_param_cond}
         GROUP BY e.name
         ORDER BY e.creation DESC
         LIMIT {page_length}
