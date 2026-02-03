@@ -677,7 +677,7 @@
    "fieldname": "carousel",
    "fieldtype": "Table",
    "label": "Carousel Configuration",
-   "mandatory_depends_on": "eval:doc.property_type == \"Carousel\"",
+   "mandatory_depends_on": "eval:(doc.propert_type == \"Carousel\" || !doc.is_report)",
    "options": "Carousel"
   },
   {
@@ -770,7 +770,7 @@
  "index_web_pages_for_search": 1,
  "is_virtual": 1,
  "links": [],
- "modified": "2026-02-03 11:46:16.404207",
+ "modified": "2026-02-03 12:18:12.381365",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Custom Property Setter",
