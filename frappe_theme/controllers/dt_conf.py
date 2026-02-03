@@ -175,7 +175,6 @@ class DTConf:
 				valid_filters, invalid_filters = DTFilters.validate_query_report_filters(
 					ref_doctype, doc, doctype, filters
 				)
-
 			columns, result = data.execute_query_report(
 				additional_filters=valid_filters,
 				filters={},
@@ -196,8 +195,15 @@ class DTConf:
 				valid_filters, invalid_filters = DTFilters.validate_query_report_filters(
 					ref_doctype, doc, doctype, filters, is_script_report=True
 				)
-				if isinstance(filters, list):
-					valid_filters = {f[1]: [f[2], f[3]] for f in filters}
+				if isinstance(valid_filters, list):
+					_valid_filters = {}
+					for f in valid_filters:
+						if f[2] == "=":
+							_valid_filters[f[1]] = f[3]
+						else:
+							_valid_filters[f[1]] = [f[2], f[3]]
+
+					valid_filters = _valid_filters
 
 			response = run(doctype, filters=valid_filters)
 
