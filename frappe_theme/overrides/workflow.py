@@ -64,6 +64,8 @@ def make_custom_transitions(custom_workflow_doc):
 			"state": custom_workflow_doc.workflow_state_current,
 			"action": "Approve",
 			"next_state": custom_workflow_doc.workflow_state_current,
+			"allow_self_approval": 1,
+			"send_email_to_creator": 0,
 			"allowed": "All",
 			"is_custom_transition": 1,
 			"is_comment_required": 1,
@@ -75,6 +77,8 @@ def make_custom_transitions(custom_workflow_doc):
 			"action": "Reject",
 			"next_state": custom_workflow_doc.workflow_state_current,
 			"allowed": "All",
+			"allow_self_approval": 1,
+			"send_email_to_creator": 0,
 			"is_custom_transition": 1,
 			"is_comment_required": 1,
 		}
