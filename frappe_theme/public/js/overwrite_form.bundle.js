@@ -31,6 +31,7 @@ import SVAmGrantTask from "./custom_components/task.bundle.js";
 import SVATimelineGenerator from "./custom_components/timeline.bundle.js";
 import CustomApprovalRequest from "./custom_components/approval_request/approval_request.bundle.js";
 import CustomDynamicHtml from "./custom_components/dynamic_html/dynamic_html.bundle.js";
+import SVACarousel from "./sva_carousel.bundle.js";
 import FilterRibbon from "./custom_components/filters_ribbon.bundle.js";
 
 frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
@@ -925,6 +926,14 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 				frm.sva_ft_instances[field.fieldname] = new SVAHeatmap({
 					wrapper: $(wrapper),
 					...(field?.sva_ft || {}),
+					html_field: field.fieldname,
+					frm,
+				});
+				break;
+			case "Carousel":
+				frm.sva_ft_instances[field.fieldname] = new SVACarousel({
+					wrapper: $(wrapper),
+					conf: field?.sva_ft || {},
 					html_field: field.fieldname,
 					frm,
 				});
