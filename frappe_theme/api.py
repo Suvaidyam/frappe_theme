@@ -5,6 +5,7 @@ from typing import Union
 import frappe
 from frappe import _
 from frappe.custom.doctype.custom_field.custom_field import create_custom_field
+from frappe.model import get_permitted_fields
 from frappe.utils import cint
 
 from frappe_theme.utils import get_state_closure_by_type
@@ -380,7 +381,8 @@ def get_versions(dt, dn, page_length, start, filters=None):
                     ),
                     e.is_child_table,
                     e.child_table_field,
-                    e.row_name
+                    e.row_name,
+                    e.field_name
                 )
             ) AS changed
         FROM extracted e
@@ -392,7 +394,187 @@ def get_versions(dt, dn, page_length, start, filters=None):
         LIMIT {page_length}
         OFFSET {start}
     """
-	return frappe.db.sql(sql, as_dict=True)
+	results = frappe.db.sql(sql, as_dict=True)
+
+	# Apply field-level permissions filtering
+	if results:
+		if frappe.session.user != "Administrator":
+			results = _apply_field_level_permissions(results, dt)
+		else:
+			# For Administrator, still filter out entries with empty changed arrays
+			results = _filter_empty_changed_arrays(results)
+
+	return results
+
+
+def _filter_empty_changed_arrays(results):
+	"""Filter out entries with empty changed arrays (for Administrator users)."""
+	filtered_results = []
+	for result in results:
+		changed_value = result.get("changed")
+
+		# Skip entries with empty or missing changed field
+		if not changed_value:
+			continue
+
+		# Handle empty string or empty JSON array string
+		if isinstance(changed_value, str):
+			changed_value_stripped = changed_value.strip()
+			if changed_value_stripped in ("", "[]", "null"):
+				continue
+
+		try:
+			changed_array = json.loads(changed_value) if isinstance(changed_value, str) else changed_value
+		except (json.JSONDecodeError, TypeError):
+			# Skip entries with invalid JSON
+			continue
+
+		if not isinstance(changed_array, list):
+			continue
+
+		# Skip entries with empty array
+		if len(changed_array) == 0:
+			continue
+
+		filtered_results.append(result)
+
+	return filtered_results
+
+
+def _apply_field_level_permissions(results, parent_doctype):
+	"""
+	Filter field changes based on user's field-level permissions.
+	Uses caching to optimize performance.
+	"""
+	# Cache for permitted fields per doctype
+	permitted_fields_cache = {}
+	# Cache for child table doctype resolution
+	child_table_doctype_cache = {}
+
+	def get_cached_permitted_fields(doctype, parenttype=None):
+		"""Get permitted fields with caching."""
+		cache_key = (doctype, parenttype)
+		if cache_key not in permitted_fields_cache:
+			permitted_fields_cache[cache_key] = set(
+				get_permitted_fields(
+					doctype=doctype,
+					parenttype=parenttype,
+					ignore_virtual=True,
+				)
+			)
+		return permitted_fields_cache[cache_key]
+
+	def get_child_table_doctype(parent_doctype, child_table_field):
+		"""Get child table doctype from parent doctype and fieldname."""
+		cache_key = (parent_doctype, child_table_field)
+		if cache_key not in child_table_doctype_cache:
+			# Try to get from meta
+			try:
+				meta = frappe.get_meta(parent_doctype)
+				field = meta.get_field(child_table_field)
+				if field and field.fieldtype == "Table":
+					child_table_doctype_cache[cache_key] = field.options
+				else:
+					child_table_doctype_cache[cache_key] = None
+			except Exception:
+				child_table_doctype_cache[cache_key] = None
+		return child_table_doctype_cache[cache_key]
+
+	# Process each result
+	filtered_results = []
+	for result in results:
+		changed_value = result.get("changed")
+
+		# Skip entries with empty or missing changed field
+		if not changed_value:
+			continue
+
+		# Handle empty string or empty JSON array string
+		if isinstance(changed_value, str):
+			changed_value_stripped = changed_value.strip()
+			if changed_value_stripped in ("", "[]", "null"):
+				continue
+
+		try:
+			changed_array = json.loads(changed_value) if isinstance(changed_value, str) else changed_value
+		except (json.JSONDecodeError, TypeError):
+			# Skip entries with invalid JSON
+			continue
+
+		if not isinstance(changed_array, list):
+			continue
+
+		# Skip entries with empty array
+		if len(changed_array) == 0:
+			continue
+
+		# Determine parent doctype for permission checks
+		parent_doctype_for_check = (
+			result.get("custom_actual_doctype") or result.get("ref_doctype") or parent_doctype
+		)
+
+		# Filter field changes based on permissions
+		filtered_changes = []
+		for change_item in changed_array:
+			if not isinstance(change_item, list):
+				# Skip non-list entries
+				continue
+
+			# Need at least field_name (index 6) for permission checking
+			# Old format entries (< 7 elements) will be skipped
+			if len(change_item) < 7:
+				continue
+
+			# Extract field information from the change array
+			# Format: [field_label, old_value, new_value, is_child_table, child_table_field, row_name, field_name]
+			is_child_table = change_item[3] if len(change_item) > 3 else 0
+			# Handle string representation of boolean
+			if isinstance(is_child_table, str):
+				is_child_table = int(is_child_table) if is_child_table.isdigit() else 0
+			is_child_table = bool(is_child_table)
+
+			child_table_field = change_item[4] if len(change_item) > 4 else None
+			field_name = change_item[6] if len(change_item) > 6 else None
+
+			# If field_name is not available, try to extract from label (fallback)
+			if not field_name and len(change_item) > 0:
+				# This is a fallback - ideally field_name should always be present
+				field_name = change_item[0] if change_item[0] else None
+
+			if not field_name:
+				# Skip if we can't determine field name
+				continue
+
+			# Determine the doctype to check permissions for
+			doctype_to_check = parent_doctype_for_check
+			parenttype_for_check = None
+
+			if is_child_table and child_table_field:
+				# For child table fields, get the child table doctype
+				child_table_doctype = get_child_table_doctype(parent_doctype_for_check, child_table_field)
+				if child_table_doctype:
+					doctype_to_check = child_table_doctype
+					parenttype_for_check = parent_doctype_for_check
+
+			# Get permitted fields for this doctype
+			permitted_fields = get_cached_permitted_fields(doctype_to_check, parenttype_for_check)
+
+			# Check if field is permitted
+			if field_name in permitted_fields:
+				# Remove field_name from the array before adding (to maintain original format)
+				# Keep only first 6 elements: [field_label, old_value, new_value, is_child_table, child_table_field, row_name]
+				filtered_changes.append(change_item[:6])
+
+		# Skip entries where all fields were filtered out (empty changed array)
+		if len(filtered_changes) == 0:
+			continue
+
+		# Update result with filtered changes
+		result_copy = result.copy()
+		result_copy["changed"] = json.dumps(filtered_changes)
+		filtered_results.append(result_copy)
+
+	return filtered_results
 
 
 @frappe.whitelist()
