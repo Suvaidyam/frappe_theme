@@ -204,21 +204,15 @@ def get_workflow_audit(doctype=None, reference_name=None, limit=100):
 def _apply_field_level_permissions_to_workflow_audit(actions, main_doctype):
 	"""
 	Filter workflow audit data based on user's field-level permissions.
-	Filters action_data fields and checks permission for approval_assignments field.
-	Uses caching to optimize performance.
-
-	Args:
-	        actions (list): List of workflow action dictionaries
-	        main_doctype (str): The main doctype for action_data fields
-
-	Returns:
-	        list: Filtered actions with only permitted fields
+	Uses request-scoped caching for performance.
 	"""
-	# Cache for permitted fields per doctype
+
+	# Request-scoped caches
 	permitted_fields_cache = {}
+	meta_cache = {}
 
 	def get_cached_permitted_fields(doctype, parenttype=None):
-		"""Get permitted fields with caching."""
+		"""Get permitted fields with request-scoped caching."""
 		cache_key = (doctype, parenttype)
 		if cache_key not in permitted_fields_cache:
 			permitted_fields_cache[cache_key] = set(
@@ -230,64 +224,55 @@ def _apply_field_level_permissions_to_workflow_audit(actions, main_doctype):
 			)
 		return permitted_fields_cache[cache_key]
 
-	# Get permitted fields for main doctype (for action_data)
+	def get_cached_meta(doctype):
+		"""Get DocType meta with request-scoped caching."""
+		if doctype not in meta_cache:
+			meta_cache[doctype] = frappe.get_meta(doctype)
+		return meta_cache[doctype]
+
+	# Permitted fields for main doctype (action_data)
 	main_doctype_permitted_fields = get_cached_permitted_fields(main_doctype)
 
-	# Check approval_assignments field permission in SVA Workflow Action doctype
+	# approval_assignments field permission in SVA Workflow Action
 	sva_workflow_action_doctype = "SVA Workflow Action"
-	approval_assignments_field_permlevel = None
-	has_approval_assignments_permission = True  # Default to True (show if permlevel = 0)
+	has_approval_assignments_permission = True  # Default: show
 
 	try:
-		sva_meta = frappe.get_meta(sva_workflow_action_doctype)
+		sva_meta = get_cached_meta(sva_workflow_action_doctype)
 		approval_assignments_field = sva_meta.get_field("approval_assignments")
 
 		if approval_assignments_field:
-			approval_assignments_field_permlevel = approval_assignments_field.permlevel or 0
+			permlevel = approval_assignments_field.permlevel or 0
 
-			# Only check permission if permlevel > 0
-			if approval_assignments_field_permlevel > 0:
-				# Get user's accessible permlevels for this doctype
-				# Table fields may not appear in get_permitted_fields(), so check permlevel access directly
+			# Only check user access if permlevel > 0
+			if permlevel > 0:
 				user_permlevel_access = sva_meta.get_permlevel_access(
-					permission_type="read", user=frappe.session.user
+					permission_type="read",
+					user=frappe.session.user,
 				)
-
-				# Check if user has access to the field's permlevel
-				has_approval_assignments_permission = (
-					approval_assignments_field_permlevel in user_permlevel_access
-				)
-			# If permlevel = 0, always show (has_approval_assignments_permission already True)
+				has_approval_assignments_permission = permlevel in user_permlevel_access
 	except Exception:
-		# If error getting meta, default to showing the field
-		pass
+		# Fail-safe: if anything goes wrong, don't hide data
+		has_approval_assignments_permission = True
 
-	# Process each action
 	filtered_actions = []
 	for action in actions:
 		action_copy = action.copy()
 
 		# Filter action_data fields
-		if action_copy.get("action_data"):
-			filtered_action_data = []
-			for item in action_copy["action_data"]:
-				fieldname = item.get("fieldname")
-				if fieldname and fieldname in main_doctype_permitted_fields:
-					filtered_action_data.append(item)
-			action_copy["action_data"] = filtered_action_data
+		action_data = action_copy.get("action_data") or []
+		if action_data:
+			action_copy["action_data"] = [
+				item for item in action_data if item.get("fieldname") in main_doctype_permitted_fields
+			]
 		else:
 			action_copy["action_data"] = []
 
-		# Filter approval_assignments based on field-level permission in SVA Workflow Action doctype
-		# Only check permission if permlevel > 0, otherwise always show
+		# Filter approval_assignments if user lacks permission
 		if not has_approval_assignments_permission:
-			# User doesn't have permission to read approval_assignments field (permlevel > 0) - remove it
 			action_copy["approval_assignments"] = []
-		# If permlevel = 0 or user has permission, keep approval_assignments as is
-		# (no need to filter individual fields within Approval Assignment Child)
 
-		# Always include action (even if all fields filtered) as it contains important metadata
-		# like workflow_state_previous, workflow_state_current, user, comment, etc.
+		# Always include action (metadata is important)
 		filtered_actions.append(action_copy)
 
 	return filtered_actions
