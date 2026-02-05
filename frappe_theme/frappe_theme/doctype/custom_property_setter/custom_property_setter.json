@@ -16,10 +16,18 @@
   "doc_field",
   "chart",
   "html_block",
+  "is_report",
   "column_break_vafi",
   "label",
   "info",
   "column_break_fwyn",
+  "section_break_ylfd",
+  "sdg_report",
+  "sdg_name_column",
+  "sdg_block_height",
+  "column_break_ykce",
+  "sdg_target_fields",
+  "sdg_setup_target_fields",
   "card_styling_section",
   "card_icon_column",
   "icon",
@@ -80,23 +88,34 @@
   "full_screen_dialog",
   "disable_workflow",
   "enable_auto_transpose",
-  "enable_card_view",
-  "hide_filter",
-  "hide_sorting",
-  "hide_refresh_button",
   "section_break_okbe",
   "child_confs",
   "heat_map_section",
   "heatmap_report",
   "default_view",
-  "state_name_column",
   "block_height",
   "min_data_color",
   "max_data_color",
   "column_break_xtcd",
   "target_fields",
   "setup_target_fields",
-  "primary_target"
+  "primary_target",
+  "section_break_ajnr",
+  "column_break_jehk",
+  "carousel",
+  "title_and_description_styles_section",
+  "column_break_ngwb",
+  "carousel_heightin_px",
+  "indicator_position",
+  "indicator_style",
+  "column_break_ftkz",
+  "bullet_indicator_type",
+  "alignment",
+  "title_color",
+  "column_break_ygdg",
+  "desc_color",
+  "title_font_size",
+  "desc_font_size"
  ],
  "fields": [
   {
@@ -140,7 +159,7 @@
    "fieldname": "property_type",
    "fieldtype": "Select",
    "label": "Property Type",
-   "options": "\nDocType (Direct)\nDocType (Indirect)\nDocType (Referenced)\nDocType (Unfiltered)\nReport\nIs Custom Design\nHeatmap (India Map)\nDocField\nNumber Card\nDashboard Chart\nCustom HTML Block"
+   "options": "\nCarousel\nDocType (Direct)\nDocType (Indirect)\nDocType (Referenced)\nDocType (Unfiltered)\nReport\nIs Custom Design\nHeatmap (India Map)\nSDG Wheel\nDocField\nNumber Card\nDashboard Chart\nCustom HTML Block"
   },
   {
    "depends_on": "eval:doc.property_type=='Dashboard Chart'",
@@ -263,7 +282,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "depends_on": "eval:[\"DocType (Direct)\",\"DocType (Indirect)\",\"DocType (Unfiltered)\",\"DocType (Referenced)\",\"Report\", \"Is Custom Design\"].includes(doc.property_type)",
+   "depends_on": "eval:[\"DocType (Direct)\",\"DocType (Indirect)\",\"DocType (Unfiltered)\",\"DocType (Referenced)\",\"Report\", \"Is Custom Design\"].includes(doc.property_type) || doc.is_report === 1",
    "fieldname": "section_break_qivk",
    "fieldtype": "Section Break"
   },
@@ -371,7 +390,7 @@
    "label": "Workflow Action Label"
   },
   {
-   "depends_on": "eval:doc.connection_type",
+   "depends_on": "eval:doc.connection_type || doc.is_report === 1",
    "fieldname": "title",
    "fieldtype": "Data",
    "label": "Title"
@@ -414,7 +433,7 @@
    "options": "JS"
   },
   {
-   "depends_on": "eval:[\"Report\"].includes(doc.connection_type)",
+   "depends_on": "eval:[\"Report\"].includes(doc.connection_type) || doc.is_report === 1",
    "fieldname": "link_report",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -427,7 +446,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "depends_on": "eval:[\"Report\"].includes(doc.connection_type)",
+   "depends_on": "eval:[\"Report\"].includes(doc.connection_type) || doc.is_report === 1",
    "fetch_from": "link_report.report_type",
    "fieldname": "report_type",
    "fieldtype": "Data",
@@ -473,13 +492,13 @@
    "read_only": 1
   },
   {
-   "depends_on": "eval:doc.connection_type",
+   "depends_on": "eval:doc.connection_type || doc.is_report === 1",
    "fieldname": "setup_action_list",
    "fieldtype": "Button",
    "label": "Setup Action List"
   },
   {
-   "depends_on": "eval:[\"DocType (Direct)\",\"DocType (Indirect)\",\"DocType (Unfiltered)\",\"DocType (Referenced)\",\"Report\", \"Is Custom Design\"].includes(doc.property_type)",
+   "depends_on": "eval:[\"DocType (Direct)\",\"DocType (Indirect)\",\"DocType (Unfiltered)\",\"DocType (Referenced)\",\"Report\", \"Is Custom Design\"].includes(doc.property_type) || doc.is_report === 1",
    "fieldname": "section_break_gyve",
    "fieldtype": "Section Break",
    "hide_border": 1
@@ -523,7 +542,7 @@
    "label": "\"Add row\" Button Label"
   },
   {
-   "depends_on": "eval:doc.connection_type",
+   "depends_on": "eval:doc.connection_type || doc.is_report === 1",
    "fieldname": "setup_list_filters",
    "fieldtype": "Button",
    "label": "Setup List Filters"
@@ -561,7 +580,7 @@
    "options": "JS"
   },
   {
-   "depends_on": "eval:[\"DocType (Direct)\",\"DocType (Indirect)\",\"DocType (Unfiltered)\",\"DocType (Referenced)\",\"Report\", \"Is Custom Design\"].includes(doc.property_type)",
+   "depends_on": "eval:[\"DocType (Direct)\",\"DocType (Indirect)\",\"DocType (Unfiltered)\",\"DocType (Referenced)\",\"Report\", \"Is Custom Design\"].includes(doc.property_type) || doc.is_report === 1",
    "fieldname": "section_break_tgqw",
    "fieldtype": "Section Break",
    "label": "Datatable configuration"
@@ -656,51 +675,154 @@
   },
   {
    "default": "0",
-   "depends_on": "eval:[\"Report\"].includes(doc.property_type)",
+   "depends_on": "eval:[\"Report\"].includes(doc.property_type) || doc.is_report === 1",
    "fieldname": "enable_auto_transpose",
    "fieldtype": "Check",
    "label": "Transpose"
   },
   {
-   "default": "0",
-   "depends_on": "eval:doc.connection_type",
-   "fieldname": "enable_card_view",
-   "fieldtype": "Check",
-   "label": "Enable Card View"
+   "fieldname": "carousel",
+   "fieldtype": "Table",
+   "label": "Carousel Configuration",
+   "mandatory_depends_on": "eval:(doc.property_type == \"Carousel\" && !doc.is_report)",
+   "options": "Carousel"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Carousel\" && doc.is_report === 0",
+   "fieldname": "section_break_ajnr",
+   "fieldtype": "Section Break",
+   "label": "Carousel Data"
+  },
+  {
+   "fieldname": "column_break_jehk",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "title_color",
+   "fieldtype": "Color",
+   "label": "Title Color"
+  },
+  {
+   "fieldname": "column_break_ngwb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "desc_color",
+   "fieldtype": "Color",
+   "label": "Desc Color"
+  },
+  {
+   "fieldname": "title_font_size",
+   "fieldtype": "Int",
+   "label": "Title Font Size (in px)"
+  },
+  {
+   "fieldname": "desc_font_size",
+   "fieldtype": "Int",
+   "label": "Desc Font Size (in px)"
+  },
+  {
+   "fieldname": "carousel_heightin_px",
+   "fieldtype": "Int",
+   "label": "Carousel Height (in px)"
+  },
+  {
+   "fieldname": "bullet_indicator_type",
+   "fieldtype": "Select",
+   "label": "Bullet Indicator Type",
+   "options": "Bullets\nPage Counter"
+  },
+  {
+   "fieldname": "indicator_position",
+   "fieldtype": "Select",
+   "label": "Indicator Position",
+   "options": "Bottom Center\nBottom Left\nBottom Right\nTop Left\nTop Right"
+  },
+  {
+   "fieldname": "column_break_ygdg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Light",
+   "fieldname": "indicator_style",
+   "fieldtype": "Select",
+   "label": "Indicator Style",
+   "options": "Light\nDark"
+  },
+  {
+   "depends_on": "eval:doc.property_type === \"Carousel\"",
+   "fieldname": "title_and_description_styles_section",
+   "fieldtype": "Section Break",
+   "label": "Carousel Settings"
+  },
+  {
+   "fieldname": "alignment",
+   "fieldtype": "Select",
+   "label": "Text Alignment",
+   "options": "left\nright\ncenter"
   },
   {
    "default": "0",
-   "depends_on": "eval:doc.connection_type",
-   "fieldname": "hide_refresh_button",
+   "depends_on": "eval: doc.property_type === \"Carousel\"",
+   "fieldname": "is_report",
    "fieldtype": "Check",
-   "label": "Hide Refresh Button"
+   "label": "Is Report"
   },
   {
-   "default": "0",
-   "depends_on": "eval:doc.connection_type",
-   "fieldname": "hide_sorting",
-   "fieldtype": "Check",
-   "label": "Hide Sorting"
+   "fieldname": "column_break_ftkz",
+   "fieldtype": "Column Break"
   },
   {
-   "default": "0",
-   "depends_on": "eval:doc.connection_type",
-   "fieldname": "hide_filter",
-   "fieldtype": "Check",
-   "label": "Hide Filter"
+   "depends_on": "eval:doc.property_type == \"SDG Wheel\"",
+   "fieldname": "section_break_ylfd",
+   "fieldtype": "Section Break",
+   "label": "SDG Wheel Settings"
   },
   {
-   "depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
-   "fieldname": "state_name_column",
+   "depends_on": "eval:doc.property_type == \"SDG Wheel\"",
+   "fieldname": "sdg_report",
+   "fieldtype": "Link",
+   "label": "Report",
+   "mandatory_depends_on": "eval:doc.property_type == \"SDG Wheel\"",
+   "options": "Report"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"SDG Wheel\"",
+   "fieldname": "sdg_block_height",
+   "fieldtype": "Int",
+   "label": "Block Height (in px)"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"SDG Wheel\"",
+   "fieldname": "sdg_target_fields",
+   "fieldtype": "Code",
+   "label": "Target Fields",
+   "mandatory_depends_on": "eval:doc.property_type == \"SDG Wheel\"",
+   "max_height": "5rem",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"SDG Wheel\"",
+   "fieldname": "sdg_setup_target_fields",
+   "fieldtype": "Button",
+   "label": "Setup Target Fields"
+  },
+  {
+   "fieldname": "column_break_ykce",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"SDG Wheel\"",
+   "fieldname": "sdg_name_column",
    "fieldtype": "Data",
-   "label": "State Name Column"
+   "label": "SDG Name Column"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_virtual": 1,
  "links": [],
- "modified": "2026-01-29 00:59:41.562999",
+ "modified": "2026-02-03 18:08:00.673622",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Custom Property Setter",

@@ -30,7 +30,6 @@ app_include_js = [
 	"override_table_multiselect.bundle.js",
 	"override_button.bundle.js",
 	"override_multiselect.bundle.js",
-	"filters_ribbon.bundle.js",
 	f"/assets/frappe_theme/js/svadb.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/fields_comment.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/extended_chart.js?ver={time.time()}",
