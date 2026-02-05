@@ -4,6 +4,7 @@ import SvaDataTable from "../datatable/sva_datatable.bundle.js";
 class SVAHeatmap {
 	constructor(opts) {
 		this.html_field = opts.html_field || "";
+		this.conf = opts || {};
 		this.reportName = opts.report || "";
 		this.wrapper = opts.wrapper;
 		this.stateGeoJsonUrl = "/assets/frappe_theme/boundaries/state_boundries.json";
@@ -35,7 +36,7 @@ class SVAHeatmap {
                 position: absolute;
                 top: 10px;
                 right: 10px;
-                z-index: 1000;
+                z-index: 1;
                 background: white;
                 padding: 8px 15px;
                 border-radius: 4px;
@@ -47,7 +48,7 @@ class SVAHeatmap {
                 position: absolute;
                 bottom: 18px;
                 right: 10px;
-                z-index: 1000;
+                z-index: 1;
                 background: white;
                 padding: 6px 8px;
                 border-radius: 4px;
@@ -95,6 +96,7 @@ class SVAHeatmap {
 				margin: "0 auto",
 				backgroundColor: "#fff",
 				padding: "10px 10px 5px 10px",
+				zIndex: 2,
 				borderRadius: "10px",
 				border: "1px solid #dcdcdc",
 			});
@@ -104,7 +106,7 @@ class SVAHeatmap {
 			position: "absolute",
 			top: "10px",
 			left: "10px",
-			zIndex: 1000,
+			zIndex: 1,
 			backgroundColor: "#fff",
 			fontWeight: "bold",
 			fontSize: "14px",
@@ -125,7 +127,7 @@ class SVAHeatmap {
 				position: "absolute",
 				top: "10px",
 				right: "45px",
-				zIndex: 1000,
+				zIndex: 1,
 				padding: "4px 6px",
 				backgroundColor: "#fff",
 				border: "none",
@@ -144,7 +146,7 @@ class SVAHeatmap {
 				position: "absolute",
 				top: "10px",
 				right: "10px",
-				zIndex: 1000,
+				zIndex: 1,
 				padding: "4px 4px",
 				backgroundColor: "#fff",
 				border: "none",
@@ -167,7 +169,7 @@ class SVAHeatmap {
 				position: "absolute",
 				top: "10px",
 				right: "105px",
-				zIndex: 1000,
+				zIndex: 1,
 				padding: "4px 6px",
 				backgroundColor: "#fff",
 				border: "none",
@@ -183,7 +185,7 @@ class SVAHeatmap {
 				position: "absolute",
 				top: "10px",
 				right: "75px",
-				zIndex: 1000,
+				zIndex: 1,
 				padding: "4px 6px",
 				backgroundColor: "#fff",
 				border: "none",
@@ -199,7 +201,7 @@ class SVAHeatmap {
 			left: "0",
 			right: "0",
 			bottom: "0",
-			zIndex: 1000,
+			zIndex: 1,
 			background: "rgba(255, 255, 255, 0.8)",
 			display: "flex",
 			alignItems: "center",
@@ -279,6 +281,15 @@ class SVAHeatmap {
 			loader,
 		};
 
+		if (this.html_field) {
+			table_options.connection["html_field"] = this.html_field;
+			table_options.connection["configuration_basis"] = "Property Setter";
+		}
+
+		if (this.conf?.listview_settings) {
+			table_options.connection["listview_settings"] = this.conf?.listview_settings;
+		}
+
 		let dialog = new frappe.ui.Dialog({
 			title: this.reportName || "Data Table",
 			fields: [
@@ -346,6 +357,7 @@ class SVAHeatmap {
 						).fieldname;
 					}
 					if (this.stateField || hasStateColumn) {
+						this.hideLoader();
 						this.applyDataToMap();
 					} else {
 						this.hideLoader();
@@ -478,20 +490,20 @@ class SVAHeatmap {
 
 				if (column?.fieldtype === "Currency") {
 					formattedBreak = frappe.utils.format_currency(
-						break_,
+						break_ || 0,
 						frappe.boot?.sysdefaults?.currency || "INR"
 					);
 					formattedNextBreak = frappe.utils.format_currency(
-						nextBreak,
+						nextBreak || 0,
 						frappe.boot?.sysdefaults?.currency || "INR"
 					);
 				} else {
 					formattedBreak = frappe.utils.shorten_number(
-						break_,
+						break_ || 0,
 						frappe.sys_defaults.country
 					);
 					formattedNextBreak = frappe.utils.shorten_number(
-						nextBreak,
+						nextBreak || 0,
 						frappe.sys_defaults.country
 					);
 				}
@@ -641,11 +653,12 @@ class SVAHeatmap {
 				left: "0",
 				right: "0",
 				bottom: "0",
-				zIndex: 1000,
+				zIndex: 1,
 				background: "rgba(255, 255, 255, 0.8)",
 				display: "flex",
 				alignItems: "center",
 				justifyContent: "center",
+				borderRadius: "10px",
 				flexDirection: "column",
 			})
 			.html(
@@ -805,7 +818,7 @@ class SVAHeatmap {
 				left: "0",
 				right: "0",
 				bottom: "0",
-				zIndex: 1000,
+				zIndex: 1,
 				background: "rgba(255, 255, 255, 0.8)",
 				display: "flex",
 				alignItems: "center",

@@ -1,6 +1,4 @@
 import json
-import re
-from hashlib import md5
 
 import frappe
 from frappe.desk.query_report import run
@@ -343,20 +341,19 @@ class DTConf:
 		user = frappe.session.user
 		if user == "Administrator":
 			return None
-		setting_id = md5(f"{parent_id}-{child_dt}-{user}".encode()).hexdigest()
 		listview_settings = None
-		if frappe.cache.exists(setting_id):
-			listview_settings = frappe.cache.get_value(setting_id)
-		elif frappe.db.exists(
-			"SVADT User Listview Settings", {"parent_id": parent_id, "child_dt": child_dt, "user": user}
+		if frappe.db.exists(
+			"SVADT User Listview Settings", {"parent_id": parent_id, "child_dt": child_dt, "user": user}, True
 		):
-			listview_settings = frappe.get_doc(
+			listview_settings = frappe.get_cached_value(
 				"SVADT User Listview Settings",
 				frappe.db.exists(
 					"SVADT User Listview Settings",
 					{"parent_id": parent_id, "child_dt": child_dt, "user": user},
+					True,
 				),
-			).listview_settings
+				"listview_settings",
+			)
 		return listview_settings
 
 	# build datatable for doctype
