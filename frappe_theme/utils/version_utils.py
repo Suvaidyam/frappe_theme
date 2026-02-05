@@ -2,6 +2,7 @@ import json
 
 import frappe
 from frappe.model import get_permitted_fields
+from frappe.utils import cint
 
 
 class VersionUtils:
@@ -51,21 +52,12 @@ class VersionUtils:
 		"""
 		Get versions using class-based filter builder.
 		This method uses build_version_filters which can be overridden in subclasses.
-
-		Args:
-		        dt: DocType name
-		        dn: Document name
-		        page_length: Number of records per page
-		        start: Starting offset
-		        filters: Optional filters dictionary
-
-		Returns:
-		        list: List of version records
 		"""
 		where_clause, search_param_cond, additional_joins, additional_where = cls.build_version_filters(
 			dt, dn, filters
 		)
-		sql = f"""
+
+		sql = """
 			WITH extracted AS (
 				-- Regular field changes
 				SELECT
@@ -84,10 +76,9 @@ class VersionUtils:
 					NULL AS row_name,
 					0 AS is_child_table
 				FROM `tabVersion` AS ver
-				CROSS JOIN JSON_TABLE(JSON_EXTRACT(ver.data, '$.changed'), '$[*]'
-					COLUMNS (
-						elem JSON PATH '$'
-					)
+				CROSS JOIN JSON_TABLE(
+					JSON_EXTRACT(ver.data, '$.changed'),
+					'$[*]' COLUMNS (elem JSON PATH '$')
 				) jt
 				WHERE {where_clause}
 				AND JSON_EXTRACT(ver.data, '$.changed') IS NOT NULL
@@ -111,15 +102,13 @@ class VersionUtils:
 					JSON_UNQUOTE(JSON_EXTRACT(rc.elem, '$[2]')) AS row_name,
 					1 AS is_child_table
 				FROM `tabVersion` AS ver
-				CROSS JOIN JSON_TABLE(JSON_EXTRACT(ver.data, '$.row_changed'), '$[*]'
-					COLUMNS (
-						elem JSON PATH '$'
-					)
+				CROSS JOIN JSON_TABLE(
+					JSON_EXTRACT(ver.data, '$.row_changed'),
+					'$[*]' COLUMNS (elem JSON PATH '$')
 				) rc
-				CROSS JOIN JSON_TABLE(JSON_EXTRACT(rc.elem, '$[3]'), '$[*]'
-					COLUMNS (
-						elem JSON PATH '$'
-					)
+				CROSS JOIN JSON_TABLE(
+					JSON_EXTRACT(rc.elem, '$[3]'),
+					'$[*]' COLUMNS (elem JSON PATH '$')
 				) fc
 				WHERE {where_clause}
 				AND JSON_EXTRACT(ver.data, '$.row_changed') IS NOT NULL
@@ -147,17 +136,17 @@ class VersionUtils:
 									' > ',
 									COALESCE(
 										(SELECT tf.label FROM `tabDocField` tf
-										 WHERE e.field_name = tf.fieldname
-										 AND tf.parent = COALESCE(
-											 (SELECT tf2.options FROM `tabDocField` tf2 WHERE tf2.fieldname = e.child_table_field AND tf2.parent = COALESCE(e.custom_actual_doctype, e.ref_doctype) LIMIT 1),
-											 (SELECT ctf2.options FROM `tabCustom Field` ctf2 WHERE ctf2.fieldname = e.child_table_field AND ctf2.dt = COALESCE(e.custom_actual_doctype, e.ref_doctype) LIMIT 1)
-										 ) LIMIT 1),
+										WHERE e.field_name = tf.fieldname
+										AND tf.parent = COALESCE(
+											(SELECT tf2.options FROM `tabDocField` tf2 WHERE tf2.fieldname = e.child_table_field AND tf2.parent = COALESCE(e.custom_actual_doctype, e.ref_doctype) LIMIT 1),
+											(SELECT ctf2.options FROM `tabCustom Field` ctf2 WHERE ctf2.fieldname = e.child_table_field AND ctf2.dt = COALESCE(e.custom_actual_doctype, e.ref_doctype) LIMIT 1)
+										) LIMIT 1),
 										(SELECT ctf.label FROM `tabCustom Field` ctf
-										 WHERE ctf.fieldname = e.field_name
-										 AND ctf.dt = COALESCE(
-											 (SELECT tf2.options FROM `tabDocField` tf2 WHERE tf2.fieldname = e.child_table_field AND tf2.parent = COALESCE(e.custom_actual_doctype, e.ref_doctype) LIMIT 1),
-											 (SELECT ctf2.options FROM `tabCustom Field` ctf2 WHERE ctf2.fieldname = e.child_table_field AND ctf2.dt = COALESCE(e.custom_actual_doctype, e.ref_doctype) LIMIT 1)
-										 ) LIMIT 1),
+										WHERE ctf.fieldname = e.field_name
+										AND ctf.dt = COALESCE(
+											(SELECT tf2.options FROM `tabDocField` tf2 WHERE tf2.fieldname = e.child_table_field AND tf2.parent = COALESCE(e.custom_actual_doctype, e.ref_doctype) LIMIT 1),
+											(SELECT ctf2.options FROM `tabCustom Field` ctf2 WHERE ctf2.fieldname = e.child_table_field AND ctf2.dt = COALESCE(e.custom_actual_doctype, e.ref_doctype) LIMIT 1)
+										) LIMIT 1),
 										e.field_name
 									)
 								)
@@ -170,20 +159,8 @@ class VersionUtils:
 									e.field_name
 								)
 						END,
-						COALESCE(
-							CASE
-								WHEN e.old_value = 'null' OR e.old_value = '' THEN '(blank)'
-								ELSE e.old_value
-							END,
-							''
-						),
-						COALESCE(
-							CASE
-								WHEN e.new_value = 'null' OR e.new_value = '' THEN '(blank)'
-								ELSE e.new_value
-							END,
-							''
-						),
+						COALESCE(CASE WHEN e.old_value IN ('null', '') THEN '(blank)' ELSE e.old_value END, ''),
+						COALESCE(CASE WHEN e.new_value IN ('null', '') THEN '(blank)' ELSE e.new_value END, ''),
 						e.is_child_table,
 						e.child_table_field,
 						e.row_name,
@@ -196,11 +173,23 @@ class VersionUtils:
 			WHERE 1=1 {additional_where} {search_param_cond}
 			GROUP BY e.name
 			ORDER BY e.creation DESC
-			LIMIT {page_length}
-			OFFSET {start}
+			LIMIT %(page_length)s
+			OFFSET %(start)s
 		"""
-		results = frappe.db.sql(sql, as_dict=True)
 
+		sql = sql.format(
+			where_clause=where_clause,
+			additional_joins=additional_joins,
+			additional_where=additional_where,
+			search_param_cond=search_param_cond,
+		)
+
+		params = {
+			"page_length": cint(page_length),
+			"start": cint(start),
+		}
+
+		results = frappe.db.sql(sql, params, as_dict=True)
 		# Apply field-level permissions filtering
 		if results:
 			if frappe.session.user != "Administrator":

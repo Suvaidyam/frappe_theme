@@ -66,7 +66,13 @@ def get_meta_fields(doctype):
 
 
 @frappe.whitelist()
-def get_versions(dt, dn, page_length, start, filters=None):
+def get_versions(
+	dt: str,
+	dn: str,
+	page_length: int,
+	start: int,
+	filters: str | None = None,
+) -> list[dict]:
 	return VersionUtils.get_versions(dt, dn, page_length, start, filters)
 
 
