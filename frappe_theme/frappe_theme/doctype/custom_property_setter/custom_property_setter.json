@@ -94,6 +94,7 @@
   "heatmap_report",
   "default_view",
   "block_height",
+  "state_name_column",
   "min_data_color",
   "max_data_color",
   "column_break_xtcd",
@@ -684,7 +685,7 @@
    "fieldname": "carousel",
    "fieldtype": "Table",
    "label": "Carousel Configuration",
-   "mandatory_depends_on": "eval:(doc.property_type == \"Carousel\" && !doc.is_report)",
+   "mandatory_depends_on": "eval:(doc.propert_type == \"Carousel\" && !doc.is_report)",
    "options": "Carousel"
   },
   {
@@ -816,13 +817,19 @@
    "fieldname": "sdg_name_column",
    "fieldtype": "Data",
    "label": "SDG Name Column"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Heatmap (India Map)\"",
+   "fieldname": "state_name_column",
+   "fieldtype": "Data",
+   "label": "State Name Column"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_virtual": 1,
  "links": [],
- "modified": "2026-02-03 18:08:00.673622",
+ "modified": "2026-02-05 14:20:14.429481",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Custom Property Setter",
