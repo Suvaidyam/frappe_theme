@@ -10,7 +10,7 @@ class SVASDGWheel {
 		this.html_field = html_field;
 		this.block_height = conf.sdg_block_height;
 		this.target_fields = JSON.parse(conf.sdg_target_fields || "[]");
-		this.sdg_column_name = conf.sdg_column_name || "";
+		this.sdg_column_name = conf.sdg_name_column || "";
 		this.sdg_data = this.get_sdg_data();
 		this.frm = frm;
 		this.selected_goals = [];
