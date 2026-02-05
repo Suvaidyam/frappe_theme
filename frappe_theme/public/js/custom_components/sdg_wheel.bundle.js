@@ -5,12 +5,13 @@ import SvaDataTable from "../datatable/sva_datatable.bundle.js";
 class SVASDGWheel {
 	constructor({ wrapper, conf = {}, html_field = null, frm = null }) {
 		this.wrapper = wrapper;
+		this.conf = conf;
 		this.report_name = conf.sdg_report;
 		this.title = conf.label || this.report_name || null;
 		this.html_field = html_field;
 		this.block_height = conf.sdg_block_height;
 		this.target_fields = JSON.parse(conf.sdg_target_fields || "[]");
-		this.sdg_column_name = conf.sdg_column_name || "";
+		this.sdg_column_name = conf.sdg_name_column || "";
 		this.sdg_data = this.get_sdg_data();
 		this.frm = frm;
 		this.selected_goals = [];
@@ -341,6 +342,15 @@ class SVASDGWheel {
 			},
 			loader,
 		};
+
+		if (this.html_field) {
+			table_options.connection["html_field"] = this.html_field;
+			table_options.connection["configuration_basis"] = "Property Setter";
+		}
+
+		if (this.conf?.listview_settings) {
+			table_options.connection["listview_settings"] = this.conf?.listview_settings;
+		}
 
 		let dialog = new frappe.ui.Dialog({
 			title: this.report_name || "Data Table",
