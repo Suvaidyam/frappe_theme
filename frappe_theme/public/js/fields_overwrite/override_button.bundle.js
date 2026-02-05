@@ -1,6 +1,6 @@
 frappe.ui.form.ControlButton = class ControlButtonWithIcon extends frappe.ui.form.ControlButton {
 	make_input() {
-		if (this.frm?.meta?.is_dashboard || this.df?.is_apply_button) {
+		if (this.frm?.meta?.is_dashboard && this.df?.is_apply_button) {
 			// Remove label area
 			this.$wrapper.find("div.clearfix").remove();
 			this.$wrapper.css({
