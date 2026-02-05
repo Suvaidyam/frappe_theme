@@ -33,6 +33,7 @@ import CustomApprovalRequest from "./custom_components/approval_request/approval
 import CustomDynamicHtml from "./custom_components/dynamic_html/dynamic_html.bundle.js";
 import SVACarousel from "./sva_carousel.bundle.js";
 import FilterRibbon from "./custom_components/filters_ribbon.bundle.js";
+import SVASDGWheel from "./custom_components/sdg_wheel.bundle.js";
 
 frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 	constructor(...args) {
@@ -933,6 +934,14 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			case "Carousel":
 				frm.sva_ft_instances[field.fieldname] = new SVACarousel({
 					wrapper: $(wrapper),
+					conf: field?.sva_ft || {},
+					html_field: field.fieldname,
+					frm,
+				});
+				break;
+			case "SDG Wheel":
+				frm.sva_ft_instances[field.fieldname] = new SVASDGWheel({
+					wrapper: wrapper,
 					conf: field?.sva_ft || {},
 					html_field: field.fieldname,
 					frm,
