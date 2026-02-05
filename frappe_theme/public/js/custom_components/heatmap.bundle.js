@@ -4,6 +4,7 @@ import SvaDataTable from "../datatable/sva_datatable.bundle.js";
 class SVAHeatmap {
 	constructor(opts) {
 		this.html_field = opts.html_field || "";
+		this.conf = opts || {};
 		this.reportName = opts.report || "";
 		this.wrapper = opts.wrapper;
 		this.stateGeoJsonUrl = "/assets/frappe_theme/boundaries/state_boundries.json";
@@ -279,6 +280,15 @@ class SVAHeatmap {
 			},
 			loader,
 		};
+
+		if (this.html_field) {
+			table_options.connection["html_field"] = this.html_field;
+			table_options.connection["configuration_basis"] = "Property Setter";
+		}
+
+		if (this.conf?.listview_settings) {
+			table_options.connection["listview_settings"] = this.conf?.listview_settings;
+		}
 
 		let dialog = new frappe.ui.Dialog({
 			title: this.reportName || "Data Table",
