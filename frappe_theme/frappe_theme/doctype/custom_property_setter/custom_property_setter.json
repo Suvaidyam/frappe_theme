@@ -684,7 +684,7 @@
    "fieldname": "carousel",
    "fieldtype": "Table",
    "label": "Carousel Configuration",
-   "mandatory_depends_on": "eval:(doc.propert_type == \"Carousel\" && !doc.is_report)",
+   "mandatory_depends_on": "eval:(doc.property_type == \"Carousel\" && !doc.is_report)",
    "options": "Carousel"
   },
   {
