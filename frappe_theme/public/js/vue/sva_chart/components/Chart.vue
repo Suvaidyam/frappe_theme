@@ -350,6 +350,15 @@ const handleAction = async (action) => {
 			loader,
 		};
 
+		if (props?.chart?.html_field) {
+			table_options.connection["html_field"] = props.chart.html_field;
+			table_options.connection["configuration_basis"] = "Property Setter";
+		}
+
+		if (props.chart?.listview_settings) {
+			table_options.connection["listview_settings"] = props.chart.listview_settings;
+		}
+
 		if (props.chart?.details?.chart_type == "Report") {
 			table_options.connection["link_report"] = props.chart.details?.report_name;
 			table_options.connection["connection_type"] = "Report";

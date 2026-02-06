@@ -1,6 +1,4 @@
 import json
-import re
-from hashlib import md5
 
 import frappe
 from frappe.desk.query_report import run
@@ -175,7 +173,6 @@ class DTConf:
 				valid_filters, invalid_filters = DTFilters.validate_query_report_filters(
 					ref_doctype, doc, doctype, filters
 				)
-
 			columns, result = data.execute_query_report(
 				additional_filters=valid_filters,
 				filters={},
@@ -196,8 +193,15 @@ class DTConf:
 				valid_filters, invalid_filters = DTFilters.validate_query_report_filters(
 					ref_doctype, doc, doctype, filters, is_script_report=True
 				)
-				if isinstance(filters, list):
-					valid_filters = {f[1]: [f[2], f[3]] for f in filters}
+				if isinstance(valid_filters, list):
+					_valid_filters = {}
+					for f in valid_filters:
+						if f[2] == "=":
+							_valid_filters[f[1]] = f[3]
+						else:
+							_valid_filters[f[1]] = [f[2], f[3]]
+
+					valid_filters = _valid_filters
 
 			response = run(doctype, filters=valid_filters)
 
@@ -337,20 +341,19 @@ class DTConf:
 		user = frappe.session.user
 		if user == "Administrator":
 			return None
-		setting_id = md5(f"{parent_id}-{child_dt}-{user}".encode()).hexdigest()
 		listview_settings = None
-		if frappe.cache.exists(setting_id):
-			listview_settings = frappe.cache.get_value(setting_id)
-		elif frappe.db.exists(
-			"SVADT User Listview Settings", {"parent_id": parent_id, "child_dt": child_dt, "user": user}
+		if frappe.db.exists(
+			"SVADT User Listview Settings", {"parent_id": parent_id, "child_dt": child_dt, "user": user}, True
 		):
-			listview_settings = frappe.get_doc(
+			listview_settings = frappe.get_cached_value(
 				"SVADT User Listview Settings",
 				frappe.db.exists(
 					"SVADT User Listview Settings",
 					{"parent_id": parent_id, "child_dt": child_dt, "user": user},
+					True,
 				),
-			).listview_settings
+				"listview_settings",
+			)
 		return listview_settings
 
 	# build datatable for doctype

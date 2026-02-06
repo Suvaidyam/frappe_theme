@@ -138,6 +138,15 @@ const handleAction = async (action) => {
 			loader,
 		};
 
+		if (props?.card?.html_field) {
+			table_options.connection["html_field"] = props.card.html_field;
+			table_options.connection["configuration_basis"] = "Property Setter";
+		}
+
+		if (props.card?.listview_settings) {
+			table_options.connection["listview_settings"] = props.card.listview_settings;
+		}
+
 		if (props.card?.details?.type == "Report") {
 			table_options.connection["link_report"] = props.card.details?.report_name;
 			if (props.card?.details?.report_field) {
