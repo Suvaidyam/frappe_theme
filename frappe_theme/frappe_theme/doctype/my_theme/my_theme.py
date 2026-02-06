@@ -104,7 +104,6 @@ class MyTheme(Document):
 				if is_verify:
 					verify_recipients.append(recipient)
 		# send email
-		print(verify_recipients, "================================")
 		frappe.sendmail(
 			recipients=verify_recipients,
 			subject=subject,
