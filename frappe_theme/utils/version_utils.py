@@ -29,23 +29,34 @@ class VersionUtils:
 		if isinstance(filters, str):
 			filters = json.loads(filters)
 
-		# Base where clause
-		where_clause = f"ver.ref_doctype = '{dt}' AND ver.docname = '{dn}'"
+		where_clause = "ver.ref_doctype = %(dt)s AND ver.docname = %(dn)s"
 		search_param_cond = ""
 		additional_joins = ""
 		additional_where = ""
 
-		# Apply standard filters
+		params = {
+			"dt": dt,
+			"dn": dn,
+		}
+
 		if filters and isinstance(filters, dict):
 			if filters.get("doctype"):
-				where_clause += f" AND (ver.custom_actual_doctype = '{filters['doctype']}' OR (COALESCE(ver.custom_actual_doctype, '') = '' AND ver.ref_doctype = '{filters['doctype']}'))"
+				where_clause += """
+					AND (
+						ver.custom_actual_doctype = %(filter_doctype)s
+						OR (
+							COALESCE(ver.custom_actual_doctype, '') = ''
+							AND ver.ref_doctype = %(filter_doctype)s
+						)
+					)
+				"""
+				params["filter_doctype"] = filters["doctype"]
 
 			if filters.get("owner"):
-				search_param_cond = f" AND usr.full_name LIKE '{filters['owner']}%'"
-			else:
-				search_param_cond = ""
+				search_param_cond = " AND usr.full_name LIKE %(owner)s"
+				params["owner"] = f"{filters['owner']}%"
 
-		return where_clause, search_param_cond, additional_joins, additional_where
+		return where_clause, search_param_cond, additional_joins, additional_where, params
 
 	@classmethod
 	def get_versions(cls, dt, dn, page_length, start, filters=None):
@@ -53,9 +64,13 @@ class VersionUtils:
 		Get versions using class-based filter builder.
 		This method uses build_version_filters which can be overridden in subclasses.
 		"""
-		where_clause, search_param_cond, additional_joins, additional_where = cls.build_version_filters(
-			dt, dn, filters
-		)
+		(
+			where_clause,
+			search_param_cond,
+			additional_joins,
+			additional_where,
+			filter_params,
+		) = cls.build_version_filters(dt, dn, filters)
 
 		sql = """
 			WITH extracted AS (
@@ -187,6 +202,7 @@ class VersionUtils:
 		params = {
 			"page_length": cint(page_length),
 			"start": cint(start),
+			**filter_params,
 		}
 
 		results = frappe.db.sql(sql, params, as_dict=True)
