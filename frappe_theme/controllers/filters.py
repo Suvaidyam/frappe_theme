@@ -97,7 +97,13 @@ class DTFilters:
 					if filter_field:
 						if filter_field.fieldtype == "Link":
 							DTFilters.process_link_fields_as_filters(
-								base_fields, filter_field, doctype, filters, key, valid_filters, invalid_filters
+								base_fields,
+								filter_field,
+								doctype,
+								filters,
+								key,
+								valid_filters,
+								invalid_filters,
 							)
 						elif filter_field.fieldtype == "Table MultiSelect":
 							first_link_field = DTFilters.get_conf_for_multi_slect_link_field(
