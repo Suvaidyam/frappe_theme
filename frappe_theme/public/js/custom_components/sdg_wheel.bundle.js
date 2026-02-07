@@ -423,6 +423,10 @@ class SVASDGWheel {
 				}
 				this.loader?.hide();
 			},
+			error: (err) => {
+				console.error("Error fetching SDG report data:", err);
+				this.loader?.hide();
+			}
 		});
 	}
 

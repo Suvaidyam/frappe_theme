@@ -5,8 +5,9 @@ from frappe import _
 from frappe.core.doctype.report.report import Report
 from frappe.utils import cstr
 from frappe.utils.safe_exec import check_safe_sql_query
-
+OPERATORS = ["=", "!=", ">", "<", ">=", "<=", "in", "not in", "like", "not like", "between", "not between"]
 from frappe_theme.utils.permission_engine import get_permission_query_conditions_custom
+from frappe_theme.utils.sql_builder import SQLBuilder
 
 
 def before_save(doc, method=None):
@@ -49,6 +50,15 @@ class CustomReport(Report):
 
 		if additional_filters is None:
 			additional_filters = {}
+		# print(
+		# 	self.query,
+		# 	"====================================self.query before=====================================",
+		# )
+		self.query = SQLBuilder.apply(self.query, filters)
+		# print(
+		# 	self.query,
+		# 	"====================================self.query after======================================",
+		# )
 
 		check_safe_sql_query(self.query)
 
@@ -71,35 +81,32 @@ class CustomReport(Report):
 			limit_page_length,
 			limit_start,
 		)
-		# 4. Execute SQL
-		result = frappe.db.sql(sql_with_applied_filters, filters, as_dict=True)
-		# 5. Resolve auto columns if missing
-		if not columns:
-			columns = [cstr(c[0]) for c in frappe.db.get_description()]
 
 		if return_query:
 			return sql_with_applied_filters
 
+		# 4. Execute SQL
+		result = frappe.db.sql(sql_with_applied_filters, as_dict=True)
+		# 5. Resolve auto columns if missing
+		if not columns:
+			columns = [cstr(c[0]) for c in frappe.db.get_description()]
+
 		return columns, result
 
-	def execute_and_count_query_report_rows(self, filters, ref_doctype=None, ref_docname=None, unfiltered=0):
+	def execute_and_count_query_report_rows(
+		self, filters, additional_filters=None, ref_doctype=None, ref_docname=None, unfiltered=0
+	):
 		if not self.query:
 			frappe.throw(_("Must specify a Query to run"), title=_("Report Document Error"))
 
-		check_safe_sql_query(self.query)
-
-		# 1. Parse columns of the report
-		columns = self.get_columns() or []
-
-		# 2. Build user-permission filters
-		user_perm_conditions = self.get_user_permission_conditions(columns)
-
-		# 3. Append permission filters to SQL safely
-		sql_with_permissions = self.apply_permission_filter(self.query, user_perm_conditions)
-
 		# 3.a Apply doctype/docname filter if applicable
-		sql_with_applied_filters = self.apply_dt_dn_filter_and_filters(
-			sql_with_permissions, ref_doctype, ref_docname, filters, unfiltered
+		sql_with_applied_filters = self.execute_query_report(
+			filters,
+			ref_doctype,
+			ref_docname,
+			unfiltered,
+			return_query=True,
+			additional_filters=additional_filters,
 		)
 		# 4. Execute SQL
 		result = frappe.db.sql(
@@ -179,9 +186,11 @@ class CustomReport(Report):
 			_filters = []
 			for key, value in filters.items():
 				if isinstance(value, list):
-					operator = value[0]
-					val = value[1]
-					_filters.append([table_alias, key, operator, val])
+					if len(value) and value[0] in OPERATORS:
+						operator = value[0]
+						if value[1]:
+							val = value[1]
+							_filters.append([table_alias, key, operator, val])
 				else:
 					_filters.append([table_alias, key, "=", value])
 
@@ -193,7 +202,6 @@ class CustomReport(Report):
 
 			doctype, field, operator, value = f[:4]
 			field_name = f"{table_alias}.{field}"
-
 			if operator.lower() == "between" and isinstance(value, (list | tuple)) and len(value) == 2:
 				condition = f"{field_name} BETWEEN '{value[0]}' AND '{value[1]}'"
 			elif operator.lower() == "like":

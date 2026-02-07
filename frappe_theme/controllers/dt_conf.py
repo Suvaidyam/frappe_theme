@@ -170,9 +170,14 @@ class DTConf:
         if data.report_type == "Query Report":
             standard_filters, aditional_filters, invalid_filters = {}, {}, []
             if filters:
-                standard_filters, aditional_filters, invalid_filters = DTFilters.validate_query_report_filters(
-                    ref_doctype, doc, doctype, filters
-                )
+                standard_filters, aditional_filters, invalid_filters, = DTFilters.validate_query_report_filters(ref_doctype, doc, doctype, filters)
+            print(f"""
+                ====================================================================
+                report: {doctype}
+                standard filters: {standard_filters}
+                additional filters: {aditional_filters}
+                invalid filters: {invalid_filters}
+            """)
             columns, result = data.execute_query_report(
                 additional_filters=aditional_filters,
                 filters=standard_filters,
@@ -195,7 +200,7 @@ class DTConf:
                 )
             if isinstance(valid_filters, str):
                 valid_filters = json.loads(valid_filters)
-                
+
             response = run(doctype, filters=valid_filters)
             data = response.get("result")
             columns = response.get("columns")
@@ -244,11 +249,17 @@ class DTConf:
             if data.report_type == "Query Report":
                 if isinstance(filters, str):
                     filters = json.loads(filters)
-                standard_filters, aditional_filters, invalid_filters = DTFilters.validate_query_report_filters(
-                    ref_doctype, doc, doctype, filters
-                )
+                (
+                    standard_filters,
+                    aditional_filters,
+                    invalid_filters,
+                ) = DTFilters.validate_query_report_filters(ref_doctype, doc, doctype, filters)
                 count = data.execute_and_count_query_report_rows(
-                    filters=standard_filters, additional_filters=aditional_filters, ref_doctype=ref_doctype, ref_docname=doc, unfiltered=unfiltered
+                    filters=standard_filters,
+                    additional_filters=aditional_filters,
+                    ref_doctype=ref_doctype,
+                    ref_docname=doc,
+                    unfiltered=unfiltered,
                 )
                 return count or 0
             elif data.report_type == "Script Report":
@@ -258,10 +269,10 @@ class DTConf:
                     valid_filters, invalid_filters = DTFilters.validate_query_report_filters(
                         ref_doctype, doc, doctype, filters, is_script_report=True
                     )
-                    
+
                 if isinstance(valid_filters, str):
                     valid_filters = json.loads(valid_filters)
-                    
+
                 response = run(doctype, filters=valid_filters)
                 data = response.get("result")
                 columns = response.get("columns")
@@ -383,9 +394,9 @@ class DTConf:
     def link_report_list(doctype):
         other_report_list = frappe.get_all(
             "Report",
-            filters=[
+            or_filters=[
                 ["Report Filter", "options", "=", doctype],
-                ["Report", "report_type", "=", "Query Report"],
+                ["Report Column", "options", "=", doctype],
             ],
             pluck="name",
         )

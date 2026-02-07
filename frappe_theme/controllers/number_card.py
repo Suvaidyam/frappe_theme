@@ -168,16 +168,18 @@ class NumberCard:
 						column = f
 						break
 
-				valid_filters, invalid_filters = {}, []
+				standard_filters, aditional_filters, invalid_filters = {}, {}, []
 				if isinstance(filters, str):
 					filters = json.loads(filters or "{}")
 				if filters:
-					valid_filters, invalid_filters = DTFilters.validate_query_report_filters(
-						doctype, docname, report.get("name"), filters
-					)
+					(
+						standard_filters,
+						aditional_filters,
+						invalid_filters,
+					) = DTFilters.validate_query_report_filters(doctype, docname, report.get("name"), filters)
 				executable_query = report.execute_query_report(
-					additional_filters=valid_filters,
-					filters=filters_json,
+					additional_filters=aditional_filters,
+					filters={**filters_json, **standard_filters},
 					ref_doctype=doctype,
 					ref_docname=docname,
 					unfiltered=0,

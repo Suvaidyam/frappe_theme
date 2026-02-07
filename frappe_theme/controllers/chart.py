@@ -393,17 +393,21 @@ class Chart:
 			if report:
 				report_doc = frappe.get_doc("Report", report.get("name"))
 			if report.get("report_type") == "Query Report" and report.get("query"):
-				valid_filters, invalid_filters = {}, []
+				standard_filters, aditional_filters, invalid_filters = {}, {}, []
 				if filters:
-					valid_filters, invalid_filters = DTFilters.validate_query_report_filters(
+					(
+						standard_filters,
+						aditional_filters,
+						invalid_filters,
+					) = DTFilters.validate_query_report_filters(
 						doctype=doctype, docname=docname, report_name=report.get("name"), filters=filters
 					)
 
 				columns, data = report_doc.execute_query_report(
-					additional_filters=valid_filters,
+					additional_filters=aditional_filters,
 					ref_doctype=doctype,
 					ref_docname=docname,
-					filters=filters_json,
+					filters={**standard_filters, **filters_json},
 				)
 
 				if details.get("type") in ["Bar", "Line"]:
