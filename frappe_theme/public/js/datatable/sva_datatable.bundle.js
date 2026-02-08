@@ -4090,8 +4090,11 @@ class SvaDataTable {
 			if (this.connection?.connection_type == "Report") {
 				filters_to_apply = {};
 				if (this.frm?.["dt_events"]?.[this.doctype || this.link_report]?.get_filters) {
-					let get_filters = this.frm?.["dt_events"]?.[this.doctype || this.link_report]?.get_filters;
-					filters_to_apply = (await get_filters(this.doctype || this.link_report, this.frm || {})) || {};
+					let get_filters =
+						this.frm?.["dt_events"]?.[this.doctype || this.link_report]?.get_filters;
+					filters_to_apply =
+						(await get_filters(this.doctype || this.link_report, this.frm || {})) ||
+						{};
 				}
 				[...filters, ...this.additional_list_filters].forEach((f) => {
 					filters_to_apply[f[1]] = [f[2], f[3]];

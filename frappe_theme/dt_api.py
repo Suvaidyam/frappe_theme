@@ -3,7 +3,6 @@ import frappe
 from frappe_theme.controllers.chart import Chart
 from frappe_theme.controllers.dt_conf import DTConf
 from frappe_theme.controllers.number_card import NumberCard
-from frappe_theme.print import ColorPrint
 
 
 @frappe.whitelist()
@@ -100,7 +99,6 @@ def get_dt_list(
 	unfiltered=0,
 	return_columns=False,
 ):
-	ColorPrint.green(f"Getting dt list for {doctype}", f"with filters: {filters}")
 	options = {
 		"doctype": doctype,
 		"doc": doc,
