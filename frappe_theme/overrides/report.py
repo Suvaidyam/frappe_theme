@@ -165,11 +165,13 @@ class CustomReport(Report):
 			_filters = []
 			for key, value in filters.items():
 				if isinstance(value, list):
-					if len(value) and value[0] in OPERATORS:
+					if len(value) > 1 and value[0] in OPERATORS:
 						operator = value[0]
 						if value[1]:
 							val = value[1]
 							_filters.append([table_alias, key, operator, val])
+					else:
+						_filters.append([table_alias, key, "in", value])
 				else:
 					_filters.append([table_alias, key, "=", value])
 
