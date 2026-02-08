@@ -9,8 +9,10 @@ from frappe.utils.safe_exec import check_safe_sql_query
 from frappe_theme.utils.permission_engine import get_permission_query_conditions_custom
 
 
-def before_save(doc, method=None):
+def create_view(doc):
+	print("Creating view: ", doc.custom_view_name, "with type: ", doc.custom_view_type)
 	if doc.custom_create_view:
+		sql = None
 		if doc.custom_view_type == "Logical":
 			sql = f"""
                 CREATE OR REPLACE VIEW `{doc.custom_view_name}` AS
@@ -20,10 +22,17 @@ def before_save(doc, method=None):
 		#     sql = f"""
 		#         CREATE MATERIALIZED VIEW IF NOT EXISTS `{doc.custom_view_name}` AS ({doc.query})
 		#         """
-		try:
-			frappe.db.sql_ddl(sql)
-		except Exception as e:
-			frappe.throw(f"Error in creating view: {e}")
+		if sql:
+			print("Creating view: ", doc.custom_view_name)
+			try:
+				frappe.db.sql_ddl(sql)
+			except Exception as e:
+				frappe.throw(f"Error in creating view: {e}")
+
+
+def before_save(doc, method=None):
+	if doc.custom_create_view:
+		create_view(doc)
 
 
 class CustomReport(Report):
