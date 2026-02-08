@@ -8,6 +8,7 @@ from frappe.utils.safe_exec import check_safe_sql_query
 
 from frappe_theme.utils.permission_engine import get_permission_query_conditions_custom
 
+
 def create_view(doc):
 	print("Creating view: ", doc.custom_view_name, "with type: ", doc.custom_view_type)
 	if doc.custom_create_view:
@@ -27,6 +28,7 @@ def create_view(doc):
 				frappe.db.sql_ddl(sql)
 			except Exception as e:
 				frappe.throw(f"Error in creating view: {e}")
+
 
 def before_save(doc, method=None):
 	if doc.custom_create_view:
