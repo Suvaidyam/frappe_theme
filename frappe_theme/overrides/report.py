@@ -40,7 +40,7 @@ class CustomReport(Report):
 		limit_start=None,
 		unfiltered=0,
 		return_query=False,
-		additional_filters=None,
+		outer_filters=None,
 	):
 		if not self.query:
 			frappe.throw(_("Must specify a Query to run"), title=_("Report Document Error"))
@@ -48,8 +48,8 @@ class CustomReport(Report):
 		if filters is None:
 			filters = {}
 
-		if additional_filters is None:
-			additional_filters = {}
+		if outer_filters is None:
+			outer_filters = {}
 		# print(
 		# 	self.query,
 		# 	"====================================self.query before=====================================",
@@ -76,7 +76,7 @@ class CustomReport(Report):
 			sql_with_permissions,
 			ref_doctype,
 			ref_docname,
-			additional_filters,
+			outer_filters,
 			unfiltered,
 			limit_page_length,
 			limit_start,
@@ -94,7 +94,7 @@ class CustomReport(Report):
 		return columns, result
 
 	def execute_and_count_query_report_rows(
-		self, filters, additional_filters=None, ref_doctype=None, ref_docname=None, unfiltered=0
+		self, filters, outer_filters=None, ref_doctype=None, ref_docname=None, unfiltered=0
 	):
 		if not self.query:
 			frappe.throw(_("Must specify a Query to run"), title=_("Report Document Error"))
@@ -106,7 +106,7 @@ class CustomReport(Report):
 			ref_docname,
 			unfiltered,
 			return_query=True,
-			additional_filters=additional_filters,
+			outer_filters=outer_filters,
 		)
 		# 4. Execute SQL
 		result = frappe.db.sql(

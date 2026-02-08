@@ -1,6 +1,6 @@
 import frappe
-
 OPERATORS = ["=", "!=", ">", "<", ">=", "<=", "in", "not in", "like", "not like", "between", "not between"]
+from frappe_theme.utils.sql_builder import SQLBuilder
 
 
 class DTFilters:
@@ -60,6 +60,67 @@ class DTFilters:
                     invalid_filters.append(filter_field)
         return valid_filters, invalid_filters
 
+    def sanitize_report_filters(filters):
+        if isinstance(filters, dict):
+            new_filters = {}
+            for key, value in filters.items():
+                if isinstance(value, list):
+                    if len(value) > 0 and value[0].lower() in OPERATORS:
+                        new_filters[key] = value
+                    else:
+                        new_filters[key] = frappe.parse_json(value)
+                    new_filters[key] = frappe.parse_json(value)
+                else:
+                    new_filters[key] = value
+        return filters
+    def get_matching_link_field(source_field, target_fields):
+        return next((f.as_dict() for f in target_fields if f.get("fieldtype") == "Link" and f.get("options") == source_field.get("options")), None)
+
+    @staticmethod
+    def get_report_filters(report, client_filters,dt):
+        if dt:
+            meta = frappe.get_meta(dt, True)
+            outer_filters = {}
+            inner_filters = {}
+            not_applied_filters = []
+            if meta.get("is_dashboard") != 1:
+                outer_filters = client_filters
+                return outer_filters, inner_filters, not_applied_filters
+
+            report_filters = report.get("filters", [])
+            report_columns = report.get("columns", [])
+            client_filters_keys = list(client_filters.keys())
+            fields = [{'fieldname': f.get("fieldname"), 'fieldtype': f.get("fieldtype"), 'options': f.get("options")} for f in meta.get("fields", []) if (f.get("fieldtype") in ["Link", "Table MultiSelect"] and f.get("fieldname") in client_filters_keys)]
+
+            for key in client_filters_keys:
+                field = next((f for f in fields if f.get("fieldname") == key), None)
+                if field:
+                    matching_column_link_field = DTFilters.get_matching_link_field(field, report_columns)
+                    if matching_column_link_field:
+                        outer_filters[matching_column_link_field.get("fieldname")] = client_filters[key]
+
+                    matching_filter_link_field = DTFilters.get_matching_link_field(field, report_filters)
+                    if matching_filter_link_field:
+                        if client_filters[key] and isinstance(client_filters[key], list) and len(client_filters[key]) > 1 and client_filters[key][0] in OPERATORS:
+                            inner_filters[matching_filter_link_field.get("fieldname")] = client_filters[key][1]
+                        else:
+                            inner_filters[matching_filter_link_field.get("fieldname")] = client_filters[key]
+                    if not (matching_column_link_field or matching_filter_link_field):
+                        not_applied_filters.append(key)
+                else:
+                    mathing_column_field = next((f for f in report_columns if f.get("fieldname") == key), None)
+                    mathing_filter_field = next((f for f in report_filters if f.get("fieldname") == key), None)
+                    if mathing_column_field:
+                        outer_filters[mathing_column_field.get("fieldname")] = client_filters[key]
+                    if mathing_filter_field:
+                        if client_filters[key] and isinstance(client_filters[key], list) and len(client_filters[key]) > 1 and client_filters[key][0] in OPERATORS:
+                            inner_filters[mathing_filter_field.get("fieldname")] = client_filters[key][1]
+                        else:
+                            inner_filters[mathing_filter_field.get("fieldname")] = client_filters[key]
+                    if not (mathing_column_field or mathing_filter_field):
+                        not_applied_filters.append(key)
+            return outer_filters, inner_filters, not_applied_filters
+
     @staticmethod
     def validate_query_report_filters(doctype, docname, report_name, filters, is_script_report=False):
         try:
@@ -81,7 +142,7 @@ class DTFilters:
                     report = frappe.get_doc("Report", report_name)
                 except frappe.DoesNotExistError:
                     return standard_filters, aditional_filters, invalid_filters
-                
+
                 report_columns = report.get("columns", []) or []
                 report_filters = report.get("filters", []) or []
 
@@ -94,9 +155,6 @@ class DTFilters:
                     if not key:
                         continue
                     filter_field = next((f.as_dict() for f in fields if f.get("fieldname") == key), None)
-                    print(f"""
-                        \n\n\n\nreport: {report_name}
-                        """)
                     applied = False
                     if filter_field:
                         if filter_field.get("fieldtype") == "Link":
@@ -141,10 +199,11 @@ class DTFilters:
                             continue
                     if not applied:
                         invalid_filters.append({"fieldname": key})
+            query_filters = DTFilters.sanitized_filters(standard_filters, aditional_filters)
             if not is_script_report:
-                return standard_filters, aditional_filters, invalid_filters
+                return standard_filters, aditional_filters, invalid_filters, query_filters
             else:
-                return standard_filters, invalid_filters
+                return standard_filters, invalid_filters,query_filters
         except Exception as e:
             frappe.log_error(f"Error in validate_query_report_filters: {str(e)}")
             if not is_script_report:
@@ -244,13 +303,11 @@ class DTFilters:
     ):
         if isinstance(filter_field, str):
             filter_field = frappe.parse_json(filter_field or "{}")
-        print('\n\n\n\n\n',filter_field.get("fieldname"),'filter_field.get("fieldname")')
         relevant_filter_from_base = next(
             (f.as_dict() for f in report_filters if f.get("options") == filter_field.get("options")), None
         )
 
         # Match column by options AND check if fieldname matches the filter key
-        print(report_columns,'report_columns')
         relevant_column_from_base = next(
             (f.as_dict() for f in report_columns if f.get("options") == filter_field.get("options")), None
         )
@@ -278,7 +335,6 @@ class DTFilters:
                     standard_filters[relevant_column_from_base.get("fieldname")] = filters[key]
             return True
         elif relevant_column_from_base is not None:
-            print('888888888888888888888888888888888888888888888',relevant_column_from_base, relevant_column_from_base.get("parent"),'t/////////////////')
             if filters[key]:
                 if isinstance(filters[key], list):
                     value = filters[key]
@@ -325,7 +381,6 @@ class DTFilters:
                     standard_filters[key] = filters[key]
             return True
         elif matching_column is not None:
-            print('888888888888888888888888888888888888888888888',matching_column, matching_column.get("parent"),'/////////////////')
             if filters[key]:
                 if isinstance(filters[key], list):
                     value = filters[key]

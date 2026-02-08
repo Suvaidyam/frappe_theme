@@ -3,6 +3,7 @@ import frappe
 from frappe_theme.controllers.chart import Chart
 from frappe_theme.controllers.dt_conf import DTConf
 from frappe_theme.controllers.number_card import NumberCard
+from frappe_theme.print import ColorPrint
 
 
 @frappe.whitelist()
@@ -99,19 +100,21 @@ def get_dt_list(
 	unfiltered=0,
 	return_columns=False,
 ):
-	return DTConf.get_dt_list(
-		doctype,
-		doc,
-		ref_doctype,
-		filters,
-		fields,
-		limit_page_length,
-		order_by,
-		limit_start,
-		_type,
-		unfiltered,
-		return_columns=return_columns,
-	)
+	ColorPrint.green(f"Getting dt list for {doctype}", f"with filters: {filters}")
+	options = {
+		'doctype': doctype,
+		'doc': doc,
+		'ref_doctype': ref_doctype,
+		'filters': filters,
+		'fields': fields,
+		'limit_page_length': limit_page_length,
+		'order_by': order_by,
+		'limit_start': limit_start,
+		'_type': _type,
+		'unfiltered': unfiltered,
+		'return_columns': return_columns
+	}
+	return DTConf.get_dt_list(options)
 
 
 @frappe.whitelist()
@@ -121,4 +124,12 @@ def get_report_filters(doctype):
 
 @frappe.whitelist()
 def get_dt_count(doctype, doc=None, ref_doctype=None, filters=None, _type="List", unfiltered=0):
-	return DTConf.get_dt_count(doctype, doc, ref_doctype, filters, _type, unfiltered)
+	options = {
+		'doctype': doctype,
+		'doc': doc,
+		'ref_doctype': ref_doctype,
+		'filters': filters,
+		'_type': _type,
+		'unfiltered': unfiltered
+	}
+	return DTConf.get_dt_count(options)
