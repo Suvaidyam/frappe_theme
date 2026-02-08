@@ -102,6 +102,7 @@ jinja = {"methods": "frappe_theme.utils.jinja_methods"}
 
 # before_install = "frappe_theme.install.before_install"
 # after_install = "frappe_theme.install.after_install"
+after_migrate = "frappe_theme.setup.migration.after_migrate"
 
 # Uninstallation
 # ------------

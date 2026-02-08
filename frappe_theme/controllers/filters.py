@@ -94,25 +94,39 @@ class DTFilters:
 
 				for key in filter_keys:
 					filter_field = next((f.as_dict() for f in fields if f.get("fieldname") == key), None)
-					if filter_field.fieldtype == "Link":
-						DTFilters.process_link_fields_as_filters(
-							base_fields, filter_field, doctype, filters, key, valid_filters, invalid_filters
-						)
-					elif filter_field.fieldtype == "Table MultiSelect":
-						first_link_field = DTFilters.get_conf_for_multi_slect_link_field(
-							filter_field.get("options")
-						)
-						DTFilters.process_link_fields_as_filters(
-							base_fields,
-							first_link_field,
-							doctype,
-							filters,
-							key,
-							valid_filters,
-							invalid_filters,
-						)
+					if filter_field:
+						if filter_field.fieldtype == "Link":
+							DTFilters.process_link_fields_as_filters(
+								base_fields,
+								filter_field,
+								doctype,
+								filters,
+								key,
+								valid_filters,
+								invalid_filters,
+							)
+						elif filter_field.fieldtype == "Table MultiSelect":
+							first_link_field = DTFilters.get_conf_for_multi_slect_link_field(
+								filter_field.get("options")
+							)
+							DTFilters.process_link_fields_as_filters(
+								base_fields,
+								first_link_field,
+								doctype,
+								filters,
+								key,
+								valid_filters,
+								invalid_filters,
+							)
+						else:
+							invalid_filters.append(filter_field)
 					else:
-						invalid_filters.append(filter_field)
+						if isinstance(filters, list):
+							for f in filters:
+								if f[1] == key:
+									valid_filters.append(f)
+						else:
+							valid_filters[key] = filters[key]
 
 			return valid_filters, invalid_filters
 		except Exception as e:
