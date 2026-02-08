@@ -168,7 +168,7 @@ class DTConf:
 			else:
 				return result
 		elif report.report_type == "Script Report":
-			response = run(report.name, filters=outer_filters)
+			response = run(report.name, filters=inner_filters)
 			columns = response.get("columns")
 			result = Chart.filter_script_report_data(
 				response.get("result"), columns, options["ref_doctype"], options["doc"]
@@ -219,10 +219,6 @@ class DTConf:
 
 	def get_dt_count(options):
 		filters = options["filters"]
-		if isinstance(filters, str):
-			filters = json.loads(filters)
-		if filters is None:
-			filters = {}
 		doctype = options["doctype"]
 		if options["_type"] == "Report":
 			report = frappe.get_doc("Report", options["doctype"])
@@ -237,13 +233,6 @@ class DTConf:
 					ref_docname=options["doc"],
 					unfiltered=options["unfiltered"],
 					return_query=True,
-				)
-				ColorPrint.red(
-					f"[New DTConf] Query count: {query}",
-					f"with filters: {options['filters']}",
-					f"outer_filters: {outer_filters}",
-					f"inner_filters: {inner_filters}",
-					f"not_applied_filters: {not_applied_filters}",
 				)
 				count = frappe.db.sql(f"SELECT COUNT(*) AS count FROM ({query}) as __count", as_dict=True)
 				return count[0].get("count") if count else 0
