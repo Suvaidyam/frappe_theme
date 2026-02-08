@@ -134,7 +134,7 @@ class DTConf:
 		if options["_type"] == "Report":
 			return DTConf.report_list(options)
 		else:
-			return DTConf.doc_type_list(**options)
+			return DTConf.doc_type_list(options)
 
 	@staticmethod
 	def report_list(options):
@@ -184,16 +184,16 @@ class DTConf:
 			else:
 				return result
 
-	def doc_type_list(
-		doctype,
-		filters=None,
-		fields=None,
-		limit_page_length=None,
-		order_by=None,
-		limit_start=None,
-		doc=None,
-		ref_doctype=None,
-	):
+	def doc_type_list(options):
+		filters = options["filters"]
+		fields = options["fields"]
+		limit_page_length = options["limit_page_length"]
+		order_by = options["order_by"]
+		limit_start = options["limit_start"]
+		doc = options["doc"]
+		ref_doctype = options["ref_doctype"]
+		doctype = options["doctype"]
+
 		if filters is not None and not isinstance(filters, (dict | list)):
 			filters = {}
 
