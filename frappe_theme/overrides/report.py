@@ -5,6 +5,7 @@ from frappe import _
 from frappe.core.doctype.report.report import Report
 from frappe.utils import cstr
 from frappe.utils.safe_exec import check_safe_sql_query
+
 OPERATORS = ["=", "!=", ">", "<", ">=", "<=", "in", "not in", "like", "not like", "between", "not between"]
 from frappe_theme.utils.permission_engine import get_permission_query_conditions_custom
 from frappe_theme.utils.sql_builder import SQLBuilder

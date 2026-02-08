@@ -102,17 +102,17 @@ def get_dt_list(
 ):
 	ColorPrint.green(f"Getting dt list for {doctype}", f"with filters: {filters}")
 	options = {
-		'doctype': doctype,
-		'doc': doc,
-		'ref_doctype': ref_doctype,
-		'filters': filters,
-		'fields': fields,
-		'limit_page_length': limit_page_length,
-		'order_by': order_by,
-		'limit_start': limit_start,
-		'_type': _type,
-		'unfiltered': unfiltered,
-		'return_columns': return_columns
+		"doctype": doctype,
+		"doc": doc,
+		"ref_doctype": ref_doctype,
+		"filters": filters,
+		"fields": fields,
+		"limit_page_length": limit_page_length,
+		"order_by": order_by,
+		"limit_start": limit_start,
+		"_type": _type,
+		"unfiltered": unfiltered,
+		"return_columns": return_columns,
 	}
 	return DTConf.get_dt_list(options)
 
@@ -125,11 +125,11 @@ def get_report_filters(doctype):
 @frappe.whitelist()
 def get_dt_count(doctype, doc=None, ref_doctype=None, filters=None, _type="List", unfiltered=0):
 	options = {
-		'doctype': doctype,
-		'doc': doc,
-		'ref_doctype': ref_doctype,
-		'filters': filters,
-		'_type': _type,
-		'unfiltered': unfiltered
+		"doctype": doctype,
+		"doc": doc,
+		"ref_doctype": ref_doctype,
+		"filters": filters,
+		"_type": _type,
+		"unfiltered": unfiltered,
 	}
 	return DTConf.get_dt_count(options)

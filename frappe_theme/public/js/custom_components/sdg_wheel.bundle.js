@@ -426,7 +426,7 @@ class SVASDGWheel {
 			error: (err) => {
 				console.error("Error fetching SDG report data:", err);
 				this.loader?.hide();
-			}
+			},
 		});
 	}
 
