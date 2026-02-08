@@ -189,7 +189,7 @@ class DTFilters:
 					filter_keys = [
 						f[1] if len(f) >= 2 else f[0]
 						for f in filters
-						if isinstance(f, (list, tuple)) and len(f) > 0
+						if isinstance(f, (list | tuple)) and len(f) > 0
 					]
 				for key in filter_keys:
 					if not key:

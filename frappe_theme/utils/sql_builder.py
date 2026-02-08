@@ -124,9 +124,9 @@ class SQLBuilder:
 			return "NULL"
 		if isinstance(val, bool):
 			return "1" if val else "0"
-		if isinstance(val, (int, float)):
+		if isinstance(val, (int | float)):
 			return str(val)
-		if isinstance(val, (list, tuple)):
+		if isinstance(val, (list | tuple)):
 			if not val:
 				return None
 			return "({})".format(", ".join(SQLBuilder.format_value(v) for v in val))
@@ -527,7 +527,7 @@ class SQLBuilder:
 			val = self._get(key)
 			if val is self._MISSING:
 				return "1=1"
-			if not isinstance(val, (list, tuple)):
+			if not isinstance(val, (list | tuple)):
 				val = [val]
 			if not val:
 				return "1=1"
