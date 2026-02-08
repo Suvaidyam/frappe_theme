@@ -2,8 +2,6 @@ import json
 
 import frappe
 
-from frappe_theme.print import ColorPrint
-
 from .filters import DTFilters
 
 
@@ -91,9 +89,6 @@ class NumberCard:
 				report = frappe.get_cached_doc("Report", report.get("name"))
 			outer_filters, inner_filters, not_applied_filters = DTFilters.get_report_filters(
 				report, filters, doctype
-			)
-			ColorPrint.yellow(
-				f"card_name: {details.get('name')} ,Outer Filters: {outer_filters}, Inner Filters: {inner_filters}, Not Applied Filters: {not_applied_filters}"
 			)
 			filters_json = frappe.parse_json(details.get("filters_json") or "{}")
 			if report.get("report_type") == "Script Report":
