@@ -1,7 +1,10 @@
+import json
+
 import frappe
 
 OPERATORS = ["=", "!=", ">", "<", ">=", "<=", "in", "not in", "like", "not like", "between", "not between"]
-from frappe_theme.utils.sql_builder import SQLBuilder
+# from frappe_theme.utils.sql_builder import SQLBuilder
+from frappe_theme.print import ColorPrint
 
 
 class DTFilters:
@@ -76,18 +79,29 @@ class DTFilters:
 		return filters
 
 	def get_matching_link_field(source_field, target_fields):
-		return next(
-			(
-				f.as_dict()
-				for f in target_fields
-				if f.get("fieldtype") == "Link" and f.get("options") == source_field.get("options")
-			),
-			None,
-		)
+		if source_field.get("fieldtype") == "Link":
+			return next(
+				(
+					f.as_dict()
+					for f in target_fields
+					if f.get("fieldtype") == "Link" and f.get("options") == source_field.get("options")
+				),
+				None,
+			)
+		elif source_field.get("fieldtype") == "Table MultiSelect":
+			return DTFilters.get_conf_for_multi_slect_link_field(source_field.get("options"))
+		else:
+			return None
 
 	@staticmethod
 	def get_report_filters(report, client_filters, dt):
 		if dt:
+			# Ensure client filters are in dict format
+			if isinstance(client_filters, str):
+				client_filters = json.loads(client_filters)
+			if client_filters is None:
+				client_filters = {}
+
 			meta = frappe.get_meta(dt, True)
 			outer_filters = {}
 			inner_filters = {}
@@ -115,6 +129,9 @@ class DTFilters:
 			for key in client_filters_keys:
 				field = next((f for f in fields if f.get("fieldname") == key), None)
 				if field:
+					ColorPrint.blue(
+						f"Processing filter '{key}' of type '{field.get('fieldtype')}' with options '{field.get('options')}'"
+					)
 					matching_column_link_field = DTFilters.get_matching_link_field(field, report_columns)
 					if matching_column_link_field:
 						outer_filters[matching_column_link_field.get("fieldname")] = client_filters[key]
@@ -140,6 +157,9 @@ class DTFilters:
 					)
 					mathing_filter_field = next(
 						(f for f in report_filters if f.get("fieldname") == key), None
+					)
+					ColorPrint.cyan(
+						f"No matching Link field found for filter '{key}'. Attempting to match by fieldname in report columns and filters."
 					)
 					if mathing_column_field:
 						outer_filters[mathing_column_field.get("fieldname")] = client_filters[key]
