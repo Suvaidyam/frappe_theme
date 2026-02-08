@@ -6,7 +6,6 @@ from frappe.desk.query_report import run
 from frappe_theme.controllers.chart import Chart
 from frappe_theme.controllers.filters import DTFilters
 from frappe_theme.controllers.number_card import NumberCard
-from frappe_theme.print import ColorPrint
 
 
 class DTConf:
@@ -148,10 +147,6 @@ class DTConf:
 		report = frappe.get_doc("Report", options["doctype"])
 		outer_filters, inner_filters, not_applied_filters = DTFilters.get_report_filters(
 			report, filters, options["ref_doctype"]
-		)
-		ColorPrint.red(
-			f"[New DTConf] Report filters: {outer_filters}, {inner_filters}, {not_applied_filters}",
-			f"with filters: {filters}",
 		)
 		if report.report_type == "Query Report":
 			columns, result = report.execute_query_report(
