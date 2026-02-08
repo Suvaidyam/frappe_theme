@@ -392,22 +392,15 @@ class Chart:
 			filters_json = frappe.parse_json(details.get("filters_json") or "{}")
 			if report:
 				report_doc = frappe.get_doc("Report", report.get("name"))
+			outer_filters, inner_filters, not_applied_filters = DTFilters.get_report_filters(
+				report, filters, doctype
+			)
 			if report.get("report_type") == "Query Report" and report.get("query"):
-				standard_filters, aditional_filters, invalid_filters = {}, {}, []
-				if filters:
-					(
-						standard_filters,
-						aditional_filters,
-						invalid_filters,
-					) = DTFilters.validate_query_report_filters(
-						doctype=doctype, docname=docname, report_name=report.get("name"), filters=filters
-					)
-
 				columns, data = report_doc.execute_query_report(
-					additional_filters=aditional_filters,
+					outer_filters=outer_filters,
 					ref_doctype=doctype,
 					ref_docname=docname,
-					filters={**standard_filters, **filters_json},
+					filters={**filters_json, **inner_filters},
 				)
 
 				if details.get("type") in ["Bar", "Line"]:
@@ -418,19 +411,7 @@ class Chart:
 			if report.get("report_type") == "Script Report":
 				from frappe.desk.query_report import run
 
-				valid_filters, invalid_filters = {}, []
-				if filters:
-					valid_filters, invalid_filters = DTFilters.validate_query_report_filters(
-						doctype=doctype,
-						docname=docname,
-						report_name=report.get("name"),
-						filters=filters,
-						is_script_report=True,
-					)
-				if isinstance(valid_filters, str):
-					valid_filters = json.loads(valid_filters or "{}")
-
-				response = run(report.get("name"), filters={**valid_filters, **filters_json} or {})
+				response = run(report.get("name"), filters={**filters_json, **inner_filters} or {})
 				data = response.get("result", [])
 				columns = response.get("columns", [])
 				data = Chart.filter_script_report_data(data, columns, doctype, docname)

@@ -94,28 +94,6 @@ class CustomReport(Report):
 
 		return columns, result
 
-	def execute_and_count_query_report_rows(
-		self, filters, outer_filters=None, ref_doctype=None, ref_docname=None, unfiltered=0
-	):
-		if not self.query:
-			frappe.throw(_("Must specify a Query to run"), title=_("Report Document Error"))
-
-		# 3.a Apply doctype/docname filter if applicable
-		sql_with_applied_filters = self.execute_query_report(
-			filters,
-			ref_doctype,
-			ref_docname,
-			unfiltered,
-			return_query=True,
-			outer_filters=outer_filters,
-		)
-		# 4. Execute SQL
-		result = frappe.db.sql(
-			f"SELECT COUNT(*) AS count FROM ({sql_with_applied_filters}) as __count", as_dict=True
-		)
-
-		return result[0].get("count") if result else 0
-
 	# -------------------------------------------
 	# ✨ Detect all Link fields & apply permissions
 	# -------------------------------------------
