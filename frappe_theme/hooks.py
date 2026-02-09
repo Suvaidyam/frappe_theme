@@ -13,12 +13,12 @@ app_license = "mit"
 import time
 
 app_include_css = [
-	"https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
+	# "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
 	f"/assets/frappe_theme/css/frappe_theme.css?ver={time.time()}",
 	f"/assets/frappe_theme/css/number_card_mapper.css?ver={time.time()}",
 ]
 app_include_js = [
-	"https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
+	# "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
 	"global_exporter.bundle.js",
 	"sva_workspace.bundle.js",
 	"overwrite_form.bundle.js",
@@ -102,6 +102,7 @@ jinja = {"methods": "frappe_theme.utils.jinja_methods"}
 
 # before_install = "frappe_theme.install.before_install"
 # after_install = "frappe_theme.install.after_install"
+after_migrate = "frappe_theme.setup.migration.after_migrate"
 
 # Uninstallation
 # ------------
