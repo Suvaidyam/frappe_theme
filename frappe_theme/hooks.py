@@ -30,7 +30,6 @@ app_include_js = [
 	"override_table_multiselect.bundle.js",
 	"override_button.bundle.js",
 	"override_multiselect.bundle.js",
-	"filters_ribbon.bundle.js",
 	f"/assets/frappe_theme/js/svadb.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/fields_comment.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/extended_chart.js?ver={time.time()}",
@@ -103,6 +102,7 @@ jinja = {"methods": "frappe_theme.utils.jinja_methods"}
 
 # before_install = "frappe_theme.install.before_install"
 # after_install = "frappe_theme.install.after_install"
+after_migrate = "frappe_theme.setup.migration.after_migrate"
 
 # Uninstallation
 # ------------
