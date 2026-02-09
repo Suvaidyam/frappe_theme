@@ -1,8 +1,8 @@
 frappe.ui.form.ControlLink = class ControlLinkWithIcon extends frappe.ui.form.ControlLink {
 	make_input() {
-		this.df.only_select = true;
 		super.make_input();
 		if (this?.frm?.meta?.issingle && this.frm?.meta?.is_dashboard) {
+			this.df.only_select = true;
 			const is_xs_input = this.df.input_class && this.df.input_class.includes("input-xs");
 			this.set_icon(is_xs_input);
 			this.df.placeholder && this.set_placeholder(is_xs_input);

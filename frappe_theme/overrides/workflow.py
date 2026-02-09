@@ -48,8 +48,7 @@ def get_custom_transitions(
 		for row in (custom_workflow_doc.approval_assignments or [])
 		if (row.user == sva_user or user == "Administrator") and row.action == "Pending"
 	]
-	if not len(user_assignments):
-		return []
+
 	if user_assignments and len(user_assignments) > 0:
 		custom_transitions = make_custom_transitions(custom_workflow_doc)
 		return custom_transitions
@@ -64,6 +63,8 @@ def make_custom_transitions(custom_workflow_doc):
 			"state": custom_workflow_doc.workflow_state_current,
 			"action": "Approve",
 			"next_state": custom_workflow_doc.workflow_state_current,
+			"allow_self_approval": 1,
+			"send_email_to_creator": 0,
 			"allowed": "All",
 			"is_custom_transition": 1,
 			"is_comment_required": 1,
@@ -75,6 +76,8 @@ def make_custom_transitions(custom_workflow_doc):
 			"action": "Reject",
 			"next_state": custom_workflow_doc.workflow_state_current,
 			"allowed": "All",
+			"allow_self_approval": 1,
+			"send_email_to_creator": 0,
 			"is_custom_transition": 1,
 			"is_comment_required": 1,
 		}
