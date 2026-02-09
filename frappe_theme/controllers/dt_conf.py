@@ -389,9 +389,9 @@ class DTConf:
 	def link_report_list(doctype):
 		other_report_list = frappe.get_all(
 			"Report",
-			filters=[
+			or_filters=[
 				["Report Filter", "options", "=", doctype],
-				["Report", "report_type", "=", "Query Report"],
+				["Report Column", "options", "=", doctype],
 			],
 			pluck="name",
 		)
