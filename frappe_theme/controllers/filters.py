@@ -73,7 +73,7 @@ class DTFilters:
 		if _field:
 			return next(
 				(
-					f.as_dict()
+					f
 					for f in target_fields
 					if f.get("fieldtype") == "Link" and f.get("options") == _field.get("options")
 				),
