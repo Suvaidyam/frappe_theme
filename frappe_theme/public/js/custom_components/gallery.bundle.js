@@ -5,6 +5,8 @@ class SVAGalleryComponent {
 		this.frm = frm;
 		this.wrapper = wrapper;
 		this.gallery_files = [];
+		this.groupedFiles = {};
+		this.collapsedGroups = {};
 		this.selectedFiles = [];
 		this.view = "Card"; // Default view
 		this.permissions = [];
@@ -319,6 +321,50 @@ class SVAGalleryComponent {
             .gallery-wrapper .list-row-checkbox {
                 margin: 0;
             }
+            /* Group styles */
+            .gallery-wrapper .gallery-group {
+                margin-bottom: 16px;
+                border: 1px solid #e2e2e2;
+                border-radius: 8px;
+                overflow: hidden;
+            }
+            .gallery-wrapper .group-header {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 10px 16px;
+                background: #f8f9fa;
+                border-bottom: 1px solid #e2e2e2;
+                cursor: pointer;
+                user-select: none;
+            }
+            .gallery-wrapper .group-header:hover {
+                background: #eef0f2;
+            }
+            .gallery-wrapper .group-toggle-icon {
+                font-size: 12px;
+                color: #6E7073;
+                width: 14px;
+                text-align: center;
+            }
+            .gallery-wrapper .group-title {
+                font-weight: 600;
+                font-size: 14px;
+                color: #1F272E;
+            }
+            .gallery-wrapper .group-count {
+                font-size: 12px;
+                background: #d1d8dd;
+                color: #36414C;
+                padding: 2px 8px;
+                border-radius: 10px;
+            }
+            .gallery-wrapper .group-body {
+                padding: 16px;
+            }
+            .gallery-wrapper .pdf-thumbnail-wrapper {
+                background: #f5f5f5;
+            }
             @media (max-width: 768px) {
                 .gallery-wrapper {
                     height: calc(100vh - 200px);
@@ -381,6 +427,7 @@ class SVAGalleryComponent {
 				}));
 			}
 
+			this.groupFilesByDoctype();
 			this.updateGallery();
 		} catch (error) {
 			console.error("Error fetching files:", error);
@@ -394,6 +441,17 @@ class SVAGalleryComponent {
 		}
 	}
 
+	groupFilesByDoctype() {
+		this.groupedFiles = {};
+		this.gallery_files.forEach((file) => {
+			const doctype = file.attached_to_doctype || "Other";
+			if (!this.groupedFiles[doctype]) {
+				this.groupedFiles[doctype] = [];
+			}
+			this.groupedFiles[doctype].push(file);
+		});
+	}
+
 	render() {
 		this.wrapper.innerHTML = ""; // Clear existing content
 
@@ -405,6 +463,7 @@ class SVAGalleryComponent {
             </div>
         `;
 
+		this.groupFilesByDoctype();
 		this.renderHeader();
 		this.updateGallery();
 	}
@@ -551,97 +610,113 @@ class SVAGalleryComponent {
 
 		const canWrite = this.permissions.includes("write");
 		const canDelete = this.permissions.includes("delete");
+		const doctypes = Object.keys(this.groupedFiles);
 
-		return `
-            <div class="row">
-                ${this.gallery_files
-					.map((file) => {
-						let extension = file?.file_url?.split(".").pop()?.toLowerCase();
-						return `
-                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
-                            <div class="image-card">
-                                <div class="image-container">
-                                    ${this.getFilePreview(file, extension)}
-                                    ${
-										canDelete
-											? `
-                                        <div class="checkbox-container">
-                                            <input type="checkbox" data-id="${file.name}" class="toggleCheckbox"/>
-                                        </div>
-                                    `
-											: ""
+		return doctypes
+			.map((doctype) => {
+				const files = this.groupedFiles[doctype];
+				const isCollapsed = this.collapsedGroups[doctype];
+				return `
+				<div class="gallery-group">
+					<div class="group-header group-toggle-btn" data-doctype="${doctype}">
+						<i class="fa ${isCollapsed ? "fa-chevron-right" : "fa-chevron-down"} group-toggle-icon"></i>
+						<span class="group-title">${doctype}</span>
+						<span class="badge badge-secondary group-count">${files.length}</span>
+					</div>
+					<div class="group-body" data-doctype="${doctype}" style="${isCollapsed ? "display:none;" : ""}">
+						<div class="row">
+							${files
+								.map((file) => {
+									let extension = file?.file_url?.split(".").pop()?.toLowerCase();
+									return `
+									<div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
+										<div class="image-card">
+											<div class="image-container">
+												${this.getFilePreview(file, extension)}
+												${
+													canDelete
+														? `
+													<div class="checkbox-container">
+														<input type="checkbox" data-id="${file.name}" class="toggleCheckbox"/>
+													</div>
+												`
+														: ""
+												}
+												<div class="image-cover">
+													${
+														canWrite || canDelete
+															? `
+														<div class="cover-header">
+															<div class="dropdown">
+																<button class="action-button" data-toggle="dropdown">
+																	<i class="fa fa-ellipsis-v"></i>
+																</button>
+																<div class="dropdown-menu dropdown-menu-right">
+																	${
+																		canWrite
+																			? `
+																		<a class="dropdown-item edit-btn" data-id="${file.name}">
+																			<i class="fa fa-edit"></i> Edit
+																		</a>
+																	`
+																			: ""
+																	}
+																	${
+																		canDelete
+																			? `
+																		<a class="dropdown-item delete-btn" data-id="${file.name}">
+																			<i class="fa fa-trash"></i> Delete
+																		</a>
+																	`
+																			: ""
+																	}
+																</div>
+															</div>
+														</div>
+													`
+															: ""
+													}
+													<div class="cover-body">
+														<p class="view-button preview-btn" style="cursor: pointer;" data-file='${JSON.stringify(
+															file
+														)}'>
+															<i class="fa fa-eye"></i>
+														</p>
+													</div>
+												</div>
+											</div>
+											<div class="file-name" style="white-space: nowrap;overflow: hidden;text-overflow: ellipsis;" title="${
+												file.file_name
+											}">${file.file_name}</div>
+											<div class="d-flex justify-content-between">
+												<div class="file-date">${
+													frappe.datetime.str_to_user(file.creation)?.split(" ")[0]
+												}</div>
+												<div class="file-date">
+													${this.convertTofileSize(file.file_size)}
+												</div>
+											</div>
+											<div class="d-flex justify-content-between">
+												<div class="file-date" style="white-space: nowrap;overflow: hidden;text-overflow: ellipsis;"
+													title="by ${file.owner_full_name} ${
+										file.owner != "Administrator" ? `(${file.owner})` : ""
+									}">
+													by ${file.owner_full_name} ${
+										file.owner != "Administrator" ? `(${file.owner})` : ""
 									}
-                                    <div class="image-cover">
-                                        ${
-											canWrite || canDelete
-												? `
-                                            <div class="cover-header">
-                                                <div class="dropdown">
-                                                    <button class="action-button" data-toggle="dropdown">
-                                                        <i class="fa fa-ellipsis-v"></i>
-                                                    </button>
-                                                    <div class="dropdown-menu dropdown-menu-right">
-                                                        ${
-															canWrite
-																? `
-                                                            <a class="dropdown-item edit-btn" data-id="${file.name}">
-                                                                <i class="fa fa-edit"></i> Edit
-                                                            </a>
-                                                        `
-																: ""
-														}
-                                                        ${
-															canDelete
-																? `
-                                                            <a class="dropdown-item delete-btn" data-id="${file.name}">
-                                                                <i class="fa fa-trash"></i> Delete
-                                                            </a>
-                                                        `
-																: ""
-														}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        `
-												: ""
-										}
-                                        <div class="cover-body">
-                                            <p class="view-button preview-btn" style="cursor: pointer;" data-file='${JSON.stringify(
-												file
-											)}'>
-                                                <i class="fa fa-eye"></i>
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="file-name" style="white-space: nowrap;overflow: hidden;text-overflow: ellipsis;" title="${
-									file.file_name
-								}">${file.file_name}</div>
-                                <div class="d-flex justify-content-between">
-                                    <div class="file-date">${
-										frappe.datetime.str_to_user(file.creation)?.split(" ")[0]
-									}</div>
-                                    <div class="file-date">
-                                        ${this.convertTofileSize(file.file_size)}
-                                    </div>
-                                </div>
-                                <div class="d-flex justify-content-between">
-                                    <div class="file-date" style="white-space: nowrap;overflow: hidden;text-overflow: ellipsis;"
-                                        title="by ${file.owner_full_name} ${
-							file.owner != "Administrator" ? `(${file.owner})` : ""
-						}">
-                                        by ${file.owner_full_name} ${
-							file.owner != "Administrator" ? `(${file.owner})` : ""
-						}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-					})
-					.join("")}
-            </div>
-        `;
+												</div>
+											</div>
+										</div>
+									</div>
+								`;
+								})
+								.join("")}
+						</div>
+					</div>
+				</div>
+			`;
+			})
+			.join("");
 	}
 
 	getFileIcon(extension) {
@@ -691,17 +766,68 @@ class SVAGalleryComponent {
 
 		if (imageExtensions.includes(extension)) {
 			return `<img src="${file.file_url}" class="card-img-top" alt="${file.file_name}">`;
+		} else if (extension === "pdf") {
+			return `
+				<div class="card-img-top d-flex align-items-center justify-content-center pdf-thumbnail-wrapper" style="height: 200px; background-color: #f5f5f5; overflow: hidden;">
+					<canvas class="pdf-thumbnail" data-pdf-url="${frappe.utils.escape_html(file.file_url)}" style="max-width: 100%; max-height: 100%; object-fit: contain;"></canvas>
+				</div>`;
 		} else {
 			const iconClass = this.getFileIcon(extension);
 			return `
-                <div class="card-img-top d-flex align-items-center justify-content-center" style="height: 200px; background-color: #f8f9fa;">
-                    <div class="file-icon text-center">
-                        <i class="${iconClass}" style="font-size: 48px; color: #6c757d;"></i>
-                        <div style="font-size: 12px; margin-top: 8px; color: #6c757d;">.${extension}</div>
-                        </div>
-                        </div>
-                        `;
+				<div class="card-img-top d-flex align-items-center justify-content-center" style="height: 200px; background-color: #f8f9fa;">
+					<div class="file-icon text-center">
+						<i class="${iconClass}" style="font-size: 48px; color: #6c757d;"></i>
+						<div style="font-size: 12px; margin-top: 8px; color: #6c757d;">.${extension}</div>
+					</div>
+				</div>`;
 		}
+	}
+
+	renderPdfThumbnails() {
+		const canvases = this.wrapper.querySelectorAll("canvas.pdf-thumbnail");
+		if (!canvases.length) return;
+
+		const pdfjsLib = window.pdfjsLib || (window["pdfjs-dist/build/pdf"] );
+		if (!pdfjsLib) {
+			// Fallback: replace canvases with icon if PDF.js not available
+			canvases.forEach((canvas) => {
+				const parent = canvas.parentElement;
+				parent.innerHTML = `
+					<div class="file-icon text-center">
+						<i class="fa fa-file-pdf-o" style="font-size: 48px; color: #e74c3c;"></i>
+						<div style="font-size: 12px; margin-top: 8px; color: #6c757d;">.pdf</div>
+					</div>`;
+			});
+			return;
+		}
+
+		canvases.forEach((canvas) => {
+			const url = canvas.dataset.pdfUrl;
+			if (!url) return;
+			pdfjsLib
+				.getDocument(url)
+				.promise.then((pdf) => {
+					return pdf.getPage(1);
+				})
+				.then((page) => {
+					const desiredHeight = 200;
+					const unscaledViewport = page.getViewport({ scale: 1 });
+					const scale = desiredHeight / unscaledViewport.height;
+					const viewport = page.getViewport({ scale });
+					canvas.width = viewport.width;
+					canvas.height = viewport.height;
+					const ctx = canvas.getContext("2d");
+					page.render({ canvasContext: ctx, viewport });
+				})
+				.catch(() => {
+					const parent = canvas.parentElement;
+					parent.innerHTML = `
+						<div class="file-icon text-center">
+							<i class="fa fa-file-pdf-o" style="font-size: 48px; color: #e74c3c;"></i>
+							<div style="font-size: 12px; margin-top: 8px; color: #6c757d;">.pdf</div>
+						</div>`;
+				});
+		});
 	}
 
 	async renderForm(mode, fileId = null) {
@@ -980,8 +1106,30 @@ class SVAGalleryComponent {
 		bodyWrapper.style.height = "75vh";
 		// bodyWrapper.style.minHeight = '500px';
 		bodyWrapper.style.overflow = "auto";
+		this.renderPdfThumbnails();
 		this.attachGalleryItemEventListeners(); // Attach event listeners to gallery items
+		this.attachGroupToggleListeners();
 		this.attachEventListeners();
+	}
+
+	attachGroupToggleListeners() {
+		const self = this;
+		this.wrapper.querySelectorAll(".group-toggle-btn").forEach((btn) => {
+			btn.addEventListener("click", function () {
+				const doctype = this.dataset.doctype;
+				self.collapsedGroups[doctype] = !self.collapsedGroups[doctype];
+				const groupBody = self.wrapper.querySelector(`.group-body[data-doctype="${doctype}"]`);
+				const icon = this.querySelector(".group-toggle-icon");
+				if (groupBody) {
+					groupBody.style.display = self.collapsedGroups[doctype] ? "none" : "";
+				}
+				if (icon) {
+					icon.className = self.collapsedGroups[doctype]
+						? "fa fa-chevron-right group-toggle-icon"
+						: "fa fa-chevron-down group-toggle-icon";
+				}
+			});
+		});
 	}
 
 	renderListView() {
@@ -991,105 +1139,136 @@ class SVAGalleryComponent {
 
 		const canWrite = this.permissions.includes("write");
 		const canDelete = this.permissions.includes("delete");
+		const doctypes = Object.keys(this.groupedFiles);
 
-		return `
-            <div class="frappe-list">
-                <div class="frappe-list-header">
-                    <div class="frappe-list-row">
-                        ${
-							canDelete
-								? `
-                            <div class="frappe-list-col frappe-list-col-checkbox">
-                                <input type="checkbox" class="list-row-checkbox" id="selectAllCheckBox">
-                            </div>
-                        `
-								: ""
-						}
-                        <div class="frappe-list-col frappe-list-col-subject">File Name</div>
-                        <div class="frappe-list-col frappe-list-col-creation">Upload Date</div>
-                        <div class="frappe-list-col frappe-list-col-preview">Preview</div>
-                        ${
-							canWrite || canDelete
-								? `
-                            <div class="frappe-list-col frappe-list-col-actions"></div>
-                        `
-								: ""
-						}
-                    </div>
-                </div>
-                <div class="frappe-list-body">
-                    ${this.gallery_files
-						.map((file) => {
-							let extension = file?.file_url?.split(".").pop()?.toLowerCase();
-							return `
-                            <div class="frappe-list-row">
-                                ${
-									canDelete
-										? `
-                                    <div class="frappe-list-col frappe-list-col-checkbox">
-                                        <input type="checkbox" class="list-row-checkbox toggleCheckbox" data-id="${file.name}">
-                                    </div>
-                                `
-										: ""
-								}
-                                <div class="frappe-list-col frappe-list-col-subject">
-                                    <a href="${file.file_url}" target="_blank" class="text-muted">
-                                        <i class="${this.getFileIcon(extension)} mr-2"></i>
-                                        ${file.file_name}
-                                    </a>
-                                </div>
-                                <div class="frappe-list-col frappe-list-col-creation">
-                                    ${frappe.datetime.str_to_user(file.creation)}
-                                </div>
-                                <div class="frappe-list-col frappe-list-col-preview">
-                                    <p class="preview-btn" style="cursor: pointer;" data-file='${JSON.stringify(
-										file
-									)}'>
-                                        <i class="fa fa-eye"></i>
-                                    </p>
-                                </div>
-                                ${
-									canWrite || canDelete
-										? `
-                                    <div class="frappe-list-col frappe-list-col-actions">
-                                        <div class="list-actions">
-                                            <div class="dropdown">
-                                                <button class="btn btn-link btn-sm" data-toggle="dropdown">
-                                                    <i class="fa fa-ellipsis-v text-muted"></i>
-                                                </button>
-                                                <div class="dropdown-menu dropdown-menu-right">
-                                                    ${
-														canWrite
-															? `
-                                                        <a class="dropdown-item edit-btn" data-id="${file.name}">
-                                                            <i class="fa fa-edit text-muted"></i> Edit
-                                                        </a>
-                                                    `
-															: ""
-													}
-                                                    ${
-														canDelete
-															? `
-                                                        <a class="dropdown-item delete-btn" data-id="${file.name}">
-                                                            <i class="fa fa-trash text-muted"></i> Delete
-                                                        </a>
-                                                    `
-															: ""
-													}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `
-										: ""
-								}
-                            </div>
-                        `;
-						})
-						.join("")}
-                </div>
-            </div>
-        `;
+		return doctypes
+			.map((doctype) => {
+				const files = this.groupedFiles[doctype];
+				const isCollapsed = this.collapsedGroups[doctype];
+				return `
+				<div class="gallery-group">
+					<div class="group-header group-toggle-btn" data-doctype="${doctype}">
+						<i class="fa ${isCollapsed ? "fa-chevron-right" : "fa-chevron-down"} group-toggle-icon"></i>
+						<span class="group-title">${doctype}</span>
+						<span class="badge badge-secondary group-count">${files.length}</span>
+					</div>
+					<div class="group-body" data-doctype="${doctype}" style="${isCollapsed ? "display:none;" : ""}">
+						<div class="frappe-list">
+							<div class="frappe-list-header">
+								<div class="frappe-list-row">
+									${
+										canDelete
+											? `
+										<div class="frappe-list-col frappe-list-col-checkbox">
+											<input type="checkbox" class="list-row-checkbox" id="selectAllCheckBox">
+										</div>
+									`
+											: ""
+									}
+									<div class="frappe-list-col frappe-list-col-subject">File Name</div>
+									<div class="frappe-list-col frappe-list-col-creation">Upload Date</div>
+									<div class="frappe-list-col frappe-list-col-preview">Preview</div>
+									${
+										canWrite || canDelete
+											? `
+										<div class="frappe-list-col frappe-list-col-actions"></div>
+									`
+											: ""
+									}
+								</div>
+							</div>
+							<div class="frappe-list-body">
+								${files
+									.map((file) => {
+										let extension = file?.file_url?.split(".").pop()?.toLowerCase();
+										return `
+										<div class="frappe-list-row">
+											${
+												canDelete
+													? `
+												<div class="frappe-list-col frappe-list-col-checkbox">
+													<input type="checkbox" class="list-row-checkbox toggleCheckbox" data-id="${file.name}">
+												</div>
+											`
+													: ""
+											}
+											<div class="frappe-list-col frappe-list-col-subject">
+												<a href="${file.file_url}" target="_blank" class="text-muted">
+													<i class="${this.getFileIcon(extension)} mr-2"></i>
+													${file.file_name}
+												</a>
+											</div>
+											<div class="frappe-list-col frappe-list-col-creation">
+												${frappe.datetime.str_to_user(file.creation)}
+											</div>
+											<div class="frappe-list-col frappe-list-col-preview">
+												${this.getListPreviewThumb(file, extension)}
+											</div>
+											${
+												canWrite || canDelete
+													? `
+												<div class="frappe-list-col frappe-list-col-actions">
+													<div class="list-actions">
+														<div class="dropdown">
+															<button class="btn btn-link btn-sm" data-toggle="dropdown">
+																<i class="fa fa-ellipsis-v text-muted"></i>
+															</button>
+															<div class="dropdown-menu dropdown-menu-right">
+																${
+																	canWrite
+																		? `
+																	<a class="dropdown-item edit-btn" data-id="${file.name}">
+																		<i class="fa fa-edit text-muted"></i> Edit
+																	</a>
+																`
+																		: ""
+																}
+																${
+																	canDelete
+																		? `
+																	<a class="dropdown-item delete-btn" data-id="${file.name}">
+																		<i class="fa fa-trash text-muted"></i> Delete
+																	</a>
+																`
+																		: ""
+																}
+															</div>
+														</div>
+													</div>
+												</div>
+											`
+													: ""
+											}
+										</div>
+									`;
+									})
+									.join("")}
+							</div>
+						</div>
+					</div>
+				</div>
+			`;
+			})
+			.join("");
+	}
+
+	getListPreviewThumb(file, extension) {
+		const imageExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "svg", "webp"];
+		if (imageExtensions.includes(extension)) {
+			return `
+				<img src="${file.file_url}" class="list-thumb preview-btn" data-file='${JSON.stringify(file)}'
+					style="width: 36px; height: 36px; object-fit: cover; border-radius: 4px; cursor: pointer;" alt="${file.file_name}">`;
+		} else if (extension === "pdf") {
+			return `
+				<div class="list-thumb-pdf preview-btn" data-file='${JSON.stringify(file)}' style="width: 36px; height: 36px; overflow: hidden; border-radius: 4px; cursor: pointer; background: #f5f5f5; display: flex; align-items: center; justify-content: center;">
+					<canvas class="pdf-thumbnail" data-pdf-url="${frappe.utils.escape_html(file.file_url)}" style="max-width: 36px; max-height: 36px;"></canvas>
+				</div>`;
+		} else {
+			return `
+				<p class="preview-btn" style="cursor: pointer; margin: 0;" data-file='${JSON.stringify(file)}'>
+					<i class="fa fa-eye"></i>
+				</p>`;
+		}
 	}
 }
 
