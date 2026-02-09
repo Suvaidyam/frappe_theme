@@ -115,7 +115,6 @@
 				</svg>
 				<p>Awaiting action</p>
 			</div>
-
 			<!-- Timeline items -->
 			<div
 				v-for="(item, index) in timelineItems"
@@ -155,14 +154,15 @@
 						</template>
 					</div>
 				</div>
-
 				<!-- Right Panel -->
 				<div class="timeline-right">
 					<div class="data-card">
 						<!-- Dialog Field Values -->
 						<template
 							v-if="
-								(item.action_data && item.action_data.length > 0) || item.comment
+								(item.action_data && item.action_data.length > 0) ||
+								item.comment ||
+								(item.approval_assignments && item.approval_assignments.length > 0)
 							"
 						>
 							<div class="data-section-title">
@@ -309,7 +309,17 @@
 						</template>
 
 						<!-- No Data Message -->
-						<div v-if="!item.action_data?.length && !item.comment" class="no-data">
+						<div
+							v-if="
+								!item.action_data?.length &&
+								!item.comment &&
+								!(
+									item.approval_assignments &&
+									item.approval_assignments.length > 0
+								)
+							"
+							class="no-data"
+						>
 							{{
 								index === 0 &&
 								!item.completed &&

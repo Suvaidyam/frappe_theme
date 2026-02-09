@@ -1,5 +1,6 @@
 import frappe
 from frappe import _
+from frappe.model import get_permitted_fields
 
 
 @frappe.whitelist()
@@ -179,6 +180,10 @@ def get_workflow_audit(doctype=None, reference_name=None, limit=100):
 				action["approval_assignments"] = processed_assignments
 				action["action_data"] = action_data
 
+		# Apply field-level permissions filtering
+		if actions and frappe.session.user != "Administrator":
+			actions = _apply_field_level_permissions_to_workflow_audit(actions, doctype)
+
 		return {
 			"success": True,
 			"workflow": workflow_name,
@@ -194,6 +199,83 @@ def get_workflow_audit(doctype=None, reference_name=None, limit=100):
 	except Exception as e:
 		frappe.log_error(f"Workflow Audit Error: {str(e)}", "Workflow Audit API")
 		return {"success": False, "message": str(e)}
+
+
+def _apply_field_level_permissions_to_workflow_audit(actions, main_doctype):
+	"""
+	Filter workflow audit data based on user's field-level permissions.
+	Uses request-scoped caching for performance.
+	"""
+
+	# Request-scoped caches
+	permitted_fields_cache = {}
+	meta_cache = {}
+
+	def get_cached_permitted_fields(doctype, parenttype=None):
+		"""Get permitted fields with request-scoped caching."""
+		cache_key = (doctype, parenttype)
+		if cache_key not in permitted_fields_cache:
+			permitted_fields_cache[cache_key] = set(
+				get_permitted_fields(
+					doctype=doctype,
+					parenttype=parenttype,
+					ignore_virtual=True,
+				)
+			)
+		return permitted_fields_cache[cache_key]
+
+	def get_cached_meta(doctype):
+		"""Get DocType meta with request-scoped caching."""
+		if doctype not in meta_cache:
+			meta_cache[doctype] = frappe.get_meta(doctype)
+		return meta_cache[doctype]
+
+	# Permitted fields for main doctype (action_data)
+	main_doctype_permitted_fields = get_cached_permitted_fields(main_doctype)
+
+	# approval_assignments field permission in SVA Workflow Action
+	sva_workflow_action_doctype = "SVA Workflow Action"
+	has_approval_assignments_permission = True  # Default: show
+
+	try:
+		sva_meta = get_cached_meta(sva_workflow_action_doctype)
+		approval_assignments_field = sva_meta.get_field("approval_assignments")
+
+		if approval_assignments_field:
+			permlevel = approval_assignments_field.permlevel or 0
+
+			# Only check user access if permlevel > 0
+			if permlevel > 0:
+				user_permlevel_access = sva_meta.get_permlevel_access(
+					permission_type="read",
+					user=frappe.session.user,
+				)
+				has_approval_assignments_permission = permlevel in user_permlevel_access
+	except Exception:
+		# Fail-safe: if anything goes wrong, don't hide data
+		has_approval_assignments_permission = True
+
+	filtered_actions = []
+	for action in actions:
+		action_copy = action.copy()
+
+		# Filter action_data fields
+		action_data = action_copy.get("action_data") or []
+		if action_data:
+			action_copy["action_data"] = [
+				item for item in action_data if item.get("fieldname") in main_doctype_permitted_fields
+			]
+		else:
+			action_copy["action_data"] = []
+
+		# Filter approval_assignments if user lacks permission
+		if not has_approval_assignments_permission:
+			action_copy["approval_assignments"] = []
+
+		# Always include action (metadata is important)
+		filtered_actions.append(action_copy)
+
+	return filtered_actions
 
 
 def get_link_title(doctype, name):
