@@ -13,7 +13,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-from sql_builder import SQLBuilder
+from frappe_theme.utils.sql_builder import SQLBuilder
 
 # ====================================================================== #
 #  Mock Frappe Module Setup
