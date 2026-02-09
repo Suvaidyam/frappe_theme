@@ -4086,14 +4086,27 @@ class SvaDataTable {
 					this.frm?.doc.name,
 				]);
 			}
-
+			let filters_to_apply = [...filters, ...this.additional_list_filters];
+			if (this.connection?.connection_type == "Report") {
+				filters_to_apply = {};
+				if (this.frm?.["dt_events"]?.[this.doctype || this.link_report]?.get_filters) {
+					let get_filters =
+						this.frm?.["dt_events"]?.[this.doctype || this.link_report]?.get_filters;
+					filters_to_apply =
+						(await get_filters(this.doctype || this.link_report, this.frm || {})) ||
+						{};
+				}
+				[...filters, ...this.additional_list_filters].forEach((f) => {
+					filters_to_apply[f[1]] = [f[2], f[3]];
+				});
+			}
 			// this.total = await frappe.db.count(this.doctype, { filters: [...filters, ...this.additional_list_filters] });
 			let { message } = await this.sva_db.call({
 				method: "frappe_theme.dt_api.get_dt_count",
 				doctype: this.doctype || this.link_report,
 				doc: this.frm?.doc?.name,
 				ref_doctype: this.frm?.doc?.doctype,
-				filters: [...filters, ...this.additional_list_filters],
+				filters: filters_to_apply,
 				_type: this.connection.connection_type,
 				unfiltered: this.connection?.unfiltered,
 			});
@@ -4120,12 +4133,13 @@ class SvaDataTable {
 					paginationElement.remove();
 				}
 			}
+
 			let res = await this.sva_db.call({
 				method: "frappe_theme.dt_api.get_dt_list",
 				doctype: this.doctype || this.link_report,
 				doc: this.frm?.doc?.name,
 				ref_doctype: this.frm?.doc?.doctype,
-				filters: [...filters, ...this.additional_list_filters],
+				filters: filters_to_apply,
 				fields: this.fields || ["*"],
 				limit_page_length: this.isTransposed ? 0 : this.limit,
 				order_by: `${this.sort_by} ${this.sort_order}`,
