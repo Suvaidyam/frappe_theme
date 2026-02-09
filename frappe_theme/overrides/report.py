@@ -12,7 +12,6 @@ from frappe_theme.utils.sql_builder import SQLBuilder
 
 
 def create_view(doc):
-	print("Creating view: ", doc.custom_view_name, "with type: ", doc.custom_view_type)
 	if doc.custom_create_view:
 		sql = None
 		if doc.custom_view_type == "Logical":
@@ -25,7 +24,6 @@ def create_view(doc):
 		#         CREATE MATERIALIZED VIEW IF NOT EXISTS `{doc.custom_view_name}` AS ({doc.query})
 		#         """
 		if sql:
-			print("Creating view: ", doc.custom_view_name)
 			try:
 				frappe.db.sql_ddl(sql)
 			except Exception as e:

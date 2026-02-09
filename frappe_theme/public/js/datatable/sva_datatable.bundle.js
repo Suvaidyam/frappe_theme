@@ -4133,7 +4133,6 @@ class SvaDataTable {
 					paginationElement.remove();
 				}
 			}
-
 			let res = await this.sva_db.call({
 				method: "frappe_theme.dt_api.get_dt_list",
 				doctype: this.doctype || this.link_report,
