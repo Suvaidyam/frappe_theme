@@ -6,11 +6,12 @@ from frappe.core.doctype.report.report import Report
 from frappe.utils import cstr
 from frappe.utils.safe_exec import check_safe_sql_query
 
+OPERATORS = ["=", "!=", ">", "<", ">=", "<=", "in", "not in", "like", "not like", "between", "not between"]
 from frappe_theme.utils.permission_engine import get_permission_query_conditions_custom
+from frappe_theme.utils.sql_builder import SQLBuilder
 
 
 def create_view(doc):
-	print("Creating view: ", doc.custom_view_name, "with type: ", doc.custom_view_type)
 	if doc.custom_create_view:
 		sql = None
 		if doc.custom_view_type == "Logical":
@@ -23,7 +24,6 @@ def create_view(doc):
 		#         CREATE MATERIALIZED VIEW IF NOT EXISTS `{doc.custom_view_name}` AS ({doc.query})
 		#         """
 		if sql:
-			print("Creating view: ", doc.custom_view_name)
 			try:
 				frappe.db.sql_ddl(sql)
 			except Exception as e:
@@ -48,7 +48,7 @@ class CustomReport(Report):
 		limit_start=None,
 		unfiltered=0,
 		return_query=False,
-		additional_filters=None,
+		outer_filters=None,
 	):
 		if not self.query:
 			frappe.throw(_("Must specify a Query to run"), title=_("Report Document Error"))
@@ -56,8 +56,17 @@ class CustomReport(Report):
 		if filters is None:
 			filters = {}
 
-		if additional_filters is None:
-			additional_filters = {}
+		if outer_filters is None:
+			outer_filters = {}
+		# print(
+		# 	self.query,
+		# 	"====================================self.query before=====================================",
+		# )
+		self.query = SQLBuilder.apply(self.query, filters)
+		# print(
+		# 	self.query,
+		# 	"====================================self.query after======================================",
+		# )
 
 		check_safe_sql_query(self.query)
 
@@ -75,47 +84,22 @@ class CustomReport(Report):
 			sql_with_permissions,
 			ref_doctype,
 			ref_docname,
-			additional_filters,
+			outer_filters,
 			unfiltered,
 			limit_page_length,
 			limit_start,
 		)
-		# 4. Execute SQL
-		result = frappe.db.sql(sql_with_applied_filters, filters, as_dict=True)
-		# 5. Resolve auto columns if missing
-		if not columns:
-			columns = [cstr(c[0]) for c in frappe.db.get_description()]
 
 		if return_query:
 			return sql_with_applied_filters
 
-		return columns, result
-
-	def execute_and_count_query_report_rows(self, filters, ref_doctype=None, ref_docname=None, unfiltered=0):
-		if not self.query:
-			frappe.throw(_("Must specify a Query to run"), title=_("Report Document Error"))
-
-		check_safe_sql_query(self.query)
-
-		# 1. Parse columns of the report
-		columns = self.get_columns() or []
-
-		# 2. Build user-permission filters
-		user_perm_conditions = self.get_user_permission_conditions(columns)
-
-		# 3. Append permission filters to SQL safely
-		sql_with_permissions = self.apply_permission_filter(self.query, user_perm_conditions)
-
-		# 3.a Apply doctype/docname filter if applicable
-		sql_with_applied_filters = self.apply_dt_dn_filter_and_filters(
-			sql_with_permissions, ref_doctype, ref_docname, filters, unfiltered
-		)
 		# 4. Execute SQL
-		result = frappe.db.sql(
-			f"SELECT COUNT(*) AS count FROM ({sql_with_applied_filters}) as __count", as_dict=True
-		)
+		result = frappe.db.sql(sql_with_applied_filters, as_dict=True)
+		# 5. Resolve auto columns if missing
+		if not columns:
+			columns = [cstr(c[0]) for c in frappe.db.get_description()]
 
-		return result[0].get("count") if result else 0
+		return columns, result
 
 	# -------------------------------------------
 	# ✨ Detect all Link fields & apply permissions
@@ -188,9 +172,16 @@ class CustomReport(Report):
 			_filters = []
 			for key, value in filters.items():
 				if isinstance(value, list):
-					operator = value[0]
-					val = value[1]
-					_filters.append([table_alias, key, operator, val])
+					if len(value) > 1 and value[0] in OPERATORS:
+						operator = value[0]
+						if value[1]:
+							val = value[1]
+							# If value is a list and operator is not in or not in, convert to "in" operator
+							if isinstance(val, list) and operator not in ["in", "not in"]:
+								operator = "in"
+							_filters.append([table_alias, key, operator, val])
+					else:
+						_filters.append([table_alias, key, "in", value])
 				else:
 					_filters.append([table_alias, key, "=", value])
 
@@ -202,7 +193,6 @@ class CustomReport(Report):
 
 			doctype, field, operator, value = f[:4]
 			field_name = f"{table_alias}.{field}"
-
 			if operator.lower() == "between" and isinstance(value, (list | tuple)) and len(value) == 2:
 				condition = f"{field_name} BETWEEN '{value[0]}' AND '{value[1]}'"
 			elif operator.lower() == "like":
