@@ -176,6 +176,9 @@ class CustomReport(Report):
 						operator = value[0]
 						if value[1]:
 							val = value[1]
+							# If value is a list and operator is not in or not in, convert to "in" operator
+							if isinstance(val, list) and operator not in ["in", "not in"]:
+								operator = "in"
 							_filters.append([table_alias, key, operator, val])
 					else:
 						_filters.append([table_alias, key, "in", value])
