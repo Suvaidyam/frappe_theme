@@ -1103,6 +1103,7 @@ def get_files(doctype, docname):
 			filters={
 				"attached_to_name": ["in", all_docname],
 				"attached_to_doctype": ["in", all_doctype],
+				"is_folder": 0,
 			},
 			fields=[
 				"name",

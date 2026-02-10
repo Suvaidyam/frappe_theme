@@ -606,6 +606,14 @@ class SVAGalleryComponent {
 		return count;
 	}
 
+	_displayFolderName(name) {
+		// Strip docname~ prefix if present (e.g. "D01~Reports" → "Reports")
+		if (name && name.includes("~")) {
+			return name.split("~").slice(1).join("~");
+		}
+		return name;
+	}
+
 	_buildFolderTree(folders) {
 		const tree = { name: "Home", fullPath: "Home", children: [] };
 		const map = { Home: tree };
@@ -614,9 +622,10 @@ class SVAGalleryComponent {
 		for (const f of sorted) {
 			if (f === "Home") continue;
 			const parts = f.split("/");
-			const name = parts[parts.length - 1];
+			const rawName = parts[parts.length - 1];
+			const displayName = this._displayFolderName(rawName);
 			const parentPath = parts.slice(0, -1).join("/") || "Home";
-			const node = { name, fullPath: f, children: [] };
+			const node = { name: displayName, fullPath: f, children: [] };
 			map[f] = node;
 			if (map[parentPath]) {
 				map[parentPath].children.push(node);
@@ -716,7 +725,7 @@ class SVAGalleryComponent {
 						args: {
 							doc: {
 								doctype: "File",
-								file_name: folderName,
+								file_name: self.frm.doc.name + "~" + folderName,
 								is_folder: 1,
 								folder: parentFolder,
 								attached_to_doctype: self.frm.doc.doctype,
@@ -729,7 +738,7 @@ class SVAGalleryComponent {
 
 					// Refresh folders and re-render tree
 					await self.fetchFolders();
-					const newFullPath = parentFolder + "/" + folderName;
+					const newFullPath = parentFolder + "/" + self.frm.doc.name + "~" + folderName;
 					self._selectedUploadFolder = newFullPath;
 					self._refreshUploadFolderTree(uploadDialog);
 				} catch (error) {
@@ -749,7 +758,11 @@ class SVAGalleryComponent {
 		$treeContainer.html(this._renderFolderTreeHTML(folderTree, this._selectedUploadFolder));
 
 		// Update breadcrumb
-		const displayPath = this._selectedUploadFolder.replace(/^Home\/?/, "") || "Home";
+		let displayPath = this._selectedUploadFolder.replace(/^Home\/?/, "") || "Home";
+		displayPath = displayPath
+			.split("/")
+			.map((s) => this._displayFolderName(s))
+			.join("/");
 		uploadDialog.$wrapper.find(".folder-breadcrumb").text(displayPath);
 
 		const self = this;
@@ -947,6 +960,7 @@ class SVAGalleryComponent {
 		return Object.entries(tree)
 			.map(([name, node]) => {
 				const fullPath = parentPath ? `${parentPath}/${name}` : name;
+				const displayName = this._displayFolderName(name);
 				const isCollapsed = this.collapsedGroups[fullPath];
 				const totalFiles = this._countNodeFiles(node);
 				const hasChildren = Object.keys(node.children).length > 0;
@@ -955,7 +969,7 @@ class SVAGalleryComponent {
 				<div class="gallery-group ${parentPath ? "gallery-subgroup" : ""}">
 					<div class="group-header group-toggle-btn" data-doctype="${fullPath}">
 						<i class="fa ${isCollapsed ? "fa-chevron-right" : "fa-chevron-down"} group-toggle-icon"></i>
-						<span class="group-title">${__(name)}</span>
+						<span class="group-title">${__(displayName)}</span>
 						<span class="badge badge-secondary group-count">${totalFiles}</span>
 					</div>
 					<div class="group-body" data-doctype="${fullPath}" style="${isCollapsed ? "display:none;" : ""}">
@@ -1312,10 +1326,13 @@ class SVAGalleryComponent {
 							<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted);">
 								<i class="fa fa-folder" style="color: var(--yellow-500, #f59e0b);"></i>
 								<span>Upload to:</span>
-								<span class="folder-breadcrumb" style="font-weight: 600; color: var(--text-color);">${
+								<span class="folder-breadcrumb" style="font-weight: 600; color: var(--text-color);">${(
 									(self._selectedUploadFolder || "").replace(/^Home\/?/, "") ||
 									"Home"
-								}</span>
+								)
+									.split("/")
+									.map((s) => self._displayFolderName(s))
+									.join("/")}</span>
 							</div>
 						</div>
 						<div class="custom-upload-zone" style="
@@ -1426,8 +1443,18 @@ class SVAGalleryComponent {
 			this.dialog = uploadDialog;
 		} else {
 			// ── Edit mode dialog ──
+			const folderDisplayMap = {};
 			const folderOptions = this.folders.length
-				? this.folders.map((f) => f).join("\n")
+				? this.folders
+						.map((f) => {
+							const displayName = f
+								.split("/")
+								.map((s) => this._displayFolderName(s))
+								.join("/");
+							folderDisplayMap[displayName] = f;
+							return displayName;
+						})
+						.join("\n")
 				: "Home";
 			let editFields = [
 				{
@@ -1463,7 +1490,11 @@ class SVAGalleryComponent {
 							return f;
 						}
 						if (f.fieldname === "folder" && doc.folder && !doc.attached_to_field) {
-							f.default = doc.folder;
+							const displayDefault = doc.folder
+								.split("/")
+								.map((s) => this._displayFolderName(s))
+								.join("/");
+							f.default = displayDefault;
 							f.hidden = 0;
 							return f;
 						}
@@ -1488,7 +1519,8 @@ class SVAGalleryComponent {
 						const updateValues = {};
 						if (values.file_name) updateValues.file_name = values.file_name;
 						if (values.file) updateValues.file_url = values.file;
-						if (values.folder) updateValues.folder = values.folder;
+						if (values.folder)
+							updateValues.folder = folderDisplayMap[values.folder] || values.folder;
 
 						let updated_file = await frappe.db.set_value("File", fileId, updateValues);
 						if (updated_file?.message) {
