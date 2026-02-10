@@ -147,9 +147,6 @@ class SVAGalleryComponent {
 
 	getCommonStyles() {
 		return `
-            .gallery-wrapper .gallery {
-                margin-bottom: 20px;
-            }
             .gallery-wrapper .checkbox-container {
                 position: absolute;
                 top: 10px;
@@ -165,7 +162,7 @@ class SVAGalleryComponent {
             .gallery-wrapper .checkbox-container.selected {
                 opacity: 1;
             }
-            .gallery-wrapper.checkbox-container input[type="checkbox"] {
+            .gallery-wrapper .checkbox-container input[type="checkbox"] {
                 width: 20px !important;
                 height: 20px !important;
                 background-color: rgba(255, 255, 255, 0.9);
@@ -479,9 +476,6 @@ class SVAGalleryComponent {
 	}
 
 	render() {
-		this.wrapper.innerHTML = ""; // Clear existing content
-
-		// Create wrapper with fixed height and scrollable content
 		this.wrapper.innerHTML = `
             <div class="gallery-wrapper">
                 <div class="gallery-header" id="gallery-header"></div>
@@ -547,7 +541,6 @@ class SVAGalleryComponent {
         `;
 	}
 	preview_file(frm) {
-		// return console.log(frm)
 		let file_extension = frm?.file_url?.split(".").pop();
 		let show_file = new frappe.ui.Dialog({
 			title: __("Preview File"),
@@ -556,7 +549,6 @@ class SVAGalleryComponent {
 				{
 					fieldtype: "HTML",
 					fieldname: "preview_html",
-					options: "",
 				},
 			],
 			primary_action_label: __("Download"),
@@ -574,9 +566,6 @@ class SVAGalleryComponent {
 			},
 		});
 		let $preview = "";
-		// if(!frappe.utils.is_image_file(frm.file_url)){
-		//     show_file.get_primary_btn().hide();
-		// }
 		if (frappe.utils.is_image_file(frm.file_url)) {
 			$preview = $(`<div class="img_preview position-relative">
 				<img style="width: 100%; max-height:75vh;object-fit: contain;"
@@ -646,7 +635,7 @@ class SVAGalleryComponent {
 				<div class="gallery-group">
 					<div class="group-header group-toggle-btn" data-doctype="${groupName}">
 						<i class="fa ${isCollapsed ? "fa-chevron-right" : "fa-chevron-down"} group-toggle-icon"></i>
-						<span class="group-title">${groupName}</span>
+						<span class="group-title">${__(groupName)}</span>
 						<span class="badge badge-secondary group-count">${files.length}</span>
 					</div>
 					<div class="group-body" data-doctype="${groupName}" style="${isCollapsed ? "display:none;" : ""}">
@@ -812,114 +801,214 @@ class SVAGalleryComponent {
 		// Build folder options for the Select field
 		const folderOptions = this.folders.length ? this.folders.map((f) => f).join("\n") : "Home";
 
-		let fields = [
-			{
-				label: "File",
-				fieldname: "file",
-				fieldtype: mode === "create" ? "Attach" : "Data",
-				reqd: mode === "create" ? 1 : 0,
-				read_only: mode === "edit" ? 1 : 0,
-				options: {
-					allow_multiple: mode === "create" ? true : false,
-					doctype: this.frm?.doctype,
-					docname: this.frm?.docname,
-					on_success: function (file_doc) {
-						if (file_doc) {
-							// Get the selected folder from the dialog
-							const selectedFolder = fileDialog.get_value("folder");
-							if (selectedFolder && selectedFolder !== "Home") {
-								// Move file to selected folder via API
-								frappe.call({
-									method: "frappe_theme.api.upload_file_to_folder",
-									args: {
-										doctype: self.frm.doc.doctype,
-										docname: self.frm.doc.name,
-										file_url: file_doc.file_url,
-										folder: selectedFolder,
-									},
-									callback: function (r) {
-										if (r.message) {
-											file_doc.folder = r.message.folder;
-										}
-										fileDialog.hide();
-										self.gallery_files.unshift(file_doc);
-										self.render();
-										self.updateGallery();
-									},
-									error: function () {
-										// Even if folder move fails, file is uploaded
-										fileDialog.hide();
-										self.gallery_files.unshift(file_doc);
-										self.render();
-										self.updateGallery();
-									},
-								});
-							} else {
-								fileDialog.hide();
-								self.gallery_files.unshift(file_doc);
-								self.render();
-								self.updateGallery();
-							}
-						}
+		if (mode === "create") {
+			// ── Custom multi-file upload dialog ──
+			const uploadDialog = new frappe.ui.Dialog({
+				title: __("Upload Files"),
+				fields: [
+					{
+						label: "Folder",
+						fieldname: "folder",
+						fieldtype: "Select",
+						options: folderOptions,
+						default: "Home",
+						description: "Select a folder for the uploaded files",
 					},
-				},
-			},
-			{
-				label: "Folder",
-				fieldname: "folder",
-				fieldtype: "Select",
-				options: folderOptions,
-				default: "Home",
-				description: "Select a folder for the file",
-			},
-			{
-				label: "File Name",
-				fieldname: "file_name",
-				fieldtype: "Data",
-				reqd: mode === "create" ? 0 : 1,
-				hidden: mode === "create" ? 1 : 0,
-				description: "Enter a name for your file",
-			},
-		];
+					{
+						fieldtype: "Section Break",
+					},
+					{
+						label: "Files",
+						fieldname: "upload_area",
+						fieldtype: "HTML",
+					},
+				],
+				primary_action_label: __("Upload"),
+				primary_action: async function () {
+					const selectedFolder = uploadDialog.get_value("folder");
+					const pendingFiles = self._pendingUploadFiles || [];
 
-		if (mode === "edit" && fileId) {
-			try {
-				let doc = await frappe.db.get_doc("File", fileId);
-				fields = fields.map((f) => {
-					if (f.fieldname === "file" && doc.file_url) {
-						f.default = doc.file_url;
-						return f;
-					}
-					if (f.fieldname === "folder" && doc.folder) {
-						f.default = doc.folder;
-						return f;
-					}
-					if (doc[f.fieldname]) {
-						f.default = doc[f.fieldname];
-					}
-					return f;
-				});
-			} catch (error) {
-				console.error("Error fetching file:", error);
-				frappe.msgprint(__("Error fetching file details. Please try again."));
-				return;
-			}
-		}
-		const fileDialog = new frappe.ui.Dialog({
-			title: mode === "create" ? __("Upload Files") : __("Edit File"),
-			fields: fields,
-			primary_action_label: mode === "create" ? __("Upload") : __("Save"),
-			async primary_action(values) {
-				try {
-					if (!values.file) {
-						frappe.msgprint(__("Please select a file to upload"));
+					if (!pendingFiles.length) {
+						frappe.msgprint(__("Please select at least one file"));
 						return;
 					}
 
-					if (!values.file_name) {
-						values.file_name = values.file.split("/").pop().split("?")[0];
+					uploadDialog.get_primary_btn().prop("disabled", true);
+					const progressWrapper = uploadDialog.$wrapper.find(".upload-progress-area");
+					progressWrapper.show();
+
+					let uploadedCount = 0;
+					const totalFiles = pendingFiles.length;
+
+					for (const file of pendingFiles) {
+						try {
+							progressWrapper.html(`
+								<div style="padding: 8px 0;">
+									<div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">
+										Uploading ${uploadedCount + 1} of ${totalFiles}: ${file.name}
+									</div>
+									<div class="progress" style="height: 6px;">
+										<div class="progress-bar" style="width: ${Math.round((uploadedCount / totalFiles) * 100)}%"></div>
+									</div>
+								</div>
+							`);
+
+							const fileDoc = await self._uploadSingleFile(file, selectedFolder);
+							if (fileDoc) {
+								self.gallery_files.unshift(fileDoc);
+							}
+							uploadedCount++;
+						} catch (err) {
+							console.error("Upload failed for", file.name, err);
+							frappe.show_alert({
+								message: __("Failed to upload: ") + file.name,
+								indicator: "orange",
+							});
+						}
 					}
-					if (mode === "edit" && fileId) {
+
+					self._pendingUploadFiles = [];
+					uploadDialog.hide();
+
+					if (uploadedCount > 0) {
+						frappe.show_alert({
+							message: __(`${uploadedCount} file(s) uploaded successfully`),
+							indicator: "green",
+						});
+						self.render();
+						self.updateGallery();
+					}
+				},
+			});
+
+			// Render custom upload area
+			self._pendingUploadFiles = [];
+			uploadDialog.show();
+
+			const $uploadArea = uploadDialog.fields_dict.upload_area.$wrapper;
+			$uploadArea.html(`
+				<div class="custom-upload-zone" style="
+					border: 2px dashed var(--border-color);
+					border-radius: 8px;
+					padding: 30px 20px;
+					text-align: center;
+					cursor: pointer;
+					transition: border-color 0.2s, background 0.2s;
+					background: var(--fg-color);
+					margin-bottom: 10px;
+				">
+					<i class="fa fa-cloud-upload" style="font-size: 36px; color: var(--text-light); margin-bottom: 8px;"></i>
+					<div style="font-size: 14px; color: var(--text-muted); margin-bottom: 4px;">
+						Drag & drop files here or <span style="color: var(--primary); font-weight: 500;">browse</span>
+					</div>
+					<div style="font-size: 12px; color: var(--text-light);">
+						Select multiple files at once
+					</div>
+					<input type="file" multiple class="upload-file-input" style="display: none;" />
+				</div>
+				<div class="upload-file-list" style="max-height: 200px; overflow-y: auto;"></div>
+				<div class="upload-progress-area" style="display: none;"></div>
+			`);
+
+			const $dropZone = $uploadArea.find(".custom-upload-zone");
+			const $fileInput = $uploadArea.find(".upload-file-input");
+			const $fileList = $uploadArea.find(".upload-file-list");
+
+			// Click to browse
+			$dropZone.on("click", (e) => {
+				if (e.target === $fileInput[0]) return; // prevent infinite loop
+				$fileInput.trigger("click");
+			});
+			$fileInput.on("click", (e) => e.stopPropagation());
+
+			// File input change
+			$fileInput.on("change", function () {
+				self._addFilesToPending(this.files, $fileList);
+				this.value = ""; // reset so same file can be re-added
+			});
+
+			// Drag & drop
+			$dropZone.on("dragover", (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				$dropZone.css({ borderColor: "var(--primary)", background: "var(--control-bg)" });
+			});
+			$dropZone.on("dragleave", (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				$dropZone.css({
+					borderColor: "var(--border-color)",
+					background: "var(--fg-color)",
+				});
+			});
+			$dropZone.on("drop", (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				$dropZone.css({
+					borderColor: "var(--border-color)",
+					background: "var(--fg-color)",
+				});
+				const droppedFiles = e.originalEvent.dataTransfer.files;
+				self._addFilesToPending(droppedFiles, $fileList);
+			});
+
+			this.dialog = uploadDialog;
+		} else {
+			// ── Edit mode dialog ──
+			let editFields = [
+				{
+					label: "File URL",
+					fieldname: "file",
+					fieldtype: "Data",
+					read_only: 1,
+				},
+				{
+					label: "File Name",
+					fieldname: "file_name",
+					fieldtype: "Data",
+					reqd: 1,
+					description: "Enter a name for your file",
+				},
+				{
+					label: "Folder",
+					fieldname: "folder",
+					fieldtype: "Select",
+					options: folderOptions,
+					default: "Home",
+					description: "Select a folder for the file",
+				},
+			];
+
+			if (fileId) {
+				try {
+					let doc = await frappe.db.get_doc("File", fileId);
+					editFields = editFields.map((f) => {
+						if (f.fieldname === "file" && doc.file_url) {
+							f.default = doc.file_url;
+							return f;
+						}
+						if (f.fieldname === "folder" && doc.folder) {
+							f.default = doc.folder;
+							return f;
+						}
+						if (doc[f.fieldname]) {
+							f.default = doc[f.fieldname];
+						}
+						return f;
+					});
+				} catch (error) {
+					console.error("Error fetching file:", error);
+					frappe.msgprint(__("Error fetching file details. Please try again."));
+					return;
+				}
+			}
+
+			const editDialog = new frappe.ui.Dialog({
+				title: __("Edit File"),
+				fields: editFields,
+				primary_action_label: __("Save"),
+				async primary_action(values) {
+					try {
 						const updateValues = {};
 						if (values.file_name) updateValues.file_name = values.file_name;
 						if (values.file) updateValues.file_url = values.file;
@@ -936,23 +1025,113 @@ class SVAGalleryComponent {
 								indicator: "green",
 							});
 						}
+						self.updateGallery();
+						this.hide();
+					} catch (error) {
+						console.error("Error updating file:", error);
+						frappe.msgprint(__("Error updating file: ") + (error.message || error));
 					}
+				},
+			});
 
-					self.updateGallery();
-					this.hide();
-				} catch (error) {
-					console.error("Error handling file:", error);
-					frappe.msgprint(
-						`Error ${mode === "create" ? "uploading" : "updating"} file: ${
-							error.message || error
-						}`
-					);
-				}
-			},
+			editDialog.show();
+			this.dialog = editDialog;
+		}
+	}
+
+	_addFilesToPending(fileList, $fileListContainer) {
+		for (const file of fileList) {
+			// Avoid duplicates by name+size
+			const exists = this._pendingUploadFiles.some(
+				(f) => f.name === file.name && f.size === file.size
+			);
+			if (!exists) {
+				this._pendingUploadFiles.push(file);
+			}
+		}
+		this._renderPendingFileList($fileListContainer);
+	}
+
+	_renderPendingFileList($container) {
+		if (!this._pendingUploadFiles.length) {
+			$container.html("");
+			return;
+		}
+
+		const self = this;
+		$container.html(
+			this._pendingUploadFiles
+				.map((file, idx) => {
+					const ext = file.name.split(".").pop()?.toLowerCase();
+					const iconClass = this.getFileIcon(ext);
+					const size = this.convertTofileSize(file.size);
+					return `
+					<div class="pending-file-item" style="
+						display: flex;
+						align-items: center;
+						justify-content: space-between;
+						padding: 8px 10px;
+						border: 1px solid var(--border-color);
+						border-radius: 6px;
+						margin-bottom: 6px;
+						background: var(--fg-color);
+					">
+						<div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;">
+							<i class="${iconClass}" style="font-size: 16px; color: var(--text-muted);"></i>
+							<span style="font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${file.name}">${file.name}</span>
+							<span style="font-size: 11px; color: var(--text-light); white-space: nowrap;">${size}</span>
+						</div>
+						<button class="btn btn-xs btn-link remove-pending-file" data-idx="${idx}" style="color: var(--text-muted); padding: 0 4px;">
+							<i class="fa fa-times"></i>
+						</button>
+					</div>`;
+				})
+				.join("")
+		);
+
+		$container.find(".remove-pending-file").on("click", function () {
+			const idx = parseInt($(this).data("idx"));
+			self._pendingUploadFiles.splice(idx, 1);
+			self._renderPendingFileList($container);
 		});
+	}
 
-		fileDialog.show();
-		this.dialog = fileDialog;
+	_uploadSingleFile(file, folder) {
+		return new Promise((resolve, reject) => {
+			const formData = new FormData();
+			formData.append("file", file, file.name);
+			formData.append("doctype", this.frm.doc.doctype);
+			formData.append("docname", this.frm.doc.name);
+			formData.append("is_private", 1);
+			if (folder) {
+				formData.append("folder", folder);
+			}
+
+			const xhr = new XMLHttpRequest();
+			xhr.open("POST", "/api/method/upload_file", true);
+			xhr.setRequestHeader("Accept", "application/json");
+			xhr.setRequestHeader("X-Frappe-CSRF-Token", frappe.csrf_token);
+
+			xhr.onload = function () {
+				try {
+					const data = JSON.parse(xhr.responseText);
+					if (xhr.status === 200 && data.message) {
+						resolve(data.message);
+					} else {
+						console.error("Upload response error:", data);
+						reject(data.exc || data._server_messages || "Upload failed");
+					}
+				} catch (e) {
+					console.error("Upload parse error:", xhr.responseText);
+					reject("Upload failed: could not parse response");
+				}
+			};
+			xhr.onerror = function () {
+				console.error("Upload network error");
+				reject("Upload failed: network error");
+			};
+			xhr.send(formData);
+		});
 	}
 
 	attachEventListeners() {
@@ -995,8 +1174,6 @@ class SVAGalleryComponent {
 							} catch (error) {
 								console.error("Error deleting files:", error);
 								frappe.msgprint(__("Error deleting files. Please try again."));
-							} finally {
-								loader.hide();
 							}
 						}
 					);
@@ -1130,7 +1307,6 @@ class SVAGalleryComponent {
 			bodyWrapper.innerHTML = this.renderListView();
 		}
 		bodyWrapper.style.height = "75vh";
-		// bodyWrapper.style.minHeight = '500px';
 		bodyWrapper.style.overflow = "auto";
 		this.attachGalleryItemEventListeners(); // Attach event listeners to gallery items
 		this.attachGroupToggleListeners();
