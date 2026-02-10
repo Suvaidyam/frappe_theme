@@ -13,12 +13,12 @@ app_license = "mit"
 import time
 
 app_include_css = [
-	"https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
+	# "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
 	f"/assets/frappe_theme/css/frappe_theme.css?ver={time.time()}",
 	f"/assets/frappe_theme/css/number_card_mapper.css?ver={time.time()}",
 ]
 app_include_js = [
-	"https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
+	# "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
 	"global_exporter.bundle.js",
 	"sva_workspace.bundle.js",
 	"overwrite_form.bundle.js",
@@ -41,6 +41,7 @@ app_include_js = [
 	f"/assets/frappe_theme/js/doctype/global_doctype.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/breadcrumb_override.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/sidebar_override.js?ver={time.time()}",
+	"/assets/frappe_theme/js/multi_image_gallery.js",
 ]
 extend_bootinfo = "frappe_theme.boot.boot_theme"
 # include js, css files in header of web template
