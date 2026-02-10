@@ -1,6 +1,8 @@
+import json
+
 import frappe
 
-# from frappe_theme.apis.meta import get_possible_link_filters
+OPERATORS = ["=", "!=", ">", "<", ">=", "<=", "in", "not in", "like", "not like", "between", "not between"]
 
 
 class DTFilters:
@@ -128,10 +130,66 @@ class DTFilters:
 						else:
 							valid_filters[key] = filters[key]
 
-			return valid_filters, invalid_filters
-		except Exception as e:
-			frappe.log_error(f"Error in validate_query_report_filters: {str(e)}")
-			return {}, []
+			report_filters = report.get("filters", [])
+			report_columns = report.get("columns", [])
+			client_filters_keys = list(client_filters.keys())
+			fields = [
+				{
+					"fieldname": f.get("fieldname"),
+					"fieldtype": f.get("fieldtype"),
+					"options": f.get("options"),
+				}
+				for f in meta.get("fields", [])
+				if (
+					f.get("fieldtype") in ["Link", "Table MultiSelect"]
+					and f.get("fieldname") in client_filters_keys
+				)
+			]
+
+			for key in client_filters_keys:
+				field = next((f for f in fields if f.get("fieldname") == key), None)
+				if field:
+					matching_column_link_field = DTFilters.get_matching_link_field(field, report_columns)
+					if matching_column_link_field:
+						outer_filters[matching_column_link_field.get("fieldname")] = client_filters[key]
+
+					matching_filter_link_field = DTFilters.get_matching_link_field(field, report_filters)
+					if matching_filter_link_field:
+						if (
+							client_filters[key]
+							and isinstance(client_filters[key], list)
+							and len(client_filters[key]) > 1
+							and client_filters[key][0] in OPERATORS
+						):
+							inner_filters[matching_filter_link_field.get("fieldname")] = client_filters[key][
+								1
+							]
+						else:
+							inner_filters[matching_filter_link_field.get("fieldname")] = client_filters[key]
+					if not (matching_column_link_field or matching_filter_link_field):
+						not_applied_filters.append(key)
+				else:
+					mathing_column_field = next(
+						(f for f in report_columns if f.get("fieldname") == key), None
+					)
+					mathing_filter_field = next(
+						(f for f in report_filters if f.get("fieldname") == key), None
+					)
+					if mathing_column_field:
+						outer_filters[mathing_column_field.get("fieldname")] = client_filters[key]
+					if mathing_filter_field:
+						if (
+							client_filters[key]
+							and isinstance(client_filters[key], list)
+							and len(client_filters[key]) > 1
+							and client_filters[key][0] in OPERATORS
+						):
+							inner_filters[mathing_filter_field.get("fieldname")] = client_filters[key][1]
+						else:
+							inner_filters[mathing_filter_field.get("fieldname")] = client_filters[key]
+					if not (mathing_column_field or mathing_filter_field):
+						not_applied_filters.append(key)
+			return outer_filters, inner_filters, not_applied_filters
 
 	@staticmethod
 	def get_conf_for_multi_slect_link_field(child_doctype):
