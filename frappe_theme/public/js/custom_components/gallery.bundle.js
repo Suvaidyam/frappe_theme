@@ -10,6 +10,7 @@ class SVAGalleryComponent {
 		this.selectedFiles = [];
 		this.view = "Card"; // Default view
 		this.permissions = [];
+		this.folders = [];
 		this.initialize();
 		return this.wrapper;
 	}
@@ -70,6 +71,7 @@ class SVAGalleryComponent {
 
 			// Continue with initialization only if read permission exists
 			this.appendGalleryStyles();
+			await this.fetchFolders();
 			await this.fetchGalleryFiles();
 			this.renderHeader();
 			this.updateGallery();
@@ -326,7 +328,6 @@ class SVAGalleryComponent {
                 margin-bottom: 16px;
                 border: 1px solid #e2e2e2;
                 border-radius: 8px;
-                overflow: hidden;
             }
             .gallery-wrapper .group-header {
                 display: flex;
@@ -337,6 +338,8 @@ class SVAGalleryComponent {
                 border-bottom: 1px solid #e2e2e2;
                 cursor: pointer;
                 user-select: none;
+                border-top-left-radius: 8px;
+                border-top-right-radius: 8px;
             }
             .gallery-wrapper .group-header:hover {
                 background: #eef0f2;
@@ -361,6 +364,8 @@ class SVAGalleryComponent {
             }
             .gallery-wrapper .group-body {
                 padding: 16px;
+                border-bottom-left-radius: 8px;
+                border-bottom-right-radius: 8px;
             }
             .gallery-wrapper .pdf-thumbnail-wrapper {
                 background: #f5f5f5;
@@ -377,6 +382,19 @@ class SVAGalleryComponent {
                 }
             }
         `;
+	}
+
+	async fetchFolders() {
+		try {
+			const { message: folders } = await frappe.call({
+				method: "frappe_theme.api.get_folders",
+				type: "GET",
+			});
+			this.folders = (folders || []).map((f) => f.name);
+		} catch (error) {
+			console.error("Error fetching folders:", error);
+			this.folders = ["Home"];
+		}
 	}
 
 	async fetchGalleryFiles() {
@@ -427,7 +445,7 @@ class SVAGalleryComponent {
 				}));
 			}
 
-			this.groupFilesByDoctype();
+			this.groupFilesByFolder();
 			this.updateGallery();
 		} catch (error) {
 			console.error("Error fetching files:", error);
@@ -441,14 +459,22 @@ class SVAGalleryComponent {
 		}
 	}
 
-	groupFilesByDoctype() {
+	groupFilesByFolder() {
 		this.groupedFiles = {};
 		this.gallery_files.forEach((file) => {
-			const doctype = file.attached_to_doctype || "Other";
-			if (!this.groupedFiles[doctype]) {
-				this.groupedFiles[doctype] = [];
+			let displayLabel;
+			if (!file.attached_to_field) {
+				// attached_to_field is NOT set → group by folder name
+				const folder = file.folder || "Home";
+				displayLabel = folder === "Home" ? "Attachments" : folder.replace(/^Home\//, "");
+			} else {
+				// attached_to_field IS set → group by attached_to_doctype
+				displayLabel = file.attached_to_doctype || "Attachments";
 			}
-			this.groupedFiles[doctype].push(file);
+			if (!this.groupedFiles[displayLabel]) {
+				this.groupedFiles[displayLabel] = [];
+			}
+			this.groupedFiles[displayLabel].push(file);
 		});
 	}
 
@@ -463,7 +489,7 @@ class SVAGalleryComponent {
             </div>
         `;
 
-		this.groupFilesByDoctype();
+		this.groupFilesByFolder();
 		this.renderHeader();
 		this.updateGallery();
 	}
@@ -610,24 +636,27 @@ class SVAGalleryComponent {
 
 		const canWrite = this.permissions.includes("write");
 		const canDelete = this.permissions.includes("delete");
-		const doctypes = Object.keys(this.groupedFiles);
+		const groups = Object.keys(this.groupedFiles);
 
-		return doctypes
-			.map((doctype) => {
-				const files = this.groupedFiles[doctype];
-				const isCollapsed = this.collapsedGroups[doctype];
+		return groups
+			.map((groupName) => {
+				const files = this.groupedFiles[groupName];
+				const isCollapsed = this.collapsedGroups[groupName];
 				return `
 				<div class="gallery-group">
-					<div class="group-header group-toggle-btn" data-doctype="${doctype}">
+					<div class="group-header group-toggle-btn" data-doctype="${groupName}">
 						<i class="fa ${isCollapsed ? "fa-chevron-right" : "fa-chevron-down"} group-toggle-icon"></i>
-						<span class="group-title">${doctype}</span>
+						<span class="group-title">${groupName}</span>
 						<span class="badge badge-secondary group-count">${files.length}</span>
 					</div>
-					<div class="group-body" data-doctype="${doctype}" style="${isCollapsed ? "display:none;" : ""}">
+					<div class="group-body" data-doctype="${groupName}" style="${isCollapsed ? "display:none;" : ""}">
 						<div class="row">
 							${files
 								.map((file) => {
-									let extension = file?.file_url?.split(".").pop()?.toLowerCase();
+									let extension = file?.file_url
+										?.split(".")
+										.pop()
+										?.toLowerCase();
 									return `
 									<div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
 										<div class="image-card">
@@ -677,9 +706,7 @@ class SVAGalleryComponent {
 															: ""
 													}
 													<div class="cover-body">
-														<p class="view-button preview-btn" style="cursor: pointer;" data-file='${JSON.stringify(
-															file
-														)}'>
+														<p class="view-button preview-btn" style="cursor: pointer;" data-file='${JSON.stringify(file)}'>
 															<i class="fa fa-eye"></i>
 														</p>
 													</div>
@@ -689,21 +716,15 @@ class SVAGalleryComponent {
 												file.file_name
 											}">${file.file_name}</div>
 											<div class="d-flex justify-content-between">
-												<div class="file-date">${
-													frappe.datetime.str_to_user(file.creation)?.split(" ")[0]
-												}</div>
+												<div class="file-date">${frappe.datetime.str_to_user(file.creation)?.split(" ")[0]}</div>
 												<div class="file-date">
 													${this.convertTofileSize(file.file_size)}
 												</div>
 											</div>
 											<div class="d-flex justify-content-between">
 												<div class="file-date" style="white-space: nowrap;overflow: hidden;text-overflow: ellipsis;"
-													title="by ${file.owner_full_name} ${
-										file.owner != "Administrator" ? `(${file.owner})` : ""
-									}">
-													by ${file.owner_full_name} ${
-										file.owner != "Administrator" ? `(${file.owner})` : ""
-									}
+													title="by ${file.owner_full_name} ${file.owner != "Administrator" ? `(${file.owner})` : ""}">
+													by ${file.owner_full_name} ${file.owner != "Administrator" ? `(${file.owner})` : ""}
 												</div>
 											</div>
 										</div>
@@ -768,8 +789,10 @@ class SVAGalleryComponent {
 			return `<img src="${file.file_url}" class="card-img-top" alt="${file.file_name}">`;
 		} else if (extension === "pdf") {
 			return `
-				<div class="card-img-top d-flex align-items-center justify-content-center pdf-thumbnail-wrapper" style="height: 200px; background-color: #f5f5f5; overflow: hidden;">
-					<canvas class="pdf-thumbnail" data-pdf-url="${frappe.utils.escape_html(file.file_url)}" style="max-width: 100%; max-height: 100%; object-fit: contain;"></canvas>
+				<div class="card-img-top pdf-thumbnail-wrapper" style="height: 200px; background-color: #f5f5f5; overflow: hidden; position: relative;">
+					<iframe src="${frappe.utils.escape_html(
+						file.file_url
+					)}#page=1&toolbar=0&navpanes=0&scrollbar=0&view=FitH" scrolling="no" style="width: calc(100% + 20px); height: 220px; border: none; pointer-events: none; position: absolute; top: 0; left: 0;"></iframe>
 				</div>`;
 		} else {
 			const iconClass = this.getFileIcon(extension);
@@ -783,55 +806,12 @@ class SVAGalleryComponent {
 		}
 	}
 
-	renderPdfThumbnails() {
-		const canvases = this.wrapper.querySelectorAll("canvas.pdf-thumbnail");
-		if (!canvases.length) return;
-
-		const pdfjsLib = window.pdfjsLib || (window["pdfjs-dist/build/pdf"] );
-		if (!pdfjsLib) {
-			// Fallback: replace canvases with icon if PDF.js not available
-			canvases.forEach((canvas) => {
-				const parent = canvas.parentElement;
-				parent.innerHTML = `
-					<div class="file-icon text-center">
-						<i class="fa fa-file-pdf-o" style="font-size: 48px; color: #e74c3c;"></i>
-						<div style="font-size: 12px; margin-top: 8px; color: #6c757d;">.pdf</div>
-					</div>`;
-			});
-			return;
-		}
-
-		canvases.forEach((canvas) => {
-			const url = canvas.dataset.pdfUrl;
-			if (!url) return;
-			pdfjsLib
-				.getDocument(url)
-				.promise.then((pdf) => {
-					return pdf.getPage(1);
-				})
-				.then((page) => {
-					const desiredHeight = 200;
-					const unscaledViewport = page.getViewport({ scale: 1 });
-					const scale = desiredHeight / unscaledViewport.height;
-					const viewport = page.getViewport({ scale });
-					canvas.width = viewport.width;
-					canvas.height = viewport.height;
-					const ctx = canvas.getContext("2d");
-					page.render({ canvasContext: ctx, viewport });
-				})
-				.catch(() => {
-					const parent = canvas.parentElement;
-					parent.innerHTML = `
-						<div class="file-icon text-center">
-							<i class="fa fa-file-pdf-o" style="font-size: 48px; color: #e74c3c;"></i>
-							<div style="font-size: 12px; margin-top: 8px; color: #6c757d;">.pdf</div>
-						</div>`;
-				});
-		});
-	}
-
 	async renderForm(mode, fileId = null) {
 		const self = this;
+
+		// Build folder options for the Select field
+		const folderOptions = this.folders.length ? this.folders.map((f) => f).join("\n") : "Home";
+
 		let fields = [
 			{
 				label: "File",
@@ -845,13 +825,52 @@ class SVAGalleryComponent {
 					docname: this.frm?.docname,
 					on_success: function (file_doc) {
 						if (file_doc) {
-							fileDialog.hide();
-							self.gallery_files.unshift(file_doc);
-							self.render();
-							self.updateGallery();
+							// Get the selected folder from the dialog
+							const selectedFolder = fileDialog.get_value("folder");
+							if (selectedFolder && selectedFolder !== "Home") {
+								// Move file to selected folder via API
+								frappe.call({
+									method: "frappe_theme.api.upload_file_to_folder",
+									args: {
+										doctype: self.frm.doc.doctype,
+										docname: self.frm.doc.name,
+										file_url: file_doc.file_url,
+										folder: selectedFolder,
+									},
+									callback: function (r) {
+										if (r.message) {
+											file_doc.folder = r.message.folder;
+										}
+										fileDialog.hide();
+										self.gallery_files.unshift(file_doc);
+										self.render();
+										self.updateGallery();
+									},
+									error: function () {
+										// Even if folder move fails, file is uploaded
+										fileDialog.hide();
+										self.gallery_files.unshift(file_doc);
+										self.render();
+										self.updateGallery();
+									},
+								});
+							} else {
+								fileDialog.hide();
+								self.gallery_files.unshift(file_doc);
+								self.render();
+								self.updateGallery();
+							}
 						}
 					},
 				},
+			},
+			{
+				label: "Folder",
+				fieldname: "folder",
+				fieldtype: "Select",
+				options: folderOptions,
+				default: "Home",
+				description: "Select a folder for the file",
 			},
 			{
 				label: "File Name",
@@ -869,6 +888,10 @@ class SVAGalleryComponent {
 				fields = fields.map((f) => {
 					if (f.fieldname === "file" && doc.file_url) {
 						f.default = doc.file_url;
+						return f;
+					}
+					if (f.fieldname === "folder" && doc.folder) {
+						f.default = doc.folder;
 						return f;
 					}
 					if (doc[f.fieldname]) {
@@ -897,9 +920,12 @@ class SVAGalleryComponent {
 						values.file_name = values.file.split("/").pop().split("?")[0];
 					}
 					if (mode === "edit" && fileId) {
-						values["file_url"] = values.file;
-						delete values.file;
-						let updated_file = await frappe.db.set_value("File", fileId, values);
+						const updateValues = {};
+						if (values.file_name) updateValues.file_name = values.file_name;
+						if (values.file) updateValues.file_url = values.file;
+						if (values.folder) updateValues.folder = values.folder;
+
+						let updated_file = await frappe.db.set_value("File", fileId, updateValues);
 						if (updated_file?.message) {
 							self.gallery_files = self.gallery_files.map((file) =>
 								file.name === fileId ? updated_file.message : file
@@ -1106,7 +1132,6 @@ class SVAGalleryComponent {
 		bodyWrapper.style.height = "75vh";
 		// bodyWrapper.style.minHeight = '500px';
 		bodyWrapper.style.overflow = "auto";
-		this.renderPdfThumbnails();
 		this.attachGalleryItemEventListeners(); // Attach event listeners to gallery items
 		this.attachGroupToggleListeners();
 		this.attachEventListeners();
@@ -1118,7 +1143,9 @@ class SVAGalleryComponent {
 			btn.addEventListener("click", function () {
 				const doctype = this.dataset.doctype;
 				self.collapsedGroups[doctype] = !self.collapsedGroups[doctype];
-				const groupBody = self.wrapper.querySelector(`.group-body[data-doctype="${doctype}"]`);
+				const groupBody = self.wrapper.querySelector(
+					`.group-body[data-doctype="${doctype}"]`
+				);
 				const icon = this.querySelector(".group-toggle-icon");
 				if (groupBody) {
 					groupBody.style.display = self.collapsedGroups[doctype] ? "none" : "";
@@ -1139,20 +1166,20 @@ class SVAGalleryComponent {
 
 		const canWrite = this.permissions.includes("write");
 		const canDelete = this.permissions.includes("delete");
-		const doctypes = Object.keys(this.groupedFiles);
+		const groups = Object.keys(this.groupedFiles);
 
-		return doctypes
-			.map((doctype) => {
-				const files = this.groupedFiles[doctype];
-				const isCollapsed = this.collapsedGroups[doctype];
+		return groups
+			.map((groupName) => {
+				const files = this.groupedFiles[groupName];
+				const isCollapsed = this.collapsedGroups[groupName];
 				return `
 				<div class="gallery-group">
-					<div class="group-header group-toggle-btn" data-doctype="${doctype}">
+					<div class="group-header group-toggle-btn" data-doctype="${groupName}">
 						<i class="fa ${isCollapsed ? "fa-chevron-right" : "fa-chevron-down"} group-toggle-icon"></i>
-						<span class="group-title">${doctype}</span>
+						<span class="group-title">${groupName}</span>
 						<span class="badge badge-secondary group-count">${files.length}</span>
 					</div>
-					<div class="group-body" data-doctype="${doctype}" style="${isCollapsed ? "display:none;" : ""}">
+					<div class="group-body" data-doctype="${groupName}" style="${isCollapsed ? "display:none;" : ""}">
 						<div class="frappe-list">
 							<div class="frappe-list-header">
 								<div class="frappe-list-row">
@@ -1180,7 +1207,10 @@ class SVAGalleryComponent {
 							<div class="frappe-list-body">
 								${files
 									.map((file) => {
-										let extension = file?.file_url?.split(".").pop()?.toLowerCase();
+										let extension = file?.file_url
+											?.split(".")
+											.pop()
+											?.toLowerCase();
 										return `
 										<div class="frappe-list-row">
 											${
@@ -1257,11 +1287,15 @@ class SVAGalleryComponent {
 		if (imageExtensions.includes(extension)) {
 			return `
 				<img src="${file.file_url}" class="list-thumb preview-btn" data-file='${JSON.stringify(file)}'
-					style="width: 36px; height: 36px; object-fit: cover; border-radius: 4px; cursor: pointer;" alt="${file.file_name}">`;
+					style="width: 36px; height: 36px; object-fit: cover; border-radius: 4px; cursor: pointer;" alt="${
+						file.file_name
+					}">`;
 		} else if (extension === "pdf") {
 			return `
-				<div class="list-thumb-pdf preview-btn" data-file='${JSON.stringify(file)}' style="width: 36px; height: 36px; overflow: hidden; border-radius: 4px; cursor: pointer; background: #f5f5f5; display: flex; align-items: center; justify-content: center;">
-					<canvas class="pdf-thumbnail" data-pdf-url="${frappe.utils.escape_html(file.file_url)}" style="max-width: 36px; max-height: 36px;"></canvas>
+				<div class="list-thumb-pdf preview-btn" data-file='${JSON.stringify(
+					file
+				)}' style="width: 36px; height: 36px; overflow: hidden; border-radius: 4px; cursor: pointer; background: #f5f5f5; display: flex; align-items: center; justify-content: center;">
+					<i class="fa fa-file-pdf-o" style="font-size: 20px; color: #e74c3c;"></i>
 				</div>`;
 		} else {
 			return `

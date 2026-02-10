@@ -1108,9 +1108,12 @@ def get_files(doctype, docname):
 				"name",
 				"file_url",
 				"attached_to_doctype",
+				"folder",
 				"attached_to_name",
+				"attached_to_field",
 				"owner",
 				"file_name",
+				"file_type",
 				"file_size",
 				"creation",
 			],
@@ -1120,6 +1123,48 @@ def get_files(doctype, docname):
 	except Exception as e:
 		frappe.log_error(title="Error fetching files", message=str(e))
 		return []
+
+
+@frappe.whitelist()
+def get_folders():
+	"""Return list of all File folders the user can see."""
+	folders = frappe.get_all(
+		"File",
+		filters={"is_folder": 1},
+		fields=["name", "file_name"],
+		order_by="file_name asc",
+	)
+	return folders
+
+
+@frappe.whitelist()
+def upload_file_to_folder(doctype, docname, file_url, folder=None, file_name=None):
+	"""Move an already-uploaded file into the chosen folder."""
+	if not file_url:
+		frappe.throw(_("file_url is required"))
+
+	# Find the file doc that was just created by the Attach control
+	filters = {"file_url": file_url, "attached_to_doctype": doctype, "attached_to_name": docname}
+	file_doc_name = frappe.db.get_value("File", filters, "name")
+
+	if not file_doc_name:
+		# Fallback: try without attached filters (file just uploaded)
+		file_doc_name = frappe.db.get_value("File", {"file_url": file_url}, "name")
+
+	if not file_doc_name:
+		frappe.throw(_("Uploaded file not found"))
+
+	file_doc = frappe.get_doc("File", file_doc_name)
+
+	if folder:
+		file_doc.folder = folder
+
+	if file_name:
+		file_doc.file_name = file_name
+
+	file_doc.save(ignore_permissions=False)
+	frappe.db.commit()
+	return file_doc.as_dict()
 
 
 @frappe.whitelist()
