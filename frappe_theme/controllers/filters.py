@@ -88,12 +88,7 @@ class DTFilters:
 
 		Otherwise return the value as-is.
 		"""
-		if (
-			value
-			and isinstance(value, list)
-			and len(value) > 1
-			and value[0] in OPERATORS
-		):
+		if value and isinstance(value, list) and len(value) > 1 and value[0] in OPERATORS:
 			return value[1]
 		return value
 
@@ -102,7 +97,7 @@ class DTFilters:
 		"""Partition client filters into outer (column), inner (report-filter), and not-applied.
 
 		Returns:
-			tuple: (outer_filters, inner_filters, not_applied_filters)
+		        tuple: (outer_filters, inner_filters, not_applied_filters)
 		"""
 		if not dt:
 			return client_filters, {}, []
@@ -178,12 +173,8 @@ class DTFilters:
 
 		Returns True if at least one match was found.
 		"""
-		matching_column = next(
-			(f for f in report_columns if f.get("fieldname") == key), None
-		)
-		matching_filter = next(
-			(f for f in report_filters if f.get("fieldname") == key), None
-		)
+		matching_column = next((f for f in report_columns if f.get("fieldname") == key), None)
+		matching_filter = next((f for f in report_filters if f.get("fieldname") == key), None)
 
 		if matching_column:
 			outer_filters[matching_column.get("fieldname")] = value
@@ -224,9 +215,7 @@ class DTFilters:
 		filter_options = filter_field.get("options")
 		filter_fieldname = filter_field.get("fieldname")
 
-		relevant_field_from_base = next(
-			(f for f in base_fields if f.get("options") == filter_options), None
-		)
+		relevant_field_from_base = next((f for f in base_fields if f.get("options") == filter_options), None)
 
 		if relevant_field_from_base:
 			DTFilters._apply_direct_match(
@@ -239,8 +228,14 @@ class DTFilters:
 			return
 
 		DTFilters._apply_dynamic_link_filter(
-			base_fields, filter_field, base_doctype, filters, key, filter_fieldname,
-			valid_filters, invalid_filters,
+			base_fields,
+			filter_field,
+			base_doctype,
+			filters,
+			key,
+			filter_fieldname,
+			valid_filters,
+			invalid_filters,
 		)
 
 	@staticmethod
@@ -257,9 +252,7 @@ class DTFilters:
 						f[3] = [v.get(filter_fieldname) for v in f[3]]
 					valid_filters.append(f)
 		else:
-			valid_filters[target_fieldname] = DTFilters._extract_filter_value(
-				filters, key, filter_fieldname
-			)
+			valid_filters[target_fieldname] = DTFilters._extract_filter_value(filters, key, filter_fieldname)
 
 	@staticmethod
 	def _apply_name_filter(filters, key, filter_fieldname, valid_filters):
@@ -268,8 +261,14 @@ class DTFilters:
 
 	@staticmethod
 	def _apply_dynamic_link_filter(
-		base_fields, filter_field, base_doctype, filters, key, filter_fieldname,
-		valid_filters, invalid_filters,
+		base_fields,
+		filter_field,
+		base_doctype,
+		filters,
+		key,
+		filter_fieldname,
+		valid_filters,
+		invalid_filters,
 	):
 		"""Resolve filter via a Dynamic Link pair (Link→DocType + Dynamic Link)."""
 		filter_options = filter_field.get("options")
@@ -284,9 +283,9 @@ class DTFilters:
 
 		ref_dn_field = next(
 			(
-				x for x in base_fields
-				if x.get("fieldtype") == "Dynamic Link"
-				and x.get("options") == ref_dt_field.get("fieldname")
+				x
+				for x in base_fields
+				if x.get("fieldtype") == "Dynamic Link" and x.get("options") == ref_dt_field.get("fieldname")
 			),
 			None,
 		)
@@ -308,6 +307,4 @@ class DTFilters:
 				valid_filters.append([base_doctype, ref_dn_fieldname, "=", value])
 		else:
 			valid_filters[ref_dt_fieldname] = filter_options
-			valid_filters[ref_dn_fieldname] = DTFilters._extract_filter_value(
-				filters, key, filter_fieldname
-			)
+			valid_filters[ref_dn_fieldname] = DTFilters._extract_filter_value(filters, key, filter_fieldname)
