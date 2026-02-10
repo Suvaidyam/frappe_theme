@@ -17,7 +17,6 @@ def execute(filters: dict | None = None):
 	"""
 	columns = get_columns()
 	data = get_data()
-
 	return columns, data
 
 
@@ -26,8 +25,7 @@ def get_columns() -> list[dict]:
 		{
 			"label": _("Module"),
 			"fieldname": "module",
-			"fieldtype": "Link",
-			"options": "DocType",
+			"fieldtype": "Data",
 			"width": 200,
 		},
 		{"label": _("Total Requests"), "fieldname": "total_requests", "fieldtype": "Int", "width": 200},

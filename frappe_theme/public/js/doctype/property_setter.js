@@ -628,6 +628,93 @@ const field_changes = {
 			});
 		}
 	},
+	sdg_setup_target_fields: async function (frm) {
+		const row = frm.config_dialog.get_values(true, false);
+		if (row.sdg_report) {
+			let res = await frappe.call({
+				method: "frappe.desk.query_report.run",
+				args: { report_name: row.sdg_report },
+			});
+			if (!res.message?.columns) {
+				frappe.throw(__("The selected report does not have any columns."));
+			} else {
+				// check if tere is at least state or district field
+				let has_sdg_field =
+					res.message?.columns?.some((col) => {
+						return ["SDGs"].includes(col.options);
+					}) || row?.sdg_name_column;
+				if (!has_sdg_field) {
+					frappe.throw(
+						__(
+							"The selected report must have at least one field with SDGs as options or SDG Name Column."
+						)
+					);
+				} else {
+					// check if there is at least one numeric field
+					let has_numeric_field = res.message?.columns?.some((col) => {
+						return ["Int", "Float", "Currency", "Percent"].includes(col.fieldtype);
+					});
+					if (!has_numeric_field) {
+						frappe.throw(
+							__("The selected report must have at least one numeric field.")
+						);
+					}
+				}
+			}
+			let fields = res.message?.columns
+				?.filter((col) => ["Int", "Float", "Currency", "Percent"].includes(col.fieldtype))
+				?.map((col) => {
+					return {
+						label: col.label,
+						fieldname: col.fieldname,
+						fieldtype: col.fieldtype,
+					};
+				});
+			let prev_targets = JSON.parse(row.sdg_target_fields || "[]").map((field) => {
+				return field.fieldname;
+			});
+			let dialog = new frappe.ui.Dialog({
+				title: __("Select Target Fields"),
+				fields: fields.map((field) => {
+					return {
+						label: field.label,
+						fieldname: field.fieldname,
+						default: prev_targets.includes(field.fieldname),
+						fieldtype: "Check",
+					};
+				}),
+				primary_action_label: "Submit",
+				primary_action(values) {
+					let sdg_target_fields = [];
+					fields.forEach((field) => {
+						if (values[field.fieldname]) {
+							sdg_target_fields.push({
+								fieldname: field.fieldname,
+								label: field.label,
+								fieldtype: field.fieldtype,
+							});
+						}
+					});
+					frm.config_dialog.set_value(
+						"sdg_target_fields",
+						JSON.stringify(sdg_target_fields)
+					);
+					dialog.clear();
+					dialog.hide();
+				},
+				secondary_action_label: "Cancel",
+				secondary_action() {
+					dialog.clear();
+					dialog.hide();
+				},
+			}).show();
+		} else {
+			frappe.show_alert({
+				message: __("Please select a report"),
+				indicator: "red",
+			});
+		}
+	},
 	// ++++++++++++++++++++++++++++ Heatmap Configuration Part Ends ++++++++++++++++++++++++++++++
 };
 var child_response_dts = [];

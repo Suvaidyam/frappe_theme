@@ -599,6 +599,26 @@ class SvaDataTable {
 			tr.appendChild(actionTd);
 		}
 
+		// Add hover effect
+		tr.addEventListener("mouseover", () => {
+			tr.style.backgroundColor = "#f5f5f5";
+			tr.querySelectorAll(".sva-dt-serial-number-column").forEach((td) => {
+				td.style.backgroundColor = "#f5f5f5";
+			});
+			tr.querySelectorAll(".sva-dt-action-column").forEach((td) => {
+				td.style.backgroundColor = "#f5f5f5";
+			});
+		});
+		tr.addEventListener("mouseleave", () => {
+			tr.style.backgroundColor = "#fff";
+			tr.querySelectorAll(".sva-dt-serial-number-column").forEach((td) => {
+				td.style.backgroundColor = "#fff";
+			});
+			tr.querySelectorAll(".sva-dt-action-column").forEach((td) => {
+				td.style.backgroundColor = "#fff";
+			});
+		});
+
 		return tr;
 	}
 
@@ -2641,12 +2661,12 @@ class SvaDataTable {
 				// Serial Number Column
 				if (this.options.serialNumberColumn) {
 					const serialTd = document.createElement("td");
+					serialTd.classList.add("sva-dt-serial-number-column");
 					serialTd.style.minWidth = "40px";
 					serialTd.style.textAlign = "center";
 					serialTd.style.position = "sticky";
 					serialTd.style.left = "0px";
 					serialTd.style.backgroundColor = "#fff";
-
 					const serialNumber =
 						this.page > 1
 							? (this.page - 1) * this.limit + (rowIndex + 1)
@@ -2846,6 +2866,7 @@ class SvaDataTable {
 					this.childLinks?.length
 				) {
 					const actionTd = document.createElement("td");
+					actionTd.classList.add("sva-dt-action-column");
 					actionTd.style.minWidth = "50px";
 					actionTd.style.textAlign = "center";
 					actionTd.style.position = "sticky";
@@ -2855,6 +2876,26 @@ class SvaDataTable {
 
 					tr.appendChild(actionTd);
 				}
+
+				// Add hover effect
+				tr.addEventListener("mouseover", () => {
+					tr.style.backgroundColor = "#f5f5f5";
+					tr.querySelectorAll(".sva-dt-serial-number-column").forEach((td) => {
+						td.style.backgroundColor = "#f5f5f5";
+					});
+					tr.querySelectorAll(".sva-dt-action-column").forEach((td) => {
+						td.style.backgroundColor = "#f5f5f5";
+					});
+				});
+				tr.addEventListener("mouseleave", () => {
+					tr.style.backgroundColor = "#fff";
+					tr.querySelectorAll(".sva-dt-serial-number-column").forEach((td) => {
+						td.style.backgroundColor = "#fff";
+					});
+					tr.querySelectorAll(".sva-dt-action-column").forEach((td) => {
+						td.style.backgroundColor = "#fff";
+					});
+				});
 
 				fragment.appendChild(tr);
 				rowIndex++;
@@ -4086,14 +4127,27 @@ class SvaDataTable {
 					this.frm?.doc.name,
 				]);
 			}
-
+			let filters_to_apply = [...filters, ...this.additional_list_filters];
+			if (this.connection?.connection_type == "Report") {
+				filters_to_apply = {};
+				if (this.frm?.["dt_events"]?.[this.doctype || this.link_report]?.get_filters) {
+					let get_filters =
+						this.frm?.["dt_events"]?.[this.doctype || this.link_report]?.get_filters;
+					filters_to_apply =
+						(await get_filters(this.doctype || this.link_report, this.frm || {})) ||
+						{};
+				}
+				[...filters, ...this.additional_list_filters].forEach((f) => {
+					filters_to_apply[f[1]] = [f[2], f[3]];
+				});
+			}
 			// this.total = await frappe.db.count(this.doctype, { filters: [...filters, ...this.additional_list_filters] });
 			let { message } = await this.sva_db.call({
 				method: "frappe_theme.dt_api.get_dt_count",
 				doctype: this.doctype || this.link_report,
 				doc: this.frm?.doc?.name,
 				ref_doctype: this.frm?.doc?.doctype,
-				filters: [...filters, ...this.additional_list_filters],
+				filters: filters_to_apply,
 				_type: this.connection.connection_type,
 				unfiltered: this.connection?.unfiltered,
 			});
@@ -4125,7 +4179,7 @@ class SvaDataTable {
 				doctype: this.doctype || this.link_report,
 				doc: this.frm?.doc?.name,
 				ref_doctype: this.frm?.doc?.doctype,
-				filters: [...filters, ...this.additional_list_filters],
+				filters: filters_to_apply,
 				fields: this.fields || ["*"],
 				limit_page_length: this.isTransposed ? 0 : this.limit,
 				order_by: `${this.sort_by} ${this.sort_order}`,

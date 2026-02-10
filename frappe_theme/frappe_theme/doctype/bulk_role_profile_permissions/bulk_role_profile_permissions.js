@@ -129,13 +129,13 @@ function add_apply_button(frm) {
 		});
 	});
 
-	// frm.custom_btn.addClass("btn-primary");
-	// frm.custom_btn.addClass("btn-success");
-	frm.custom_btn.css({
-		backgroundColor: "#16a34a",
-		color: "#ffffff",
-		borderColor: "#16a34a",
-	});
+	frm.custom_btn.addClass("btn-primary");
+	frm.custom_btn.addClass("btn-success");
+	// frm.custom_btn.css({
+	// 	backgroundColor: "#16a34a",
+	// 	color: "#ffffff",
+	// 	borderColor: "#16a34a",
+	// });
 }
 
 function load_role_profiles(frm) {
@@ -178,11 +178,11 @@ function load_role_profiles(frm) {
 				);
 				let msg = has_existing
 					? __(
-							`Loaded ${r.message.length} Role Profile-Role combinations with existing permissions`
-					  )
+						`Loaded ${r.message.length} Role Profile-Role combinations with existing permissions`
+					)
 					: __(
-							`Loaded ${r.message.length} Role Profile-Role combinations (no existing permissions)`
-					  );
+						`Loaded ${r.message.length} Role Profile-Role combinations (no existing permissions)`
+					);
 
 				frappe.show_alert({
 					message: msg,
@@ -222,6 +222,9 @@ function toggle_all_perms(frm, enable) {
 function set_bulk_perms(frm, perms) {
 	frm.doc.role_profiles.forEach((row) => {
 		Object.assign(row, perms);
+		if (perms.read === 1 || (row.read && row.write)) {
+			row.report = 1;
+		}
 	});
 	frm.refresh_field("role_profiles");
 }
@@ -300,6 +303,9 @@ function apply_preset(frm, preset) {
 				row[key] = presets[preset][key];
 			}
 		});
+		if (preset === "report_only" && row.read && row.write) {
+			row.report = 1;
+		}
 	});
 	frm.refresh_field("role_profiles");
 	frappe.show_alert({ message: __("Preset applied"), indicator: "green" });

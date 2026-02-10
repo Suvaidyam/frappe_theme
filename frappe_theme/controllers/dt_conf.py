@@ -1,6 +1,4 @@
 import json
-import re
-from hashlib import md5
 
 import frappe
 from frappe.desk.query_report import run
@@ -131,105 +129,71 @@ class DTConf:
 			else:
 				return fields_dict
 
-	def get_dt_list(
-		doctype,
-		doc=None,
-		ref_doctype=None,
-		filters=None,
-		fields=None,
-		limit_page_length=None,
-		order_by=None,
-		limit_start=None,
-		_type="List",
-		unfiltered=0,
-		return_columns=False,
-	):
-		if _type == "Report":
-			return DTConf.report_list(
-				doctype, doc, ref_doctype, filters, limit_page_length, limit_start, unfiltered, return_columns
-			)
+	@staticmethod
+	def get_dt_list(options):
+		if options["_type"] == "Report":
+			return DTConf.report_list(options)
 		else:
-			return DTConf.doc_type_list(
-				doctype, filters, fields, limit_page_length, order_by, limit_start, doc, ref_doctype
-			)
+			return DTConf.doc_type_list(options)
 
-	def report_list(
-		doctype,
-		doc=None,
-		ref_doctype=None,
-		filters=None,
-		limit_page_length=None,
-		limit_start=None,
-		unfiltered=0,
-		return_columns=False,
-	):
+	@staticmethod
+	def report_list(options):
+		filters = options["filters"]
 		if isinstance(filters, str):
 			filters = json.loads(filters)
 		if filters is None:
-			filters = []
+			filters = {}
 
-		data = frappe.get_doc("Report", doctype)
-		if data.report_type == "Query Report":
-			valid_filters, invalid_filters = {}, []
-			if filters:
-				valid_filters, invalid_filters = DTFilters.validate_query_report_filters(
-					ref_doctype, doc, doctype, filters
-				)
-			columns, result = data.execute_query_report(
-				additional_filters=valid_filters,
-				filters={},
-				ref_doctype=ref_doctype,
-				ref_docname=doc,
-				limit_page_length=limit_page_length,
-				limit_start=limit_start,
-				unfiltered=unfiltered,
+		report = frappe.get_doc("Report", options["doctype"])
+		outer_filters, inner_filters, not_applied_filters = DTFilters.get_report_filters(
+			report, filters, options["ref_doctype"]
+		)
+		if report.report_type == "Query Report":
+			columns, result = report.execute_query_report(
+				filters=inner_filters,
+				outer_filters=outer_filters,
+				ref_doctype=options["ref_doctype"],
+				ref_docname=options["doc"],
+				limit_page_length=options["limit_page_length"],
+				limit_start=options["limit_start"],
+				unfiltered=options["unfiltered"],
 			)
-			if return_columns:
-				return {"result": result, "columns": data.get("columns")}
+			if options["return_columns"]:
+				return {"result": result, "columns": report.get("columns")}
 			else:
 				return result
-		elif data.report_type == "Script Report":
-			filters = filters
-			valid_filters, invalid_filters = {}, []
-			if filters:
-				valid_filters, invalid_filters = DTFilters.validate_query_report_filters(
-					ref_doctype, doc, doctype, filters, is_script_report=True
-				)
-				if isinstance(valid_filters, list):
-					_valid_filters = {}
-					for f in valid_filters:
-						if f[2] == "=":
-							_valid_filters[f[1]] = f[3]
-						else:
-							_valid_filters[f[1]] = [f[2], f[3]]
-
-					valid_filters = _valid_filters
-
-			response = run(doctype, filters=valid_filters)
-
-			data = response.get("result")
+		elif report.report_type == "Script Report":
+			response = run(report.name, filters=inner_filters)
 			columns = response.get("columns")
-			result = Chart.filter_script_report_data(data, columns, ref_doctype, doc)
+			result = Chart.filter_script_report_data(
+				response.get("result"), columns, options["ref_doctype"], options["doc"]
+			)
 
 			# apply pagination
-			if limit_page_length and limit_start is not None and int(limit_page_length or 0) < len(result):
-				result = result[limit_start : limit_start + int(limit_page_length or 0)]
+			if (
+				options["limit_page_length"]
+				and options["limit_start"] is not None
+				and int(options["limit_page_length"] or 0) < len(result)
+			):
+				result = result[
+					options["limit_start"] : options["limit_start"] + int(options["limit_page_length"] or 0)
+				]
 
-			if return_columns:
+			if options["return_columns"]:
 				return {"result": result, "columns": columns}
 			else:
 				return result
 
-	def doc_type_list(
-		doctype,
-		filters=None,
-		fields=None,
-		limit_page_length=None,
-		order_by=None,
-		limit_start=None,
-		doc=None,
-		ref_doctype=None,
-	):
+	def doc_type_list(options):
+		filters = options["filters"]
+		fields = options["fields"]
+		limit_page_length = options["limit_page_length"]
+		order_by = options["order_by"]
+		limit_start = options["limit_start"]
+		doc = options["doc"]
+		ref_doctype = options["ref_doctype"]
+		doctype = options["doctype"]
+
 		if filters is not None and not isinstance(filters, (dict | list)):
 			filters = {}
 
@@ -248,37 +212,32 @@ class DTConf:
 			limit_start=limit_start,
 		)
 
-	def get_dt_count(doctype, doc=None, ref_doctype=None, filters=None, _type="List", unfiltered=False):
-		if _type == "Report":
-			data = frappe.get_doc("Report", doctype)
-			if data.report_type == "Query Report":
-				if isinstance(filters, str):
-					filters = json.loads(filters)
-				valid_filters, invalid_filters = DTFilters.validate_query_report_filters(
-					ref_doctype, doc, doctype, filters
+	def get_dt_count(options):
+		filters = options["filters"]
+		doctype = options["doctype"]
+		if options["_type"] == "Report":
+			report = frappe.get_doc("Report", options["doctype"])
+			outer_filters, inner_filters, not_applied_filters = DTFilters.get_report_filters(
+				report, options["filters"], options["ref_doctype"]
+			)
+			if report.report_type == "Query Report":
+				query = report.execute_query_report(
+					filters=inner_filters,
+					outer_filters=outer_filters,
+					ref_doctype=options["ref_doctype"],
+					ref_docname=options["doc"],
+					unfiltered=options["unfiltered"],
+					return_query=True,
 				)
-				count = data.execute_and_count_query_report_rows(
-					filters=valid_filters, ref_doctype=ref_doctype, ref_docname=doc, unfiltered=unfiltered
+				count = frappe.db.sql(f"SELECT COUNT(*) AS count FROM ({query}) as __count", as_dict=True)
+				return count[0].get("count") if count else 0
+			elif report.report_type == "Script Report":
+				response = run(report.name, filters=inner_filters)
+				result = Chart.filter_script_report_data(
+					response.get("result"), response.get("columns"), options["ref_doctype"], options["doc"]
 				)
-				return count or 0
-			elif data.report_type == "Script Report":
-				filters = filters
-				valid_filters, invalid_filters = {}, []
-				if filters:
-					valid_filters, invalid_filters = DTFilters.validate_query_report_filters(
-						ref_doctype, doc, doctype, filters, is_script_report=True
-					)
-				if isinstance(filters, list):
-					valid_filters = {f[1]: [f[2], f[3]] for f in filters}
-				response = run(doctype, filters=valid_filters)
-				data = response.get("result")
-				columns = response.get("columns")
-				result = Chart.filter_script_report_data(data, columns, ref_doctype, doc)
-
 				return len(result)
 		else:
-			if filters is not None and not isinstance(filters, (dict | list)):
-				filters = {}
 			cleaned_filters = [item[:-1] if item and item[-1] is False else item for item in filters]
 			return frappe.db.count(doctype, filters=cleaned_filters)
 
@@ -343,20 +302,19 @@ class DTConf:
 		user = frappe.session.user
 		if user == "Administrator":
 			return None
-		setting_id = md5(f"{parent_id}-{child_dt}-{user}".encode()).hexdigest()
 		listview_settings = None
-		if frappe.cache.exists(setting_id):
-			listview_settings = frappe.cache.get_value(setting_id)
-		elif frappe.db.exists(
-			"SVADT User Listview Settings", {"parent_id": parent_id, "child_dt": child_dt, "user": user}
+		if frappe.db.exists(
+			"SVADT User Listview Settings", {"parent_id": parent_id, "child_dt": child_dt, "user": user}, True
 		):
-			listview_settings = frappe.get_doc(
+			listview_settings = frappe.get_cached_value(
 				"SVADT User Listview Settings",
 				frappe.db.exists(
 					"SVADT User Listview Settings",
 					{"parent_id": parent_id, "child_dt": child_dt, "user": user},
+					True,
 				),
-			).listview_settings
+				"listview_settings",
+			)
 		return listview_settings
 
 	# build datatable for doctype
@@ -392,9 +350,9 @@ class DTConf:
 	def link_report_list(doctype):
 		other_report_list = frappe.get_all(
 			"Report",
-			filters=[
+			or_filters=[
 				["Report Filter", "options", "=", doctype],
-				["Report", "report_type", "=", "Query Report"],
+				["Report Column", "options", "=", doctype],
 			],
 			pluck="name",
 		)

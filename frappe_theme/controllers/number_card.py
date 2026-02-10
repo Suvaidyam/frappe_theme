@@ -87,21 +87,16 @@ class NumberCard:
 		try:
 			if report:
 				report = frappe.get_cached_doc("Report", report.get("name"))
+			outer_filters, inner_filters, not_applied_filters = DTFilters.get_report_filters(
+				report, filters, doctype
+			)
 			filters_json = frappe.parse_json(details.get("filters_json") or "{}")
 			if report.get("report_type") == "Script Report":
 				from frappe.desk.query_report import run
 
-				valid_filters, invalid_filters = {}, []
-				if filters:
-					valid_filters, invalid_filters = DTFilters.validate_query_report_filters(
-						doctype, docname, report.get("name"), filters, is_script_report=True
-					)
-				if isinstance(valid_filters, str):
-					valid_filters = json.loads(valid_filters or "{}")
-
 				column = {"fieldtype": "Int"}
 				report_data = run(
-					report.get("name"), filters={**valid_filters, **filters_json}, ignore_prepared_report=True
+					report.get("name"), filters={**inner_filters, **filters_json}, ignore_prepared_report=True
 				)
 				if report_data and report_data.get("result"):
 					if details.get("report_function"):
@@ -167,17 +162,9 @@ class NumberCard:
 					if details.get("report_field") == f.get("fieldname"):
 						column = f
 						break
-
-				valid_filters, invalid_filters = {}, []
-				if isinstance(filters, str):
-					filters = json.loads(filters or "{}")
-				if filters:
-					valid_filters, invalid_filters = DTFilters.validate_query_report_filters(
-						doctype, docname, report.get("name"), filters
-					)
 				executable_query = report.execute_query_report(
-					additional_filters=valid_filters,
-					filters=filters_json,
+					outer_filters=outer_filters,
+					filters={**filters_json, **inner_filters},
 					ref_doctype=doctype,
 					ref_docname=docname,
 					unfiltered=0,
@@ -189,7 +176,7 @@ class NumberCard:
 					return {"count": 0, "message": "Invalid function", "column": column}
 
 				query = f"SELECT {function}(t.{field_name}) AS count FROM ({executable_query}) AS t"
-				count = frappe.db.sql(query, filters_json, as_dict=True)
+				count = frappe.db.sql(query, {**filters_json, **inner_filters}, as_dict=True)
 
 				return {
 					"count": count[0].get("count") if count else 0,

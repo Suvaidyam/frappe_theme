@@ -33,6 +33,7 @@ import CustomApprovalRequest from "./custom_components/approval_request/approval
 import CustomDynamicHtml from "./custom_components/dynamic_html/dynamic_html.bundle.js";
 import SVACarousel from "./sva_carousel.bundle.js";
 import FilterRibbon from "./custom_components/filters_ribbon.bundle.js";
+import SVASDGWheel from "./custom_components/sdg_wheel.bundle.js";
 
 frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 	constructor(...args) {
@@ -323,7 +324,11 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			fields.forEach((field) => {
 				if (Array.isArray(frm.doc[field.fieldname])) {
 					if (frm.doc[field.fieldname].length > 0) {
-						filters[field.fieldname] = frm.doc[field.fieldname];
+						let field_dict = frm.fields_dict?.[field.fieldname];
+						let link_field = field_dict?._link_field || field_dict?.getLinkField();
+						filters[field.fieldname] = link_field
+							? frm.doc[field.fieldname]?.map((i) => i[link_field.fieldname])
+							: frm.doc[field.fieldname];
 					} else {
 						return;
 					}
@@ -424,22 +429,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 				apply_button_field.reset_action = () => {
 					reset_dashboard_filters(frm, tab_fields, apply_button_field?.df);
 				};
-
-				// apply_button_field.$apply_button.on("click", )
-				// apply_button_field.$reset_button.on("click", );
 			}
-
-			// if (apply_button) {
-			// 	frappe.ui.form.on(frm.doctype, apply_button.fieldname, function (frm) {
-
-			// 	});
-			// }
-			// if (reset_button) {
-			// 	frm.set_df_property(reset_button.fieldname, "hidden", 1);
-			// 	frappe.ui.form.on(frm.doctype, reset_button.fieldname, function (frm) {
-
-			// 	});
-			// }
 		}
 	}
 	async custom_after_save(frm) {
@@ -856,6 +846,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 						number_card: field.sva_ft.number_card,
 						card_label: field.sva_ft.label || card_doc.label || "Untitled",
 						details: card_doc,
+						listview_settings: field.sva_ft.listview_settings || null,
 						report: card_doc.report || null,
 						icon_value: field.sva_ft.icon || null,
 						icon_color: field.sva_ft.icon_color || null,
@@ -933,6 +924,14 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			case "Carousel":
 				frm.sva_ft_instances[field.fieldname] = new SVACarousel({
 					wrapper: $(wrapper),
+					conf: field?.sva_ft || {},
+					html_field: field.fieldname,
+					frm,
+				});
+				break;
+			case "SDG Wheel":
+				frm.sva_ft_instances[field.fieldname] = new SVASDGWheel({
+					wrapper: wrapper,
 					conf: field?.sva_ft || {},
 					html_field: field.fieldname,
 					frm,
