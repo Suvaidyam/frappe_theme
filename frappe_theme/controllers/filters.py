@@ -63,41 +63,72 @@ class DTFilters:
 		return valid_filters, invalid_filters
 
 	@staticmethod
-	def get_matching_link_field(source_field, target_fields):
-		_field = None
-		if source_field.get("fieldtype") == "Link":
-			_field = source_field
-		elif source_field.get("fieldtype") == "Table MultiSelect":
-			_field = DTFilters.get_conf_for_multi_slect_link_field(source_field.get("options"))
+	def validate_query_report_filters(doctype, docname, report_name, filters, is_script_report=False):
+		try:
+			if not doctype:
+				return filters, []
+			renderer_dt = frappe.get_meta(doctype, True)
+			if renderer_dt.get("is_dashboard") != 1:
+				return filters, []
+			valid_filters = {}
+			invalid_filters = []
+			if doctype == docname:
+				fields = frappe.get_meta(doctype, True).get("fields", [])
+				report = frappe.get_doc("Report", report_name)
+				report_columns = report.get("columns", []) or []
+				report_filters = report.get("filters", []) or []
 
-		if _field:
-			return next(
-				(
-					f
-					for f in target_fields
-					if f.get("fieldtype") == "Link" and f.get("options") == _field.get("options")
-				),
-				None,
-			)
+				if isinstance(filters, str):
+					filters = frappe.parse_json(filters)
 
-		return None
+				base_fields = (report_columns if not is_script_report else []) + report_filters
 
-	@staticmethod
-	def get_report_filters(report, client_filters, dt):
-		if dt:
-			# Ensure client filters are in dict format
-			if isinstance(client_filters, str):
-				client_filters = json.loads(client_filters)
-			if client_filters is None:
-				client_filters = {}
+				if isinstance(filters, dict):
+					valid_filters = {}
+				if isinstance(filters, list):
+					valid_filters = []
 
-			meta = frappe.get_meta(dt, True)
-			outer_filters = {}
-			inner_filters = {}
-			not_applied_filters = []
-			if meta.get("is_dashboard") != 1:
-				outer_filters = client_filters
-				return outer_filters, inner_filters, not_applied_filters
+				filter_keys = []
+				if isinstance(filters, dict):
+					filter_keys = list(filters.keys())
+				elif isinstance(filters, list):
+					filter_keys = [f[1] for f in filters if len(f) >= 2]
+
+				for key in filter_keys:
+					filter_field = next((f.as_dict() for f in fields if f.get("fieldname") == key), None)
+					if filter_field:
+						if filter_field.fieldtype == "Link":
+							DTFilters.process_link_fields_as_filters(
+								base_fields,
+								filter_field,
+								doctype,
+								filters,
+								key,
+								valid_filters,
+								invalid_filters,
+							)
+						elif filter_field.fieldtype == "Table MultiSelect":
+							first_link_field = DTFilters.get_conf_for_multi_slect_link_field(
+								filter_field.get("options")
+							)
+							DTFilters.process_link_fields_as_filters(
+								base_fields,
+								first_link_field,
+								doctype,
+								filters,
+								key,
+								valid_filters,
+								invalid_filters,
+							)
+						else:
+							invalid_filters.append(filter_field)
+					else:
+						if isinstance(filters, list):
+							for f in filters:
+								if f[1] == key:
+									valid_filters.append(f)
+						else:
+							valid_filters[key] = filters[key]
 
 			report_filters = report.get("filters", [])
 			report_columns = report.get("columns", [])
