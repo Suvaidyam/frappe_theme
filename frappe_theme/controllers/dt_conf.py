@@ -148,7 +148,6 @@ class DTConf:
 		outer_filters, inner_filters, not_applied_filters = DTFilters.get_report_filters(
 			report, filters, options["ref_doctype"]
 		)
-		print(outer_filters, inner_filters, not_applied_filters, "====================================outer_filters, inner_filters, not_applied_filters=====================================")
 		if report.report_type == "Query Report":
 			columns, result = report.execute_query_report(
 				filters=inner_filters,
