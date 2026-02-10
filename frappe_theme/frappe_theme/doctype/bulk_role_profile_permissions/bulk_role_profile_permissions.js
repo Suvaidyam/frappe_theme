@@ -178,11 +178,11 @@ function load_role_profiles(frm) {
 				);
 				let msg = has_existing
 					? __(
-							`Loaded ${r.message.length} Role Profile-Role combinations with existing permissions`
-					  )
+						`Loaded ${r.message.length} Role Profile-Role combinations with existing permissions`
+					)
 					: __(
-							`Loaded ${r.message.length} Role Profile-Role combinations (no existing permissions)`
-					  );
+						`Loaded ${r.message.length} Role Profile-Role combinations (no existing permissions)`
+					);
 
 				frappe.show_alert({
 					message: msg,
