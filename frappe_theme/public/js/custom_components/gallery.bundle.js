@@ -180,15 +180,56 @@ class SVAGalleryComponent {
             .gallery-wrapper .image-card {
                 width: 100%;
                 background: white;
-                border-radius: 8px;
-                border:1px solid #e2e2e2;
-                box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-                transition: transform 0.2s, box-shadow 0.2s;
+                border-radius: 10px;
+                border: 1px solid var(--border-color, #e2e2e2);
+                box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+                transition: transform 0.2s ease, box-shadow 0.2s ease;
+                overflow: hidden;
             }
             .gallery-wrapper .image-card:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+                transform: translateY(-3px);
+                box-shadow: 0 8px 24px rgba(0,0,0,0.12);
             }
+            .gallery-wrapper .image-card .file-info {
+                padding: 10px 12px 8px;
+            }
+            .gallery-wrapper .image-card .file-meta {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                padding: 0 12px 10px;
+                flex-wrap: wrap;
+            }
+            .gallery-wrapper .file-ext-badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+                padding: 2px 8px;
+                border-radius: 4px;
+                font-size: 11px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.3px;
+            }
+            .gallery-wrapper .file-ext-badge.ext-pdf { background: #fef2f2; color: #dc2626; }
+            .gallery-wrapper .file-ext-badge.ext-doc,
+            .gallery-wrapper .file-ext-badge.ext-docx { background: #eff6ff; color: #2563eb; }
+            .gallery-wrapper .file-ext-badge.ext-xls,
+            .gallery-wrapper .file-ext-badge.ext-xlsx,
+            .gallery-wrapper .file-ext-badge.ext-csv { background: #f0fdf4; color: #16a34a; }
+            .gallery-wrapper .file-ext-badge.ext-ppt,
+            .gallery-wrapper .file-ext-badge.ext-pptx { background: #fff7ed; color: #ea580c; }
+            .gallery-wrapper .file-ext-badge.ext-jpg,
+            .gallery-wrapper .file-ext-badge.ext-jpeg,
+            .gallery-wrapper .file-ext-badge.ext-png,
+            .gallery-wrapper .file-ext-badge.ext-gif,
+            .gallery-wrapper .file-ext-badge.ext-svg,
+            .gallery-wrapper .file-ext-badge.ext-webp { background: #fdf4ff; color: #9333ea; }
+            .gallery-wrapper .file-ext-badge.ext-mp4,
+            .gallery-wrapper .file-ext-badge.ext-avi,
+            .gallery-wrapper .file-ext-badge.ext-mov { background: #fefce8; color: #ca8a04; }
+            .gallery-wrapper .file-ext-badge.ext-zip,
+            .gallery-wrapper .file-ext-badge.ext-rar { background: #f5f5f4; color: #57534e; }
             .gallery-wrapper .image-container {
                 position: relative;
             }
@@ -254,15 +295,30 @@ class SVAGalleryComponent {
                 color: #1F272E;
             }
             .gallery-wrapper .file-name {
-                padding: 6px 12px ;
-                font-size: 14px;
-                color: #1F272E;
+                padding: 8px 12px 4px;
+                font-size: 13px;
+                font-weight: 500;
+                color: var(--text-color, #1F272E);
                 word-break: break-word;
+                line-height: 1.4;
             }
             .gallery-wrapper .file-date {
-                padding: 0 12px 6px;
-                font-size: 12px;
-                color: #6E7073;
+                font-size: 11px;
+                color: var(--text-muted, #6E7073);
+            }
+            .gallery-wrapper .file-size-badge {
+                font-size: 11px;
+                color: var(--text-muted, #6E7073);
+                background: var(--control-bg, #f4f5f6);
+                padding: 1px 6px;
+                border-radius: 4px;
+            }
+            .gallery-wrapper .file-owner {
+                font-size: 11px;
+                color: var(--text-light, #9a9a9a);
+                display: flex;
+                align-items: center;
+                gap: 4px;
             }
             /* Frappe List View Styles */
             .gallery-wrapper .frappe-list {
@@ -289,18 +345,44 @@ class SVAGalleryComponent {
             }
             .gallery-wrapper .frappe-list-col-subject {
                 flex: 2;
-                min-width: 200px;
+                min-width: 180px;
             }
-            .gallery-wrapper .frappe-list-col-creation {
+            .gallery-wrapper .frappe-list-col-type {
+                width: 70px;
+            }
+            .gallery-wrapper .frappe-list-col-size {
+                width: 90px;
+            }
+            .gallery-wrapper .frappe-list-col-owner {
                 width: 140px;
             }
+            .gallery-wrapper .frappe-list-col-creation {
+                width: 120px;
+            }
             .gallery-wrapper .frappe-list-col-preview {
-                width: 100px;
+                width: 60px;
+                text-align: center;
             }
             .gallery-wrapper .frappe-list-col-actions {
                 width: 40px;
                 text-align: right;
             }
+            .gallery-wrapper .frappe-list-col .list-file-icon {
+                width: 28px;
+                height: 28px;
+                border-radius: 6px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                margin-right: 8px;
+                font-size: 13px;
+            }
+            .gallery-wrapper .frappe-list-col .list-file-icon.icon-pdf { background: #fef2f2; color: #dc2626; }
+            .gallery-wrapper .frappe-list-col .list-file-icon.icon-doc { background: #eff6ff; color: #2563eb; }
+            .gallery-wrapper .frappe-list-col .list-file-icon.icon-xls { background: #f0fdf4; color: #16a34a; }
+            .gallery-wrapper .frappe-list-col .list-file-icon.icon-img { background: #fdf4ff; color: #9333ea; }
+            .gallery-wrapper .frappe-list-col .list-file-icon.icon-vid { background: #fefce8; color: #ca8a04; }
+            .gallery-wrapper .frappe-list-col .list-file-icon.icon-default { background: #f5f5f4; color: #57534e; }
             .gallery-wrapper .frappe-list-header {
                 background-color: var(--fg-color);
                 border-bottom: 1px solid var(--border-color);
@@ -364,6 +446,22 @@ class SVAGalleryComponent {
                 border-bottom-left-radius: 8px;
                 border-bottom-right-radius: 8px;
             }
+            .gallery-wrapper .gallery-subgroup {
+                margin-top: 12px;
+                border: 1px solid #eaeaea;
+                border-radius: 6px;
+            }
+            .gallery-wrapper .gallery-subgroup > .group-header {
+                background: #f0f2f4;
+                border-radius: 6px 6px 0 0;
+                padding: 8px 14px;
+            }
+            .gallery-wrapper .gallery-subgroup > .group-header .group-title {
+                font-size: 13px;
+            }
+            .gallery-wrapper .gallery-subgroup > .group-body {
+                padding: 12px;
+            }
             .gallery-wrapper .pdf-thumbnail-wrapper {
                 background: #f5f5f5;
             }
@@ -386,6 +484,10 @@ class SVAGalleryComponent {
 			const { message: folders } = await frappe.call({
 				method: "frappe_theme.api.get_folders",
 				type: "GET",
+				args: {
+					doctype: this.frm.doc.doctype,
+					docname: this.frm.doc.name,
+				},
 			});
 			this.folders = (folders || []).map((f) => f.name);
 		} catch (error) {
@@ -457,22 +559,232 @@ class SVAGalleryComponent {
 	}
 
 	groupFilesByFolder() {
-		this.groupedFiles = {};
+		this.groupTree = {};
+		this._allGroupPaths = [];
+
 		this.gallery_files.forEach((file) => {
-			let displayLabel;
+			let path;
 			if (!file.attached_to_field) {
-				// attached_to_field is NOT set → group by folder name
 				const folder = file.folder || "Home";
-				displayLabel = folder === "Home" ? "Attachments" : folder.replace(/^Home\//, "");
+				path = folder === "Home" ? "Attachments" : folder.replace(/^Home\//, "");
 			} else {
-				// attached_to_field IS set → group by attached_to_doctype
-				displayLabel = file.attached_to_doctype || "Attachments";
+				path = file.attached_to_doctype || "Attachments";
 			}
-			if (!this.groupedFiles[displayLabel]) {
-				this.groupedFiles[displayLabel] = [];
+
+			const parts = path.split("/");
+			let currentLevel = this.groupTree;
+
+			for (let i = 0; i < parts.length; i++) {
+				const part = parts[i];
+				if (!currentLevel[part]) {
+					currentLevel[part] = { files: [], children: {} };
+				}
+				if (i === parts.length - 1) {
+					currentLevel[part].files.push(file);
+				} else {
+					currentLevel = currentLevel[part].children;
+				}
 			}
-			this.groupedFiles[displayLabel].push(file);
 		});
+
+		this._collectGroupPaths(this.groupTree, "");
+	}
+
+	_collectGroupPaths(tree, prefix) {
+		for (const name of Object.keys(tree)) {
+			const fullPath = prefix ? `${prefix}/${name}` : name;
+			this._allGroupPaths.push(fullPath);
+			this._collectGroupPaths(tree[name].children, fullPath);
+		}
+	}
+
+	_countNodeFiles(node) {
+		let count = node.files.length;
+		for (const child of Object.values(node.children)) {
+			count += this._countNodeFiles(child);
+		}
+		return count;
+	}
+
+	_buildFolderTree(folders) {
+		const tree = { name: "Home", fullPath: "Home", children: [] };
+		const map = { Home: tree };
+
+		const sorted = [...folders].sort();
+		for (const f of sorted) {
+			if (f === "Home") continue;
+			const parts = f.split("/");
+			const name = parts[parts.length - 1];
+			const parentPath = parts.slice(0, -1).join("/") || "Home";
+			const node = { name, fullPath: f, children: [] };
+			map[f] = node;
+			if (map[parentPath]) {
+				map[parentPath].children.push(node);
+			}
+		}
+		return tree;
+	}
+
+	_renderFolderTreeHTML(node, selectedFolder, depth = 0) {
+		const isSelected = node.fullPath === selectedFolder;
+		const hasChildren = node.children.length > 0;
+		const indent = depth * 18;
+
+		// Determine if this node should be expanded (default: depth 0 always expanded, or if a descendant is selected)
+		const isExpanded = this._isFolderExpanded(node, selectedFolder);
+
+		const themeColor = frappe.boot.my_theme?.button_background_color || "var(--primary)";
+		let html = `
+			<div class="folder-tree-item ${isSelected ? "folder-selected" : ""}" data-folder="${
+			node.fullPath
+		}" style="padding: 6px 10px 6px ${
+			10 + indent
+		}px; cursor: pointer; display: flex; align-items: center; gap: 6px; border-radius: 6px; margin-bottom: 2px; transition: background 0.15s; ${
+			isSelected ? `background: ${themeColor}; color: #fff;` : ""
+		}" >
+				${
+					hasChildren
+						? `<i class="fa fa-chevron-${
+								isExpanded ? "down" : "right"
+						  } folder-toggle-arrow" style="font-size: 10px; width: 12px; text-align: center; transition: transform 0.2s; ${
+								isSelected ? "color: #fff;" : "color: var(--text-muted);"
+						  }"></i>`
+						: `<span style="width: 12px; display: inline-block;"></span>`
+				}
+				<i class="fa ${hasChildren ? "fa-folder" : "fa-folder-o"}" style="font-size: 14px; ${
+			isSelected ? "color: #fff;" : "color: var(--yellow-500, #f59e0b);"
+		}"></i>
+				<span style="font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;">${
+					node.name
+				}</span>
+			</div>`;
+
+		if (hasChildren) {
+			html += `<div class="folder-tree-children" data-parent="${
+				node.fullPath
+			}" style="display: ${isExpanded ? "block" : "none"};">`;
+			for (const child of node.children) {
+				html += this._renderFolderTreeHTML(child, selectedFolder, depth + 1);
+			}
+			html += `</div>`;
+		}
+		return html;
+	}
+
+	_isFolderExpanded(node, selectedFolder) {
+		// Always expand if this node is the root (Home)
+		if (node.fullPath === "Home") return true;
+		// Expand if this node is selected
+		if (node.fullPath === selectedFolder) return true;
+		// Expand if a descendant is selected
+		if (selectedFolder && selectedFolder.startsWith(node.fullPath + "/")) return true;
+		// Check the stored expanded state
+		if (this._expandedFolders && this._expandedFolders.has(node.fullPath)) return true;
+		return false;
+	}
+
+	async _createNewFolder(parentFolder, uploadDialog) {
+		const self = this;
+		const newFolderDialog = new frappe.ui.Dialog({
+			title: __("New Folder"),
+			fields: [
+				{
+					label: "Parent Folder",
+					fieldname: "parent_folder",
+					fieldtype: "Data",
+					read_only: 1,
+					default: parentFolder,
+				},
+				{
+					label: "Folder Name",
+					fieldname: "folder_name",
+					fieldtype: "Data",
+					reqd: 1,
+					description: "Enter a name for the new folder",
+				},
+			],
+			primary_action_label: __("Create"),
+			async primary_action(values) {
+				try {
+					const folderName = values.folder_name.trim();
+					if (!folderName) {
+						frappe.msgprint(__("Please enter a folder name"));
+						return;
+					}
+					await frappe.call({
+						method: "frappe.client.insert",
+						args: {
+							doc: {
+								doctype: "File",
+								file_name: folderName,
+								is_folder: 1,
+								folder: parentFolder,
+								attached_to_doctype: self.frm.doc.doctype,
+								attached_to_name: self.frm.doc.name,
+							},
+						},
+					});
+					newFolderDialog.hide();
+					frappe.show_alert({ message: __("Folder created"), indicator: "green" });
+
+					// Refresh folders and re-render tree
+					await self.fetchFolders();
+					const newFullPath = parentFolder + "/" + folderName;
+					self._selectedUploadFolder = newFullPath;
+					self._refreshUploadFolderTree(uploadDialog);
+				} catch (error) {
+					console.error("Error creating folder:", error);
+					frappe.msgprint(__("Failed to create folder: ") + (error.message || error));
+				}
+			},
+		});
+		newFolderDialog.show();
+	}
+
+	_refreshUploadFolderTree(uploadDialog) {
+		if (!this._expandedFolders) this._expandedFolders = new Set();
+
+		const folderTree = this._buildFolderTree(this.folders);
+		const $treeContainer = uploadDialog.$wrapper.find(".folder-tree-container");
+		$treeContainer.html(this._renderFolderTreeHTML(folderTree, this._selectedUploadFolder));
+
+		// Update breadcrumb
+		const displayPath = this._selectedUploadFolder.replace(/^Home\/?/, "") || "Home";
+		uploadDialog.$wrapper.find(".folder-breadcrumb").text(displayPath);
+
+		const self = this;
+
+		// Folder selection click (on the item itself, not the arrow)
+		$treeContainer
+			.find(".folder-tree-item")
+			.off("click")
+			.on("click", function (e) {
+				// If the arrow was clicked, handle toggle instead
+				if ($(e.target).hasClass("folder-toggle-arrow")) return;
+				self._selectedUploadFolder = $(this).data("folder");
+				self._refreshUploadFolderTree(uploadDialog);
+			});
+
+		// Collapse/Expand toggle click on the arrow
+		$treeContainer
+			.find(".folder-toggle-arrow")
+			.off("click")
+			.on("click", function (e) {
+				e.stopPropagation();
+				const $item = $(this).closest(".folder-tree-item");
+				const folderPath = $item.data("folder");
+				const $children = $item.next(".folder-tree-children");
+
+				if ($children.is(":visible")) {
+					$children.slideUp(150);
+					$(this).removeClass("fa-chevron-down").addClass("fa-chevron-right");
+					self._expandedFolders.delete(folderPath);
+				} else {
+					$children.slideDown(150);
+					$(this).removeClass("fa-chevron-right").addClass("fa-chevron-down");
+					self._expandedFolders.add(folderPath);
+				}
+			});
 	}
 
 	render() {
@@ -498,6 +810,9 @@ class SVAGalleryComponent {
                     <span class="text-muted">Total records: ${this.gallery_files.length}</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 12px;">
+					<button class="btn btn-default btn-sm" id="collapseAllBtn" title="Collapse/Expand All">
+						<i class="fa fa-compress"></i> <span id="collapseAllLabel">Collapse All</span>
+					</button>
                     ${
 						canDelete
 							? `
@@ -622,111 +937,117 @@ class SVAGalleryComponent {
 		if (!this.gallery_files.length) {
 			return this.renderEmptyState();
 		}
+		return this._renderCardGroupTree(this.groupTree, "");
+	}
 
+	_renderCardGroupTree(tree, parentPath) {
 		const canWrite = this.permissions.includes("write");
 		const canDelete = this.permissions.includes("delete");
-		const groups = Object.keys(this.groupedFiles);
 
-		return groups
-			.map((groupName) => {
-				const files = this.groupedFiles[groupName];
-				const isCollapsed = this.collapsedGroups[groupName];
+		return Object.entries(tree)
+			.map(([name, node]) => {
+				const fullPath = parentPath ? `${parentPath}/${name}` : name;
+				const isCollapsed = this.collapsedGroups[fullPath];
+				const totalFiles = this._countNodeFiles(node);
+				const hasChildren = Object.keys(node.children).length > 0;
+
 				return `
-				<div class="gallery-group">
-					<div class="group-header group-toggle-btn" data-doctype="${groupName}">
+				<div class="gallery-group ${parentPath ? "gallery-subgroup" : ""}">
+					<div class="group-header group-toggle-btn" data-doctype="${fullPath}">
 						<i class="fa ${isCollapsed ? "fa-chevron-right" : "fa-chevron-down"} group-toggle-icon"></i>
-						<span class="group-title">${__(groupName)}</span>
-						<span class="badge badge-secondary group-count">${files.length}</span>
+						<span class="group-title">${__(name)}</span>
+						<span class="badge badge-secondary group-count">${totalFiles}</span>
 					</div>
-					<div class="group-body" data-doctype="${groupName}" style="${isCollapsed ? "display:none;" : ""}">
-						<div class="row">
-							${files
-								.map((file) => {
-									let extension = file?.file_url
-										?.split(".")
-										.pop()
-										?.toLowerCase();
-									return `
-									<div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
-										<div class="image-card">
-											<div class="image-container">
-												${this.getFilePreview(file, extension)}
-												${
-													canDelete
-														? `
-													<div class="checkbox-container">
-														<input type="checkbox" data-id="${file.name}" class="toggleCheckbox"/>
-													</div>
-												`
-														: ""
-												}
-												<div class="image-cover">
-													${
-														canWrite || canDelete
-															? `
-														<div class="cover-header">
-															<div class="dropdown">
-																<button class="action-button" data-toggle="dropdown">
-																	<i class="fa fa-ellipsis-v"></i>
-																</button>
-																<div class="dropdown-menu dropdown-menu-right">
-																	${
-																		canWrite
-																			? `
-																		<a class="dropdown-item edit-btn" data-id="${file.name}">
-																			<i class="fa fa-edit"></i> Edit
-																		</a>
-																	`
-																			: ""
-																	}
-																	${
-																		canDelete
-																			? `
-																		<a class="dropdown-item delete-btn" data-id="${file.name}">
-																			<i class="fa fa-trash"></i> Delete
-																		</a>
-																	`
-																			: ""
-																	}
-																</div>
-															</div>
-														</div>
-													`
-															: ""
-													}
-													<div class="cover-body">
-														<p class="view-button preview-btn" style="cursor: pointer;" data-file='${JSON.stringify(file)}'>
-															<i class="fa fa-eye"></i>
-														</p>
-													</div>
-												</div>
-											</div>
-											<div class="file-name" style="white-space: nowrap;overflow: hidden;text-overflow: ellipsis;" title="${
-												file.file_name
-											}">${file.file_name}</div>
-											<div class="d-flex justify-content-between">
-												<div class="file-date">${frappe.datetime.str_to_user(file.creation)?.split(" ")[0]}</div>
-												<div class="file-date">
-													${this.convertTofileSize(file.file_size)}
-												</div>
-											</div>
-											<div class="d-flex justify-content-between">
-												<div class="file-date" style="white-space: nowrap;overflow: hidden;text-overflow: ellipsis;"
-													title="by ${file.owner_full_name} ${file.owner != "Administrator" ? `(${file.owner})` : ""}">
-													by ${file.owner_full_name} ${file.owner != "Administrator" ? `(${file.owner})` : ""}
-												</div>
-											</div>
-										</div>
+					<div class="group-body" data-doctype="${fullPath}" style="${isCollapsed ? "display:none;" : ""}">
+						${
+							node.files.length > 0
+								? `<div class="row">
+							${node.files.map((file) => this._renderFileCard(file, canWrite, canDelete)).join("")}
+						</div>`
+								: ""
+						}
+						${hasChildren ? this._renderCardGroupTree(node.children, fullPath) : ""}
+					</div>
+				</div>`;
+			})
+			.join("");
+	}
+
+	_renderFileCard(file, canWrite, canDelete) {
+		let extension = file?.file_url?.split(".").pop()?.toLowerCase();
+		return `
+		<div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
+			<div class="image-card">
+				<div class="image-container">
+					${this.getFilePreview(file, extension)}
+					${
+						canDelete
+							? `
+					<div class="checkbox-container">
+						<input type="checkbox" data-id="${file.name}" class="toggleCheckbox"/>
+					</div>
+				`
+							: ""
+					}
+					<div class="image-cover">
+						${
+							canWrite || canDelete
+								? `
+							<div class="cover-header">
+								<div class="dropdown">
+									<button class="action-button" data-toggle="dropdown">
+										<i class="fa fa-ellipsis-v"></i>
+									</button>
+									<div class="dropdown-menu dropdown-menu-right">
+										${
+											canWrite
+												? `
+										<a class="dropdown-item edit-btn" data-id="${file.name}">
+											<i class="fa fa-edit"></i> Edit
+										</a>`
+												: ""
+										}
+										${
+											canDelete
+												? `
+										<a class="dropdown-item delete-btn" data-id="${file.name}">
+											<i class="fa fa-trash"></i> Delete
+										</a>`
+												: ""
+										}
 									</div>
-								`;
-								})
-								.join("")}
+								</div>
+							</div>`
+								: ""
+						}
+						<div class="cover-body">
+							<p class="view-button preview-btn" style="cursor: pointer;" data-file='${JSON.stringify(file)}'>
+								<i class="fa fa-eye"></i>
+							</p>
 						</div>
 					</div>
 				</div>
-			`;
-			})
-			.join("");
+				<div class="file-name" style="white-space: nowrap;overflow: hidden;text-overflow: ellipsis;" title="${
+					file.file_name
+				}">${file.file_name}</div>
+				<div class="file-meta">
+					<span class="file-ext-badge ext-${extension}">${(extension || "file").toUpperCase()}</span>
+					<span class="file-size-badge">${this.convertTofileSize(file.file_size)}</span>
+					<span class="file-date">${frappe.datetime.str_to_user(file.creation)?.split(" ")[0]}</span>
+				</div>
+				<div style="padding: 0 12px 10px;">
+					<div class="file-owner" title="${file?.owner_full_name || ""} ${
+			file?.owner != "Administrator" ? `(${file.owner})` : ""
+		}">
+						<i class="fa fa-user-circle-o" style="font-size: 13px;"></i>
+						<span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${
+							file?.owner_full_name || file?.owner
+						}${file?.owner != "Administrator" ? ` (${file.owner})` : ""}</span>
+					</div>
+				</div>
+			</div>
+		</div>
+		`;
 	}
 
 	getFileIcon(extension) {
@@ -785,11 +1106,51 @@ class SVAGalleryComponent {
 				</div>`;
 		} else {
 			const iconClass = this.getFileIcon(extension);
+			const bgMap = {
+				pdf: "#fef2f2",
+				doc: "#eff6ff",
+				docx: "#eff6ff",
+				txt: "#f8fafc",
+				xls: "#f0fdf4",
+				xlsx: "#f0fdf4",
+				csv: "#f0fdf4",
+				ppt: "#fff7ed",
+				pptx: "#fff7ed",
+				mp4: "#fefce8",
+				avi: "#fefce8",
+				mov: "#fefce8",
+				mp3: "#fdf4ff",
+				wav: "#fdf4ff",
+				zip: "#f5f5f4",
+				rar: "#f5f5f4",
+			};
+			const colorMap = {
+				pdf: "#dc2626",
+				doc: "#2563eb",
+				docx: "#2563eb",
+				txt: "#475569",
+				xls: "#16a34a",
+				xlsx: "#16a34a",
+				csv: "#16a34a",
+				ppt: "#ea580c",
+				pptx: "#ea580c",
+				mp4: "#ca8a04",
+				avi: "#ca8a04",
+				mov: "#ca8a04",
+				mp3: "#9333ea",
+				wav: "#9333ea",
+				zip: "#57534e",
+				rar: "#57534e",
+			};
+			const bg = bgMap[extension] || "#f8f9fa";
+			const clr = colorMap[extension] || "#6c757d";
 			return `
-				<div class="card-img-top d-flex align-items-center justify-content-center" style="height: 200px; background-color: #f8f9fa;">
+				<div class="card-img-top d-flex align-items-center justify-content-center" style="height: 200px; background: ${bg};">
 					<div class="file-icon text-center">
-						<i class="${iconClass}" style="font-size: 48px; color: #6c757d;"></i>
-						<div style="font-size: 12px; margin-top: 8px; color: #6c757d;">.${extension}</div>
+						<div style="width: 64px; height: 64px; border-radius: 16px; background: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+							<i class="${iconClass}" style="font-size: 28px; color: ${clr};"></i>
+						</div>
+						<span class="file-ext-badge ext-${extension}">${(extension || "FILE").toUpperCase()}</span>
 					</div>
 				</div>`;
 		}
@@ -798,34 +1159,22 @@ class SVAGalleryComponent {
 	async renderForm(mode, fileId = null) {
 		const self = this;
 
-		// Build folder options for the Select field
-		const folderOptions = this.folders.length ? this.folders.map((f) => f).join("\n") : "Home";
-
 		if (mode === "create") {
-			// ── Custom multi-file upload dialog ──
+			// ── Modern file-system upload dialog ──
+			self._selectedUploadFolder = "Home";
+
 			const uploadDialog = new frappe.ui.Dialog({
 				title: __("Upload Files"),
+				size: "large",
 				fields: [
 					{
-						label: "Folder",
-						fieldname: "folder",
-						fieldtype: "Select",
-						options: folderOptions,
-						default: "Home",
-						description: "Select a folder for the uploaded files",
-					},
-					{
-						fieldtype: "Section Break",
-					},
-					{
-						label: "Files",
-						fieldname: "upload_area",
+						fieldname: "upload_layout",
 						fieldtype: "HTML",
 					},
 				],
 				primary_action_label: __("Upload"),
 				primary_action: async function () {
-					const selectedFolder = uploadDialog.get_value("folder");
+					const selectedFolder = self._selectedUploadFolder;
 					const pendingFiles = self._pendingUploadFiles || [];
 
 					if (!pendingFiles.length) {
@@ -840,7 +1189,8 @@ class SVAGalleryComponent {
 					let uploadedCount = 0;
 					const totalFiles = pendingFiles.length;
 
-					for (const file of pendingFiles) {
+					for (let fileIdx = 0; fileIdx < pendingFiles.length; fileIdx++) {
+						const file = pendingFiles[fileIdx];
 						try {
 							progressWrapper.html(`
 								<div style="padding: 8px 0;">
@@ -858,22 +1208,76 @@ class SVAGalleryComponent {
 								self.gallery_files.unshift(fileDoc);
 							}
 							uploadedCount++;
+
+							// Replace remove button with green check icon
+							const $item = uploadDialog.$wrapper.find(
+								`.remove-pending-file[data-idx="${fileIdx}"]`
+							);
+							$item.replaceWith(
+								`<i class="fa fa-check-circle" style="color: var(--green-500, #22c55e); font-size: 16px; padding: 0 4px;"></i>`
+							);
 						} catch (err) {
 							console.error("Upload failed for", file.name, err);
-							frappe.show_alert({
-								message: __("Failed to upload: ") + file.name,
-								indicator: "orange",
+							let errorMsg = "";
+							try {
+								if (typeof err === "string") {
+									const parsed = JSON.parse(err);
+									if (Array.isArray(parsed)) {
+										const msgObj = JSON.parse(parsed[0]);
+										errorMsg = msgObj.message || err;
+									} else {
+										errorMsg = parsed.message || err;
+									}
+								} else {
+									errorMsg = err?.message || err;
+								}
+							} catch (_) {
+								errorMsg = err;
+							}
+							// Replace remove button with red error icon
+							const $failItem = uploadDialog.$wrapper.find(
+								`.remove-pending-file[data-idx="${fileIdx}"]`
+							);
+							$failItem.replaceWith(
+								`<i class="fa fa-times-circle" style="color: var(--red-500, #ef4444); font-size: 16px; padding: 0 4px;"></i>`
+							);
+
+							// Show error message below the failed file item
+							const $failRow = uploadDialog.$wrapper
+								.find(`.pending-file-item`)
+								.eq(fileIdx);
+							$failRow.after(`
+								<div style="padding: 4px 10px 8px; font-size: 12px; color: var(--red-500, #ef4444);">
+									<i class="fa fa-exclamation-circle"></i> ${errorMsg}
+								</div>
+							`);
+							$failRow.css({
+								"border-color": "var(--red-300, #fca5a5)",
+								background: "var(--bg-red, #fff5f5)",
 							});
+
+							uploadDialog.get_primary_btn().prop("disabled", false);
 						}
 					}
 
 					self._pendingUploadFiles = [];
-					uploadDialog.hide();
 
-					if (uploadedCount > 0) {
+					if (uploadedCount === totalFiles) {
+						// All files uploaded successfully — close dialog
+						uploadDialog.hide();
 						frappe.show_alert({
 							message: __(`${uploadedCount} file(s) uploaded successfully`),
 							indicator: "green",
+						});
+						self.render();
+						self.updateGallery();
+					} else if (uploadedCount > 0) {
+						// Some files failed — keep dialog open, refresh gallery
+						frappe.show_alert({
+							message: __(
+								`${uploadedCount} of ${totalFiles} file(s) uploaded. Some files failed.`
+							),
+							indicator: "orange",
 						});
 						self.render();
 						self.updateGallery();
@@ -881,42 +1285,106 @@ class SVAGalleryComponent {
 				},
 			});
 
-			// Render custom upload area
+			// Render file-system style upload area
 			self._pendingUploadFiles = [];
 			uploadDialog.show();
 
-			const $uploadArea = uploadDialog.fields_dict.upload_area.$wrapper;
-			$uploadArea.html(`
-				<div class="custom-upload-zone" style="
-					border: 2px dashed var(--border-color);
-					border-radius: 8px;
-					padding: 30px 20px;
-					text-align: center;
-					cursor: pointer;
-					transition: border-color 0.2s, background 0.2s;
-					background: var(--fg-color);
-					margin-bottom: 10px;
-				">
-					<i class="fa fa-cloud-upload" style="font-size: 36px; color: var(--text-light); margin-bottom: 8px;"></i>
-					<div style="font-size: 14px; color: var(--text-muted); margin-bottom: 4px;">
-						Drag & drop files here or <span style="color: var(--primary); font-weight: 500;">browse</span>
+			const folderTree = this._buildFolderTree(this.folders);
+			const $layout = uploadDialog.fields_dict.upload_layout.$wrapper;
+
+			$layout.html(`
+				<div style="display: flex; gap: 0; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; min-height: 380px;">
+					<!-- Folder Tree Sidebar -->
+					<div style="width: 220px; min-width: 220px; background: var(--control-bg, #f4f5f6); border-right: 1px solid var(--border-color); display: flex; flex-direction: column;">
+						<div style="padding: 10px 12px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
+							<span style="font-weight: 600; font-size: 13px; color: var(--text-color);"><i class="fa fa-folder-open" style="margin-right: 6px; color: var(--yellow-500, #f59e0b);"></i>Folders</span>
+							<button class="btn btn-xs btn-default new-folder-btn" title="New Folder" style="padding: 2px 8px; font-size: 12px;">
+								${frappe.utils.icon("add", "sm")}
+							</button>
+						</div>
+						<div class="folder-tree-container" style="flex: 1; overflow-y: auto; padding: 8px 6px;">
+							${this._renderFolderTreeHTML(folderTree, self._selectedUploadFolder)}
+						</div>
 					</div>
-					<div style="font-size: 12px; color: var(--text-light);">
-						Select multiple files at once
+					<!-- Upload Area -->
+					<div style="flex: 1; display: flex; flex-direction: column; padding: 16px;">
+						<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+							<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted);">
+								<i class="fa fa-folder" style="color: var(--yellow-500, #f59e0b);"></i>
+								<span>Upload to:</span>
+								<span class="folder-breadcrumb" style="font-weight: 600; color: var(--text-color);">${
+									(self._selectedUploadFolder || "").replace(/^Home\/?/, "") ||
+									"Home"
+								}</span>
+							</div>
+						</div>
+						<div class="custom-upload-zone" style="
+							border: 2px dashed var(--border-color);
+							border-radius: 8px;
+							padding: 24px 16px;
+							text-align: center;
+							cursor: pointer;
+							transition: border-color 0.2s, background 0.2s;
+							background: var(--fg-color);
+							margin-bottom: 12px;
+						">
+							<i class="fa fa-cloud-upload" style="font-size: 32px; color: var(--text-light); margin-bottom: 6px;"></i>
+							<div style="font-size: 13px; color: var(--text-muted); margin-bottom: 2px;">
+								Drag & drop files here or <span style="color: ${
+									frappe.boot.my_theme?.button_background_color ||
+									"var(--primary)"
+								}; font-weight: 500;">browse</span>
+							</div>
+							<div style="font-size: 11px; color: var(--text-light);">
+								Select multiple files at once
+							</div>
+							<input type="file" multiple class="upload-file-input" style="display: none;" />
+						</div>
+						<div class="upload-file-list" style="flex: 1; overflow-y: auto; max-height: 180px;"></div>
+						<div class="upload-progress-area" style="display: none;"></div>
 					</div>
-					<input type="file" multiple class="upload-file-input" style="display: none;" />
 				</div>
-				<div class="upload-file-list" style="max-height: 200px; overflow-y: auto;"></div>
-				<div class="upload-progress-area" style="display: none;"></div>
 			`);
 
-			const $dropZone = $uploadArea.find(".custom-upload-zone");
-			const $fileInput = $uploadArea.find(".upload-file-input");
-			const $fileList = $uploadArea.find(".upload-file-list");
+			// Folder tree click handlers
+			if (!self._expandedFolders) self._expandedFolders = new Set();
+
+			$layout.find(".folder-tree-item").on("click", function (e) {
+				if ($(e.target).hasClass("folder-toggle-arrow")) return;
+				self._selectedUploadFolder = $(this).data("folder");
+				self._refreshUploadFolderTree(uploadDialog);
+			});
+
+			// Collapse/Expand toggle
+			$layout.find(".folder-toggle-arrow").on("click", function (e) {
+				e.stopPropagation();
+				const $item = $(this).closest(".folder-tree-item");
+				const folderPath = $item.data("folder");
+				const $children = $item.next(".folder-tree-children");
+
+				if ($children.is(":visible")) {
+					$children.slideUp(150);
+					$(this).removeClass("fa-chevron-down").addClass("fa-chevron-right");
+					self._expandedFolders.delete(folderPath);
+				} else {
+					$children.slideDown(150);
+					$(this).removeClass("fa-chevron-right").addClass("fa-chevron-down");
+					self._expandedFolders.add(folderPath);
+				}
+			});
+
+			// New folder button
+			$layout.find(".new-folder-btn").on("click", () => {
+				self._createNewFolder(self._selectedUploadFolder, uploadDialog);
+			});
+
+			const $dropZone = $layout.find(".custom-upload-zone");
+			const $fileInput = $layout.find(".upload-file-input");
+			const $fileList = $layout.find(".upload-file-list");
 
 			// Click to browse
 			$dropZone.on("click", (e) => {
-				if (e.target === $fileInput[0]) return; // prevent infinite loop
+				if (e.target === $fileInput[0]) return;
 				$fileInput.trigger("click");
 			});
 			$fileInput.on("click", (e) => e.stopPropagation());
@@ -924,14 +1392,17 @@ class SVAGalleryComponent {
 			// File input change
 			$fileInput.on("change", function () {
 				self._addFilesToPending(this.files, $fileList);
-				this.value = ""; // reset so same file can be re-added
+				this.value = "";
 			});
 
 			// Drag & drop
 			$dropZone.on("dragover", (e) => {
 				e.preventDefault();
 				e.stopPropagation();
-				$dropZone.css({ borderColor: "var(--primary)", background: "var(--control-bg)" });
+				$dropZone.css({
+					borderColor: frappe.boot.my_theme?.button_background_color || "var(--primary)",
+					background: "var(--control-bg)",
+				});
 			});
 			$dropZone.on("dragleave", (e) => {
 				e.preventDefault();
@@ -955,6 +1426,9 @@ class SVAGalleryComponent {
 			this.dialog = uploadDialog;
 		} else {
 			// ── Edit mode dialog ──
+			const folderOptions = this.folders.length
+				? this.folders.map((f) => f).join("\n")
+				: "Home";
 			let editFields = [
 				{
 					label: "File URL",
@@ -976,6 +1450,7 @@ class SVAGalleryComponent {
 					options: folderOptions,
 					default: "Home",
 					description: "Select a folder for the file",
+					hidden: 1,
 				},
 			];
 
@@ -987,8 +1462,9 @@ class SVAGalleryComponent {
 							f.default = doc.file_url;
 							return f;
 						}
-						if (f.fieldname === "folder" && doc.folder) {
+						if (f.fieldname === "folder" && doc.folder && !doc.attached_to_field) {
 							f.default = doc.folder;
+							f.hidden = 0;
 							return f;
 						}
 						if (doc[f.fieldname]) {
@@ -1119,7 +1595,20 @@ class SVAGalleryComponent {
 						resolve(data.message);
 					} else {
 						console.error("Upload response error:", data);
-						reject(data.exc || data._server_messages || "Upload failed");
+						// Extract user-friendly message from _server_messages
+						let errorMsg = "Upload failed";
+						if (data._server_messages) {
+							try {
+								const msgs = JSON.parse(data._server_messages);
+								if (msgs.length) {
+									const msgObj = JSON.parse(msgs[0]);
+									errorMsg = msgObj.message || errorMsg;
+								}
+							} catch (e) {
+								// Ignore parsing errors and use generic message
+							}
+						}
+						reject(errorMsg);
 					}
 				} catch (e) {
 					console.error("Upload parse error:", xhr.responseText);
@@ -1179,6 +1668,27 @@ class SVAGalleryComponent {
 					);
 				});
 		}
+
+		// Collapse / Expand All toggle
+		$("#collapseAllBtn")
+			.off("click")
+			.on("click", () => {
+				const groups = self._allGroupPaths || [];
+				const allCollapsed =
+					groups.length > 0 && groups.every((g) => self.collapsedGroups[g]);
+				groups.forEach((g) => {
+					self.collapsedGroups[g] = !allCollapsed;
+				});
+				// Update icon and label
+				if (!allCollapsed) {
+					$("#collapseAllBtn i").attr("class", "fa fa-expand");
+					$("#collapseAllLabel").text("Expand All");
+				} else {
+					$("#collapseAllBtn i").attr("class", "fa fa-compress");
+					$("#collapseAllLabel").text("Collapse All");
+				}
+				self.updateGallery();
+			});
 
 		// View switching remains accessible to all users with read permission
 		$("#cardViewBtn")
@@ -1339,123 +1849,140 @@ class SVAGalleryComponent {
 		if (!this.gallery_files.length) {
 			return this.renderEmptyState();
 		}
+		return this._renderListGroupTree(this.groupTree, "");
+	}
 
+	_renderListGroupTree(tree, parentPath) {
 		const canWrite = this.permissions.includes("write");
 		const canDelete = this.permissions.includes("delete");
-		const groups = Object.keys(this.groupedFiles);
 
-		return groups
-			.map((groupName) => {
-				const files = this.groupedFiles[groupName];
-				const isCollapsed = this.collapsedGroups[groupName];
+		return Object.entries(tree)
+			.map(([name, node]) => {
+				const fullPath = parentPath ? `${parentPath}/${name}` : name;
+				const isCollapsed = this.collapsedGroups[fullPath];
+				const totalFiles = this._countNodeFiles(node);
+				const hasChildren = Object.keys(node.children).length > 0;
+
 				return `
-				<div class="gallery-group">
-					<div class="group-header group-toggle-btn" data-doctype="${groupName}">
+				<div class="gallery-group ${parentPath ? "gallery-subgroup" : ""}">
+					<div class="group-header group-toggle-btn" data-doctype="${fullPath}">
 						<i class="fa ${isCollapsed ? "fa-chevron-right" : "fa-chevron-down"} group-toggle-icon"></i>
-						<span class="group-title">${groupName}</span>
-						<span class="badge badge-secondary group-count">${files.length}</span>
+						<span class="group-title">${__(name)}</span>
+						<span class="badge badge-secondary group-count">${totalFiles}</span>
 					</div>
-					<div class="group-body" data-doctype="${groupName}" style="${isCollapsed ? "display:none;" : ""}">
-						<div class="frappe-list">
+					<div class="group-body" data-doctype="${fullPath}" style="${isCollapsed ? "display:none;" : ""}">
+						${
+							node.files.length > 0
+								? `<div class="frappe-list">
 							<div class="frappe-list-header">
 								<div class="frappe-list-row">
 									${
 										canDelete
-											? `
-										<div class="frappe-list-col frappe-list-col-checkbox">
-											<input type="checkbox" class="list-row-checkbox" id="selectAllCheckBox">
-										</div>
-									`
+											? `<div class="frappe-list-col frappe-list-col-checkbox"><input type="checkbox" class="list-row-checkbox" id="selectAllCheckBox"></div>`
 											: ""
 									}
-									<div class="frappe-list-col frappe-list-col-subject">File Name</div>
-									<div class="frappe-list-col frappe-list-col-creation">Upload Date</div>
-									<div class="frappe-list-col frappe-list-col-preview">Preview</div>
-									${
-										canWrite || canDelete
-											? `
-										<div class="frappe-list-col frappe-list-col-actions"></div>
-									`
-											: ""
-									}
+									<div class="frappe-list-col frappe-list-col-subject">Name</div>
+									<div class="frappe-list-col frappe-list-col-type">Type</div>
+									<div class="frappe-list-col frappe-list-col-size">Size</div>
+									<div class="frappe-list-col frappe-list-col-owner">Uploaded By</div>
+									<div class="frappe-list-col frappe-list-col-creation">Date</div>
+									<div class="frappe-list-col frappe-list-col-preview"></div>
+									${canWrite || canDelete ? `<div class="frappe-list-col frappe-list-col-actions"></div>` : ""}
 								</div>
 							</div>
 							<div class="frappe-list-body">
-								${files
-									.map((file) => {
-										let extension = file?.file_url
-											?.split(".")
-											.pop()
-											?.toLowerCase();
-										return `
-										<div class="frappe-list-row">
-											${
-												canDelete
-													? `
-												<div class="frappe-list-col frappe-list-col-checkbox">
-													<input type="checkbox" class="list-row-checkbox toggleCheckbox" data-id="${file.name}">
-												</div>
-											`
-													: ""
-											}
-											<div class="frappe-list-col frappe-list-col-subject">
-												<a href="${file.file_url}" target="_blank" class="text-muted">
-													<i class="${this.getFileIcon(extension)} mr-2"></i>
-													${file.file_name}
-												</a>
-											</div>
-											<div class="frappe-list-col frappe-list-col-creation">
-												${frappe.datetime.str_to_user(file.creation)}
-											</div>
-											<div class="frappe-list-col frappe-list-col-preview">
-												${this.getListPreviewThumb(file, extension)}
-											</div>
-											${
-												canWrite || canDelete
-													? `
-												<div class="frappe-list-col frappe-list-col-actions">
-													<div class="list-actions">
-														<div class="dropdown">
-															<button class="btn btn-link btn-sm" data-toggle="dropdown">
-																<i class="fa fa-ellipsis-v text-muted"></i>
-															</button>
-															<div class="dropdown-menu dropdown-menu-right">
-																${
-																	canWrite
-																		? `
-																	<a class="dropdown-item edit-btn" data-id="${file.name}">
-																		<i class="fa fa-edit text-muted"></i> Edit
-																	</a>
-																`
-																		: ""
-																}
-																${
-																	canDelete
-																		? `
-																	<a class="dropdown-item delete-btn" data-id="${file.name}">
-																		<i class="fa fa-trash text-muted"></i> Delete
-																	</a>
-																`
-																		: ""
-																}
-															</div>
-														</div>
-													</div>
-												</div>
-											`
-													: ""
-											}
-										</div>
-									`;
-									})
-									.join("")}
+								${node.files.map((file) => this._renderFileListRow(file, canWrite, canDelete)).join("")}
 							</div>
+						</div>`
+								: ""
+						}
+						${hasChildren ? this._renderListGroupTree(node.children, fullPath) : ""}
+					</div>
+				</div>`;
+			})
+			.join("");
+	}
+
+	_renderFileListRow(file, canWrite, canDelete) {
+		let extension = file?.file_url?.split(".").pop()?.toLowerCase();
+		const iconColorClass = this._getListIconClass(extension);
+		return `
+		<div class="frappe-list-row">
+			${
+				canDelete
+					? `<div class="frappe-list-col frappe-list-col-checkbox"><input type="checkbox" class="list-row-checkbox toggleCheckbox" data-id="${file.name}"></div>`
+					: ""
+			}
+			<div class="frappe-list-col frappe-list-col-subject">
+				<div style="display: flex; align-items: center;">
+					<span class="list-file-icon ${iconColorClass}"><i class="${this.getFileIcon(
+			extension
+		)}"></i></span>
+					<a href="${
+						file.file_url
+					}" target="_blank" style="color: var(--text-color); font-weight: 450; text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${
+			file.file_name
+		}">
+						${file.file_name}
+					</a>
+				</div>
+			</div>
+			<div class="frappe-list-col frappe-list-col-type"><span class="file-ext-badge ext-${extension}">${(
+			extension || ""
+		).toUpperCase()}</span></div>
+			<div class="frappe-list-col frappe-list-col-size" style="font-size: 12px; color: var(--text-muted);">${this.convertTofileSize(
+				file.file_size
+			)}</div>
+			<div class="frappe-list-col frappe-list-col-owner" style="font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${
+				file?.owner_full_name || file?.owner
+			}">${file?.owner_full_name || file?.owner}</div>
+			<div class="frappe-list-col frappe-list-col-creation" style="font-size: 12px; color: var(--text-muted);">${
+				frappe.datetime.str_to_user(file.creation)?.split(" ")[0]
+			}</div>
+			<div class="frappe-list-col frappe-list-col-preview">${this.getListPreviewThumb(
+				file,
+				extension
+			)}</div>
+			${
+				canWrite || canDelete
+					? `
+			<div class="frappe-list-col frappe-list-col-actions">
+				<div class="list-actions">
+					<div class="dropdown">
+						<button class="btn btn-link btn-sm" data-toggle="dropdown"><i class="fa fa-ellipsis-v text-muted"></i></button>
+						<div class="dropdown-menu dropdown-menu-right">
+							${
+								canWrite
+									? `<a class="dropdown-item edit-btn" data-id="${file.name}"><i class="fa fa-edit text-muted"></i> Edit</a>`
+									: ""
+							}
+							${
+								canDelete
+									? `<a class="dropdown-item delete-btn" data-id="${file.name}"><i class="fa fa-trash text-muted"></i> Delete</a>`
+									: ""
+							}
 						</div>
 					</div>
 				</div>
-			`;
-			})
-			.join("");
+			</div>`
+					: ""
+			}
+		</div>`;
+	}
+
+	_getListIconClass(extension) {
+		const pdfExts = ["pdf"];
+		const docExts = ["doc", "docx", "txt"];
+		const xlsExts = ["xls", "xlsx", "csv"];
+		const imgExts = ["jpg", "jpeg", "png", "gif", "bmp", "svg", "webp"];
+		const vidExts = ["mp4", "avi", "mov", "wmv"];
+
+		if (pdfExts.includes(extension)) return "icon-pdf";
+		if (docExts.includes(extension)) return "icon-doc";
+		if (xlsExts.includes(extension)) return "icon-xls";
+		if (imgExts.includes(extension)) return "icon-img";
+		if (vidExts.includes(extension)) return "icon-vid";
+		return "icon-default";
 	}
 
 	getListPreviewThumb(file, extension) {
@@ -1463,21 +1990,16 @@ class SVAGalleryComponent {
 		if (imageExtensions.includes(extension)) {
 			return `
 				<img src="${file.file_url}" class="list-thumb preview-btn" data-file='${JSON.stringify(file)}'
-					style="width: 36px; height: 36px; object-fit: cover; border-radius: 4px; cursor: pointer;" alt="${
+					style="width: 32px; height: 32px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 1px solid var(--border-color);" alt="${
 						file.file_name
 					}">`;
-		} else if (extension === "pdf") {
-			return `
-				<div class="list-thumb-pdf preview-btn" data-file='${JSON.stringify(
-					file
-				)}' style="width: 36px; height: 36px; overflow: hidden; border-radius: 4px; cursor: pointer; background: #f5f5f5; display: flex; align-items: center; justify-content: center;">
-					<i class="fa fa-file-pdf-o" style="font-size: 20px; color: #e74c3c;"></i>
-				</div>`;
 		} else {
 			return `
-				<p class="preview-btn" style="cursor: pointer; margin: 0;" data-file='${JSON.stringify(file)}'>
-					<i class="fa fa-eye"></i>
-				</p>`;
+				<span class="preview-btn" style="cursor: pointer; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 6px; background: var(--control-bg, #f4f5f6); transition: background 0.15s;" data-file='${JSON.stringify(
+					file
+				)}'>
+					<i class="fa fa-eye" style="font-size: 13px; color: var(--text-muted);"></i>
+				</span>`;
 		}
 	}
 }

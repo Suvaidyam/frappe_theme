@@ -1126,15 +1126,34 @@ def get_files(doctype, docname):
 
 
 @frappe.whitelist()
-def get_folders():
-	"""Return list of all File folders the user can see."""
-	folders = frappe.get_all(
-		"File",
-		filters={"is_folder": 1},
-		fields=["name", "file_name"],
-		order_by="file_name asc",
-	)
-	return folders
+def get_folders(doctype=None, docname=None):
+	"""Return list of File folders: Home (global) + folders linked to the document."""
+	# Global folder: Home (always shown)
+	global_folders = [{"name": "Home", "file_name": "Home"}]
+
+	# Document-specific folders (created with attached_to_name)
+	doc_folders = []
+	if doctype and docname:
+		doc_folders = frappe.get_all(
+			"File",
+			filters={
+				"is_folder": 1,
+				"attached_to_doctype": doctype,
+				"attached_to_name": docname,
+			},
+			fields=["name", "file_name"],
+			order_by="file_name asc",
+		)
+
+	# Combine: avoid duplicates
+	seen = {"Home"}
+	combined = list(global_folders)
+	for f in doc_folders:
+		if f["name"] not in seen:
+			seen.add(f["name"])
+			combined.append(f)
+
+	return combined
 
 
 @frappe.whitelist()
