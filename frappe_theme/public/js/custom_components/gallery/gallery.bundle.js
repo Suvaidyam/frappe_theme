@@ -1,4 +1,7 @@
-import Loader from "../loader-element.js";
+import Loader from "../../loader-element.js";
+import { applyCardViewMixin, getCardViewStyles } from "./gallery_card_view.js";
+import { applyListViewMixin, getListViewStyles } from "./gallery_list_view.js";
+import { applyDirectoryViewMixin, getDirectoryViewStyles } from "./gallery_directory_view.js";
 
 class SVAGalleryComponent {
 	constructor(frm, wrapper) {
@@ -8,12 +11,14 @@ class SVAGalleryComponent {
 		this.groupedFiles = {};
 		this.collapsedGroups = {};
 		this.selectedFiles = [];
-		this.view = "Card"; // Default view
+		this.view = "Directory"; // Default view
 		this.permissions = [];
 		this.folders = [];
+		this._currentDirPath = null; // Current directory path for Directory view
 		this.initialize();
 		return this.wrapper;
 	}
+
 	get_permissions(doctype) {
 		return new Promise((rslv, rjct) => {
 			frappe.call({
@@ -28,6 +33,7 @@ class SVAGalleryComponent {
 			});
 		});
 	}
+
 	async initialize() {
 		try {
 			if (!this.wrapper) {
@@ -141,6 +147,9 @@ class SVAGalleryComponent {
                 margin-bottom: 16px;
             }
             ${this.getCommonStyles()}
+            ${getCardViewStyles()}
+            ${getListViewStyles()}
+            ${getDirectoryViewStyles()}
         `;
 		document.head.appendChild(style);
 	}
@@ -168,37 +177,6 @@ class SVAGalleryComponent {
                 background-color: rgba(255, 255, 255, 0.9);
                 border: 2px solid #fff;
                 border-radius: 4px;
-            }
-            .gallery-wrapper .card-img-top {
-                width: 100%;
-                height: 200px;
-                border-bottom:1px solid #e2e2e2;
-                object-fit: cover;
-                border-top-left-radius: 8px;
-                border-top-right-radius: 8px;
-            }
-            .gallery-wrapper .image-card {
-                width: 100%;
-                background: white;
-                border-radius: 10px;
-                border: 1px solid var(--border-color, #e2e2e2);
-                box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-                transition: transform 0.2s ease, box-shadow 0.2s ease;
-                overflow: hidden;
-            }
-            .gallery-wrapper .image-card:hover {
-                transform: translateY(-3px);
-                box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-            }
-            .gallery-wrapper .image-card .file-info {
-                padding: 10px 12px 8px;
-            }
-            .gallery-wrapper .image-card .file-meta {
-                display: flex;
-                align-items: center;
-                gap: 6px;
-                padding: 0 12px 10px;
-                flex-wrap: wrap;
             }
             .gallery-wrapper .file-ext-badge {
                 display: inline-flex;
@@ -230,178 +208,6 @@ class SVAGalleryComponent {
             .gallery-wrapper .file-ext-badge.ext-mov { background: #fefce8; color: #ca8a04; }
             .gallery-wrapper .file-ext-badge.ext-zip,
             .gallery-wrapper .file-ext-badge.ext-rar { background: #f5f5f4; color: #57534e; }
-            .gallery-wrapper .image-container {
-                position: relative;
-            }
-            .gallery-wrapper .image-container:hover .image-cover {
-                opacity: 1;
-                visibility: visible;
-            }
-            .gallery-wrapper .image-cover {
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 200px;
-                opacity: 0;
-                visibility: hidden;
-                transition: opacity 0.2s, visibility 0.2s;
-                border-top-left-radius: 8px;
-                border-top-right-radius: 8px;
-                background-color: rgba(0, 0, 0, 0.5);
-                display: flex;
-                flex-direction: column;
-            }
-            .gallery-wrapper .cover-header {
-                position: absolute;
-                top: 10px;
-                right: 10px;
-                z-index: 2;
-            }
-            .gallery-wrapper .cover-body {
-                flex: 1;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-            .gallery-wrapper .action-button {
-                background: rgba(255, 255, 255, 0.9);
-                border: none;
-                border-radius: 4px;
-                padding: 6px 12px;
-                color: #1F272E;
-                transition: background-color 0.2s;
-            }
-            .gallery-wrapper .action-button:hover {
-                background: #ffffff;
-            }
-            .gallery-wrapper .view-button {
-                background: rgba(255, 255, 255, 0.9);
-                border: none;
-                border-radius: 50%;
-                width: 40px;
-                height: 40px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: #1F272E;
-                transition: transform 0.2s, background-color 0.2s;
-                text-decoration: none;
-            }
-            .gallery-wrapper .view-button:hover {
-                transform: scale(1.1);
-                background: #ffffff;
-                text-decoration: none;
-                color: #1F272E;
-            }
-            .gallery-wrapper .file-name {
-                padding: 8px 12px 4px;
-                font-size: 13px;
-                font-weight: 500;
-                color: var(--text-color, #1F272E);
-                word-break: break-word;
-                line-height: 1.4;
-            }
-            .gallery-wrapper .file-date {
-                font-size: 11px;
-                color: var(--text-muted, #6E7073);
-            }
-            .gallery-wrapper .file-size-badge {
-                font-size: 11px;
-                color: var(--text-muted, #6E7073);
-                background: var(--control-bg, #f4f5f6);
-                padding: 1px 6px;
-                border-radius: 4px;
-            }
-            .gallery-wrapper .file-owner {
-                font-size: 11px;
-                color: var(--text-light, #9a9a9a);
-                display: flex;
-                align-items: center;
-                gap: 4px;
-            }
-            /* Frappe List View Styles */
-            .gallery-wrapper .frappe-list {
-                background-color: var(--fg-color);
-                border-radius: var(--border-radius-md);
-                box-shadow: var(--card-shadow);
-            }
-            .gallery-wrapper .frappe-list-row {
-                display: flex;
-                align-items: center;
-                padding: 12px 15px;
-                border-bottom: 1px solid var(--border-color);
-                transition: background-color 0.2s;
-            }
-            .gallery-wrapper .frappe-list-row:hover {
-                background-color: var(--fg-hover-color);
-            }
-            .gallery-wrapper .frappe-list-col {
-                padding: 0 8px;
-                font-size: var(--text-md);
-            }
-            .gallery-wrapper .frappe-list-col-checkbox {
-                width: 30px;
-            }
-            .gallery-wrapper .frappe-list-col-subject {
-                flex: 2;
-                min-width: 180px;
-            }
-            .gallery-wrapper .frappe-list-col-type {
-                width: 70px;
-            }
-            .gallery-wrapper .frappe-list-col-size {
-                width: 90px;
-            }
-            .gallery-wrapper .frappe-list-col-owner {
-                width: 140px;
-            }
-            .gallery-wrapper .frappe-list-col-creation {
-                width: 120px;
-            }
-            .gallery-wrapper .frappe-list-col-preview {
-                width: 60px;
-                text-align: center;
-            }
-            .gallery-wrapper .frappe-list-col-actions {
-                width: 40px;
-                text-align: right;
-            }
-            .gallery-wrapper .frappe-list-col .list-file-icon {
-                width: 28px;
-                height: 28px;
-                border-radius: 6px;
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                margin-right: 8px;
-                font-size: 13px;
-            }
-            .gallery-wrapper .frappe-list-col .list-file-icon.icon-pdf { background: #fef2f2; color: #dc2626; }
-            .gallery-wrapper .frappe-list-col .list-file-icon.icon-doc { background: #eff6ff; color: #2563eb; }
-            .gallery-wrapper .frappe-list-col .list-file-icon.icon-xls { background: #f0fdf4; color: #16a34a; }
-            .gallery-wrapper .frappe-list-col .list-file-icon.icon-img { background: #fdf4ff; color: #9333ea; }
-            .gallery-wrapper .frappe-list-col .list-file-icon.icon-vid { background: #fefce8; color: #ca8a04; }
-            .gallery-wrapper .frappe-list-col .list-file-icon.icon-default { background: #f5f5f4; color: #57534e; }
-            .gallery-wrapper .frappe-list-header {
-                background-color: var(--fg-color);
-                border-bottom: 1px solid var(--border-color);
-                font-weight: 600;
-                color: var(--text-muted);
-            }
-            .gallery-wrapper .frappe-list-header .frappe-list-row:hover {
-                background-color: var(--fg-color);
-            }
-            .gallery-wrapper .list-actions {
-                opacity: 0;
-                transition: opacity 0.2s;
-            }
-            .gallery-wrapper .frappe-list-row:hover .list-actions {
-                opacity: 1;
-            }
-            .gallery-wrapper .list-row-checkbox {
-                margin: 0;
-            }
             /* Group styles */
             .gallery-wrapper .gallery-group {
                 margin-bottom: 16px;
@@ -462,9 +268,6 @@ class SVAGalleryComponent {
             .gallery-wrapper .gallery-subgroup > .group-body {
                 padding: 12px;
             }
-            .gallery-wrapper .pdf-thumbnail-wrapper {
-                background: #f5f5f5;
-            }
             @media (max-width: 768px) {
                 .gallery-wrapper {
                     height: calc(100vh - 200px);
@@ -478,6 +281,8 @@ class SVAGalleryComponent {
             }
         `;
 	}
+
+	// ─── Data fetching ──────────────────────────────────────────────
 
 	async fetchFolders() {
 		try {
@@ -558,6 +363,8 @@ class SVAGalleryComponent {
 		}
 	}
 
+	// ─── Grouping & tree helpers ────────────────────────────────────
+
 	groupFilesByFolder() {
 		this.groupTree = {};
 		this._allGroupPaths = [];
@@ -613,6 +420,8 @@ class SVAGalleryComponent {
 		}
 		return name;
 	}
+
+	// ─── Folder tree (shared by upload dialog & directory view) ─────
 
 	_buildFolderTree(folders) {
 		const tree = { name: "Home", fullPath: "Home", children: [] };
@@ -800,6 +609,8 @@ class SVAGalleryComponent {
 			});
 	}
 
+	// ─── Rendering core ─────────────────────────────────────────────
+
 	render() {
 		this.wrapper.innerHTML = `
             <div class="gallery-wrapper">
@@ -823,7 +634,9 @@ class SVAGalleryComponent {
                     <span class="text-muted">Total records: ${this.gallery_files.length}</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 12px;">
-					<button class="btn btn-default btn-sm" id="collapseAllBtn" title="Collapse/Expand All">
+					<button class="btn btn-default btn-sm" id="collapseAllBtn" title="Collapse/Expand All" style="${
+						this.view === "Directory" ? "display:none;" : ""
+					}">
 						<i class="fa fa-compress"></i> <span id="collapseAllLabel">Collapse All</span>
 					</button>
                     ${
@@ -837,10 +650,17 @@ class SVAGalleryComponent {
 					}
                     <div class="btn-group">
                         <button class="btn btn-default btn-sm dropdown-toggle" type="button" data-toggle="dropdown">
-                            <i class="fa ${this.view === "Card" ? "fa-th-large" : "fa-list"}"></i>
+                            <i class="fa ${
+								this.view === "Directory"
+									? "fa-folder"
+									: this.view === "Card"
+									? "fa-th-large"
+									: "fa-list"
+							}"></i>
                             <span id="viewNameButton">${this.view} View</span>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-right">
+                            <li><a class="dropdown-item" id="directoryViewBtn"><i class="fa fa-folder"></i> Directory View</a></li>
                             <li><a class="dropdown-item" id="cardViewBtn"><i class="fa fa-th-large"></i> Card View</a></li>
                             <li><a class="dropdown-item" id="listViewBtn"><i class="fa fa-list"></i> List View</a></li>
                         </ul>
@@ -868,6 +688,9 @@ class SVAGalleryComponent {
             </div>
         `;
 	}
+
+	// ─── File preview ───────────────────────────────────────────────
+
 	preview_file(frm) {
 		let file_extension = frm?.file_url?.split(".").pop();
 		let show_file = new frappe.ui.Dialog({
@@ -937,6 +760,9 @@ class SVAGalleryComponent {
 			show_file.get_field("preview_html").$wrapper.html($preview);
 		}
 	}
+
+	// ─── Utility helpers ────────────────────────────────────────────
+
 	convertTofileSize(size) {
 		if (size < 1024) {
 			return size + " Bytes";
@@ -945,123 +771,6 @@ class SVAGalleryComponent {
 		} else if (size < 1073741824) {
 			return (size / 1048576).toFixed(2) + " MB";
 		}
-	}
-	renderCardView() {
-		if (!this.gallery_files.length) {
-			return this.renderEmptyState();
-		}
-		return this._renderCardGroupTree(this.groupTree, "");
-	}
-
-	_renderCardGroupTree(tree, parentPath) {
-		const canWrite = this.permissions.includes("write");
-		const canDelete = this.permissions.includes("delete");
-
-		return Object.entries(tree)
-			.map(([name, node]) => {
-				const fullPath = parentPath ? `${parentPath}/${name}` : name;
-				const displayName = this._displayFolderName(name);
-				const isCollapsed = this.collapsedGroups[fullPath];
-				const totalFiles = this._countNodeFiles(node);
-				const hasChildren = Object.keys(node.children).length > 0;
-
-				return `
-				<div class="gallery-group ${parentPath ? "gallery-subgroup" : ""}">
-					<div class="group-header group-toggle-btn" data-doctype="${fullPath}">
-						<i class="fa ${isCollapsed ? "fa-chevron-right" : "fa-chevron-down"} group-toggle-icon"></i>
-						<span class="group-title">${__(displayName)}</span>
-						<span class="badge badge-secondary group-count">${totalFiles}</span>
-					</div>
-					<div class="group-body" data-doctype="${fullPath}" style="${isCollapsed ? "display:none;" : ""}">
-						${
-							node.files.length > 0
-								? `<div class="row">
-							${node.files.map((file) => this._renderFileCard(file, canWrite, canDelete)).join("")}
-						</div>`
-								: ""
-						}
-						${hasChildren ? this._renderCardGroupTree(node.children, fullPath) : ""}
-					</div>
-				</div>`;
-			})
-			.join("");
-	}
-
-	_renderFileCard(file, canWrite, canDelete) {
-		let extension = file?.file_url?.split(".").pop()?.toLowerCase();
-		return `
-		<div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
-			<div class="image-card">
-				<div class="image-container">
-					${this.getFilePreview(file, extension)}
-					${
-						canDelete
-							? `
-					<div class="checkbox-container">
-						<input type="checkbox" data-id="${file.name}" class="toggleCheckbox"/>
-					</div>
-				`
-							: ""
-					}
-					<div class="image-cover">
-						${
-							canWrite || canDelete
-								? `
-							<div class="cover-header">
-								<div class="dropdown">
-									<button class="action-button" data-toggle="dropdown">
-										<i class="fa fa-ellipsis-v"></i>
-									</button>
-									<div class="dropdown-menu dropdown-menu-right">
-										${
-											canWrite
-												? `
-										<a class="dropdown-item edit-btn" data-id="${file.name}">
-											<i class="fa fa-edit"></i> Edit
-										</a>`
-												: ""
-										}
-										${
-											canDelete
-												? `
-										<a class="dropdown-item delete-btn" data-id="${file.name}">
-											<i class="fa fa-trash"></i> Delete
-										</a>`
-												: ""
-										}
-									</div>
-								</div>
-							</div>`
-								: ""
-						}
-						<div class="cover-body">
-							<p class="view-button preview-btn" style="cursor: pointer;" data-file='${JSON.stringify(file)}'>
-								<i class="fa fa-eye"></i>
-							</p>
-						</div>
-					</div>
-				</div>
-				<div class="file-name" style="white-space: nowrap;overflow: hidden;text-overflow: ellipsis;" title="${
-					file.file_name
-				}">${file.file_name}</div>
-				<div class="file-meta">
-					<span class="file-ext-badge ext-${extension}">${(extension || "file").toUpperCase()}</span>
-					<span class="file-size-badge">${this.convertTofileSize(file.file_size)}</span>
-					<span class="file-date">${frappe.datetime.str_to_user(file.creation)?.split(" ")[0]}</span>
-				</div>
-				<div style="padding: 0 12px 10px;">
-					<div class="file-owner" title="${file?.owner_full_name || ""} ${
-			file?.owner != "Administrator" ? `(${file.owner})` : ""
-		}">
-						<i class="fa fa-user-circle-o" style="font-size: 13px;"></i>
-						<span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${
-							file?.owner_full_name || file?.owner
-						}${file?.owner != "Administrator" ? ` (${file.owner})` : ""}</span>
-					</div>
-				</div>
-			</div>
-		</div>
-		`;
 	}
 
 	getFileIcon(extension) {
@@ -1170,12 +879,22 @@ class SVAGalleryComponent {
 		}
 	}
 
+	// ─── Upload & edit forms ────────────────────────────────────────
+
 	async renderForm(mode, fileId = null) {
 		const self = this;
 
 		if (mode === "create") {
 			// ── Modern file-system upload dialog ──
-			self._selectedUploadFolder = "Home";
+			// Default to currently open folder in Directory view, else Home
+			if (this.view === "Directory" && this._currentDirPath) {
+				const potentialFolder = "Home/" + this._currentDirPath;
+				self._selectedUploadFolder = this.folders.includes(potentialFolder)
+					? potentialFolder
+					: "Home";
+			} else {
+				self._selectedUploadFolder = "Home";
+			}
 
 			const uploadDialog = new frappe.ui.Dialog({
 				title: __("Upload Files"),
@@ -1547,6 +1266,8 @@ class SVAGalleryComponent {
 		}
 	}
 
+	// ─── Upload helpers ─────────────────────────────────────────────
+
 	_addFilesToPending(fileList, $fileListContainer) {
 		for (const file of fileList) {
 			// Avoid duplicates by name+size
@@ -1655,6 +1376,8 @@ class SVAGalleryComponent {
 		});
 	}
 
+	// ─── Event listeners ────────────────────────────────────────────
+
 	attachEventListeners() {
 		const self = this;
 
@@ -1723,13 +1446,28 @@ class SVAGalleryComponent {
 			});
 
 		// View switching remains accessible to all users with read permission
+		$("#directoryViewBtn")
+			.off("click")
+			.on("click", () => {
+				self.view = "Directory";
+				self._currentDirPath = null;
+				self.selectedFiles = [];
+				$("#viewNameButton").text("Directory View");
+				$("#collapseAllBtn").hide();
+				self.updateSelectedFilesUI();
+				self.renderHeader();
+				self.updateGallery();
+			});
+
 		$("#cardViewBtn")
 			.off("click")
 			.on("click", () => {
 				self.view = "Card";
 				self.selectedFiles = [];
 				$("#viewNameButton").text("Card View");
+				$("#collapseAllBtn").show();
 				self.updateSelectedFilesUI();
+				self.renderHeader();
 				self.updateGallery();
 			});
 
@@ -1739,7 +1477,9 @@ class SVAGalleryComponent {
 				self.view = "List";
 				self.selectedFiles = [];
 				$("#viewNameButton").text("List View");
+				$("#collapseAllBtn").show();
 				self.updateSelectedFilesUI();
+				self.renderHeader();
 				self.updateGallery();
 			});
 
@@ -1749,24 +1489,91 @@ class SVAGalleryComponent {
 	attachGalleryItemEventListeners() {
 		const self = this;
 
-		$(".delete-btn")
+		// File action menu button — body-appended popup
+		$(".file-action-menu-btn")
 			.off("click")
-			.on("click", async function () {
-				// Remove previous handlers
-				const fileId = $(this).data("id");
-				if (fileId) {
-					try {
-						frappe.confirm("Are you sure you want to delete this file?", async () => {
-							await frappe.db.delete_doc("File", fileId);
-							self.gallery_files = self.gallery_files.filter(
-								(file) => file.name !== fileId
-							);
-							self.render();
-						});
-					} catch (error) {
-						console.error(error);
-					}
+			.on("click", function (e) {
+				e.stopPropagation();
+				e.preventDefault();
+
+				const wasActive = $(this).closest(".image-container").hasClass("menu-active");
+				$(".sva-action-popup").remove();
+				$(".image-container.menu-active").removeClass("menu-active");
+
+				// If it was already open, just close and return
+				if (wasActive) return;
+
+				const fileId = $(this).data("file-id");
+				const canWrite =
+					$(this).data("can-write") === true || $(this).data("can-write") === "true";
+				const canDelete =
+					$(this).data("can-delete") === true || $(this).data("can-delete") === "true";
+				const rect = this.getBoundingClientRect();
+
+				const items = [];
+				if (canWrite) {
+					items.push(
+						`<div class="sva-popup-item sva-popup-edit" data-id="${fileId}" style="padding:8px 16px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-color);"><i class="fa fa-pencil text-muted"></i> Edit</div>`
+					);
 				}
+				if (canDelete) {
+					items.push(
+						`<div class="sva-popup-item sva-popup-delete" data-id="${fileId}" style="padding:8px 16px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--red-500, #e74c3c);"><i class="fa fa-trash"></i> Delete</div>`
+					);
+				}
+
+				const $popup = $(`<div class="sva-action-popup" style="
+					position:fixed;
+					top:${rect.bottom + 4}px;
+					left:${rect.left - 100}px;
+					min-width:140px;
+					background:var(--fg-color, #fff);
+					border:1px solid var(--border-color);
+					border-radius:8px;
+					box-shadow:0 8px 24px rgba(0,0,0,0.15);
+					z-index:1060;
+					padding:4px 0;
+				">${items.join("")}</div>`);
+
+				$("body").append($popup);
+
+				const $container = $(this).closest(".image-container");
+				$container.addClass("menu-active");
+
+				$popup.find(".sva-popup-edit").on("click", async function () {
+					$popup.remove();
+					$container.removeClass("menu-active");
+					await self.renderForm("edit", $(this).data("id"));
+				});
+				$popup.find(".sva-popup-delete").on("click", function () {
+					$popup.remove();
+					$container.removeClass("menu-active");
+					const fId = $(this).data("id");
+					frappe.confirm("Are you sure you want to delete this file?", async () => {
+						try {
+							await frappe.db.delete_doc("File", fId);
+							self.gallery_files = self.gallery_files.filter((f) => f.name !== fId);
+							self.render();
+						} catch (error) {
+							console.error(error);
+						}
+					});
+				});
+				$popup
+					.find(".sva-popup-item")
+					.on("mouseenter", function () {
+						$(this).css("background", "var(--fg-hover-color, #f5f5f5)");
+					})
+					.on("mouseleave", function () {
+						$(this).css("background", "transparent");
+					});
+
+				setTimeout(() => {
+					$(document).one("click", function () {
+						$(".sva-action-popup").remove();
+						$(".image-container.menu-active").removeClass("menu-active");
+					});
+				}, 10);
 			});
 
 		$(".preview-btn")
@@ -1776,14 +1583,6 @@ class SVAGalleryComponent {
 				if (fileData) {
 					self.preview_file(fileData);
 				}
-			});
-
-		$(".edit-btn")
-			.off("click")
-			.on("click", async function () {
-				// Remove previous handlers
-				const fileId = $(this).data("id");
-				await self.renderForm("edit", fileId); // Use self here
 			});
 
 		$(".toggleCheckbox")
@@ -1841,9 +1640,14 @@ class SVAGalleryComponent {
 		}
 	}
 
+	// ─── Gallery update & group toggle ──────────────────────────────
+
 	updateGallery() {
 		const bodyWrapper = this.wrapper.querySelector("#gallery-body");
-		if (this.view === "Card") {
+		if (this.view === "Directory") {
+			bodyWrapper.innerHTML = this.renderDirectoryView();
+			this._attachDirectoryEventListeners();
+		} else if (this.view === "Card") {
 			bodyWrapper.innerHTML = this.renderCardView();
 		} else {
 			bodyWrapper.innerHTML = this.renderListView();
@@ -1853,6 +1657,19 @@ class SVAGalleryComponent {
 		this.attachGalleryItemEventListeners(); // Attach event listeners to gallery items
 		this.attachGroupToggleListeners();
 		this.attachEventListeners();
+
+		// In Directory view, hide Upload button when inside a doctype folder (not a real File folder)
+		const $uploadBtn = $("#customUploadButton");
+		if (this.view === "Directory" && this._currentDirPath) {
+			const isRealFolder = this.folders.some(
+				(f) =>
+					f === "Home/" + this._currentDirPath ||
+					f.startsWith("Home/" + this._currentDirPath + "/")
+			);
+			$uploadBtn.toggle(isRealFolder);
+		} else {
+			$uploadBtn.show();
+		}
 	}
 
 	attachGroupToggleListeners() {
@@ -1876,165 +1693,11 @@ class SVAGalleryComponent {
 			});
 		});
 	}
-
-	renderListView() {
-		if (!this.gallery_files.length) {
-			return this.renderEmptyState();
-		}
-		return this._renderListGroupTree(this.groupTree, "");
-	}
-
-	_renderListGroupTree(tree, parentPath) {
-		const canWrite = this.permissions.includes("write");
-		const canDelete = this.permissions.includes("delete");
-
-		return Object.entries(tree)
-			.map(([name, node]) => {
-				const fullPath = parentPath ? `${parentPath}/${name}` : name;
-				const displayName = this._displayFolderName(name);
-				const isCollapsed = this.collapsedGroups[fullPath];
-				const totalFiles = this._countNodeFiles(node);
-				const hasChildren = Object.keys(node.children).length > 0;
-
-				return `
-				<div class="gallery-group ${parentPath ? "gallery-subgroup" : ""}">
-					<div class="group-header group-toggle-btn" data-doctype="${fullPath}">
-						<i class="fa ${isCollapsed ? "fa-chevron-right" : "fa-chevron-down"} group-toggle-icon"></i>
-						<span class="group-title">${__(displayName)}</span>
-						<span class="badge badge-secondary group-count">${totalFiles}</span>
-					</div>
-					<div class="group-body" data-doctype="${fullPath}" style="${isCollapsed ? "display:none;" : ""}">
-						${
-							node.files.length > 0
-								? `<div class="frappe-list">
-							<div class="frappe-list-header">
-								<div class="frappe-list-row">
-									${
-										canDelete
-											? `<div class="frappe-list-col frappe-list-col-checkbox"><input type="checkbox" class="list-row-checkbox" id="selectAllCheckBox"></div>`
-											: ""
-									}
-									<div class="frappe-list-col frappe-list-col-subject">Name</div>
-									<div class="frappe-list-col frappe-list-col-type">Type</div>
-									<div class="frappe-list-col frappe-list-col-size">Size</div>
-									<div class="frappe-list-col frappe-list-col-owner">Uploaded By</div>
-									<div class="frappe-list-col frappe-list-col-creation">Date</div>
-									<div class="frappe-list-col frappe-list-col-preview"></div>
-									${canWrite || canDelete ? `<div class="frappe-list-col frappe-list-col-actions"></div>` : ""}
-								</div>
-							</div>
-							<div class="frappe-list-body">
-								${node.files.map((file) => this._renderFileListRow(file, canWrite, canDelete)).join("")}
-							</div>
-						</div>`
-								: ""
-						}
-						${hasChildren ? this._renderListGroupTree(node.children, fullPath) : ""}
-					</div>
-				</div>`;
-			})
-			.join("");
-	}
-
-	_renderFileListRow(file, canWrite, canDelete) {
-		let extension = file?.file_url?.split(".").pop()?.toLowerCase();
-		const iconColorClass = this._getListIconClass(extension);
-		return `
-		<div class="frappe-list-row">
-			${
-				canDelete
-					? `<div class="frappe-list-col frappe-list-col-checkbox"><input type="checkbox" class="list-row-checkbox toggleCheckbox" data-id="${file.name}"></div>`
-					: ""
-			}
-			<div class="frappe-list-col frappe-list-col-subject">
-				<div style="display: flex; align-items: center;">
-					<span class="list-file-icon ${iconColorClass}"><i class="${this.getFileIcon(
-			extension
-		)}"></i></span>
-					<a href="${
-						file.file_url
-					}" target="_blank" style="color: var(--text-color); font-weight: 450; text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${
-			file.file_name
-		}">
-						${file.file_name}
-					</a>
-				</div>
-			</div>
-			<div class="frappe-list-col frappe-list-col-type"><span class="file-ext-badge ext-${extension}">${(
-			extension || ""
-		).toUpperCase()}</span></div>
-			<div class="frappe-list-col frappe-list-col-size" style="font-size: 12px; color: var(--text-muted);">${this.convertTofileSize(
-				file.file_size
-			)}</div>
-			<div class="frappe-list-col frappe-list-col-owner" style="font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${
-				file?.owner_full_name || file?.owner
-			}">${file?.owner_full_name || file?.owner}</div>
-			<div class="frappe-list-col frappe-list-col-creation" style="font-size: 12px; color: var(--text-muted);">${
-				frappe.datetime.str_to_user(file.creation)?.split(" ")[0]
-			}</div>
-			<div class="frappe-list-col frappe-list-col-preview">${this.getListPreviewThumb(
-				file,
-				extension
-			)}</div>
-			${
-				canWrite || canDelete
-					? `
-			<div class="frappe-list-col frappe-list-col-actions">
-				<div class="list-actions">
-					<div class="dropdown">
-						<button class="btn btn-link btn-sm" data-toggle="dropdown"><i class="fa fa-ellipsis-v text-muted"></i></button>
-						<div class="dropdown-menu dropdown-menu-right">
-							${
-								canWrite
-									? `<a class="dropdown-item edit-btn" data-id="${file.name}"><i class="fa fa-edit text-muted"></i> Edit</a>`
-									: ""
-							}
-							${
-								canDelete
-									? `<a class="dropdown-item delete-btn" data-id="${file.name}"><i class="fa fa-trash text-muted"></i> Delete</a>`
-									: ""
-							}
-						</div>
-					</div>
-				</div>
-			</div>`
-					: ""
-			}
-		</div>`;
-	}
-
-	_getListIconClass(extension) {
-		const pdfExts = ["pdf"];
-		const docExts = ["doc", "docx", "txt"];
-		const xlsExts = ["xls", "xlsx", "csv"];
-		const imgExts = ["jpg", "jpeg", "png", "gif", "bmp", "svg", "webp"];
-		const vidExts = ["mp4", "avi", "mov", "wmv"];
-
-		if (pdfExts.includes(extension)) return "icon-pdf";
-		if (docExts.includes(extension)) return "icon-doc";
-		if (xlsExts.includes(extension)) return "icon-xls";
-		if (imgExts.includes(extension)) return "icon-img";
-		if (vidExts.includes(extension)) return "icon-vid";
-		return "icon-default";
-	}
-
-	getListPreviewThumb(file, extension) {
-		const imageExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "svg", "webp"];
-		if (imageExtensions.includes(extension)) {
-			return `
-				<img src="${file.file_url}" class="list-thumb preview-btn" data-file='${JSON.stringify(file)}'
-					style="width: 32px; height: 32px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 1px solid var(--border-color);" alt="${
-						file.file_name
-					}">`;
-		} else {
-			return `
-				<span class="preview-btn" style="cursor: pointer; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 6px; background: var(--control-bg, #f4f5f6); transition: background 0.15s;" data-file='${JSON.stringify(
-					file
-				)}'>
-					<i class="fa fa-eye" style="font-size: 13px; color: var(--text-muted);"></i>
-				</span>`;
-		}
-	}
 }
+
+// Apply view mixins to add view-specific methods to the prototype
+applyCardViewMixin(SVAGalleryComponent);
+applyListViewMixin(SVAGalleryComponent);
+applyDirectoryViewMixin(SVAGalleryComponent);
 
 export default SVAGalleryComponent;
