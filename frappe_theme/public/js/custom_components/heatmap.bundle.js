@@ -386,52 +386,56 @@ class SVAHeatmap {
 	}
 
 	applyDataToMap() {
-		if (!this.stateLayer) return;
-		this.stateData = {};
-		this.reportData?.result?.forEach((row) => {
-			const stateId = row[this.stateField];
-			if (!this.stateData[stateId]) {
-				this.stateData[stateId] = {
-					data: { ...row }, // Create a copy of the row data
-					count: row[this.primaryTargetField],
-					id: stateId,
-				};
-			} else {
-				this.stateData[stateId].count += row[this.primaryTargetField];
-				// Merge the data for additional fields
-				this.targetFields.forEach((field) => {
-					const fieldname = field.fieldname;
-					if (typeof row[fieldname] === "number") {
-						this.stateData[stateId].data[fieldname] =
-							(this.stateData[stateId].data[fieldname] || 0) + row[fieldname];
-					} else {
-						this.stateData[stateId].data[fieldname] = row[fieldname];
-					}
-				});
-			}
-		});
+		if (this.defaultView == "District") {
+			this.loadDistricts()
+		} else {
+			if (!this.stateLayer) return;
+			this.stateData = {};
+			this.reportData?.result?.forEach((row) => {
+				const stateId = row[this.stateField];
+				if (!this.stateData[stateId]) {
+					this.stateData[stateId] = {
+						data: { ...row }, // Create a copy of the row data
+						count: row[this.primaryTargetField],
+						id: stateId,
+					};
+				} else {
+					this.stateData[stateId].count += row[this.primaryTargetField];
+					// Merge the data for additional fields
+					this.targetFields.forEach((field) => {
+						const fieldname = field.fieldname;
+						if (typeof row[fieldname] === "number") {
+							this.stateData[stateId].data[fieldname] =
+								(this.stateData[stateId].data[fieldname] || 0) + row[fieldname];
+						} else {
+							this.stateData[stateId].data[fieldname] = row[fieldname];
+						}
+					});
+				}
+			});
 
-		// After processing data, create legend
-		const range = this.calculateDataRange(this.stateData);
-		this.createLegend(range);
+			// After processing data, create legend
+			const range = this.calculateDataRange(this.stateData);
+			this.createLegend(range);
 
-		this.stateLayer.eachLayer((layer) => {
-			const stateID = layer.feature.properties.id;
-			const stateName = layer.feature.properties.name;
-			const data = this.stateData[stateID] || this.stateData[stateName];
-			if (data) {
-				layer.setStyle({
-					fillColor: this.getColorByValue(data.count),
-					fillOpacity: 0.7,
-					color: "#333333",
-				});
-			} else {
-				layer.setStyle({
-					fillColor: "#f3f3f3",
-					color: "#333333",
-				});
-			}
-		});
+			this.stateLayer.eachLayer((layer) => {
+				const stateID = layer.feature.properties.id;
+				const stateName = layer.feature.properties.name;
+				const data = this.stateData[stateID] || this.stateData[stateName];
+				if (data) {
+					layer.setStyle({
+						fillColor: this.getColorByValue(data.count),
+						fillOpacity: 0.7,
+						color: "#333333",
+					});
+				} else {
+					layer.setStyle({
+						fillColor: "#f3f3f3",
+						color: "#333333",
+					});
+				}
+			});
+		}
 	}
 
 	// Add new method to calculate range and steps
@@ -584,10 +588,10 @@ class SVAHeatmap {
 		const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
 		return result
 			? {
-					r: parseInt(result[1], 16),
-					g: parseInt(result[2], 16),
-					b: parseInt(result[3], 16),
-			  }
+				r: parseInt(result[1], 16),
+				g: parseInt(result[2], 16),
+				b: parseInt(result[3], 16),
+			}
 			: null;
 	}
 
@@ -695,12 +699,14 @@ class SVAHeatmap {
 								data: row, // Store the complete row data
 								count: this.districtData[districtName]
 									? this.districtData[districtName].count +
-									  row[this.primaryTargetField]
+									row[this.primaryTargetField]
 									: row[this.primaryTargetField],
 								id: districtName,
 							};
 						}
 					});
+				} else {
+					this.districtData = {}
 				}
 				const range = this.calculateDataRange(this.districtData);
 				this.createLegend(range);
@@ -875,14 +881,13 @@ class SVAHeatmap {
 		return `
             <div>
                 <strong>${name}</strong><br/>
-                ${column?.label || "Count"}: ${
-			column?.fieldtype == "Currency"
+                ${column?.label || "Count"}: ${column?.fieldtype == "Currency"
 				? frappe.utils.format_currency(
-						data?.count || 0,
-						frappe.boot?.sysdefaults?.currency || "INR"
-				  )
+					data?.count || 0,
+					frappe.boot?.sysdefaults?.currency || "INR"
+				)
 				: frappe.utils.shorten_number(data?.count || 0, frappe.sys_defaults.country)
-		}
+			}
                 ${additionalFields}
             </div>
         `;
