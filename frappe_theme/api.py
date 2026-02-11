@@ -1128,9 +1128,31 @@ def get_files(doctype, docname):
 
 @frappe.whitelist()
 def get_folders(doctype: str = None, docname: str = None):
-	"""Return list of File folders: Home (global) + folders linked to the document."""
-	# Global folder: Home (always shown)
-	global_folders = [{"name": "Home", "file_name": "Home"}]
+	"""Return list of File folders: Home, Home/Attachments (global) + folders linked to the document."""
+	# Global folders (always shown)
+	global_folders = [
+		{"name": "Home", "file_name": "Home"},
+		{"name": "Home/Attachments", "file_name": "Attachments"},
+	]
+
+	# Include any other top-level global folders that exist under Home
+	root_folders = frappe.get_all(
+		"File",
+		filters={
+			"is_folder": 1,
+			"folder": "Home",
+			"attached_to_doctype": ["is", "not set"],
+		},
+		fields=["name", "file_name"],
+		order_by="file_name asc",
+	)
+
+	seen = {"Home", "Home/Attachments"}
+	combined = list(global_folders)
+	for f in root_folders:
+		if f["name"] not in seen:
+			seen.add(f["name"])
+			combined.append(f)
 
 	# Document-specific folders (created with attached_to_name)
 	doc_folders = []
@@ -1146,9 +1168,6 @@ def get_folders(doctype: str = None, docname: str = None):
 			order_by="file_name asc",
 		)
 
-	# Combine: avoid duplicates
-	seen = {"Home"}
-	combined = list(global_folders)
 	for f in doc_folders:
 		if f["name"] not in seen:
 			seen.add(f["name"])
@@ -1159,7 +1178,11 @@ def get_folders(doctype: str = None, docname: str = None):
 
 @frappe.whitelist()
 def upload_file_to_folder(
-	doctype: str, docname: str, file_url: str, folder: str | None = None, file_name: str | None = None
+	doctype: str,
+	docname: str,
+	file_url: str,
+	folder: str | None = None,
+	file_name: str | None = None,
 ):
 	"""Move an already-uploaded file into the chosen folder."""
 	if not file_url:
