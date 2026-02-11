@@ -151,7 +151,7 @@ export function applyListViewMixin(GalleryClass) {
 	};
 
 	GalleryClass.prototype._renderFileListRow = function (file, canWrite, canDelete) {
-		let extension = file?.file_url?.split(".").pop()?.toLowerCase();
+		let extension = this._getFileExtension(file);
 		const iconColorClass = this._getListIconClass(extension);
 		return `
 		<div class="frappe-list-row">
@@ -167,7 +167,7 @@ export function applyListViewMixin(GalleryClass) {
 		)}"></i></span>
 					<a href="${
 						file.file_url
-					}" target="_blank" style="color: var(--text-color); font-weight: 450; text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${
+					}" target="_blank" rel="noopener noreferrer" style="color: var(--text-color); font-weight: 450; text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${
 			file.file_name
 		}">
 						${file.file_name}

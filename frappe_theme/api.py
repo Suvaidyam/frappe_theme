@@ -1159,7 +1159,7 @@ def get_folders(doctype: str = None, docname: str = None):
 
 @frappe.whitelist()
 def upload_file_to_folder(
-	doctype: str, docname: str, file_url: str, folder: str = None, file_name: str = None
+	doctype: str, docname: str, file_url: str, folder: str | None = None, file_name: str | None = None
 ):
 	"""Move an already-uploaded file into the chosen folder."""
 	if not file_url:

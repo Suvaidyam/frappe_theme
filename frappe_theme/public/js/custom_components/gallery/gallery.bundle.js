@@ -689,10 +689,20 @@ class SVAGalleryComponent {
         `;
 	}
 
+	// ─── Utility: extract file extension safely ────────────────────
+
+	_getFileExtension(file) {
+		// Prefer file_name over file_url to avoid query-string / API-URL issues
+		const source = file?.file_name || file?.file_url || "";
+		const base = source.split("?")[0]; // strip query string
+		const ext = base.split(".").pop();
+		return ext ? ext.toLowerCase() : "";
+	}
+
 	// ─── File preview ───────────────────────────────────────────────
 
 	preview_file(frm) {
-		let file_extension = frm?.file_url?.split(".").pop();
+		let file_extension = this._getFileExtension(frm);
 		let show_file = new frappe.ui.Dialog({
 			title: __("Preview File"),
 			size: "large",
