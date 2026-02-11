@@ -1009,7 +1009,7 @@ class SVAGalleryComponent {
 						// All files uploaded successfully — close dialog
 						uploadDialog.hide();
 						frappe.show_alert({
-							message: __(`${uploadedCount} file(s) uploaded successfully`),
+							message: __("{0} file(s) uploaded successfully", [uploadedCount]),
 							indicator: "green",
 						});
 						self.render();
@@ -1017,9 +1017,10 @@ class SVAGalleryComponent {
 					} else if (uploadedCount > 0) {
 						// Some files failed — keep dialog open, refresh gallery
 						frappe.show_alert({
-							message: __(
-								`${uploadedCount} of ${totalFiles} file(s) uploaded. Some files failed.`
-							),
+							message: __("{0} of {1} file(s) uploaded. Some files failed.", [
+								uploadedCount,
+								totalFiles,
+							]),
 							indicator: "orange",
 						});
 						self.render();
@@ -1266,7 +1267,9 @@ class SVAGalleryComponent {
 						this.hide();
 					} catch (error) {
 						console.error("Error updating file:", error);
-						frappe.msgprint(__("Error updating file: ") + (error.message || error));
+						frappe.msgprint(
+							__("Error updating file:") + " " + (error.message || error)
+						);
 					}
 				},
 			});
