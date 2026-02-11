@@ -366,7 +366,9 @@ export function applyDirectoryViewMixin(GalleryClass) {
 					self.render();
 				} catch (error) {
 					console.error("Error deleting folder:", error);
-					frappe.msgprint(__("Failed to delete folder: ") + (error.message || error));
+					frappe.msgprint(
+						__("Failed to delete folder") + ": " + (error.message || error)
+					);
 				}
 			}
 		);
