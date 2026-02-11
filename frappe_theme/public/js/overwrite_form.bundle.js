@@ -324,7 +324,11 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			fields.forEach((field) => {
 				if (Array.isArray(frm.doc[field.fieldname])) {
 					if (frm.doc[field.fieldname].length > 0) {
-						filters[field.fieldname] = frm.doc[field.fieldname];
+						let field_dict = frm.fields_dict?.[field.fieldname];
+						let link_field = field_dict?._link_field || field_dict?.getLinkField();
+						filters[field.fieldname] = link_field
+							? frm.doc[field.fieldname]?.map((i) => i[link_field.fieldname])
+							: frm.doc[field.fieldname];
 					} else {
 						return;
 					}
@@ -425,22 +429,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 				apply_button_field.reset_action = () => {
 					reset_dashboard_filters(frm, tab_fields, apply_button_field?.df);
 				};
-
-				// apply_button_field.$apply_button.on("click", )
-				// apply_button_field.$reset_button.on("click", );
 			}
-
-			// if (apply_button) {
-			// 	frappe.ui.form.on(frm.doctype, apply_button.fieldname, function (frm) {
-
-			// 	});
-			// }
-			// if (reset_button) {
-			// 	frm.set_df_property(reset_button.fieldname, "hidden", 1);
-			// 	frappe.ui.form.on(frm.doctype, reset_button.fieldname, function (frm) {
-
-			// 	});
-			// }
 		}
 	}
 	async custom_after_save(frm) {
