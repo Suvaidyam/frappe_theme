@@ -1891,6 +1891,7 @@ class SVAGalleryComponent {
 		return Object.entries(tree)
 			.map(([name, node]) => {
 				const fullPath = parentPath ? `${parentPath}/${name}` : name;
+				const displayName = this._displayFolderName(name);
 				const isCollapsed = this.collapsedGroups[fullPath];
 				const totalFiles = this._countNodeFiles(node);
 				const hasChildren = Object.keys(node.children).length > 0;
@@ -1899,7 +1900,7 @@ class SVAGalleryComponent {
 				<div class="gallery-group ${parentPath ? "gallery-subgroup" : ""}">
 					<div class="group-header group-toggle-btn" data-doctype="${fullPath}">
 						<i class="fa ${isCollapsed ? "fa-chevron-right" : "fa-chevron-down"} group-toggle-icon"></i>
-						<span class="group-title">${__(name)}</span>
+						<span class="group-title">${__(displayName)}</span>
 						<span class="badge badge-secondary group-count">${totalFiles}</span>
 					</div>
 					<div class="group-body" data-doctype="${fullPath}" style="${isCollapsed ? "display:none;" : ""}">
