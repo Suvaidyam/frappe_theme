@@ -222,15 +222,11 @@ export function applyListViewMixin(GalleryClass) {
 		const imageExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "svg", "webp"];
 		if (imageExtensions.includes(extension)) {
 			return `
-				<img src="${file.file_url}" class="list-thumb preview-btn" data-file='${JSON.stringify(file)}'
-					style="width: 32px; height: 32px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 1px solid var(--border-color);" alt="${
-						file.file_name
-					}">`;
+				<img src="${file.file_url}" class="list-thumb preview-btn" data-file-id="${file.name}"
+					style="width: 32px; height: 32px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 1px solid var(--border-color);" alt="${file.file_name}">`;
 		} else {
 			return `
-				<span class="preview-btn" style="cursor: pointer; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 6px; background: var(--control-bg, #f4f5f6); transition: background 0.15s;" data-file='${JSON.stringify(
-					file
-				)}'>
+				<span class="preview-btn" style="cursor: pointer; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 6px; background: var(--control-bg, #f4f5f6); transition: background 0.15s;" data-file-id="${file.name}">
 					<i class="fa fa-eye" style="font-size: 13px; color: var(--text-muted);"></i>
 				</span>`;
 		}

@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Union
+from typing import Optional, Union
 
 import frappe
 from frappe import _
@@ -1127,7 +1127,7 @@ def get_files(doctype, docname):
 
 
 @frappe.whitelist()
-def get_folders(doctype=None, docname=None):
+def get_folders(doctype: str = None, docname: str = None):
 	"""Return list of File folders: Home (global) + folders linked to the document."""
 	# Global folder: Home (always shown)
 	global_folders = [{"name": "Home", "file_name": "Home"}]
@@ -1158,18 +1158,29 @@ def get_folders(doctype=None, docname=None):
 
 
 @frappe.whitelist()
-def upload_file_to_folder(doctype, docname, file_url, folder=None, file_name=None):
+def upload_file_to_folder(
+	doctype: str, docname: str, file_url: str, folder: str = None, file_name: str = None
+):
 	"""Move an already-uploaded file into the chosen folder."""
 	if not file_url:
 		frappe.throw(_("file_url is required"))
 
-	# Find the file doc that was just created by the Attach control
+	# Find the file doc attached to this specific document
 	filters = {"file_url": file_url, "attached_to_doctype": doctype, "attached_to_name": docname}
 	file_doc_name = frappe.db.get_value("File", filters, "name")
 
 	if not file_doc_name:
-		# Fallback: try without attached filters (file just uploaded)
-		file_doc_name = frappe.db.get_value("File", {"file_url": file_url}, "name")
+		# Constrained fallback: match by file_url + current user (owner) + created in the last 5 minutes
+		file_doc_name = frappe.db.get_value(
+			"File",
+			{
+				"file_url": file_url,
+				"owner": frappe.session.user,
+				"creation": (">=", frappe.utils.add_to_date(None, minutes=-5)),
+			},
+			"name",
+			order_by="creation desc",
+		)
 
 	if not file_doc_name:
 		frappe.throw(_("Uploaded file not found"))
@@ -1183,7 +1194,6 @@ def upload_file_to_folder(doctype, docname, file_url, folder=None, file_name=Non
 		file_doc.file_name = file_name
 
 	file_doc.save(ignore_permissions=False)
-	frappe.db.commit()
 	return file_doc.as_dict()
 
 

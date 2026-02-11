@@ -206,7 +206,7 @@ export function applyCardViewMixin(GalleryClass) {
 								: ""
 						}
 						<div class="cover-body">
-							<p class="view-button preview-btn" style="cursor: pointer;" data-file='${JSON.stringify(file)}'>
+							<p class="view-button preview-btn" style="cursor: pointer;" data-file-id="${file.name}">
 								<i class="fa fa-eye"></i>
 							</p>
 						</div>

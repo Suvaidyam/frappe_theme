@@ -1579,9 +1579,10 @@ class SVAGalleryComponent {
 		$(".preview-btn")
 			.off("click")
 			.on("click", function () {
-				const fileData = $(this).data("file");
-				if (fileData) {
-					self.preview_file(fileData);
+				const fileId = $(this).data("file-id");
+				if (fileId) {
+					const fileData = self.gallery_files.find((f) => f.name === fileId);
+					if (fileData) self.preview_file(fileData);
 				}
 			});
 
