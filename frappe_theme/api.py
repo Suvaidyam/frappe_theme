@@ -1208,7 +1208,7 @@ def upload_file_to_folder(
 	if not file_doc_name:
 		frappe.throw(_("Uploaded file not found"))
 
-	file_doc = frappe.get_doc("File", file_doc_name)
+	file_doc = frappe.get_cached_doc("File", file_doc_name)
 
 	if folder:
 		file_doc.folder = folder
