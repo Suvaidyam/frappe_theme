@@ -41,6 +41,7 @@ app_include_js = [
 	f"/assets/frappe_theme/js/doctype/global_doctype.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/breadcrumb_override.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/sidebar_override.js?ver={time.time()}",
+	"/assets/frappe_theme/js/multi_image_gallery.js",
 ]
 extend_bootinfo = "frappe_theme.boot.boot_theme"
 # include js, css files in header of web template
