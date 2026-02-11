@@ -73,7 +73,7 @@ doctype_js = {
 # Svg Icons
 # ------------------
 # include app icons in desk
-app_include_icons = "/assets/frappe_theme/icons/oct-icons.svg"
+# app_include_icons = "/assets/frappe_theme/icons/oct-icons.svg"
 
 # Home Pages
 # ----------
