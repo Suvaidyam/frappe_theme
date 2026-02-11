@@ -1603,16 +1603,34 @@ class SVAGalleryComponent {
 				self.updateSelectedFilesUI();
 			});
 
-		$("#selectAllCheckBox")
+		$(".selectAllCheckBox")
 			.off("change")
 			.on("change", function () {
 				const isChecked = this.checked;
-				self.selectedFiles = isChecked ? self.gallery_files.map((file) => file.name) : [];
-				$(".toggleCheckbox").prop("checked", isChecked);
+				const $list = $(this).closest(".frappe-list");
+
+				// Get only the file checkboxes within this list group
+				const $groupCheckboxes = $list.find(".toggleCheckbox");
+				const groupFileIds = $groupCheckboxes
+					.map(function () {
+						return $(this).data("id");
+					})
+					.get();
+
+				$groupCheckboxes.prop("checked", isChecked);
+
 				if (isChecked) {
-					$(".checkbox-container").addClass("selected");
+					// Add group files to selection (avoid duplicates)
+					groupFileIds.forEach((fid) => {
+						if (!self.selectedFiles.includes(fid)) {
+							self.selectedFiles.push(fid);
+						}
+					});
 				} else {
-					$(".checkbox-container").removeClass("selected");
+					// Remove only this group's files from selection
+					self.selectedFiles = self.selectedFiles.filter(
+						(fid) => !groupFileIds.includes(fid)
+					);
 				}
 				self.updateSelectedFilesUI();
 			});
@@ -1630,15 +1648,20 @@ class SVAGalleryComponent {
 			}
 		}
 
-		// Update select all checkbox if it exists
-		const selectAllCheckbox = document.getElementById("selectAllCheckBox");
-		if (selectAllCheckbox) {
-			if (this.selectedFiles.length === this.gallery_files.length) {
-				selectAllCheckbox.checked = true;
-			} else {
-				selectAllCheckbox.checked = false;
+		// Update each group's select-all checkbox based on its own files
+		const self = this;
+		$(".selectAllCheckBox").each(function () {
+			const $list = $(this).closest(".frappe-list");
+			const $groupCheckboxes = $list.find(".toggleCheckbox");
+			if ($groupCheckboxes.length === 0) {
+				$(this).prop("checked", false);
+				return;
 			}
-		}
+			const allGroupChecked = $groupCheckboxes
+				.toArray()
+				.every((cb) => self.selectedFiles.includes($(cb).data("id")));
+			$(this).prop("checked", allGroupChecked);
+		});
 	}
 
 	// ─── Gallery update & group toggle ──────────────────────────────

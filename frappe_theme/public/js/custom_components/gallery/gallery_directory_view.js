@@ -62,7 +62,6 @@ export function applyDirectoryViewMixin(GalleryClass) {
 		});
 
 		// Navigate to the right level in dirTree
-		let currentNode = null;
 		let folders = [];
 		let files = [];
 
@@ -103,7 +102,6 @@ export function applyDirectoryViewMixin(GalleryClass) {
 				}
 			}
 			if (found && node) {
-				currentNode = node;
 				// Child folders
 				folders = Object.entries(node.children).map(([name, child]) => ({
 					name,
@@ -148,7 +146,6 @@ export function applyDirectoryViewMixin(GalleryClass) {
 			.join("");
 
 		// Folder cards
-		const themeColor = frappe.boot.my_theme?.button_background_color || "var(--primary)";
 		const folderCardsHTML = folders.length
 			? `<div style="margin-bottom: 20px;">
 				<div style="font-weight: 600; font-size: 13px; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
@@ -243,7 +240,6 @@ export function applyDirectoryViewMixin(GalleryClass) {
 
 	GalleryClass.prototype._attachDirectoryEventListeners = function () {
 		const self = this;
-		const canWrite = this.permissions.includes("write");
 		const canDelete = this.permissions.includes("delete");
 
 		// Folder card click — navigate into folder

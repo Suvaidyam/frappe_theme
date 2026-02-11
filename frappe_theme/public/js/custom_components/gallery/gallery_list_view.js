@@ -125,7 +125,7 @@ export function applyListViewMixin(GalleryClass) {
 								<div class="frappe-list-row">
 									${
 										canDelete
-											? `<div class="frappe-list-col frappe-list-col-checkbox"><input type="checkbox" class="list-row-checkbox" id="selectAllCheckBox"></div>`
+											? `<div class="frappe-list-col frappe-list-col-checkbox"><input type="checkbox" class="list-row-checkbox selectAllCheckBox"></div>`
 											: ""
 									}
 									<div class="frappe-list-col frappe-list-col-subject">Name</div>
