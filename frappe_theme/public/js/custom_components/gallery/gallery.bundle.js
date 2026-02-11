@@ -552,7 +552,7 @@ class SVAGalleryComponent {
 					self._refreshUploadFolderTree(uploadDialog);
 				} catch (error) {
 					console.error("Error creating folder:", error);
-					frappe.msgprint(__("Failed to create folder: ") + (error.message || error));
+					frappe.msgprint(`${__("Failed to create folder:")} ${error.message || error}`);
 				}
 			},
 		});
