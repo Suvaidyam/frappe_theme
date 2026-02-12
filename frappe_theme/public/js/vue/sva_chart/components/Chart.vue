@@ -14,7 +14,9 @@
 							aria-haspopup="true"
 							aria-expanded="false"
 						>
-							<svg class="icon icon-sm"><use href="#icon-dot-horizontal"></use></svg>
+							<svg class="icon icon-sm">
+								<use href="#icon-dot-horizontal"></use>
+							</svg>
 						</span>
 						<div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
 							<a
@@ -45,13 +47,15 @@
 						v-if="chart?.details?.type === 'Pie'"
 						:data="data"
 						:options="{ ...options, ...data?.options }"
-						:height="400"
+						:height="370"
+						:style="{ padding: '15px 25px' }"
 					/>
 					<Doughnut
 						v-if="chart?.details?.type === 'Donut'"
 						:data="data"
 						:options="{ ...options, ...data?.options }"
-						:height="400"
+						:height="370"
+						:style="{ padding: '15px 25px' }"
 					/>
 				</div>
 				<div class="frappe-theme-no-data" v-else>No data</div>
@@ -93,7 +97,8 @@ ChartJS.register(
 	ArcElement,
 	PointElement,
 	LineElement,
-	Filler
+	Filler,
+	ChartDataLabels
 );
 
 const props = defineProps({
@@ -119,16 +124,36 @@ const props = defineProps({
 	},
 });
 
-if (props.chart?.details?.custom_show_data_labels) {
-	ChartJS.register(ChartDataLabels);
-}
-
 const loading = ref(true);
 const showChart = ref(false);
 const data = ref({
 	labels: [],
 	datasets: [{ data: [] }],
 });
+
+function getBWColor(hex) {
+	if (!hex) return "#000";
+
+	hex = hex.replace("#", "");
+
+	// handle short hex (#fff)
+	if (hex.length === 3) {
+		hex = hex
+			.split("")
+			.map((c) => c + c)
+			.join("");
+	}
+
+	const r = parseInt(hex.substr(0, 2), 16);
+	const g = parseInt(hex.substr(2, 2), 16);
+	const b = parseInt(hex.substr(4, 2), 16);
+
+	// Relative luminance (WCAG)
+	const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+
+	// threshold can be tuned (140–160 is sweet spot)
+	return luminance > 150 ? "#000000" : "#ffffff";
+}
 
 const options = ref({
 	indexAxis: props.chart?.details?.custom_enable_row ? "y" : "x",
@@ -142,6 +167,28 @@ const options = ref({
 								parseInt(props.chart?.details?.custom_rotate_values || 0) || 0,
 							maxRotation:
 								parseInt(props.chart?.details?.custom_rotate_values || 0) || 0,
+							autoSkip: false,
+							callback: function (value, index, ticks) {
+								const label = this.getLabelForValue(value);
+								if (typeof label !== "string") return label;
+
+								// Get chart width and calculate available space per label
+								const chartWidth = this.chart.width || 800;
+								const labelCount = ticks.length || 1;
+								const availableWidth = chartWidth / labelCount;
+
+								// Calculate max characters based on available width
+								// Approximate: 8px per character at default font size
+								const maxChars = Math.floor(availableWidth / 8) - 2;
+
+								// Dynamic truncation based on screen size
+								if (label.length > maxChars && maxChars > 10) {
+									return label.substring(0, maxChars - 3) + "...";
+								}
+
+								return label;
+							},
+							maxTicksLimit: 20,
 						},
 				  }
 				: {
@@ -154,7 +201,10 @@ const options = ref({
 								: false,
 						ticks: {
 							callback: function (value) {
-								return frappe.utils.shorten_number(value);
+								return frappe.utils.shorten_number(
+									value,
+									frappe.sys_defaults.country
+								);
 							},
 						},
 				  }),
@@ -172,7 +222,10 @@ const options = ref({
 								: false,
 						ticks: {
 							callback: function (value) {
-								return frappe.utils.shorten_number(value);
+								return frappe.utils.shorten_number(
+									value,
+									frappe.sys_defaults.country
+								);
 							},
 						},
 				  }
@@ -182,6 +235,28 @@ const options = ref({
 								parseInt(props.chart?.details?.custom_rotate_values || 0) || 0,
 							maxRotation:
 								parseInt(props.chart?.details?.custom_rotate_values || 0) || 0,
+							autoSkip: false,
+							callback: function (value, index, ticks) {
+								const label = this.getLabelForValue(value);
+								if (typeof label !== "string") return label;
+
+								// Get chart width and calculate available space per label
+								const chartWidth = this.chart.width || 800;
+								const labelCount = ticks.length || 1;
+								const availableWidth = chartWidth / labelCount;
+
+								// Calculate max characters based on available width
+								// Approximate: 8px per character at default font size
+								const maxChars = Math.floor(availableWidth / 8) - 2;
+
+								// Dynamic truncation based on screen size
+								if (label.length > maxChars && maxChars > 10) {
+									return label.substring(0, maxChars - 3) + "...";
+								}
+
+								return label;
+							},
+							maxTicksLimit: 20,
 						},
 				  }),
 		},
@@ -244,16 +319,51 @@ const options = ref({
 								props.chart?.details?.currency
 							)}`;
 						} else if (meta.fieldtype === "Int" || meta.fieldtype === "Float") {
-							return `${meta.label}: ${frappe.utils.shorten_number(value)}`;
+							return `${meta.label}: ${frappe.utils.shorten_number(
+								value,
+								frappe.sys_defaults.country
+							)}`;
 						}
+					} else {
+						return value;
 					}
 				},
 			},
 		},
+		datalabels: {
+			display: props.chart?.details?.custom_show_data_labels == 1 ? true : false,
+			anchor: "center",
+			align: "center",
+			formatter: (v) => {
+				let meta = v.meta || {};
+				let value = v?.y || 0;
+				if (meta) {
+					if (meta.fieldtype === "Currency") {
+						return `${frappe.utils.format_currency(
+							value,
+							props.chart?.details?.currency
+						)}`;
+					} else if (meta.fieldtype === "Int" || meta.fieldtype === "Float") {
+						return `${frappe.utils.shorten_number(
+							value,
+							frappe.sys_defaults.country
+						)}`;
+					}
+				} else {
+					return value;
+				}
+			},
+			color: (ctx) => {
+				const dataset = ctx.chart.data.datasets[ctx.datasetIndex];
+				const bg = Array.isArray(dataset.backgroundColor)
+					? dataset.backgroundColor[ctx.dataIndex]
+					: dataset.backgroundColor;
+
+				return getBWColor(bg);
+			},
+		},
 	},
 });
-// console.log(options.value, "options");
-// const emit = defineEmits(['action-clicked']);
 
 const handleAction = async (action) => {
 	if (action == "refresh") {
@@ -281,6 +391,15 @@ const handleAction = async (action) => {
 			},
 			loader,
 		};
+
+		if (props?.chart?.html_field) {
+			table_options.connection["html_field"] = props.chart.html_field;
+			table_options.connection["configuration_basis"] = "Property Setter";
+		}
+
+		if (props.chart?.listview_settings) {
+			table_options.connection["listview_settings"] = props.chart.listview_settings;
+		}
 
 		if (props.chart?.details?.chart_type == "Report") {
 			table_options.connection["link_report"] = props.chart.details?.report_name;
@@ -339,6 +458,19 @@ const getCount = async () => {
 		type = "Document Type";
 		details = props.chart.details;
 	}
+	let pre_filters = {};
+	if (props.frm) {
+		if (
+			props.frm?.["dt_events"]?.[details.name]?.get_filters ||
+			props.frm?.["dt_events"]?.[props?.chart?.html_field]?.get_filters
+		) {
+			let get_filters =
+				props.frm?.["dt_events"]?.[details.name]?.get_filters ||
+				props.frm?.["dt_events"]?.[props?.chart?.html_field]?.get_filters;
+			pre_filters =
+				(await get_filters(details, props.frm || {}, props?.chart?.html_field)) || {};
+		}
+	}
 	try {
 		loading.value = true;
 		let res = await frappe.call({
@@ -349,7 +481,7 @@ const getCount = async () => {
 				report: report,
 				doctype: cur_frm.doc.doctype,
 				docname: cur_frm.doc.name,
-				filters: props.filters,
+				filters: { ...(props.filters || {}), ...pre_filters },
 			},
 		});
 		if (res.message) {

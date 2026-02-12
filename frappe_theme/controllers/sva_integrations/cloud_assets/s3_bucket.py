@@ -1,6 +1,7 @@
 import datetime
 import random
 import re
+import secrets
 import string
 
 import boto3
@@ -83,7 +84,8 @@ class S3Operations:
 
 		file_name = file_name.replace(" ", "_")
 		file_name = self.strip_special_chars(file_name)
-		key = "".join(random.choice(string.ascii_uppercase + string.digits) for _ in range(8))
+		alphabet = string.ascii_uppercase + string.digits
+		key = "".join(secrets.choice(alphabet) for _ in range(8))
 
 		today = datetime.datetime.now()
 		year = today.strftime("%Y")

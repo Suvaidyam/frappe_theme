@@ -1,3 +1,4 @@
+import { add_custom_approval_assignments_fields } from "./utils.bundle.js";
 frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 	show_actions() {
 		var added = false;
@@ -21,8 +22,10 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 			return approval_access;
 		}
 
-		frappe.workflow.get_transitions(this.frm.doc).then((transitions) => {
+		frappe.workflow.get_transitions(this.frm.doc).then(async (transitions) => {
 			this.frm.page.clear_actions_menu();
+
+			// Show regular workflow transitions
 			transitions?.forEach((d) => {
 				if (frappe.user_roles.includes(d.allowed) && has_approval_access(d)) {
 					added = true;
@@ -106,7 +109,9 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 									};
 								});
 						}
-						if (fields?.length) {
+						// Add custom fields that don't exist in meta fields
+						const customFields = await add_custom_approval_assignments_fields(d);
+						if (fields?.length || customFields?.length) {
 							try {
 								// Resolve all field promises before proceeding
 								const resolvedFields = await Promise.all(fields);
@@ -130,11 +135,13 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 											bg?.style?.toLowerCase() || "secondary"
 										}">${action}</span></p>`,
 									},
+									...(customFields || []),
 									...(resolvedFields ? resolvedFields : []),
 								];
 								let title = __(me.frm.doctype);
 								let dailog = new frappe.ui.Dialog({
 									title: title,
+									size: frappe.utils.get_dialog_size(popupFields),
 									fields: popupFields,
 									primary_action_label: __(action),
 									secondary_action_label: __("Cancel"),
@@ -151,6 +158,12 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 													wf_dialog_fields: values ? values : {},
 												},
 												action: action,
+												is_custom_transition: d?.is_custom_transition || 0,
+												is_comment_required: d?.is_comment_required || 0,
+												custom_comment:
+													d?.is_comment_required == 1
+														? values?.wf_comment || ""
+														: "",
 											})
 											.then((doc) => {
 												frappe.model.sync(doc);
@@ -179,6 +192,7 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 									.xcall("frappe.model.workflow.apply_workflow", {
 										doc: me.frm.doc,
 										action: d.action,
+										is_custom_transition: d?.is_custom_transition || 0,
 									})
 									.then((doc) => {
 										frappe.model.sync(doc);

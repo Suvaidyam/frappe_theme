@@ -114,6 +114,7 @@ class SVATimelineGenerator {
             overflow: hidden;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             background: #f9fafb;
+            table-layout: fixed;
         }
 
         .changes-table th {
@@ -125,10 +126,30 @@ class SVATimelineGenerator {
             font-size: 0.875rem;
         }
 
+        .changes-table th:nth-child(1) {
+            width: 40%;
+        }
+
+        .changes-table th:nth-child(2),
+        .changes-table th:nth-child(3) {
+            width: 30%;
+        }
+
         .changes-table td {
             padding: 8px 12px;
             border-top: 1px solid #e5e7eb;
             font-size: 0.875rem;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .changes-table td:nth-child(1) {
+            width: 40%;
+        }
+
+        .changes-table td:nth-child(2),
+        .changes-table td:nth-child(3) {
+            width: 30%;
         }
 
         .old-value, .new-value {
@@ -541,6 +562,7 @@ class SVATimelineGenerator {
 			}
 		}
 	}
+
 	fetchTimelineData(append = false) {
 		if (!append) {
 			this.showSkeletonLoader();
@@ -593,9 +615,140 @@ class SVATimelineGenerator {
 						} catch (error) {
 							console.error("Error parsing 'changed' field:", error);
 						}
+						// Separate regular changes and child table changes
+						const regularChanges = [];
+						const childTableGroups = {};
+						const childTableRowCounters = {}; // Track row indices per child table
+
+						changes.forEach((change) => {
+							const isChildTable = change[3] === 1;
+							if (isChildTable) {
+								const childTableField = change[4] || "";
+								const rowName = change[5] || "";
+								const key = `${childTableField}_${rowName}`;
+								if (!childTableGroups[key]) {
+									// Extract child table label from the first change's full label
+									const fullLabel = change[0] || "";
+									const childTableLabel = fullLabel.includes(" > ")
+										? fullLabel.split(" > ")[0]
+										: childTableField;
+
+									// Track row index per child table
+									if (!childTableRowCounters[childTableField]) {
+										childTableRowCounters[childTableField] = 0;
+									}
+									const rowIdx = childTableRowCounters[childTableField]++;
+
+									childTableGroups[key] = {
+										childTableField: childTableField,
+										childTableLabel: childTableLabel,
+										rowIdx: rowIdx,
+										changes: [],
+									};
+								}
+
+								// Extract field name from the label (after " > ")
+								const fullLabel = change[0] || "";
+								const fieldLabel = fullLabel.includes(" > ")
+									? fullLabel.split(" > ")[1]
+									: fullLabel;
+
+								childTableGroups[key].changes.push({
+									fieldLabel: fieldLabel,
+									oldValue: change[1] || "",
+									newValue: change[2] || "",
+								});
+							} else {
+								regularChanges.push({
+									fieldLabel: change[0] || "",
+									oldValue: change[1] || "",
+									newValue: change[2] || "",
+								});
+							}
+						});
 
 						const entry = document.createElement("div");
 						entry.className = "timeline-entry";
+
+						// Build HTML for regular changes
+						let regularChangesHTML = "";
+						if (regularChanges.length > 0) {
+							regularChangesHTML = `
+								<table class="changes-table">
+									<thead>
+										<tr>
+											<th>Field</th>
+											<th>Previous</th>
+											<th>Current</th>
+										</tr>
+									</thead>
+									<tbody>
+										${regularChanges
+											.map(
+												(change) => `
+											<tr>
+												<td>${change.fieldLabel}</td>
+												<td><span class="old-value">${change.oldValue || ""}</span></td>
+												<td><span class="new-value">${change.newValue || ""}</span></td>
+											</tr>
+										`
+											)
+											.join("")}
+									</tbody>
+								</table>`;
+						}
+
+						// Build HTML for child table changes
+						let childTableChangesHTML = "";
+						const childTableKeys = Object.keys(childTableGroups);
+						if (childTableKeys.length > 0) {
+							childTableChangesHTML = childTableKeys
+								.map((key) => {
+									const group = childTableGroups[key];
+
+									return `
+										<div class="child-table-section" style="margin-top: 16px;">
+											<div class="child-table-header" style="
+												padding: 8px 0;
+												margin-bottom: 8px;
+												font-weight: 600;
+												color: #4b5563;
+												font-size: 0.875rem;
+											">
+												${
+													group.childTableLabel
+														? group.childTableLabel
+														: group.childTableField
+												} <span style="color: #6b7280; font-weight: 500;">(Row #${
+										group.rowIdx + 1
+									})</span>
+											</div>
+											<table class="changes-table">
+												<thead>
+													<tr>
+														<th>Field</th>
+														<th>Previous</th>
+														<th>Current</th>
+													</tr>
+												</thead>
+												<tbody>
+													${group.changes
+														.map(
+															(change) => `
+														<tr>
+															<td>${change.fieldLabel}</td>
+															<td><span class="old-value">${change.oldValue || ""}</span></td>
+															<td><span class="new-value">${change.newValue || ""}</span></td>
+														</tr>
+													`
+														)
+														.join("")}
+												</tbody>
+											</table>
+										</div>`;
+								})
+								.join("");
+						}
 
 						entry.innerHTML = `
                         <div class="timeline-header">
@@ -636,28 +789,8 @@ class SVATimelineGenerator {
 								)}</span>
                             </div>
                         </div>
-                        <table class="changes-table">
-                            <thead>
-                                <tr>
-                                    <th>Field</th>
-                                    <th>Previous</th>
-                                    <th>Current</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${changes
-									.map(
-										(change) => `
-                                    <tr>
-                                        <td>${change[0]}</td>
-                                        <td><span class="old-value">${change[1] || ""}</span></td>
-                                        <td><span class="new-value">${change[2] || ""}</span></td>
-                                    </tr>
-                                `
-									)
-									.join("")}
-                            </tbody>
-                        </table>`;
+                        ${regularChangesHTML}
+                        ${childTableChangesHTML}`;
 
 						entry.querySelector(".timeline-link").addEventListener("click", (e) => {
 							e.preventDefault();

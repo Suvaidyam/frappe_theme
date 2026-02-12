@@ -13,19 +13,23 @@ app_license = "mit"
 import time
 
 app_include_css = [
-	"https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
+	# "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
 	f"/assets/frappe_theme/css/frappe_theme.css?ver={time.time()}",
 	f"/assets/frappe_theme/css/number_card_mapper.css?ver={time.time()}",
 ]
 app_include_js = [
-	"https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
+	# "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
 	"global_exporter.bundle.js",
 	"sva_workspace.bundle.js",
 	"overwrite_form.bundle.js",
 	"overwrite_workflow.bundle.js",
 	"override_date_field.bundle.js",
 	"frappe_theme.bundle.js",
+	"override_link.bundle.js",
+	"override_select.bundle.js",
 	"override_table_multiselect.bundle.js",
+	"override_button.bundle.js",
+	"override_multiselect.bundle.js",
 	f"/assets/frappe_theme/js/svadb.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/fields_comment.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/extended_chart.js?ver={time.time()}",
@@ -37,6 +41,7 @@ app_include_js = [
 	f"/assets/frappe_theme/js/doctype/global_doctype.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/breadcrumb_override.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/sidebar_override.js?ver={time.time()}",
+	"/assets/frappe_theme/js/multi_image_gallery.js",
 ]
 extend_bootinfo = "frappe_theme.boot.boot_theme"
 # include js, css files in header of web template
@@ -68,7 +73,7 @@ doctype_js = {
 # Svg Icons
 # ------------------
 # include app icons in desk
-# app_include_icons = "frappe_theme/public/icons.svg"
+# app_include_icons = "/assets/frappe_theme/icons/oct-icons.svg"
 
 # Home Pages
 # ----------
@@ -98,6 +103,7 @@ jinja = {"methods": "frappe_theme.utils.jinja_methods"}
 
 # before_install = "frappe_theme.install.before_install"
 # after_install = "frappe_theme.install.after_install"
+after_migrate = "frappe_theme.setup.migration.after_migrate"
 
 # Uninstallation
 # ------------
@@ -172,6 +178,7 @@ doc_events = {
 
 override_whitelisted_methods = {
 	"frappe.model.workflow.apply_workflow": "frappe_theme.overrides.workflow.custom_apply_workflow",
+	"frappe.model.workflow.get_transitions": "frappe_theme.overrides.workflow.get_custom_transitions",
 	"frappe.desk.reportview.get": "frappe_theme.utils.data_protection.mask_doc_list_view",
 	"frappe.desk.listview.get": "frappe_theme.utils.data_protection.mask_doc_list_view",
 	"frappe.desk.query_report.run": "frappe_theme.utils.data_protection.mask_query_report",
@@ -181,23 +188,13 @@ override_whitelisted_methods = {
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-# 	"all": [
-# 		"frappe_theme.tasks.all"
-# 	],
-# 	"daily": [
-# 		"frappe_theme.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"frappe_theme.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"frappe_theme.tasks.weekly"
-# 	],
-# 	"monthly": [
-# 		"frappe_theme.tasks.monthly"
-# 	],
-# }
+scheduler_events = {
+	"cron": {
+		"*/10 * * * *": [
+			"frappe_theme.cron.sync_ticket_status.run",
+		]
+	}
+}
 
 # Testing
 # -------
@@ -210,7 +207,6 @@ override_whitelisted_methods = {
 # override_whitelisted_methods = {
 # 	"frappe.desk.doctype.event.event.get_events": "frappe_theme.event.get_events"
 # }
-
 
 #
 # each overriding function accepts a `data` argument;

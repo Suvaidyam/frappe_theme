@@ -1,0 +1,124 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:{####}",
+ "creation": "2026-01-11 20:34:34.364866",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_zblg",
+  "subject",
+  "column_break_uzyc",
+  "priority",
+  "column_break_xuwd",
+  "ticket_type",
+  "ticket_sataus_section",
+  "status",
+  "column_break_vyoa",
+  "hd_id",
+  "column_break_wzoi",
+  "section_break_mcer",
+  "description"
+ ],
+ "fields": [
+  {
+   "fieldname": "subject",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Subject",
+   "reqd": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text Editor",
+   "label": "Description",
+   "reqd": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Open\nReplied\nResolved\nClosed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_zblg",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_uzyc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ticket_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Ticket Type",
+   "options": "\nUnspecified\nBug\nQuestion\nIncident"
+  },
+  {
+   "fieldname": "priority",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Priority",
+   "options": "\nLow\nMedium\nHigh\nUrgent"
+  },
+  {
+   "fieldname": "section_break_mcer",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "hd_id",
+   "fieldtype": "Data",
+   "label": "Ticket ID",
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "column_break_xuwd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ticket_sataus_section",
+   "fieldtype": "Section Break",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_vyoa",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_wzoi",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-01-14 15:58:56.568676",
+ "modified_by": "Administrator",
+ "module": "Frappe Theme",
+ "name": "SVA Ticket",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -176,7 +176,7 @@ after_render_control = async function (dialog, _frm) {
 			render_child_form(dialog, "write", row);
 		});
 	};
-	let add_button = dialog.$wrapper.find(".grid-add-row");
+	let add_button = dialog.fields_dict?.child_confs?.$wrapper.find(".grid-add-row");
 	if (add_button.length) {
 		add_button.off("click");
 		add_button.on("click", function () {
@@ -193,9 +193,27 @@ after_render_control = async function (dialog, _frm) {
 	frm.set_df_property("primary_target", "options", slected_targets);
 	// ++++++++++++++++++++++++++++ Heatmap Configuration Part Ends ++++++++++++++++++++++++++++
 };
+function clear_fields(dialog, field_list) {
+	for (let field of field_list) {
+		if (field.ft === "Check") {
+			dialog?.set_value(field.fn, 0);
+			continue;
+		} else if (field.ft === "Table") {
+			dialog?.set_df_property(field.fn, "data", []);
+			continue;
+		} else {
+			if (field.fn == "crud_permissions") {
+				dialog?.set_value(field.fn, JSON.stringify(["read"]));
+				continue;
+			}
+			dialog?.set_value(field.fn, "");
+			continue;
+		}
+	}
+}
 const field_changes = {
 	property_type: async function (frm) {
-		let fields_being_affected = [
+		let dt_fields_being_affected = [
 			{ fn: "hide_table", ft: "Check" },
 			{ fn: "template", ft: "Select" },
 			{ fn: "link_report", ft: "Link" },
@@ -231,6 +249,32 @@ const field_changes = {
 			{ fn: "disable_workflow", ft: "Check" },
 			{ fn: "child_confs", ft: "Table" },
 		];
+
+		let heat_map_fields_being_affected = [
+			{ fn: "heatmap_report", ft: "Link" },
+			{ fn: "target_fields", ft: "Code" },
+			{ fn: "primary_target", ft: "Select" },
+			{ fn: "block_height", ft: "Int" },
+			{ fn: "min_data_color", ft: "Color" },
+			{ fn: "max_data_color", ft: "Color" },
+		];
+
+		let number_card_fields_being_affected = [
+			{ fn: "number_card", ft: "Link" },
+			{ fn: "icon", ft: "Icon" },
+			{ fn: "icon_color", ft: "Color" },
+			{ fn: "background_color", ft: "Color" },
+			{ fn: "text_color", ft: "Color" },
+			{ fn: "value_color", ft: "Color" },
+			{ fn: "border_color", ft: "Color" },
+			{ fn: "card_hover_background_color", ft: "Color" },
+			{ fn: "card_hover_text_color", ft: "Color" },
+			{ fn: "card_hover_value_color", ft: "Color" },
+			{ fn: "hover_border_color", ft: "Color" },
+		];
+
+		let carousel_fields_being_affected = [{ fn: "carousel", ft: "Table" }];
+
 		let connecttion_type_map = {
 			"DocType (Indirect)": "Indirect",
 			"DocType (Direct)": "Direct",
@@ -239,26 +283,29 @@ const field_changes = {
 			Report: "Report",
 		};
 		let property_type = frm?.config_dialog?.get_value("property_type");
+		if (!property_type) {
+			frm?.config_dialog?.set_value("connection_type", "");
+			clear_fields(frm?.config_dialog, dt_fields_being_affected);
+			clear_fields(frm?.config_dialog, heat_map_fields_being_affected);
+			clear_fields(frm?.config_dialog, number_card_fields_being_affected);
+			clear_fields(frm?.config_dialog, carousel_fields_being_affected);
+			frm?.config_dialog.set_value("html_block", "");
+			frm?.config_dialog.set_value("chart", "");
+		}
 		if (property_type in connecttion_type_map) {
 			frm?.config_dialog?.set_value("connection_type", connecttion_type_map[property_type]);
-			for (let field of fields_being_affected) {
-				if (field.ft === "Check") {
-					frm?.config_dialog?.set_value(field.fn, 0);
-					continue;
-				} else if (field.ft === "Table") {
-					frm?.config_dialog?.set_df_property(field.fn, "data", []);
-					continue;
-				} else {
-					if (field.fn == "crud_permissions") {
-						frm?.config_dialog?.set_value(field.fn, JSON.stringify(["read"]));
-						continue;
-					}
-					frm?.config_dialog?.set_value(field.fn, "");
-					continue;
-				}
-			}
+			clear_fields(frm?.config_dialog, dt_fields_being_affected);
 		} else {
 			frm?.config_dialog?.set_value("connection_type", "");
+		}
+	},
+	// ===================================== is Report Checkbox changes ================================
+	is_report: function (frm) {
+		let is_checked = frm?.config_dialog.get_value("is_report");
+		if (is_checked) {
+			frm?.config_dialog.set_value("connection_type", "Report");
+		} else {
+			frm?.config_dialog.set_value("connection_type", "");
 		}
 	},
 	// ============================== Datatable Configuration Part Starts ==============================
@@ -307,7 +354,10 @@ const field_changes = {
 				if (selected_local_field) {
 					let res = await frappe.call(
 						"frappe_theme.dt_api.get_indirect_connection_foreign_fields",
-						{ dt: row.link_doctype, local_field_option: selected_local_field?.options }
+						{
+							dt: row.link_doctype,
+							local_field_option: selected_local_field?.options,
+						}
 					);
 					foreign_fields = res.message;
 					if (foreign_fields.length) {
@@ -450,6 +500,7 @@ const field_changes = {
 			let affected_fields = [
 				{ fn: "primary_target", ft: "Select" },
 				{ fn: "target_fields", ft: "Code" },
+				{ fn: "state_name_column", ft: "Data" },
 				{ fn: "block_height", ft: "Int" },
 				{ fn: "min_data_color", ft: "Color" },
 				{ fn: "max_data_color", ft: "Color" },
@@ -466,9 +517,10 @@ const field_changes = {
 				return;
 			} else {
 				// check if tere is at least state or district field
-				let has_location_field = res.message?.columns?.some((col) => {
-					return ["State", "District"].includes(col.options);
-				});
+				let has_location_field =
+					res.message?.columns?.some((col) => {
+						return ["State", "District"].includes(col.options);
+					}) || row?.state_name_column;
 				if (!has_location_field) {
 					frappe.throw(
 						__(
@@ -502,9 +554,10 @@ const field_changes = {
 				frappe.throw(__("The selected report does not have any columns."));
 			} else {
 				// check if tere is at least state or district field
-				let has_location_field = res.message?.columns?.some((col) => {
-					return ["State", "District"].includes(col.options);
-				});
+				let has_location_field =
+					res.message?.columns?.some((col) => {
+						return ["State", "District"].includes(col.options);
+					}) || row?.state_name_column;
 				if (!has_location_field) {
 					frappe.throw(
 						__(
@@ -559,6 +612,93 @@ const field_changes = {
 					});
 
 					frm.config_dialog.set_value("target_fields", JSON.stringify(target_fields));
+					dialog.clear();
+					dialog.hide();
+				},
+				secondary_action_label: "Cancel",
+				secondary_action() {
+					dialog.clear();
+					dialog.hide();
+				},
+			}).show();
+		} else {
+			frappe.show_alert({
+				message: __("Please select a report"),
+				indicator: "red",
+			});
+		}
+	},
+	sdg_setup_target_fields: async function (frm) {
+		const row = frm.config_dialog.get_values(true, false);
+		if (row.sdg_report) {
+			let res = await frappe.call({
+				method: "frappe.desk.query_report.run",
+				args: { report_name: row.sdg_report },
+			});
+			if (!res.message?.columns) {
+				frappe.throw(__("The selected report does not have any columns."));
+			} else {
+				// check if tere is at least state or district field
+				let has_sdg_field =
+					res.message?.columns?.some((col) => {
+						return ["SDGs"].includes(col.options);
+					}) || row?.sdg_name_column;
+				if (!has_sdg_field) {
+					frappe.throw(
+						__(
+							"The selected report must have at least one field with SDGs as options or SDG Name Column."
+						)
+					);
+				} else {
+					// check if there is at least one numeric field
+					let has_numeric_field = res.message?.columns?.some((col) => {
+						return ["Int", "Float", "Currency", "Percent"].includes(col.fieldtype);
+					});
+					if (!has_numeric_field) {
+						frappe.throw(
+							__("The selected report must have at least one numeric field.")
+						);
+					}
+				}
+			}
+			let fields = res.message?.columns
+				?.filter((col) => ["Int", "Float", "Currency", "Percent"].includes(col.fieldtype))
+				?.map((col) => {
+					return {
+						label: col.label,
+						fieldname: col.fieldname,
+						fieldtype: col.fieldtype,
+					};
+				});
+			let prev_targets = JSON.parse(row.sdg_target_fields || "[]").map((field) => {
+				return field.fieldname;
+			});
+			let dialog = new frappe.ui.Dialog({
+				title: __("Select Target Fields"),
+				fields: fields.map((field) => {
+					return {
+						label: field.label,
+						fieldname: field.fieldname,
+						default: prev_targets.includes(field.fieldname),
+						fieldtype: "Check",
+					};
+				}),
+				primary_action_label: "Submit",
+				primary_action(values) {
+					let sdg_target_fields = [];
+					fields.forEach((field) => {
+						if (values[field.fieldname]) {
+							sdg_target_fields.push({
+								fieldname: field.fieldname,
+								label: field.label,
+								fieldtype: field.fieldtype,
+							});
+						}
+					});
+					frm.config_dialog.set_value(
+						"sdg_target_fields",
+						JSON.stringify(sdg_target_fields)
+					);
 					dialog.clear();
 					dialog.hide();
 				},
@@ -793,7 +933,7 @@ async function customPropertySetter(frm) {
 											}
 										}
 									} catch (error) {
-										console.log("Exception in Custom Property Setter");
+										console.error("Exception in Custom Property Setter");
 									}
 								}
 								let dialog_fields = [];
@@ -813,7 +953,7 @@ async function customPropertySetter(frm) {
 														let values = JSON.parse(prop.value);
 														table_data = values[field.fieldname] || [];
 													} catch (error) {
-														console.log(
+														console.error(
 															"Exception in Custom Property Setter for Table Field"
 														);
 													}
