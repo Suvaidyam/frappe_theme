@@ -309,7 +309,7 @@ def get_related_tables(
 			fields_meta = [
 				{"fieldname": f.fieldname, "fieldtype": f.fieldtype, "options": f.options, "label": f.label}
 				for f in meta.fields
-				if f.fieldtype not in exclude_meta_fields and f.fieldname
+				if f.fieldtype not in exclude_meta_fields and f.fieldname and not f.get("hidden")
 			]
 
 			# Process child configuration
