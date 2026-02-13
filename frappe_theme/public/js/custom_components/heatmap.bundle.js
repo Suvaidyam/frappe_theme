@@ -4,6 +4,7 @@ import SvaDataTable from "../datatable/sva_datatable.bundle.js";
 class SVAHeatmap {
 	constructor(opts) {
 		this.html_field = opts.html_field || "";
+		this.conf = opts || {};
 		this.reportName = opts.report || "";
 		this.wrapper = opts.wrapper;
 		this.stateGeoJsonUrl = "/assets/frappe_theme/boundaries/state_boundries.json";
@@ -35,7 +36,7 @@ class SVAHeatmap {
                 position: absolute;
                 top: 10px;
                 right: 10px;
-                z-index: 1000;
+                z-index: 1;
                 background: white;
                 padding: 8px 15px;
                 border-radius: 4px;
@@ -47,7 +48,7 @@ class SVAHeatmap {
                 position: absolute;
                 bottom: 18px;
                 right: 10px;
-                z-index: 1000;
+                z-index: 1;
                 background: white;
                 padding: 6px 8px;
                 border-radius: 4px;
@@ -95,6 +96,7 @@ class SVAHeatmap {
 				margin: "0 auto",
 				backgroundColor: "#fff",
 				padding: "10px 10px 5px 10px",
+				zIndex: 2,
 				borderRadius: "10px",
 				border: "1px solid #dcdcdc",
 			});
@@ -104,7 +106,7 @@ class SVAHeatmap {
 			position: "absolute",
 			top: "10px",
 			left: "10px",
-			zIndex: 1000,
+			zIndex: 1,
 			backgroundColor: "#fff",
 			fontWeight: "bold",
 			fontSize: "14px",
@@ -125,7 +127,7 @@ class SVAHeatmap {
 				position: "absolute",
 				top: "10px",
 				right: "45px",
-				zIndex: 1000,
+				zIndex: 1,
 				padding: "4px 6px",
 				backgroundColor: "#fff",
 				border: "none",
@@ -144,7 +146,7 @@ class SVAHeatmap {
 				position: "absolute",
 				top: "10px",
 				right: "10px",
-				zIndex: 1000,
+				zIndex: 1,
 				padding: "4px 4px",
 				backgroundColor: "#fff",
 				border: "none",
@@ -167,7 +169,7 @@ class SVAHeatmap {
 				position: "absolute",
 				top: "10px",
 				right: "105px",
-				zIndex: 1000,
+				zIndex: 1,
 				padding: "4px 6px",
 				backgroundColor: "#fff",
 				border: "none",
@@ -183,7 +185,7 @@ class SVAHeatmap {
 				position: "absolute",
 				top: "10px",
 				right: "75px",
-				zIndex: 1000,
+				zIndex: 1,
 				padding: "4px 6px",
 				backgroundColor: "#fff",
 				border: "none",
@@ -199,7 +201,7 @@ class SVAHeatmap {
 			left: "0",
 			right: "0",
 			bottom: "0",
-			zIndex: 1000,
+			zIndex: 1,
 			background: "rgba(255, 255, 255, 0.8)",
 			display: "flex",
 			alignItems: "center",
@@ -279,6 +281,15 @@ class SVAHeatmap {
 			loader,
 		};
 
+		if (this.html_field) {
+			table_options.connection["html_field"] = this.html_field;
+			table_options.connection["configuration_basis"] = "Property Setter";
+		}
+
+		if (this.conf?.listview_settings) {
+			table_options.connection["listview_settings"] = this.conf?.listview_settings;
+		}
+
 		let dialog = new frappe.ui.Dialog({
 			title: this.reportName || "Data Table",
 			fields: [
@@ -346,6 +357,7 @@ class SVAHeatmap {
 						).fieldname;
 					}
 					if (this.stateField || hasStateColumn) {
+						this.hideLoader();
 						this.applyDataToMap();
 					} else {
 						this.hideLoader();
@@ -374,52 +386,56 @@ class SVAHeatmap {
 	}
 
 	applyDataToMap() {
-		if (!this.stateLayer) return;
-		this.stateData = {};
-		this.reportData?.result?.forEach((row) => {
-			const stateId = row[this.stateField];
-			if (!this.stateData[stateId]) {
-				this.stateData[stateId] = {
-					data: { ...row }, // Create a copy of the row data
-					count: row[this.primaryTargetField],
-					id: stateId,
-				};
-			} else {
-				this.stateData[stateId].count += row[this.primaryTargetField];
-				// Merge the data for additional fields
-				this.targetFields.forEach((field) => {
-					const fieldname = field.fieldname;
-					if (typeof row[fieldname] === "number") {
-						this.stateData[stateId].data[fieldname] =
-							(this.stateData[stateId].data[fieldname] || 0) + row[fieldname];
-					} else {
-						this.stateData[stateId].data[fieldname] = row[fieldname];
-					}
-				});
-			}
-		});
+		if (this.defaultView == "District") {
+			this.loadDistricts()
+		} else {
+			if (!this.stateLayer) return;
+			this.stateData = {};
+			this.reportData?.result?.forEach((row) => {
+				const stateId = row[this.stateField];
+				if (!this.stateData[stateId]) {
+					this.stateData[stateId] = {
+						data: { ...row }, // Create a copy of the row data
+						count: row[this.primaryTargetField],
+						id: stateId,
+					};
+				} else {
+					this.stateData[stateId].count += row[this.primaryTargetField];
+					// Merge the data for additional fields
+					this.targetFields.forEach((field) => {
+						const fieldname = field.fieldname;
+						if (typeof row[fieldname] === "number") {
+							this.stateData[stateId].data[fieldname] =
+								(this.stateData[stateId].data[fieldname] || 0) + row[fieldname];
+						} else {
+							this.stateData[stateId].data[fieldname] = row[fieldname];
+						}
+					});
+				}
+			});
 
-		// After processing data, create legend
-		const range = this.calculateDataRange(this.stateData);
-		this.createLegend(range);
+			// After processing data, create legend
+			const range = this.calculateDataRange(this.stateData);
+			this.createLegend(range);
 
-		this.stateLayer.eachLayer((layer) => {
-			const stateID = layer.feature.properties.id;
-			const stateName = layer.feature.properties.name;
-			const data = this.stateData[stateID] || this.stateData[stateName];
-			if (data) {
-				layer.setStyle({
-					fillColor: this.getColorByValue(data.count),
-					fillOpacity: 0.7,
-					color: "#333333",
-				});
-			} else {
-				layer.setStyle({
-					fillColor: "#f3f3f3",
-					color: "#333333",
-				});
-			}
-		});
+			this.stateLayer.eachLayer((layer) => {
+				const stateID = layer.feature.properties.id;
+				const stateName = layer.feature.properties.name;
+				const data = this.stateData[stateID] || this.stateData[stateName];
+				if (data) {
+					layer.setStyle({
+						fillColor: this.getColorByValue(data.count),
+						fillOpacity: 0.7,
+						color: "#333333",
+					});
+				} else {
+					layer.setStyle({
+						fillColor: "#f3f3f3",
+						color: "#333333",
+					});
+				}
+			});
+		}
 	}
 
 	// Add new method to calculate range and steps
@@ -478,20 +494,20 @@ class SVAHeatmap {
 
 				if (column?.fieldtype === "Currency") {
 					formattedBreak = frappe.utils.format_currency(
-						break_,
+						break_ || 0,
 						frappe.boot?.sysdefaults?.currency || "INR"
 					);
 					formattedNextBreak = frappe.utils.format_currency(
-						nextBreak,
+						nextBreak || 0,
 						frappe.boot?.sysdefaults?.currency || "INR"
 					);
 				} else {
 					formattedBreak = frappe.utils.shorten_number(
-						break_,
+						break_ || 0,
 						frappe.sys_defaults.country
 					);
 					formattedNextBreak = frappe.utils.shorten_number(
-						nextBreak,
+						nextBreak || 0,
 						frappe.sys_defaults.country
 					);
 				}
@@ -572,10 +588,10 @@ class SVAHeatmap {
 		const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
 		return result
 			? {
-					r: parseInt(result[1], 16),
-					g: parseInt(result[2], 16),
-					b: parseInt(result[3], 16),
-			  }
+				r: parseInt(result[1], 16),
+				g: parseInt(result[2], 16),
+				b: parseInt(result[3], 16),
+			}
 			: null;
 	}
 
@@ -641,11 +657,12 @@ class SVAHeatmap {
 				left: "0",
 				right: "0",
 				bottom: "0",
-				zIndex: 1000,
+				zIndex: 1,
 				background: "rgba(255, 255, 255, 0.8)",
 				display: "flex",
 				alignItems: "center",
 				justifyContent: "center",
+				borderRadius: "10px",
 				flexDirection: "column",
 			})
 			.html(
@@ -682,12 +699,14 @@ class SVAHeatmap {
 								data: row, // Store the complete row data
 								count: this.districtData[districtName]
 									? this.districtData[districtName].count +
-									  row[this.primaryTargetField]
+									row[this.primaryTargetField]
 									: row[this.primaryTargetField],
 								id: districtName,
 							};
 						}
 					});
+				} else {
+					this.districtData = {}
 				}
 				const range = this.calculateDataRange(this.districtData);
 				this.createLegend(range);
@@ -805,7 +824,7 @@ class SVAHeatmap {
 				left: "0",
 				right: "0",
 				bottom: "0",
-				zIndex: 1000,
+				zIndex: 1,
 				background: "rgba(255, 255, 255, 0.8)",
 				display: "flex",
 				alignItems: "center",
@@ -862,14 +881,13 @@ class SVAHeatmap {
 		return `
             <div>
                 <strong>${name}</strong><br/>
-                ${column?.label || "Count"}: ${
-			column?.fieldtype == "Currency"
+                ${column?.label || "Count"}: ${column?.fieldtype == "Currency"
 				? frappe.utils.format_currency(
-						data?.count || 0,
-						frappe.boot?.sysdefaults?.currency || "INR"
-				  )
+					data?.count || 0,
+					frappe.boot?.sysdefaults?.currency || "INR"
+				)
 				: frappe.utils.shorten_number(data?.count || 0, frappe.sys_defaults.country)
-		}
+			}
                 ${additionalFields}
             </div>
         `;

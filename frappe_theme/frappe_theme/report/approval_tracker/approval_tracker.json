@@ -13,7 +13,7 @@
  "idx": 0,
  "is_standard": "Yes",
  "letterhead": null,
- "modified": "2025-12-12 14:27:27.854224",
+ "modified": "2026-02-05 11:41:30.740812",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "APPROVAL TRACKER",
@@ -22,10 +22,6 @@
  "ref_doctype": "Approval Tracker",
  "report_name": "APPROVAL TRACKER",
  "report_type": "Script Report",
- "roles": [
-  {
-   "role": "System Manager"
-  }
- ],
+ "roles": [],
  "timeout": 0
 }

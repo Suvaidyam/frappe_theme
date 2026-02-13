@@ -13,12 +13,12 @@ app_license = "mit"
 import time
 
 app_include_css = [
-	"https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
+	# "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
 	f"/assets/frappe_theme/css/frappe_theme.css?ver={time.time()}",
 	f"/assets/frappe_theme/css/number_card_mapper.css?ver={time.time()}",
 ]
 app_include_js = [
-	"https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
+	# "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
 	"global_exporter.bundle.js",
 	"sva_workspace.bundle.js",
 	"overwrite_form.bundle.js",
@@ -30,7 +30,6 @@ app_include_js = [
 	"override_table_multiselect.bundle.js",
 	"override_button.bundle.js",
 	"override_multiselect.bundle.js",
-	"filters_ribbon.bundle.js",
 	f"/assets/frappe_theme/js/svadb.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/fields_comment.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/extended_chart.js?ver={time.time()}",
@@ -42,6 +41,7 @@ app_include_js = [
 	f"/assets/frappe_theme/js/doctype/global_doctype.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/breadcrumb_override.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/sidebar_override.js?ver={time.time()}",
+	"/assets/frappe_theme/js/multi_image_gallery.js",
 ]
 extend_bootinfo = "frappe_theme.boot.boot_theme"
 # include js, css files in header of web template
@@ -73,7 +73,7 @@ doctype_js = {
 # Svg Icons
 # ------------------
 # include app icons in desk
-app_include_icons = "/assets/frappe_theme/icons/oct-icons.svg"
+# app_include_icons = "/assets/frappe_theme/icons/oct-icons.svg"
 
 # Home Pages
 # ----------
@@ -103,6 +103,7 @@ jinja = {"methods": "frappe_theme.utils.jinja_methods"}
 
 # before_install = "frappe_theme.install.before_install"
 # after_install = "frappe_theme.install.after_install"
+after_migrate = "frappe_theme.setup.migration.after_migrate"
 
 # Uninstallation
 # ------------

@@ -1,13 +1,13 @@
 import json
 import re
-from typing import Union
+from typing import Optional, Union
 
 import frappe
 from frappe import _
-from frappe.custom.doctype.custom_field.custom_field import create_custom_field
 from frappe.utils import cint
 
 from frappe_theme.utils import get_state_closure_by_type
+from frappe_theme.utils.version_utils import VersionUtils
 
 
 @frappe.whitelist(allow_guest=True)
@@ -63,6 +63,17 @@ def get_meta_fields(doctype):
 				field[ps.property] = ps.value
 
 	return fields_dict
+
+
+@frappe.whitelist()
+def get_versions(
+	dt: str,
+	dn: str,
+	page_length: int,
+	start: int,
+	filters: str | None = None,
+) -> list[dict]:
+	return VersionUtils.get_versions(dt, dn, page_length, start, filters)
 
 
 @frappe.whitelist()
@@ -218,86 +229,6 @@ def get_linked_doctype_fields(doc_type, frm_doctype):
 	except Exception as e:
 		frappe.log_error(f"Error in get_linked_doctype_fields: {str(e)}")
 		return None
-
-
-@frappe.whitelist()
-def get_versions(dt, dn, page_length, start, filters=None):
-	if isinstance(filters, str):
-		filters = json.loads(filters)
-
-	where_clause = f"ver.ref_doctype = '{dt}' AND ver.docname = '{dn}'"
-	search_param_cond = ""
-	if filters and isinstance(filters, dict):
-		if filters.get("doctype"):
-			where_clause += f" AND (ver.custom_actual_doctype = '{filters['doctype']}' OR (COALESCE(ver.custom_actual_doctype, '') = '' AND ver.ref_doctype = '{filters['doctype']}'))"
-
-		if filters.get("owner"):
-			search_param_cond = f" WHERE usr.full_name LIKE '{filters['owner']}%'"
-		else:
-			search_param_cond = ""
-
-	sql = f"""
-        WITH extracted AS (
-            SELECT
-                ver.name AS name,
-                ver.owner AS owner,
-                ver.creation AS creation,
-                ver.custom_actual_doctype,
-                ver.custom_actual_document_name,
-                ver.ref_doctype,
-                ver.docname,
-                jt.elem AS changed_elem,
-                JSON_UNQUOTE(JSON_EXTRACT(jt.elem, '$[0]')) AS field_name,
-                JSON_UNQUOTE(JSON_EXTRACT(jt.elem, '$[1]')) AS old_value,
-                JSON_UNQUOTE(JSON_EXTRACT(jt.elem, '$[2]')) AS new_value
-            FROM `tabVersion` AS ver,
-            JSON_TABLE(JSON_EXTRACT(ver.data, '$.changed'), '$[*]'
-                COLUMNS (
-                    elem JSON PATH '$'
-                )
-            ) jt
-            WHERE {where_clause}
-        )
-        SELECT
-            e.custom_actual_doctype,
-            e.custom_actual_document_name,
-            e.ref_doctype,
-            usr.full_name AS owner,
-            e.creation AS creation,
-            e.docname,
-            JSON_ARRAYAGG(
-                JSON_ARRAY(
-                    COALESCE(
-                        (SELECT tf.label FROM `tabDocField` tf WHERE e.field_name = tf.fieldname AND tf.parent = e.ref_doctype LIMIT 1),
-                        (SELECT tf.label FROM `tabDocField` tf WHERE e.field_name = tf.fieldname AND tf.parent = e.custom_actual_doctype LIMIT 1),
-                        (SELECT ctf.label FROM `tabCustom Field` ctf WHERE e.field_name = ctf.fieldname AND ctf.dt = e.ref_doctype LIMIT 1),
-                        (SELECT ctf.label FROM `tabCustom Field` ctf WHERE e.field_name = ctf.fieldname AND ctf.dt = e.custom_actual_doctype LIMIT 1),
-                        e.field_name
-                    ),
-                    COALESCE(
-                        CASE
-                            WHEN e.old_value = 'null' OR e.old_value = '' THEN '(blank)'
-                            ELSE e.old_value
-                        END,
-                        ''
-                    ),
-                    COALESCE(
-                        CASE
-                            WHEN e.new_value = 'null' OR e.new_value = '' THEN '(blank)'
-                            ELSE e.new_value
-                        END
-                    , '')
-                )
-            ) AS changed
-        FROM extracted e
-        LEFT JOIN `tabUser` AS usr ON e.owner = usr.name
-        {search_param_cond}
-        GROUP BY e.name
-        ORDER BY e.creation DESC
-        LIMIT {page_length}
-        OFFSET {start}
-    """
-	return frappe.db.sql(sql, as_dict=True)
 
 
 @frappe.whitelist()
@@ -1172,14 +1103,18 @@ def get_files(doctype, docname):
 			filters={
 				"attached_to_name": ["in", all_docname],
 				"attached_to_doctype": ["in", all_doctype],
+				"is_folder": 0,
 			},
 			fields=[
 				"name",
 				"file_url",
 				"attached_to_doctype",
+				"folder",
 				"attached_to_name",
+				"attached_to_field",
 				"owner",
 				"file_name",
+				"file_type",
 				"file_size",
 				"creation",
 			],
@@ -1189,6 +1124,100 @@ def get_files(doctype, docname):
 	except Exception as e:
 		frappe.log_error(title="Error fetching files", message=str(e))
 		return []
+
+
+@frappe.whitelist()
+def get_folders(doctype: str = None, docname: str = None):
+	"""Return list of File folders: Home, Home/Attachments (global) + folders linked to the document."""
+	# Global folders (always shown)
+	global_folders = [
+		{"name": "Home", "file_name": "Home"},
+		{"name": "Home/Attachments", "file_name": "Attachments"},
+	]
+
+	# Include any other top-level global folders that exist under Home
+	root_folders = frappe.get_all(
+		"File",
+		filters={
+			"is_folder": 1,
+			"folder": "Home",
+			"attached_to_doctype": ["is", "not set"],
+		},
+		fields=["name", "file_name"],
+		order_by="file_name asc",
+	)
+
+	seen = {"Home", "Home/Attachments"}
+	combined = list(global_folders)
+	for f in root_folders:
+		if f["name"] not in seen:
+			seen.add(f["name"])
+			combined.append(f)
+
+	# Document-specific folders (created with attached_to_name)
+	doc_folders = []
+	if doctype and docname:
+		doc_folders = frappe.get_all(
+			"File",
+			filters={
+				"is_folder": 1,
+				"attached_to_doctype": doctype,
+				"attached_to_name": docname,
+			},
+			fields=["name", "file_name"],
+			order_by="file_name asc",
+		)
+
+	for f in doc_folders:
+		if f["name"] not in seen:
+			seen.add(f["name"])
+			combined.append(f)
+
+	return combined
+
+
+@frappe.whitelist()
+def upload_file_to_folder(
+	doctype: str,
+	docname: str,
+	file_url: str,
+	folder: str | None = None,
+	file_name: str | None = None,
+):
+	"""Move an already-uploaded file into the chosen folder."""
+	if not file_url:
+		frappe.throw(_("file_url is required"))
+
+	# Find the file doc attached to this specific document
+	filters = {"file_url": file_url, "attached_to_doctype": doctype, "attached_to_name": docname}
+	file_doc_name = frappe.db.get_value("File", filters, "name")
+
+	if not file_doc_name:
+		# Constrained fallback: match by file_url + current user (owner) + created in the last 5 minutes
+		file_doc_name = frappe.db.get_value(
+			"File",
+			{
+				"file_url": file_url,
+				"owner": frappe.session.user,
+				"creation": (">=", frappe.utils.add_to_date(None, minutes=-5)),
+			},
+			"name",
+			order_by="creation desc",
+		)
+
+	if not file_doc_name:
+		frappe.throw(_("Uploaded file not found"))
+
+	file_doc = frappe.get_cached_doc("File", file_doc_name)
+
+	if folder:
+		file_doc.folder = folder
+
+	if file_name:
+		file_doc.file_name = file_name
+
+	file_doc.save(ignore_permissions=False)
+	return file_doc.as_dict()
 
 
 @frappe.whitelist()
