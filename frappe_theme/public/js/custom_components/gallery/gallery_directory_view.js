@@ -28,6 +28,22 @@ export function getDirectoryViewStyles() {
 			background: var(--control-bg);
 			color: var(--text-color);
 		}
+		/* Drag and Drop Styles */
+		.gallery-wrapper .directory-view.dir-folder-case.drag-over .dir-content-area {
+			border: 2px dashed var(--primary) !important;
+			background: rgba(var(--primary-rgb, 0, 123, 255), 0.03) !important;
+			border-radius: 8px;
+		}
+		.gallery-wrapper .directory-view .dir-drop-zone.drag-over {
+			border-color: var(--primary) !important;
+			background: var(--bg-light-blue, #f0f7ff) !important;
+			box-shadow: 0 0 0 4px rgba(var(--primary-rgb, 0, 123, 255), 0.1) !important;
+		}
+		.gallery-wrapper .directory-view .dir-drop-zone-overlay.drag-over {
+			border-color: var(--primary) !important;
+			background: rgba(var(--primary-rgb, 0, 123, 255), 0.05) !important;
+			box-shadow: inset 0 0 0 2px var(--primary) !important;
+		}
 	`;
 }
 
@@ -211,16 +227,60 @@ export function applyDirectoryViewMixin(GalleryClass) {
 			</div>`
 			: "";
 
+		// Determine if we're in a folder case (not doctype case)
+		// Check if current path corresponds to an actual folder
+		const isFolderCase = this._isFolderCase(currentPath, folders);
+
+		// Only enable drag and drop when inside a directory (not at root)
+		const isInsideDirectory = !!currentPath;
+		const enableDragDrop = isFolderCase && isInsideDirectory;
+
+		// Get target folder path for uploads
+		const targetFolderPath = this._getTargetFolderPath(currentPath, folders);
+
 		const emptyState =
 			!folders.length && !files.length
-				? `<div class="empty-state">
+				? `<div class="empty-state ${enableDragDrop ? "dir-drop-zone" : ""}" ${
+						enableDragDrop ? `data-folder-path="${targetFolderPath}"` : ""
+				  } style="
+					${
+						enableDragDrop
+							? "border: 2px dashed var(--border-color); border-radius: 8px; transition: all 0.2s;"
+							: ""
+					}
+				">
 				<i class="fa fa-folder-open-o"></i>
 				<p>This folder is empty</p>
+				${
+					enableDragDrop
+						? '<p style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">Drag & drop files here to upload</p>'
+						: ""
+				}
 			</div>`
 				: "";
 
+		// Add drop zone overlay for folder cases when there's content and we're inside a directory
+		// This overlay will only cover the content area below breadcrumbs
+		const dropZoneOverlay =
+			enableDragDrop && (folders.length || files.length)
+				? `<div class="dir-drop-zone-overlay" data-folder-path="${targetFolderPath}" style="
+				position: absolute;
+				top: 0;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				border: 2px dashed transparent;
+				border-radius: 8px;
+				pointer-events: none;
+				transition: all 0.2s;
+				z-index: 1;
+			"></div>`
+				: "";
+
 		return `
-			<div class="directory-view">
+			<div class="directory-view ${enableDragDrop ? "dir-folder-case" : ""}" ${
+			enableDragDrop ? `data-folder-path="${targetFolderPath}"` : ""
+		}>
 				<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
 					${
 						currentPath
@@ -231,16 +291,84 @@ export function applyDirectoryViewMixin(GalleryClass) {
 					}
 					${breadcrumbHTML}
 				</div>
-				${folderCardsHTML}
-				${fileCardsHTML}
-				${emptyState}
+				<div class="dir-content-area" style="position: relative; padding: 4px; min-height: 100px;">
+					${dropZoneOverlay}
+					${folderCardsHTML}
+					${fileCardsHTML}
+					${emptyState}
+				</div>
 			</div>
 		`;
+	};
+
+	GalleryClass.prototype._isFolderCase = function (currentPath, folders) {
+		// If we're at root level, check if any folder has folderDocName (real folder)
+		if (!currentPath) {
+			return folders.some((f) => f.folderDocName && f.folderDocName.startsWith("Home"));
+		}
+
+		// Check if current path corresponds to a real folder
+		// Real folders have folderDocName that starts with "Home/"
+		// Doctype cases are just doctype names in the tree without folderDocName
+		const matchingFolder = folders.find((f) => {
+			if (!f.folderDocName) return false;
+			const folderPath = f.folderDocName.replace(/^Home\//, "");
+			return folderPath === currentPath;
+		});
+
+		if (matchingFolder) {
+			return true;
+		}
+
+		// Check if we're navigating within a folder structure
+		// Look at all folders to see if current path is within any folder structure
+		for (const folder of folders) {
+			if (folder.folderDocName) {
+				const folderPath = folder.folderDocName.replace(/^Home\//, "");
+				if (currentPath.startsWith(folderPath + "/") || currentPath === folderPath) {
+					return true;
+				}
+			}
+		}
+
+		// Check if current path matches any folder in the folders list
+		const allFolders = this.folders || [];
+		for (const folderPath of allFolders) {
+			const folderName = folderPath.replace(/^Home\//, "");
+			if (currentPath === folderName || currentPath.startsWith(folderName + "/")) {
+				return true;
+			}
+		}
+
+		return false;
+	};
+
+	GalleryClass.prototype._getTargetFolderPath = function (currentPath, folders) {
+		// If at root, use "Home"
+		if (!currentPath) {
+			return "Home";
+		}
+
+		// Find the folder that matches current path
+		const matchingFolder = folders.find((f) => {
+			const folderPath = f.folderDocName.replace(/^Home\//, "");
+			return folderPath === currentPath;
+		});
+
+		if (matchingFolder) {
+			return matchingFolder.folderDocName;
+		}
+
+		// Build folder path from current path
+		return "Home/" + currentPath;
 	};
 
 	GalleryClass.prototype._attachDirectoryEventListeners = function () {
 		const self = this;
 		const canDelete = this.permissions.includes("delete");
+
+		// Attach drag and drop handlers for folder cases
+		this._attachDragAndDropHandlers();
 
 		// Folder card click — navigate into folder
 		$(this.wrapper)
@@ -345,6 +473,136 @@ export function applyDirectoryViewMixin(GalleryClass) {
 				}
 				self.updateGallery();
 			});
+	};
+
+	GalleryClass.prototype._attachDragAndDropHandlers = function () {
+		const self = this;
+		const $directoryView = $(this.wrapper).find(".directory-view");
+
+		// Only attach handlers if this is a folder case AND we're inside a directory (not at root)
+		if (!$directoryView.hasClass("dir-folder-case")) {
+			return;
+		}
+
+		// Disable drag and drop at root directory level
+		if (!this._currentDirPath) {
+			// Remove any existing handlers if we're at root
+			$directoryView.find(".dir-content-area").off("dragover dragenter dragleave drop");
+			return;
+		}
+
+		// Attach handlers only to content area (below breadcrumbs), not the entire directory view
+		const $contentArea = $directoryView.find(".dir-content-area");
+		if (!$contentArea.length) {
+			return;
+		}
+
+		const $dropZone = $directoryView.find(".dir-drop-zone");
+		const $dropZoneOverlay = $directoryView.find(".dir-drop-zone-overlay");
+
+		// Get target folder path from directory view data attribute
+		const targetFolderPath = $directoryView.data("folder-path") || "Home";
+
+		// Remove any existing handlers first
+		$contentArea.off("dragover dragenter dragleave drop");
+
+		// Prevent default drag behaviors
+		$contentArea.on("dragover", function (e) {
+			e.preventDefault();
+			e.stopPropagation();
+		});
+
+		// Handle drag enter - only triggers when dragging over content area
+		$contentArea.on("dragenter", function (e) {
+			e.preventDefault();
+			e.stopPropagation();
+			$directoryView.addClass("drag-over");
+			$dropZone.addClass("drag-over");
+			$dropZoneOverlay.addClass("drag-over");
+		});
+
+		// Handle drag leave
+		$contentArea.on("dragleave", function (e) {
+			e.preventDefault();
+			e.stopPropagation();
+			// Only remove styling if we're actually leaving the content area
+			const rect = this.getBoundingClientRect();
+			const x = e.originalEvent.clientX;
+			const y = e.originalEvent.clientY;
+
+			if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+				$directoryView.removeClass("drag-over");
+				$dropZone.removeClass("drag-over");
+				$dropZoneOverlay.removeClass("drag-over");
+			}
+		});
+
+		// Handle drop
+		$contentArea.on("drop", function (e) {
+			e.preventDefault();
+			e.stopPropagation();
+
+			// Remove drag-over styling
+			$directoryView.removeClass("drag-over");
+			$dropZone.removeClass("drag-over");
+			$dropZoneOverlay.removeClass("drag-over");
+
+			const files = e.originalEvent.dataTransfer.files;
+			if (files.length > 0) {
+				self._handleFolderDrop(files, targetFolderPath);
+			}
+		});
+	};
+
+	GalleryClass.prototype._handleFolderDrop = async function (files, targetFolderPath) {
+		const self = this;
+
+		if (!this.permissions.includes("create")) {
+			frappe.msgprint(__("You do not have permission to upload files"));
+			return;
+		}
+
+		// Show loading indicator
+		const loadingMsg = frappe.show_alert({
+			message: __("Uploading {0} file(s)...", [files.length]),
+			indicator: "blue",
+		});
+
+		let uploadedCount = 0;
+		let failedCount = 0;
+
+		for (let i = 0; i < files.length; i++) {
+			const file = files[i];
+			try {
+				const fileDoc = await this._uploadSingleFile(file, targetFolderPath);
+				if (fileDoc) {
+					this.gallery_files.unshift(fileDoc);
+					uploadedCount++;
+				}
+			} catch (error) {
+				console.error("Upload failed for", file.name, error);
+				failedCount++;
+			}
+		}
+
+		// Refresh the gallery
+		await this.fetchGalleryFiles();
+		this.updateGallery();
+
+		// Show result message
+		if (uploadedCount > 0 && failedCount === 0) {
+			frappe.show_alert({
+				message: __("{0} file(s) uploaded successfully", [uploadedCount]),
+				indicator: "green",
+			});
+		} else if (uploadedCount > 0 && failedCount > 0) {
+			frappe.show_alert({
+				message: __("{0} file(s) uploaded, {1} failed", [uploadedCount, failedCount]),
+				indicator: "orange",
+			});
+		} else {
+			frappe.msgprint(__("Failed to upload files"));
+		}
 	};
 
 	GalleryClass.prototype._deleteFolder = function (folderDocName, displayName) {
