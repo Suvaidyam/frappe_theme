@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Union
+from typing import Optional, Union
 
 import frappe
 from frappe import _
@@ -1103,14 +1103,18 @@ def get_files(doctype, docname):
 			filters={
 				"attached_to_name": ["in", all_docname],
 				"attached_to_doctype": ["in", all_doctype],
+				"is_folder": 0,
 			},
 			fields=[
 				"name",
 				"file_url",
 				"attached_to_doctype",
+				"folder",
 				"attached_to_name",
+				"attached_to_field",
 				"owner",
 				"file_name",
+				"file_type",
 				"file_size",
 				"creation",
 			],
@@ -1120,6 +1124,100 @@ def get_files(doctype, docname):
 	except Exception as e:
 		frappe.log_error(title="Error fetching files", message=str(e))
 		return []
+
+
+@frappe.whitelist()
+def get_folders(doctype: str = None, docname: str = None):
+	"""Return list of File folders: Home, Home/Attachments (global) + folders linked to the document."""
+	# Global folders (always shown)
+	global_folders = [
+		{"name": "Home", "file_name": "Home"},
+		{"name": "Home/Attachments", "file_name": "Attachments"},
+	]
+
+	# Include any other top-level global folders that exist under Home
+	root_folders = frappe.get_all(
+		"File",
+		filters={
+			"is_folder": 1,
+			"folder": "Home",
+			"attached_to_doctype": ["is", "not set"],
+		},
+		fields=["name", "file_name"],
+		order_by="file_name asc",
+	)
+
+	seen = {"Home", "Home/Attachments"}
+	combined = list(global_folders)
+	for f in root_folders:
+		if f["name"] not in seen:
+			seen.add(f["name"])
+			combined.append(f)
+
+	# Document-specific folders (created with attached_to_name)
+	doc_folders = []
+	if doctype and docname:
+		doc_folders = frappe.get_all(
+			"File",
+			filters={
+				"is_folder": 1,
+				"attached_to_doctype": doctype,
+				"attached_to_name": docname,
+			},
+			fields=["name", "file_name"],
+			order_by="file_name asc",
+		)
+
+	for f in doc_folders:
+		if f["name"] not in seen:
+			seen.add(f["name"])
+			combined.append(f)
+
+	return combined
+
+
+@frappe.whitelist()
+def upload_file_to_folder(
+	doctype: str,
+	docname: str,
+	file_url: str,
+	folder: str | None = None,
+	file_name: str | None = None,
+):
+	"""Move an already-uploaded file into the chosen folder."""
+	if not file_url:
+		frappe.throw(_("file_url is required"))
+
+	# Find the file doc attached to this specific document
+	filters = {"file_url": file_url, "attached_to_doctype": doctype, "attached_to_name": docname}
+	file_doc_name = frappe.db.get_value("File", filters, "name")
+
+	if not file_doc_name:
+		# Constrained fallback: match by file_url + current user (owner) + created in the last 5 minutes
+		file_doc_name = frappe.db.get_value(
+			"File",
+			{
+				"file_url": file_url,
+				"owner": frappe.session.user,
+				"creation": (">=", frappe.utils.add_to_date(None, minutes=-5)),
+			},
+			"name",
+			order_by="creation desc",
+		)
+
+	if not file_doc_name:
+		frappe.throw(_("Uploaded file not found"))
+
+	file_doc = frappe.get_cached_doc("File", file_doc_name)
+
+	if folder:
+		file_doc.folder = folder
+
+	if file_name:
+		file_doc.file_name = file_name
+
+	file_doc.save(ignore_permissions=False)
+	return file_doc.as_dict()
 
 
 @frappe.whitelist()

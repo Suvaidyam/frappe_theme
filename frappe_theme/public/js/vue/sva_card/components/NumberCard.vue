@@ -118,6 +118,10 @@ const handleAction = async (action) => {
 	} else if (action == "edit") {
 		frappe.set_route("Form", props.card?.details?.doctype, props.card?.details?.label);
 	} else if (action == "view_table") {
+		if (props.card.fetch_from == "DocField" && props.card.field) {
+			props.frm.scroll_to_field(props.card.field);
+			return;
+		}
 		const wrapper = document.createElement("div");
 		let loader = new Loader(wrapper);
 		loader.show();
@@ -209,7 +213,7 @@ const getCount = async () => {
 	} else if (props?.card?.details?.type == "Document Type") {
 		type = "Document Type";
 		details = props.card.details;
-	} else {
+	} else if (props.card.fetch_from != "DocField") {
 		data.value["count"] = 0;
 		loading.value = false;
 		return;

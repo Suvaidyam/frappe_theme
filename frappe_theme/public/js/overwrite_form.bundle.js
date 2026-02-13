@@ -24,7 +24,7 @@ import SvaDataTable from "./datatable/sva_datatable.bundle.js";
 import SVAHeatmap from "./custom_components/heatmap.bundle.js";
 import SVADashboardManager from "./sva_dashboard_manager.bundle.js";
 import SVAEmailComponent from "./custom_components/communication.bundle.js";
-import SVAGalleryComponent from "./custom_components/gallery.bundle.js";
+import SVAGalleryComponent from "./custom_components/gallery/gallery.bundle.js";
 import SVALinkedUser from "./custom_components/linked_users.bundle.js";
 import SVANotesManager from "./custom_components/note.bundle.js";
 import SVAmGrantTask from "./custom_components/task.bundle.js";
