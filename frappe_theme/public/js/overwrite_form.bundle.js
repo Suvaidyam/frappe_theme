@@ -24,7 +24,7 @@ import SvaDataTable from "./datatable/sva_datatable.bundle.js";
 import SVAHeatmap from "./custom_components/heatmap.bundle.js";
 import SVADashboardManager from "./sva_dashboard_manager.bundle.js";
 import SVAEmailComponent from "./custom_components/communication.bundle.js";
-import SVAGalleryComponent from "./custom_components/gallery.bundle.js";
+import SVAGalleryComponent from "./custom_components/gallery/gallery.bundle.js";
 import SVALinkedUser from "./custom_components/linked_users.bundle.js";
 import SVANotesManager from "./custom_components/note.bundle.js";
 import SVAmGrantTask from "./custom_components/task.bundle.js";
@@ -34,6 +34,10 @@ import CustomDynamicHtml from "./custom_components/dynamic_html/dynamic_html.bun
 import SVACarousel from "./sva_carousel.bundle.js";
 import FilterRibbon from "./custom_components/filters_ribbon.bundle.js";
 import SVASDGWheel from "./custom_components/sdg_wheel.bundle.js";
+// Vue components
+import NumberCardSkeleton from "./vue/sva_card/components/Skeleton.vue";
+import ChartSkeleton from "./vue/sva_chart/components/Skeleton.vue";
+import { h, createApp } from "vue";
 
 frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 	constructor(...args) {
@@ -324,7 +328,11 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			fields.forEach((field) => {
 				if (Array.isArray(frm.doc[field.fieldname])) {
 					if (frm.doc[field.fieldname].length > 0) {
-						filters[field.fieldname] = frm.doc[field.fieldname];
+						let field_dict = frm.fields_dict?.[field.fieldname];
+						let link_field = field_dict?._link_field || field_dict?.getLinkField();
+						filters[field.fieldname] = link_field
+							? frm.doc[field.fieldname]?.map((i) => i[link_field.fieldname])
+							: frm.doc[field.fieldname];
 					} else {
 						return;
 					}
@@ -333,12 +341,12 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 				}
 			});
 			if (Object.keys(filters).length) {
-				if (!frm?.filters_ribbon) {
-					let parent_section_field = get_parent_section_field_by_fieldname(
-						frm,
-						apply_button_field.fieldname
-					);
-					if (parent_section_field) {
+				let parent_section_field = get_parent_section_field_by_fieldname(
+					frm,
+					apply_button_field.fieldname
+				);
+				if (parent_section_field) {
+					if (!frm?.filters_ribbon?.[parent_section_field.fieldname]) {
 						let wrapper = frm.$wrapper.find(
 							`[data-fieldname='${parent_section_field.fieldname}']`
 						);
@@ -348,11 +356,15 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 								filters: filters,
 								frm: frm,
 							});
-							frm["filters_ribbon"] = ribbon_instance;
+							if (!frm?.filters_ribbon) {
+								frm["filters_ribbon"] = {};
+							}
+							frm["filters_ribbon"][parent_section_field.fieldname] =
+								ribbon_instance;
 						}
+					} else {
+						frm.filters_ribbon[parent_section_field.fieldname].updateFilters(filters);
 					}
-				} else {
-					frm.filters_ribbon.updateFilters(filters);
 				}
 				for (let key in frm.sva_ft_instances) {
 					let instance = frm.sva_ft_instances[key];
@@ -374,14 +386,17 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 						continue;
 					}
 				}
-				frm["sva_active_filters"] = filters;
+				if (!frm["sva_active_filters"]) {
+					frm["sva_active_filters"] = {};
+				}
+				frm["sva_active_filters"][apply_button_field.fieldname] = filters;
 			} else {
 				return;
 			}
 		}
 
-		function reset_dashboard_filters(frm, fields) {
-			if (!frm["sva_active_filters"]) {
+		function reset_dashboard_filters(frm, fields, apply_button_field) {
+			if (!frm?.["sva_active_filters"]?.[apply_button_field.fieldname]) {
 				return;
 			}
 			fields.forEach((field) => {
@@ -403,15 +418,26 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					continue;
 				}
 			}
-			frm["sva_active_filters"] = null;
-			if (frm.filters_ribbon) {
-				frm.filters_ribbon.destroy();
+
+			if (frm?.["sva_active_filters"]?.[apply_button_field.fieldname]) {
+				delete frm["sva_active_filters"][apply_button_field.fieldname];
+			}
+			let parent_section_field = get_parent_section_field_by_fieldname(
+				frm,
+				apply_button_field.fieldname
+			);
+			if (parent_section_field) {
+				if (frm?.filters_ribbon?.[parent_section_field.fieldname]) {
+					frm.filters_ribbon[parent_section_field.fieldname].destroy();
+				}
 			}
 		}
 		if (frm?.meta?.issingle && frm?.meta?.is_dashboard) {
 			let active_tab = await frm.get_active_tab();
-			let tab_fields = await this.getTabFieldsJSON(frm, active_tab?.df?.fieldname);
-
+			let tab_fields = await this.getTabFieldsJSON(
+				frm,
+				active_tab?.df?.fieldname || "__details"
+			);
 			let apply_button = tab_fields.find(
 				(f) => f.fieldtype == "Button" && f?.is_apply_button
 			);
@@ -425,22 +451,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 				apply_button_field.reset_action = () => {
 					reset_dashboard_filters(frm, tab_fields, apply_button_field?.df);
 				};
-
-				// apply_button_field.$apply_button.on("click", )
-				// apply_button_field.$reset_button.on("click", );
 			}
-
-			// if (apply_button) {
-			// 	frappe.ui.form.on(frm.doctype, apply_button.fieldname, function (frm) {
-
-			// 	});
-			// }
-			// if (reset_button) {
-			// 	frm.set_df_property(reset_button.fieldname, "hidden", 1);
-			// 	frappe.ui.form.on(frm.doctype, reset_button.fieldname, function (frm) {
-
-			// 	});
-			// }
 		}
 	}
 	async custom_after_save(frm) {
@@ -484,7 +495,8 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 		list.show();
 	}
 	async add_properties(doctype, new_property) {
-		let fields = await frappe.call("frappe_theme.api.get_meta_fields", {
+		let fields = await this.sva_db.call({
+			method: "frappe_theme.api.get_meta_fields",
 			doctype: "Property Setter",
 		});
 		let add = new frappe.ui.Dialog({
@@ -502,7 +514,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			}),
 			primary_action_label: "Add",
 			primary_action: async function () {
-				let res = await frappe.call({
+				let res = await this.sva_db.call({
 					method: "frappe.desk.form.save.savedocs",
 					args: {
 						doc: {
@@ -769,6 +781,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 
 		for (let i = tab_field_index + 1; i < frm?.meta?.fields.length; i++) {
 			const f = frm?.meta?.fields[i];
+			if (f.fieldtype === "Tab Break") break;
 			if (["Link", "Table MultiSelect", "Button"].includes(f.fieldtype)) tab_fields.push(f);
 		}
 		return tab_fields;
@@ -829,7 +842,6 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 	renderCustomBlock = async (frm, field, signal = null) => {
 		let wrapper = document.createElement("div");
 		frm.set_df_property(field.fieldname, "options", wrapper);
-
 		switch (field.sva_ft.property_type) {
 			case "Custom HTML Block":
 				if (field.sva_ft.html_block) {
@@ -844,6 +856,9 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 				break;
 			case "Number Card":
 				if (field.sva_ft.number_card) {
+					createApp({
+						render: () => h(NumberCardSkeleton),
+					}).mount(wrapper);
 					let card_doc = await frappe.db.get_doc(
 						"Number Card",
 						field.sva_ft.number_card
@@ -882,6 +897,9 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 
 			case "Dashboard Chart":
 				if (field.sva_ft.chart) {
+					createApp({
+						render: () => h(ChartSkeleton),
+					}).mount(wrapper);
 					let chart_doc = await frappe.db.get_doc("Dashboard Chart", field.sva_ft.chart);
 					let report_doc = null;
 					if (chart_doc.chart_type === "Report" && chart_doc.report_name) {
@@ -1083,7 +1101,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 
 	getPropertySetterData = async (dt) => {
 		try {
-			const response = await frappe.call({
+			const response = await this.sva_db.call({
 				method: "frappe_theme.api.get_property_set",
 				args: { doctype: dt },
 			});

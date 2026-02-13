@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Union
+from typing import Optional, Union
 
 import frappe
 from frappe import _
@@ -1077,13 +1077,13 @@ def get_files(doctype, docname):
 			elif (
 				child.connection_type == "Referenced"
 				and child.referenced_link_doctype
-				and child.dn_reference_field
+				and child.dt_reference_field
 			):
 				if frappe.has_permission(child.referenced_link_doctype, "read"):
 					all_doctype.append(child.referenced_link_doctype)
 					docname_list = frappe.get_all(
 						child.referenced_link_doctype,
-						filters={child.dn_reference_field: docname},
+						filters={child.dt_reference_field: docname},
 						fields=["name"],
 					)
 					all_docname.extend([doc.name for doc in docname_list])
@@ -1097,29 +1097,179 @@ def get_files(doctype, docname):
 	except Exception as e:
 		frappe.log_error(title="Error in get_files config from svadatatable configuration", message=str(e))
 
+	# child cofig
+	# Track parent doctype for each child document
+	child_to_parent_doctype = {}
+	try:
+		for child_conf in get_config.child_confs:
+			if child_conf.parent_doctype and child_conf.link_doctype and child_conf.link_fieldname:
+				if frappe.has_permission(child_conf.link_doctype, "read"):
+					# Find parent documents that are already in our list
+					parent_docnames = [
+						docname
+						for docname in all_docname
+						if frappe.db.exists(child_conf.parent_doctype, docname)
+					]
+
+					# Also find parent documents linked to the main docname
+					# Check if parent_doctype is in child_doctypes to find the link field
+					for child in get_config.child_doctypes:
+						if child.link_doctype == child_conf.parent_doctype and child.link_fieldname:
+							parent_docs = frappe.get_all(
+								child_conf.parent_doctype,
+								filters={child.link_fieldname: docname},
+								fields=["name"],
+							)
+							parent_docnames.extend([doc.name for doc in parent_docs])
+							break
+
+					# Remove duplicates
+					parent_docnames = list(set(parent_docnames))
+
+					if parent_docnames:
+						all_doctype.append(child_conf.link_doctype)
+						# Find child documents linked to parent documents
+						child_docnames = frappe.get_all(
+							child_conf.link_doctype,
+							filters={child_conf.link_fieldname: ["in", parent_docnames]},
+							fields=["name"],
+						)
+						# Map each child document to its parent doctype
+						for child_doc in child_docnames:
+							child_to_parent_doctype[child_doc.name] = child_conf.parent_doctype
+						all_docname.extend([doc.name for doc in child_docnames])
+	except Exception as e:
+		frappe.log_error(
+			title="Error in get_files child_confs from svadatatable configuration", message=str(e)
+		)
+
 	try:
 		file_list = frappe.get_all(
 			"File",
 			filters={
 				"attached_to_name": ["in", all_docname],
 				"attached_to_doctype": ["in", all_doctype],
+				"is_folder": 0,
 			},
 			fields=[
 				"name",
 				"file_url",
 				"attached_to_doctype",
+				"folder",
 				"attached_to_name",
+				"attached_to_field",
 				"owner",
 				"file_name",
+				"file_type",
 				"file_size",
 				"creation",
 			],
 			as_list=False,
 		)
+		# Add parent doctype information for files attached to child documents
+		for file_item in file_list:
+			if file_item.get("attached_to_name") in child_to_parent_doctype:
+				file_item["parent_doctype"] = child_to_parent_doctype[file_item["attached_to_name"]]
+			else:
+				file_item["parent_doctype"] = None
 		return file_list
 	except Exception as e:
 		frappe.log_error(title="Error fetching files", message=str(e))
 		return []
+
+
+@frappe.whitelist()
+def get_folders(doctype: str = None, docname: str = None):
+	"""Return list of File folders: Home, Home/Attachments (global) + folders linked to the document."""
+	# Global folders (always shown)
+	global_folders = [
+		{"name": "Home", "file_name": "Home"},
+		{"name": "Home/Attachments", "file_name": "Attachments"},
+	]
+
+	# Include any other top-level global folders that exist under Home
+	root_folders = frappe.get_all(
+		"File",
+		filters={
+			"is_folder": 1,
+			"folder": "Home",
+			"attached_to_doctype": ["is", "not set"],
+		},
+		fields=["name", "file_name"],
+		order_by="file_name asc",
+	)
+
+	seen = {"Home", "Home/Attachments"}
+	combined = list(global_folders)
+	for f in root_folders:
+		if f["name"] not in seen:
+			seen.add(f["name"])
+			combined.append(f)
+
+	# Document-specific folders (created with attached_to_name)
+	doc_folders = []
+	if doctype and docname:
+		doc_folders = frappe.get_all(
+			"File",
+			filters={
+				"is_folder": 1,
+				"attached_to_doctype": doctype,
+				"attached_to_name": docname,
+			},
+			fields=["name", "file_name"],
+			order_by="file_name asc",
+		)
+
+	for f in doc_folders:
+		if f["name"] not in seen:
+			seen.add(f["name"])
+			combined.append(f)
+
+	return combined
+
+
+@frappe.whitelist()
+def upload_file_to_folder(
+	doctype: str,
+	docname: str,
+	file_url: str,
+	folder: str | None = None,
+	file_name: str | None = None,
+):
+	"""Move an already-uploaded file into the chosen folder."""
+	if not file_url:
+		frappe.throw(_("file_url is required"))
+
+	# Find the file doc attached to this specific document
+	filters = {"file_url": file_url, "attached_to_doctype": doctype, "attached_to_name": docname}
+	file_doc_name = frappe.db.get_value("File", filters, "name")
+
+	if not file_doc_name:
+		# Constrained fallback: match by file_url + current user (owner) + created in the last 5 minutes
+		file_doc_name = frappe.db.get_value(
+			"File",
+			{
+				"file_url": file_url,
+				"owner": frappe.session.user,
+				"creation": (">=", frappe.utils.add_to_date(None, minutes=-5)),
+			},
+			"name",
+			order_by="creation desc",
+		)
+
+	if not file_doc_name:
+		frappe.throw(_("Uploaded file not found"))
+
+	file_doc = frappe.get_cached_doc("File", file_doc_name)
+
+	if folder:
+		file_doc.folder = folder
+
+	if file_name:
+		file_doc.file_name = file_name
+
+	file_doc.save(ignore_permissions=False)
+	return file_doc.as_dict()
 
 
 @frappe.whitelist()

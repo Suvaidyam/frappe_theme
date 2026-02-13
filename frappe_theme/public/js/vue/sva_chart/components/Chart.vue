@@ -167,6 +167,28 @@ const options = ref({
 								parseInt(props.chart?.details?.custom_rotate_values || 0) || 0,
 							maxRotation:
 								parseInt(props.chart?.details?.custom_rotate_values || 0) || 0,
+							autoSkip: false,
+							callback: function (value, index, ticks) {
+								const label = this.getLabelForValue(value);
+								if (typeof label !== "string") return label;
+
+								// Get chart width and calculate available space per label
+								const chartWidth = this.chart.width || 800;
+								const labelCount = ticks.length || 1;
+								const availableWidth = chartWidth / labelCount;
+
+								// Calculate max characters based on available width
+								// Approximate: 8px per character at default font size
+								const maxChars = Math.floor(availableWidth / 8) - 2;
+
+								// Dynamic truncation based on screen size
+								if (label.length > maxChars && maxChars > 10) {
+									return label.substring(0, maxChars - 3) + "...";
+								}
+
+								return label;
+							},
+							maxTicksLimit: 20,
 						},
 				  }
 				: {
@@ -213,6 +235,28 @@ const options = ref({
 								parseInt(props.chart?.details?.custom_rotate_values || 0) || 0,
 							maxRotation:
 								parseInt(props.chart?.details?.custom_rotate_values || 0) || 0,
+							autoSkip: false,
+							callback: function (value, index, ticks) {
+								const label = this.getLabelForValue(value);
+								if (typeof label !== "string") return label;
+
+								// Get chart width and calculate available space per label
+								const chartWidth = this.chart.width || 800;
+								const labelCount = ticks.length || 1;
+								const availableWidth = chartWidth / labelCount;
+
+								// Calculate max characters based on available width
+								// Approximate: 8px per character at default font size
+								const maxChars = Math.floor(availableWidth / 8) - 2;
+
+								// Dynamic truncation based on screen size
+								if (label.length > maxChars && maxChars > 10) {
+									return label.substring(0, maxChars - 3) + "...";
+								}
+
+								return label;
+							},
+							maxTicksLimit: 20,
 						},
 				  }),
 		},
@@ -320,8 +364,6 @@ const options = ref({
 		},
 	},
 });
-// console.log(options.value, "options");
-// const emit = defineEmits(['action-clicked']);
 
 const handleAction = async (action) => {
 	if (action == "refresh") {
