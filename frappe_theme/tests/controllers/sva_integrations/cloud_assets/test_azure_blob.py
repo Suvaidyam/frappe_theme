@@ -301,6 +301,7 @@ class TestAzureBlobOperations(IntegrationTestCase):
 					# Clean up: delete the blob and temporary file
 					blob_client.delete_file(key)
 					os.remove(temp_file_path)
+
 		else:
 			reason = "Cloud Assets integration is disabled or provider is not Azure."
 			print(f"Skipping test_read_blob: {reason}")
