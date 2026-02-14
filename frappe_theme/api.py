@@ -17,6 +17,8 @@ def get_my_theme():
 
 @frappe.whitelist(allow_guest=True)
 def get_property_set(doctype):
+	if not doctype:
+		return {"message": []}
 	return frappe.db.get_list(
 		"Property Setter",
 		fields=["*"],
