@@ -1103,7 +1103,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 		try {
 			const response = await this.sva_db.call({
 				method: "frappe_theme.api.get_property_set",
-				args: { doctype: dt },
+				doctype: dt,
 			});
 			return response?.message || [];
 		} catch (error) {
