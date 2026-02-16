@@ -322,7 +322,8 @@ async function downloadTemplate(api_method, is_existing_file = false, is_downloa
 			let response = await fetch(`/api/method/${api_method}`);
 			if (!response.ok) {
 				let error = await response.json();
-				console.error("Error downloading template", error);
+				const safeError = JSON.stringify(error).replace(/[\r\n]/g, " ");
+				console.error("Error downloading template", safeError);
 				frappe.msgprint(error.message || frappe.utils.messages.get("generate_mou"));
 				return;
 			}
