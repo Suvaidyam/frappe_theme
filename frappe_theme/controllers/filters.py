@@ -109,7 +109,7 @@ class DTFilters:
 
 		meta = frappe.get_meta(dt, True)
 		if meta.get("is_dashboard") != 1:
-			return client_filters, {}, []
+			return {}, client_filters, []
 
 		report_filters = report.get("filters", [])
 		report_columns = report.get("columns", [])
