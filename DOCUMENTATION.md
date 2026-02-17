@@ -1,38 +1,87 @@
 <div align="center">
 
-<img src="https://img.shields.io/badge/%F0%9F%93%96-DOCUMENTATION-blueviolet?style=for-the-badge&labelColor=1a1a2e" alt="Documentation" />
+```
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║                      📖 COMPLETE DOCUMENTATION 📖                            ║
+║                                                                              ║
+║                  The Definitive Technical Reference Guide                   ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+```
 
-# 📖 Frappe Theme — Complete Documentation
+<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=180&section=header&text=Documentation&fontSize=50&fontColor=fff&animation=fadeIn&fontAlignY=32" width="100%"/>
 
-### _The Definitive Technical Reference_
+### 📚 _Complete API Reference, Configuration Guide & Development Documentation_
 
-<p>
-  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-f7df1e?style=flat-square" alt="License: MIT" /></a>
-  <a href="https://frappeframework.com/"><img src="https://img.shields.io/badge/Frappe-Framework-0089ff?style=flat-square" alt="Frappe" /></a>
-  <img src="https://img.shields.io/badge/Version-1.0.0-e91e63?style=flat-square" alt="Version" />
-  <img src="https://img.shields.io/badge/By-Suvaidyam-4CAF50?style=flat-square" alt="Suvaidyam" />
+<br/>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/License-MIT-FFD700?style=for-the-badge&logo=opensourceinitiative&logoColor=white&labelColor=2C3E50" alt="License"/>
+  <img src="https://img.shields.io/badge/Frappe-v14+-00D9FF?style=for-the-badge&logo=frappe&logoColor=white&labelColor=2C3E50" alt="Frappe"/>
+  <img src="https://img.shields.io/badge/Version-1.0.0-E91E63?style=for-the-badge&labelColor=2C3E50" alt="Version"/>
+  <img src="https://img.shields.io/badge/By-Suvaidyam-4CAF50?style=for-the-badge&labelColor=2C3E50" alt="Suvaidyam"/>
 </p>
 
-<a href="README.md"><img src="https://img.shields.io/badge/🏠_Home-grey?style=flat-square" /></a> · <a href="QUICK_START.md"><img src="https://img.shields.io/badge/⚡_Quick_Start-grey?style=flat-square" /></a> · <a href="FEATURES_SUMMARY.md"><img src="https://img.shields.io/badge/📋_Features-grey?style=flat-square" /></a> · <a href="https://github.com/Suvaidyam/frappe_theme/issues"><img src="https://img.shields.io/badge/🐛_Issues-grey?style=flat-square" /></a>
+<br/>
+
+<p align="center">
+  <a href="README.md">
+    <img src="https://img.shields.io/badge/🏠_HOME-grey?style=for-the-badge" alt="Home"/>
+  </a>
+  <a href="QUICK_START.md">
+    <img src="https://img.shields.io/badge/⚡_QUICK_START-grey?style=for-the-badge" alt="Quick Start"/>
+  </a>
+  <a href="FEATURES_SUMMARY.md">
+    <img src="https://img.shields.io/badge/📋_FEATURES-grey?style=for-the-badge" alt="Features"/>
+  </a>
+  <a href="https://github.com/Suvaidyam/frappe_theme/issues">
+    <img src="https://img.shields.io/badge/🐛_REPORT_ISSUES-grey?style=for-the-badge" alt="Issues"/>
+  </a>
+</p>
+
+<br/>
+
+<sub>**Built with ❤️ by [Suvaidyam](https://suvaidyam.com)**</sub>
 
 </div>
+
+<br/>
 
 ---
 
 ## 📑 Table of Contents
 
-<table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
-<tr>
-<td style="width: 50%; vertical-align: top; padding: 24px; border: 1px solid #30363d;">
+<div align="center">
 
-#### 🚀 Getting Started
+```
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    🎯 Navigate Through 2500+ Lines of Docs                  ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+```
+
+</div>
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### 🚀 Getting Started
+
+<img src="https://img.icons8.com/fluency/48/000000/rocket.png" width="32"/>
+
 | | Section |
 |:---|:---|
 | 📌 | [Overview](#-overview) |
 | 📦 | [Installation](#-installation) |
 | ⚙️ | [Configuration](#-configuration) |
 
-#### 🔥 Core Features
+---
+
+### 🔥 Core Features
+
+<img src="https://img.icons8.com/fluency/48/000000/fire-element.png" width="32"/>
+
 | | Section |
 |:---|:---|
 | 🎨 | [Theme Customization](#1--theme-customization) |
@@ -44,9 +93,12 @@
 | 👥 | [Permission Management](#7--permission-management) |
 
 </td>
-<td style="width: 50%; vertical-align: top; padding: 24px; border: 1px solid #30363d;">
+<td width="50%" valign="top">
 
-#### ⚡ Advanced Features
+### ⚡ Advanced Features
+
+<img src="https://img.icons8.com/fluency/48/000000/lightning-bolt.png" width="32"/>
+
 | | Section |
 |:---|:---|
 | 🛠️ | [Property Setters](#8--property-setters) |
@@ -57,7 +109,12 @@
 | 🌍 | [Geographic Data](#14--geographic-data) |
 | 📱 | [Mobile Enhancements](#15--mobile-enhancements) |
 
-#### 📚 Technical Reference
+---
+
+### 📚 Technical Reference
+
+<img src="https://img.icons8.com/fluency/48/000000/code.png" width="32"/>
+
 | | Section |
 |:---|:---|
 | 🖥️ | [Frontend Features](#-frontend-features) |
@@ -68,6 +125,8 @@
 </td>
 </tr>
 </table>
+
+<br/>
 
 ---
 
@@ -2558,20 +2617,61 @@ We welcome contributions! Here's how you can help:
 
 ## 🙏 Acknowledgments
 
-- Frappe Framework team
-- All contributors
-- Open-source community
+<div align="center">
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│              This project wouldn't be possible without:                     │
+│                                                                             │
+│  🎉 Frappe Framework Team  •  👥 All Contributors  •  💻 OSS Community     │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+</div>
 
 ---
 
 <div align="center">
 
+<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=120&section=footer" width="100%"/>
+
 **Made with ❤️ by [Suvaidyam](https://suvaidyam.com)**
 
-### 📚 Navigation
+*Empowering businesses with innovative technology solutions since 2020*
 
-<a href="README.md"><img src="https://img.shields.io/badge/🏠_Home-grey?style=flat-square" /></a> · <a href="DOCUMENTATION.md"><img src="https://img.shields.io/badge/📖_Docs-active-blue?style=flat-square" /></a> · <a href="QUICK_START.md"><img src="https://img.shields.io/badge/⚡_Quick_Start-grey?style=flat-square" /></a> · <a href="FEATURES_SUMMARY.md"><img src="https://img.shields.io/badge/📋_Features-grey?style=flat-square" /></a>
+<br/>
 
-**[⬆ Back to Top](#-frappe-theme--complete-documentation)**
+### 📚 Quick Navigation
+
+<p align="center">
+  <a href="README.md">
+    <img src="https://img.shields.io/badge/🏠_HOME-grey?style=for-the-badge" alt="Home"/>
+  </a>
+  <a href="DOCUMENTATION.md">
+    <img src="https://img.shields.io/badge/📖_DOCUMENTATION-You_Are_Here-4A90E2?style=for-the-badge" alt="Docs"/>
+  </a>
+  <a href="QUICK_START.md">
+    <img src="https://img.shields.io/badge/⚡_QUICK_START-grey?style=for-the-badge" alt="Quick Start"/>
+  </a>
+  <a href="FEATURES_SUMMARY.md">
+    <img src="https://img.shields.io/badge/📋_FEATURES-grey?style=for-the-badge" alt="Features"/>
+  </a>
+</p>
+
+<br/>
+
+**[⬆ Back to Top](#)**
+
+<br/>
+
+---
+
+<sub>⭐ **If you find this project useful, please consider giving it a star on GitHub!** ⭐</sub>
+
+<br/>
+
+<img src="https://img.shields.io/github/stars/Suvaidyam/frappe_theme?style=social" alt="GitHub stars"/>
+<img src="https://img.shields.io/github/forks/Suvaidyam/frappe_theme?style=social" alt="GitHub forks"/>
+<img src="https://img.shields.io/github/watchers/Suvaidyam/frappe_theme?style=social" alt="GitHub watchers"/>
 
 </div>

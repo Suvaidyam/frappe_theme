@@ -1,89 +1,154 @@
 <div align="center">
 
-<img src="https://img.shields.io/badge/%F0%9F%8E%A8-FRAPPE%20THEME-blueviolet?style=for-the-badge&labelColor=1a1a2e" alt="Frappe Theme" />
+```
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║                           🎨  FRAPPE THEME  🎨                               ║
+║                                                                              ║
+║              Transform Your Frappe Experience with 200+ Features            ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+```
+
+<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=180&section=header&text=Frappe%20Theme&fontSize=50&fontColor=fff&animation=twinkling&fontAlignY=32" width="100%"/>
+
+### ✨ _Enterprise-Grade Customization Platform for Frappe/ERPNext_ ✨
 
 <br/>
 
-# 🎨 Frappe Theme
+<p align="center">
+  <img src="https://img.shields.io/badge/License-MIT-FFD700?style=for-the-badge&logo=opensourceinitiative&logoColor=white&labelColor=2C3E50" alt="License"/>
+  <img src="https://img.shields.io/badge/Frappe-v14+-00D9FF?style=for-the-badge&logo=frappe&logoColor=white&labelColor=2C3E50" alt="Frappe"/>
+  <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white&labelColor=2C3E50" alt="Python"/>
+  <img src="https://img.shields.io/badge/Vue.js-3.5-42B883?style=for-the-badge&logo=vuedotjs&logoColor=white&labelColor=2C3E50" alt="Vue"/>
+  <img src="https://img.shields.io/badge/Version-1.0.0-E91E63?style=for-the-badge&labelColor=2C3E50" alt="Version"/>
+</p>
 
-### ✨ _A Comprehensive Customization Platform for Frappe Framework_ ✨
-
-<br/>
-
-<p>
-  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-f7df1e?style=flat-square&logo=opensourceinitiative&logoColor=white" alt="License: MIT" /></a>
-  <a href="https://frappeframework.com/"><img src="https://img.shields.io/badge/Frappe-Framework-0089ff?style=flat-square&logo=frappe&logoColor=white" alt="Frappe" /></a>
-  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python" /></a>
-  <a href="https://vuejs.org/"><img src="https://img.shields.io/badge/Vue.js-3.5-4FC08D?style=flat-square&logo=vuedotjs&logoColor=white" alt="Vue.js" /></a>
-  <img src="https://img.shields.io/badge/Version-1.0.0-e91e63?style=flat-square" alt="Version" />
+<p align="center">
+  <img src="https://img.shields.io/github/stars/Suvaidyam/frappe_theme?style=social" alt="Stars"/>
+  <img src="https://img.shields.io/github/forks/Suvaidyam/frappe_theme?style=social" alt="Forks"/>
+  <img src="https://img.shields.io/github/watchers/Suvaidyam/frappe_theme?style=social" alt="Watchers"/>
 </p>
 
 <br/>
 
-> 🚀 Transform your **Frappe/ERPNext** instance with advanced theming, data visualization,  
-> workflow management, and enterprise-grade security.
+> 🚀 **Advanced Theming** • 📊 **Data Visualization** • 🔐 **Military-Grade Security**  
+> 🔄 **Workflow Automation** • 🌐 **Geographic Data** • 🤖 **AI Integration**
 
 <br/>
 
-<p>
-  <a href="DOCUMENTATION.md"><img src="https://img.shields.io/badge/📖_Documentation-Read_Now-blue?style=for-the-badge" alt="Documentation" /></a>
-  &nbsp;
-  <a href="QUICK_START.md"><img src="https://img.shields.io/badge/⚡_Quick_Start-5_Minutes-green?style=for-the-badge" alt="Quick Start" /></a>
-  &nbsp;
-  <a href="FEATURES_SUMMARY.md"><img src="https://img.shields.io/badge/📋_Features-200+-orange?style=for-the-badge" alt="Features" /></a>
+<p align="center">
+  <a href="DOCUMENTATION.md">
+    <img src="https://img.shields.io/badge/📖_FULL_DOCUMENTATION-4A90E2?style=for-the-badge&logoColor=white" alt="Documentation"/>
+  </a>
+  <a href="QUICK_START.md">
+    <img src="https://img.shields.io/badge/⚡_QUICK_START_(5_MIN)-50C878?style=for-the-badge&logoColor=white" alt="Quick Start"/>
+  </a>
+  <a href="FEATURES_SUMMARY.md">
+    <img src="https://img.shields.io/badge/📋_200+_FEATURES-FF6B35?style=for-the-badge&logoColor=white" alt="Features"/>
+  </a>
 </p>
 
-**Built with ❤️ by [Suvaidyam](https://suvaidyam.com)**
+<br/>
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  ⭐ Star us on GitHub  •  🐛 Report Issues  •  🤝 Contribute to the project │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+<sub>**Built with ❤️ by [Suvaidyam](https://suvaidyam.com) • Trusted by enterprises worldwide**</sub>
 
 </div>
 
 <br/>
 
 ---
-
-<br/>
 
 <div align="center">
 
 ## 📚 Documentation Hub
 
+```
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                  🎯 Everything You Need to Get Started                      ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+```
+
 </div>
+
+<table>
+<tr>
+<td width="33%" align="center">
+
+<img src="https://img.icons8.com/fluency/96/000000/book.png" width="64" alt="Docs"/>
+
+### 📖 [Complete Documentation](DOCUMENTATION.md)
+
+**2500+ lines of technical excellence**
+
+```diff
++ API Reference
++ Configuration Guide  
++ Development Setup
++ Troubleshooting
+```
 
 <br/>
 
-<table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
-<tr>
-<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 20px; border: 1px solid #30363d; border-radius: 8px; background: linear-gradient(135deg, #667eea05, #764ba205);">
+![Comprehensive](https://img.shields.io/badge/Comprehensive-2500+_Lines-4A90E2?style=for-the-badge)
 
-### 📖 [Complete Docs](DOCUMENTATION.md)
+<br/>
 
-> **Detailed technical guide**  
-> API reference, configuration,  
-> development guide, and more
-
-<img src="https://img.shields.io/badge/2500+_Lines-Comprehensive-blue?style=flat-square" alt="Comprehensive" />
+[Read Now →](DOCUMENTATION.md)
 
 </td>
-<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 20px; border: 1px solid #30363d; border-radius: 8px; background: linear-gradient(135deg, #f093fb05, #f5576c05);">
+<td width="33%" align="center">
 
-### ⚡ [Quick Start](QUICK_START.md)
+<img src="https://img.icons8.com/fluency/96/000000/rocket.png" width="64" alt="Quick Start"/>
 
-> **Get started in 5 minutes**  
-> Installation, setup, and  
-> common use cases
+### ⚡ [Quick Start Guide](QUICK_START.md)
 
-<img src="https://img.shields.io/badge/5_Min-Setup-green?style=flat-square" alt="Quick Setup" />
+**From zero to hero in 5 minutes**
+
+```diff
++ Installation Steps
++ Basic Configuration
++ Common Use Cases
++ Code Examples
+```
+
+<br/>
+
+![Quick](https://img.shields.io/badge/Setup_Time-5_Minutes-50C878?style=for-the-badge)
+
+<br/>
+
+[Get Started →](QUICK_START.md)
 
 </td>
-<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 20px; border: 1px solid #30363d; border-radius: 8px; background: linear-gradient(135deg, #4facfe05, #00f2fe05);">
+<td width="33%" align="center">
 
-### 📋 [Features](FEATURES_SUMMARY.md)
+<img src="https://img.icons8.com/fluency/96/000000/list.png" width="64" alt="Features"/>
 
-> **200+ features overview**  
-> Complete feature list with  
-> statistics and use cases
+### 📋 [Features Summary](FEATURES_SUMMARY.md)
 
-<img src="https://img.shields.io/badge/200+-Features-orange?style=flat-square" alt="200+ Features" />
+**200+ features at your fingertips**
+
+```diff
++ Complete Feature List
++ Statistics & Metrics
++ Use Case Examples
++ Performance Data
+```
+
+<br/>
+
+![Features](https://img.shields.io/badge/Total_Features-200+-FF6B35?style=for-the-badge)
+
+<br/>
+
+[Explore Features →](FEATURES_SUMMARY.md)
 
 </td>
 </tr>
@@ -92,121 +157,235 @@
 <br/>
 
 ---
-
-<br/>
-
-<div align="center">
 
 ## ✨ Key Features
 
+<div align="center">
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│              🎯 Enterprise-Grade Features That Set You Apart                │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
 </div>
 
-<br/>
-
-<table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
+<table>
 <tr>
-<td style="width: 50%; vertical-align: top; padding: 24px; border: 1px solid #30363d;">
+<td width="50%" valign="top">
 
-<h3>🎨 Advanced Theming</h3>
+### 🎨 Advanced Theming & UI
 
-<img src="https://img.shields.io/badge/-UI_Customization-blueviolet?style=flat-square" />
+![UI](https://img.shields.io/badge/-UI_Customization-blueviolet?style=flat-square)
 
-- 🎯 Complete UI customization with color schemes
-- 🔤 Custom fonts, logos, and branding
-- 👁️ Real-time theme preview
-- 💉 CSS injection support
+```yaml
+Features:
+  - Complete color scheme customization
+  - Custom fonts, logos & branding
+  - Real-time theme preview
+  - CSS injection support
+  - Mobile-responsive design
+```
 
-<sub><a href="DOCUMENTATION.md#1--theme-customization">→ Learn more</a></sub>
+**Perfect for:** Brand consistency, white-labeling, custom UX
 
----
-
-<h3>📊 Data Visualization</h3>
-
-<img src="https://img.shields.io/badge/-Charts_&_Analytics-blue?style=flat-square" />
-
-- 🔥 **Heatmaps** — Activity tracking and pattern analysis
-- 📈 **Charts** — Line, Bar, Pie, Donut, Area charts
-- 🔢 **Number Cards** — Real-time KPI metrics
-- 📋 **Custom Tables** — Configurable datatables with filtering
-
-<sub><a href="DOCUMENTATION.md#3--data-visualization">→ Learn more</a></sub>
+<sub>📖 [Learn more →](DOCUMENTATION.md#1--theme-customization)</sub>
 
 ---
 
-<h3>🔐 Security & Data Protection</h3>
+### 📊 Data Visualization Suite
 
-<img src="https://img.shields.io/badge/-Enterprise_Grade-red?style=flat-square" />
+![Charts](https://img.shields.io/badge/-Charts_&_Analytics-blue?style=flat-square)
 
-- 🔒 **Field-Level Encryption** — AES-256 for sensitive data
-- 🎭 **Data Masking** — Protect sensitive info in views
-- 🛡️ **Global Sanitizer** — XSS protection for all inputs
-- 👥 **Role-Based Access** — Granular permission control
+```yaml
+Components:
+  Heatmaps: Activity tracking & pattern analysis
+  Charts: Line, Bar, Pie, Donut, Area
+  Number Cards: Real-time KPI metrics
+  Custom Tables: Advanced filtering & sorting
+```
 
-<sub><a href="DOCUMENTATION.md#6--security--data-protection">→ Learn more</a></sub>
+**Perfect for:** Dashboards, analytics, reporting
+
+<sub>📖 [Learn more →](DOCUMENTATION.md#3--data-visualization)</sub>
 
 ---
 
-<h3>🔄 Workflow Extensions</h3>
+### 🔐 Security & Data Protection
 
-<img src="https://img.shields.io/badge/-Automation-teal?style=flat-square" />
+![Security](https://img.shields.io/badge/-Enterprise_Grade-red?style=flat-square)
 
-- ⚙️ Custom workflow actions with pre/post hooks
-- ✅ Approval tracking and timeline
-- 🤖 State-based automation
-- 📧 Email notifications
+```yaml
+Protection:
+  Encryption: AES-256 field-level encryption
+  Masking: Sensitive data protection
+  Sanitizer: XSS protection for all inputs
+  Access Control: Role-based permissions
+```
 
-<sub><a href="DOCUMENTATION.md#5--workflow-management">→ Learn more</a></sub>
+**Perfect for:** Compliance, GDPR, data privacy
+
+<sub>📖 [Learn more →](DOCUMENTATION.md#6--security--data-protection)</sub>
+
+---
+
+### 🔄 Workflow Extensions
+
+![Workflow](https://img.shields.io/badge/-Automation-teal?style=flat-square)
+
+```yaml
+Capabilities:
+  - Custom workflow actions
+  - Pre/post workflow hooks
+  - Approval tracking & timeline
+  - State-based automation
+  - Email notifications
+```
+
+**Perfect for:** Approval processes, automation
+
+<sub>📖 [Learn more →](DOCUMENTATION.md#5--workflow-management)</sub>
 
 </td>
-<td style="width: 50%; vertical-align: top; padding: 24px; border: 1px solid #30363d;">
+<td width="50%" valign="top">
 
-<h3>📋 Bulk Operations</h3>
+### 📋 Bulk Operations & Management
 
-<img src="https://img.shields.io/badge/-Mass_Management-purple?style=flat-square" />
+![Bulk](https://img.shields.io/badge/-Mass_Management-purple?style=flat-square)
 
-- 🔑 Mass permission management
-- 👤 Role profile configuration
-- 🖥️ Workspace permissions
-- ⚙️ Property setters
+```yaml
+Operations:
+  - Mass permission management
+  - Role profile configuration
+  - Workspace permissions
+  - Property setters
+  - Bulk data operations
+```
 
-<sub><a href="DOCUMENTATION.md#7--permission-management">→ Learn more</a></sub>
+**Perfect for:** System admins, large deployments
 
----
-
-<h3>🌐 Geographic Data</h3>
-
-<img src="https://img.shields.io/badge/-Maps_&_Boundaries-green?style=flat-square" />
-
-- 🗺️ Complete India boundaries (States & Districts)
-- 📍 GeoJSON format for mapping
-- 📁 39 individual district files
-- 💾 20+ MB of geographic data
-
-<sub><a href="DOCUMENTATION.md#14--geographic-data">→ Learn more</a></sub>
+<sub>📖 [Learn more →](DOCUMENTATION.md#7--permission-management)</sub>
 
 ---
 
-<h3>🤖 AI Integration</h3>
+### 🌐 Geographic Data & Mapping
 
-<img src="https://img.shields.io/badge/-Smart_Features-ff6f00?style=flat-square" />
+![Maps](https://img.shields.io/badge/-Maps_&_Boundaries-green?style=flat-square)
 
-- 🧠 OpenAI integration for smart features
-- 💡 WrenAI custom assistant
-- 📊 Data analysis and suggestions
+```yaml
+Included:
+  - Complete India boundaries (States & Districts)
+  - GeoJSON format for mapping
+  - 39 individual district files
+  - 20+ MB of geographic data
+```
 
-<sub><a href="DOCUMENTATION.md#11--integrations">→ Learn more</a></sub>
+**Perfect for:** Location-based apps, regional analysis
+
+<sub>📖 [Learn more →](DOCUMENTATION.md#14--geographic-data)</sub>
 
 ---
 
-<h3>📱 Mobile Optimized</h3>
+### 🤖 AI Integration
 
-<img src="https://img.shields.io/badge/-Responsive-00bcd4?style=flat-square" />
+![AI](https://img.shields.io/badge/-Smart_Features-ff6f00?style=flat-square)
 
-- 📲 Responsive design
-- 👆 Touch-optimized controls
-- 📝 Mobile-friendly forms
+```yaml
+Integrations:
+  OpenAI: Smart features & suggestions
+  WrenAI: Custom AI assistant
+  Analysis: Data analysis & insights
+```
 
-<sub><a href="DOCUMENTATION.md#15--mobile-enhancements">→ Learn more</a></sub>
+**Perfect for:** Intelligent automation, insights
+
+<sub>📖 [Learn more →](DOCUMENTATION.md#11--integrations)</sub>
+
+---
+
+### 📱 Mobile Optimized
+
+![Mobile](https://img.shields.io/badge/-Responsive-00bcd4?style=flat-square)
+
+```yaml
+Features:
+  - Responsive design
+  - Touch-optimized controls
+  - Mobile-friendly forms
+  - Swipe gestures
+```
+
+**Perfect for:** Field teams, mobile workforce
+
+<sub>📖 [Learn more →](DOCUMENTATION.md#15--mobile-enhancements)</sub>
+
+</td>
+</tr>
+</table>
+
+---
+
+<div align="center">
+
+## 📸 Visual Showcase
+
+```
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    🎨 See Frappe Theme in Action                            ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+```
+
+</div>
+
+<table>
+<tr>
+<td width="50%" align="center">
+
+### 🔥 Heatmaps in Workspace
+
+<img src="https://github.com/user-attachments/assets/ac26b819-3df2-4697-a74d-3dfae57e6f90" alt="Heatmap" width="100%"/>
+
+<sub>**Activity tracking with beautiful heatmap visualization**</sub>
+
+</td>
+<td width="50%" align="center">
+
+### 📋 Custom Tables in Workspace
+
+<img src="https://github.com/user-attachments/assets/d3b65bbf-bbbe-4fae-a5f8-a19556e5c3b6" alt="Custom Table" width="100%"/>
+
+<sub>**Advanced datatables with filtering and sorting**</sub>
+
+</td>
+</tr>
+<tr>
+<td width="50%" align="center">
+
+### 🔢 Number Cards & Charts
+
+<img src="https://github.com/user-attachments/assets/93181000-ad65-4a90-84ab-d4ad694ab06c" alt="Number Cards" width="100%"/>
+
+<sub>**Real-time KPI metrics and data visualization**</sub>
+
+</td>
+<td width="50%" align="center">
+
+### 🔗 Custom Linked Tables
+
+<img src="https://github.com/user-attachments/assets/b27bdb58-0e4d-489a-93ef-ec434098eca4" alt="Linked Tables" width="100%"/>
+
+<sub>**Powerful linked data tables in forms**</sub>
+
+</td>
+</tr>
+<tr>
+<td colspan="2" align="center">
+
+### 🎨 Theme Customization
+
+<img src="https://github.com/user-attachments/assets/f56fca43-229a-4246-9fdb-b0e534df6f8b" alt="Theme Colors" width="80%"/>
+
+<sub>**Complete control over your brand's look and feel**</sub>
 
 </td>
 </tr>
@@ -216,108 +395,108 @@
 
 ---
 
-<br/>
-
 <div align="center">
 
-## 📸 Screenshots
+## 🚀 Quick Installation
+
+```
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    ⏱️ Get Started in Under 5 Minutes                        ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+```
 
 </div>
-
-<br/>
-
-<table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
-<tr>
-<td style="width: 50%; vertical-align: top; padding: 16px; border: 1px solid #30363d; text-align: center;">
-
-<h4>🔥 Heatmaps in Workspace</h4>
-
-![Heatmap](https://github.com/user-attachments/assets/ac26b819-3df2-4697-a74d-3dfae57e6f90)
-
-</td>
-<td style="width: 50%; vertical-align: top; padding: 16px; border: 1px solid #30363d; text-align: center;">
-
-<h4>📋 Custom Tables in Workspace</h4>
-
-![Custom Table](https://github.com/user-attachments/assets/d3b65bbf-bbbe-4fae-a5f8-a19556e5c3b6)
-
-</td>
-</tr>
-<tr>
-<td style="width: 50%; vertical-align: top; padding: 16px; border: 1px solid #30363d; text-align: center;">
-
-<h4>🔢 Number Cards & Charts</h4>
-
-![Number Cards](https://github.com/user-attachments/assets/93181000-ad65-4a90-84ab-d4ad694ab06c)
-
-</td>
-<td style="width: 50%; vertical-align: top; padding: 16px; border: 1px solid #30363d; text-align: center;">
-
-<h4>🔗 Custom Linked Tables</h4>
-
-![Linked Tables](https://github.com/user-attachments/assets/b27bdb58-0e4d-489a-93ef-ec434098eca4)
-
-</td>
-</tr>
-<tr>
-<td colspan="2" style="text-align: center; vertical-align: top; padding: 16px; border: 1px solid #30363d;">
-
-<h4>🎨 Theme Customization</h4>
-
-![Theme Colors](https://github.com/user-attachments/assets/f56fca43-229a-4246-9fdb-b0e534df6f8b)
-
-</td>
-</tr>
-</table>
-
-<br/>
-
----
-
-<br/>
-
-<div align="center">
-
-## 🚀 Quick Start
-
-</div>
-
-<br/>
 
 ### 📋 Prerequisites
 
-| Requirement | Version |
-|:---|:---|
-| 🏗️ Frappe Framework | `v14+` |
-| 🐍 Python | `3.10+` |
-| 🟢 Node.js | `18+` |
-| 🗄️ MariaDB / PostgreSQL | `10.6+` / `13+` |
+<table>
+<tr>
+<td width="25%" align="center">
 
-### 🔧 Installation (Stable)
+<img src="https://img.icons8.com/color/48/000000/server.png" width="40"/>
+
+**Frappe Framework**
+
+`v14+`
+
+</td>
+<td width="25%" align="center">
+
+<img src="https://img.icons8.com/color/48/000000/python.png" width="40"/>
+
+**Python**
+
+`3.10+`
+
+</td>
+<td width="25%" align="center">
+
+<img src="https://img.icons8.com/color/48/000000/nodejs.png" width="40"/>
+
+**Node.js**
+
+`18+`
+
+</td>
+<td width="25%" align="center">
+
+<img src="https://img.icons8.com/color/48/000000/database.png" width="40"/>
+
+**Database**
+
+`MariaDB 10.6+`  
+`PostgreSQL 13+`
+
+</td>
+</tr>
+</table>
+
+<br/>
+
+### 🔧 Installation Commands
+
+<details open>
+<summary><b>📦 Click to view installation steps</b></summary>
+
+<br/>
 
 ```bash
-cd $PATH_TO_YOUR_BENCH
+# 1️⃣ Navigate to your bench directory
+cd ~/frappe-bench
+
+# 2️⃣ Get the app from GitHub (stable version)
 bench get-app https://github.com/Suvaidyam/frappe_theme --branch main
-bench install-app frappe_theme
+
+# 3️⃣ Install on your site
+bench --site your-site install-app frappe_theme
+
+# 4️⃣ Setup requirements
 bench setup requirements
+
+# 5️⃣ Build assets
 bench build --app frappe_theme
+
+# 6️⃣ Restart all services
 bench restart
 ```
 
-### 🧪 Installation (Development)
+</details>
 
-```bash
-cd $PATH_TO_YOUR_BENCH
-bench get-app https://github.com/Suvaidyam/frappe_theme --branch development
-bench install-app frappe_theme
-bench setup requirements
-```
+<br/>
 
 <div align="center">
 
-> 📖 **[Complete setup guide →](QUICK_START.md)**
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  ✅ Installation Complete! Login and start customizing your Frappe instance │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Need detailed setup instructions?** → [Complete Quick Start Guide](QUICK_START.md)
 
 </div>
+
+<br/>
 
 <br/>
 
@@ -540,23 +719,63 @@ bench run-tests --app frappe_theme --coverage
 </tr>
 </table>
 
-<br/>
-
 ---
-
-<br/>
-
-<div align="center">
 
 ## 🤝 Contributing
 
-**We welcome contributions! Here's how you can help:**
+<div align="center">
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│              💡 We Welcome Contributions from the Community!                │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
 </div>
 
-<br/>
+### 🚀 Quick Contribution Guide
 
-### 🚀 Getting Started
+<table>
+<tr>
+<td width="20%" align="center">
+
+**1️⃣**
+
+🍴 Fork
+
+</td>
+<td width="20%" align="center">
+
+**2️⃣**
+
+🌿 Branch
+
+</td>
+<td width="20%" align="center">
+
+**3️⃣**
+
+✏️ Code
+
+</td>
+<td width="20%" align="center">
+
+**4️⃣**
+
+✅ Test
+
+</td>
+<td width="20%" align="center">
+
+**5️⃣**
+
+🚀 PR
+
+</td>
+</tr>
+</table>
+
+### 💻 Step-by-Step
 
 ```bash
 # 1. Fork on GitHub, then clone your fork
@@ -569,25 +788,71 @@ git checkout -b feature/amazing-feature
 # 3. Install pre-commit hooks
 pre-commit install
 
-# 4. Make your changes, then run tests
+# 4. Make your changes, then run quality checks
 ruff check . && ruff format .
 eslint frappe_theme/public/js
 bench run-tests --app frappe_theme
 
-# 5. Commit, push, and open a PR
-git commit -m 'Add amazing feature'
+# 5. Commit with a clear message
+git commit -m '✨ Add amazing feature'
+
+# 6. Push to your fork
 git push origin feature/amazing-feature
+
+# 7. Open a Pull Request on GitHub
 ```
 
 ### 📝 Contribution Guidelines
 
-| Area | Guideline |
+<table>
+<tr>
+<td width="50%" valign="top">
+
+#### ✅ Do's
+
+```diff
++ Follow PEP 8 for Python code
++ Use ESLint for JavaScript
++ Write clear commit messages
++ Add tests for new features
++ Update documentation
++ Reference issue numbers
+```
+
+</td>
+<td width="50%" valign="top">
+
+#### ❌ Don'ts
+
+```diff
+- Don't commit directly to main
+- Don't skip pre-commit hooks
+- Don't forget to test
+- Don't leave console.log()
+- Don't ignore linting errors
+- Don't break existing tests
+```
+
+</td>
+</tr>
+</table>
+
+### 🎯 What Can You Contribute?
+
+| Type | Examples |
 |:---|:---|
-| 🎨 Code Style | PEP 8 for Python, ESLint for JavaScript |
-| 📖 Documentation | Update docs for new features |
-| 🧪 Tests | Add tests for bug fixes and new features |
-| 💬 Commits | Clear, descriptive commit messages |
-| 🔗 Issues | Reference issue numbers in commits and PRs |
+| 🐛 **Bug Fixes** | Fix issues, improve stability |
+| ✨ **Features** | New components, integrations |
+| 📖 **Documentation** | Improve guides, add examples |
+| 🎨 **UI/UX** | Design improvements, themes |
+| 🧪 **Tests** | Add test coverage |
+| 🌍 **Translations** | Multi-language support |
+
+<div align="center">
+
+**Questions?** Open an [issue](https://github.com/Suvaidyam/frappe_theme/issues) or email us at **tech@suvaidyam.com**
+
+</div>
 
 <br/>
 
@@ -603,38 +868,112 @@ git push origin feature/amazing-feature
 
 </div>
 
-<br/>
-
 ---
-
-<br/>
 
 <div align="center">
 
-## 📞 Support
+## 📞 Support & Community
+
+```
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    🤝 We're Here to Help You Succeed                        ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+```
 
 </div>
 
+<table>
+<tr>
+<td width="33%" align="center">
+
+<img src="https://img.icons8.com/fluency/96/000000/email.png" width="64"/>
+
+### 📧 Email Support
+
+**tech@suvaidyam.com**
+
+Get help from our expert team
+
 <br/>
 
-<table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
+![Response](https://img.shields.io/badge/Response_Time-24h-50C878?style=for-the-badge)
+
+</td>
+<td width="33%" align="center">
+
+<img src="https://img.icons8.com/fluency/96/000000/bug.png" width="64"/>
+
+### 🐛 GitHub Issues
+
+**[Report Bugs & Request Features](https://github.com/Suvaidyam/frappe_theme/issues)**
+
+Track and resolve issues
+
+<br/>
+
+![Issues](https://img.shields.io/github/issues/Suvaidyam/frappe_theme?style=for-the-badge&color=E91E63)
+
+</td>
+<td width="33%" align="center">
+
+<img src="https://img.icons8.com/fluency/96/000000/book.png" width="64"/>
+
+### 📖 Documentation
+
+**[Complete Technical Reference](DOCUMENTATION.md)**
+
+2500+ lines of detailed docs
+
+<br/>
+
+![Docs](https://img.shields.io/badge/Documentation-Complete-4A90E2?style=for-the-badge)
+
+</td>
+</tr>
 <tr>
-<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 20px; border: 1px solid #30363d;">
+<td width="33%" align="center">
 
-📧 **Email**  
-tech@suvaidyam.com
+<img src="https://img.icons8.com/fluency/96/000000/chat.png" width="64"/>
+
+### 💬 Community
+
+**[Join Discussions](https://github.com/Suvaidyam/frappe_theme/discussions)**
+
+Connect with other users
+
+<br/>
+
+![Community](https://img.shields.io/badge/Community-Active-FF6B35?style=for-the-badge)
 
 </td>
-<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 20px; border: 1px solid #30363d;">
+<td width="33%" align="center">
 
-🐛 **GitHub Issues**  
-[Report bugs or request features](https://github.com/Suvaidyam/frappe_theme/issues)
+<img src="https://img.icons8.com/fluency/96/000000/training.png" width="64"/>
+
+### 🎓 Training
+
+**Custom Enterprise Training**
+
+Tailored to your needs
+
+<br/>
+
+![Training](https://img.shields.io/badge/Available-On_Request-9C27B0?style=for-the-badge)
 
 </td>
-<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 20px; border: 1px solid #30363d;">
+<td width="33%" align="center">
 
-📖 **Documentation**  
-[Full documentation](DOCUMENTATION.md)
+<img src="https://img.icons8.com/fluency/96/000000/star.png" width="64"/>
+
+### 🌟 Star Us
+
+**[GitHub Repository](https://github.com/Suvaidyam/frappe_theme)**
+
+Show your support!
+
+<br/>
+
+![Stars](https://img.shields.io/github/stars/Suvaidyam/frappe_theme?style=for-the-badge&color=FFD700)
 
 </td>
 </tr>
@@ -644,15 +983,78 @@ tech@suvaidyam.com
 
 ---
 
-<br/>
+## 🗺️ Roadmap
 
 <div align="center">
+
+**What's Coming Next?**
+
+</div>
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### 🚧 In Progress
+
+- [ ] 📊 Advanced analytics dashboard
+- [ ] 🤖 More AI-powered features
+- [ ] 📱 Native mobile app support
+- [ ] 🔄 Real-time collaboration
+
+</td>
+<td width="50%" valign="top">
+
+### 💡 Planned
+
+- [ ] 🎨 Advanced workflow designer
+- [ ] 📈 Custom report builder
+- [ ] 🌍 Multi-language support
+- [ ] 🌙 Enhanced dark mode
+
+</td>
+</tr>
+</table>
+
+<div align="center">
+
+**Have a feature request?** [Let us know!](https://github.com/Suvaidyam/frappe_theme/issues/new)
+
+</div>
+
+---
+
+## 📄 License
+
+<div align="center">
+
+<img src="https://img.icons8.com/fluency/96/000000/certificate.png" width="64"/>
+
+**MIT License** — Free to use, modify, and distribute
+
+<br/>
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-FFD700?style=for-the-badge&logo=opensourceinitiative&logoColor=white)](https://opensource.org/licenses/MIT)
+
+<br/>
+
+See the [license.txt](license.txt) file for complete details.
+
+</div>
+
+---
 
 ## 🙏 Acknowledgments
 
-*Frappe Framework team • All contributors • The open-source community*
+<div align="center">
 
-</div>
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│              This project wouldn't be possible without:                     │
+│                                                                             │
+│  🎉 Frappe Framework Team  •  👥 All Contributors  •  💻 OSS Community     │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
 <br/>
 
@@ -660,49 +1062,45 @@ tech@suvaidyam.com
 
 <br/>
 
-<div align="center">
-
-## 🗺️ Roadmap
-
-</div>
-
-<br/>
-
-| Status | Feature |
-|:---|:---|
-| 🔲 | Advanced analytics dashboard |
-| 🔲 | More AI-powered features |
-| 🔲 | Mobile app support |
-| 🔲 | Real-time collaboration |
-| 🔲 | Advanced workflow designer |
-| 🔲 | Custom report builder |
-| 🔲 | Multi-language support |
-| 🔲 | Dark mode enhancements |
-
-<br/>
-
----
-
-<br/>
-
-<div align="center">
+<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=120&section=footer" width="100%"/>
 
 **Made with ❤️ by [Suvaidyam](https://suvaidyam.com)**
 
-<br/>
-
-### 📚 Navigation
-
-<a href="README.md"><img src="https://img.shields.io/badge/🏠_Home-active-blue?style=flat-square" /></a>
-&nbsp;
-<a href="DOCUMENTATION.md"><img src="https://img.shields.io/badge/📖_Documentation-read-green?style=flat-square" /></a>
-&nbsp;
-<a href="QUICK_START.md"><img src="https://img.shields.io/badge/⚡_Quick_Start-begin-orange?style=flat-square" /></a>
-&nbsp;
-<a href="FEATURES_SUMMARY.md"><img src="https://img.shields.io/badge/📋_Features-explore-purple?style=flat-square" /></a>
+*Empowering businesses with innovative technology solutions since 2020*
 
 <br/>
 
-**[⬆ Back to Top](#-frappe-theme)**
+### 📚 Quick Navigation
+
+<p align="center">
+  <a href="README.md">
+    <img src="https://img.shields.io/badge/🏠_HOME-You_Are_Here-4A90E2?style=for-the-badge" alt="Home"/>
+  </a>
+  <a href="DOCUMENTATION.md">
+    <img src="https://img.shields.io/badge/📖_DOCUMENTATION-Read_Now-50C878?style=for-the-badge" alt="Docs"/>
+  </a>
+  <a href="QUICK_START.md">
+    <img src="https://img.shields.io/badge/⚡_QUICK_START-Begin-FF6B35?style=for-the-badge" alt="Quick Start"/>
+  </a>
+  <a href="FEATURES_SUMMARY.md">
+    <img src="https://img.shields.io/badge/📋_FEATURES-Explore-9C27B0?style=for-the-badge" alt="Features"/>
+  </a>
+</p>
+
+<br/>
+
+**[⬆ Back to Top](#)**
+
+<br/>
+
+---
+
+<sub>⭐ **If you find this project useful, please consider giving it a star on GitHub!** ⭐</sub>
+
+<br/>
+
+<img src="https://img.shields.io/github/stars/Suvaidyam/frappe_theme?style=social" alt="GitHub stars"/>
+<img src="https://img.shields.io/github/forks/Suvaidyam/frappe_theme?style=social" alt="GitHub forks"/>
+<img src="https://img.shields.io/github/watchers/Suvaidyam/frappe_theme?style=social" alt="GitHub watchers"/>
 
 </div>

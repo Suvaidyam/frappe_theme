@@ -1,72 +1,90 @@
 <div align="center">
 
-<img src="https://img.shields.io/badge/%E2%9A%A1-QUICK%20START-blueviolet?style=for-the-badge&labelColor=1a1a2e" alt="Quick Start" />
+```
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║                        ⚡ QUICK START GUIDE ⚡                                ║
+║                                                                              ║
+║                    From Zero to Hero in Just 5 Minutes                      ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+```
 
-# ⚡ Frappe Theme — Quick Start Guide
+<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=14,17,20&height=180&section=header&text=Quick%20Start&fontSize=50&fontColor=fff&animation=fadeIn&fontAlignY=32" width="100%"/>
 
-### _Get Up and Running in 5 Minutes_
+### 🚀 _Get Up and Running in 5 Minutes_
 
-<p>
-  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-f7df1e?style=flat-square" alt="License: MIT" /></a>
-  <a href="https://frappeframework.com/"><img src="https://img.shields.io/badge/Frappe-Framework-0089ff?style=flat-square" alt="Frappe" /></a>
-  <img src="https://img.shields.io/badge/Setup-5_Minutes-4CAF50?style=flat-square" alt="5 Min Setup" />
+<br/>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/License-MIT-FFD700?style=for-the-badge&logo=opensourceinitiative&logoColor=white&labelColor=2C3E50" alt="License"/>
+  <img src="https://img.shields.io/badge/Frappe-v14+-00D9FF?style=for-the-badge&logo=frappe&logoColor=white&labelColor=2C3E50" alt="Frappe"/>
+  <img src="https://img.shields.io/badge/Setup_Time-5_Minutes-50C878?style=for-the-badge&logo=clock&logoColor=white&labelColor=2C3E50" alt="Setup Time"/>
+  <img src="https://img.shields.io/badge/Difficulty-Easy-4CAF50?style=for-the-badge&logo=checkmarx&logoColor=white&labelColor=2C3E50" alt="Difficulty"/>
 </p>
 
-<a href="README.md"><img src="https://img.shields.io/badge/🏠_Home-grey?style=flat-square" /></a> · <a href="DOCUMENTATION.md"><img src="https://img.shields.io/badge/📖_Docs-grey?style=flat-square" /></a> · <a href="FEATURES_SUMMARY.md"><img src="https://img.shields.io/badge/📋_Features-grey?style=flat-square" /></a> · <a href="https://github.com/Suvaidyam/frappe_theme/issues"><img src="https://img.shields.io/badge/🐛_Issues-grey?style=flat-square" /></a>
+<br/>
+
+> 💡 **Perfect for beginners!** This guide will get you up and running with Frappe Theme  
+> in just 5 minutes with step-by-step instructions and real-world examples.
+
+<br/>
+
+<p align="center">
+  <a href="README.md">
+    <img src="https://img.shields.io/badge/🏠_HOME-grey?style=for-the-badge" alt="Home"/>
+  </a>
+  <a href="DOCUMENTATION.md">
+    <img src="https://img.shields.io/badge/📖_FULL_DOCS-grey?style=for-the-badge" alt="Docs"/>
+  </a>
+  <a href="FEATURES_SUMMARY.md">
+    <img src="https://img.shields.io/badge/📋_200+_FEATURES-grey?style=for-the-badge" alt="Features"/>
+  </a>
+  <a href="https://github.com/Suvaidyam/frappe_theme/issues">
+    <img src="https://img.shields.io/badge/🐛_REPORT_ISSUES-grey?style=for-the-badge" alt="Issues"/>
+  </a>
+</p>
+
+<br/>
+
+<sub>**Built with ❤️ by [Suvaidyam](https://suvaidyam.com)**</sub>
 
 </div>
+
+<br/>
 
 ---
 
 ## 📑 Table of Contents
 
-| # | Section | Description |
-|:---:|:---|:---|
-| 1 | [🚀 5-Minute Setup](#-5-minute-setup) | Install and configure |
-| 2 | [📋 Common Use Cases](#-common-use-cases) | Real-world examples |
-| 3 | [🎨 Customization Examples](#-customization-examples) | Configuration samples |
-| 4 | [🔧 Configuration Checklist](#-configuration-checklist) | Step-by-step checklist |
-| 5 | [🐛 Quick Troubleshooting](#-quick-troubleshooting) | Fix common issues |
-| 6 | [📞 Need Help?](#-need-help) | Support & resources |
-
----
-
 <div align="center">
 
-## 🚀 5-Minute Setup
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    🎯 Everything You Need to Get Started                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
 </div>
 
-<table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
+<table>
 <tr>
-<td style="width: 20%; text-align: center; padding: 16px; border: 1px solid #30363d;">
+<td width="50%" valign="top">
 
-### 1️⃣
-**Install**
+### 🚀 Getting Started
 
-</td>
-<td style="width: 20%; text-align: center; padding: 16px; border: 1px solid #30363d;">
-
-### 2️⃣
-**Configure Theme**
+- **[5-Minute Setup](#-5-minute-setup)** — Install and configure
+- **[Common Use Cases](#-common-use-cases)** — Real-world examples
+- **[Customization Examples](#-customization-examples)** — Configuration samples
 
 </td>
-<td style="width: 20%; text-align: center; padding: 16px; border: 1px solid #30363d;">
+<td width="50%" valign="top">
 
-### 3️⃣
-**Add Heatmap**
+### 🛠️ Configuration & Help
 
-</td>
-<td style="width: 20%; text-align: center; padding: 16px; border: 1px solid #30363d;">
-
-### 4️⃣
-**Add Table**
-
-</td>
-<td style="width: 20%; text-align: center; padding: 16px; border: 1px solid #30363d;">
-
-### 5️⃣
-**Setup Permissions**
+- **[Configuration Checklist](#-configuration-checklist)** — Step-by-step
+- **[Quick Troubleshooting](#-quick-troubleshooting)** — Fix common issues
+- **[Need Help?](#-need-help)** — Support & resources
 
 </td>
 </tr>
@@ -74,61 +92,465 @@
 
 ---
 
+## 🚀 5-Minute Setup
+
+<div align="center">
+
+```
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                  ⏱️ Complete Setup in Just 5 Simple Steps                   ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+```
+
+</div>
+
+<table>
+<tr>
+<td width="20%" align="center">
+
+<img src="https://img.icons8.com/fluency/96/000000/download.png" width="48"/>
+
+### 1️⃣ Install
+
+⏱️ **2 min**
+
+</td>
+<td width="20%" align="center">
+
+<img src="https://img.icons8.com/fluency/96/000000/paint-palette.png" width="48"/>
+
+### 2️⃣ Theme
+
+⏱️ **30 sec**
+
+</td>
+<td width="20%" align="center">
+
+<img src="https://img.icons8.com/fluency/96/000000/heat-map.png" width="48"/>
+
+### 3️⃣ Heatmap
+
+⏱️ **1 min**
+
+</td>
+<td width="20%" align="center">
+
+<img src="https://img.icons8.com/fluency/96/000000/table.png" width="48"/>
+
+### 4️⃣ Table
+
+⏱️ **1 min**
+
+</td>
+<td width="20%" align="center">
+
+<img src="https://img.icons8.com/fluency/96/000000/lock.png" width="48"/>
+
+### 5️⃣ Permissions
+
+⏱️ **30 sec**
+
+</td>
+</tr>
+</table>
+
+<br/>
+
+---
+
 ### 1️⃣ Install the App
 
+<div align="center">
+
+<img src="https://img.icons8.com/fluency/96/000000/download.png" width="64"/>
+
+</div>
+
+<details open>
+<summary><b>📦 Click to view installation commands</b></summary>
+
+<br/>
+
 ```bash
+# 1️⃣ Navigate to your bench directory
 cd ~/frappe-bench
+
+# 2️⃣ Get the app from GitHub (stable version)
 bench get-app https://github.com/Suvaidyam/frappe_theme --branch main
+
+# 3️⃣ Install on your site
 bench --site your-site install-app frappe_theme
+
+# 4️⃣ Setup requirements
 bench setup requirements
+
+# 5️⃣ Build assets
 bench build --app frappe_theme
+
+# 6️⃣ Restart all services
 bench restart
 ```
 
+<br/>
+
+<div align="center">
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  ✅ Installation Complete! Time to configure your theme.                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+</div>
+
+</details>
+
+<br/>
+
+---
+
 ### 2️⃣ Configure Theme
 
-| Step | Action |
-|:---:|:---|
-| 1 | Login to your site |
-| 2 | Go to **Desk > My Theme** |
-| 3 | Set Primary Color: `#3498db` |
-| 4 | Set Secondary Color: `#2ecc71` |
-| 5 | Set Text Color: `#2c3e50` |
-| 6 | **Save** and refresh |
+<div align="center">
+
+<img src="https://img.icons8.com/fluency/96/000000/paint-palette.png" width="64"/>
+
+</div>
+
+<details open>
+<summary><b>🎨 Click to expand theme configuration steps</b></summary>
+
+<br/>
+
+<table>
+<tr>
+<td width="10%" align="center"><b>Step</b></td>
+<td width="70%"><b>Action</b></td>
+<td width="20%" align="center"><b>Status</b></td>
+</tr>
+<tr>
+<td align="center">1️⃣</td>
+<td>Login to your Frappe site</td>
+<td align="center">🔐</td>
+</tr>
+<tr>
+<td align="center">2️⃣</td>
+<td>Navigate to <b>Desk → My Theme</b></td>
+<td align="center">🖥️</td>
+</tr>
+<tr>
+<td align="center">3️⃣</td>
+<td>Set <b>Primary Color</b>: <code>#3498db</code></td>
+<td align="center">🎨</td>
+</tr>
+<tr>
+<td align="center">4️⃣</td>
+<td>Set <b>Secondary Color</b>: <code>#2ecc71</code></td>
+<td align="center">🎨</td>
+</tr>
+<tr>
+<td align="center">5️⃣</td>
+<td>Set <b>Text Color</b>: <code>#2c3e50</code></td>
+<td align="center">🎨</td>
+</tr>
+<tr>
+<td align="center">6️⃣</td>
+<td>Click <b>Save</b> and refresh browser (Ctrl+F5)</td>
+<td align="center">✅</td>
+</tr>
+</table>
+
+<br/>
+
+<div align="center">
+
+```yaml
+💡 Pro Tip: Use your brand colors for a consistent look!
+```
+
+![Theme](https://img.shields.io/badge/Theme-Configured-50C878?style=for-the-badge)
+
+</div>
+
+</details>
+
+<br/>
+
+---
 
 ### 3️⃣ Add Heatmap to Workspace
 
+<div align="center">
+
+<img src="https://img.icons8.com/fluency/96/000000/heat-map.png" width="64"/>
+
+</div>
+
+<details open>
+<summary><b>🔥 Click to expand heatmap configuration</b></summary>
+
+<br/>
+
+```yaml
+Configuration:
+  Location: Desk → SVAWorkspace Configuration
+  Action: Create New
+  
+Settings:
+  Workspace: "Sales"
+  DocType: "Sales Order"
+  Date Field: "transaction_date"
+  Value Field: "grand_total"
+  Color Scheme: "green"
+```
+
+<br/>
+
+**📋 Step-by-step:**
+
 | Step | Action |
 |:---:|:---|
-| 1 | Go to **Desk > SVAWorkspace Configuration** |
-| 2 | Create new configuration |
-| 3 | Select workspace (e.g., "Sales") |
-| 4 | Set DocType: `Sales Order` |
-| 5 | Set Date Field: `transaction_date` |
-| 6 | Set Value Field: `grand_total` |
-| 7 | **Save** |
+| 1️⃣ | Go to **Desk → SVAWorkspace Configuration** |
+| 2️⃣ | Click **New** |
+| 3️⃣ | Select workspace (e.g., "Sales") |
+| 4️⃣ | Set DocType: `Sales Order` |
+| 5️⃣ | Set Date Field: `transaction_date` |
+| 6️⃣ | Set Value Field: `grand_total` |
+| 7️⃣ | **Save** |
+
+<br/>
+
+<div align="center">
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  🎉 Done! Your heatmap will appear in the workspace.                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+![Heatmap](https://img.shields.io/badge/Heatmap-Added-FF6B35?style=for-the-badge)
+
+</div>
+
+</details>
+
+<br/>
+
+<div align="center">
+
+🎉 **Done!** Your heatmap will appear in the workspace.
+
+</div>
+
+</details>
+
+---
 
 ### 4️⃣ Add Custom Table to Form
 
+<div align="center">
+
+<img src="https://img.icons8.com/fluency/96/000000/table.png" width="64"/>
+
+</div>
+
+<details open>
+<summary><b>📋 Click to expand table configuration</b></summary>
+
+<br/>
+
+```yaml
+Configuration:
+  Location: Desk → SVADatatable Configuration
+  Action: Create New
+  
+Settings:
+  Parent DocType: "Customer"
+  Child DocType: "Sales Order"
+  Link Field: "customer"
+  Display Fields:
+    - name
+    - transaction_date
+    - grand_total
+    - status
+```
+
+<br/>
+
+**📋 Step-by-step:**
+
 | Step | Action |
 |:---:|:---|
-| 1 | Go to **Desk > SVADatatable Configuration** |
-| 2 | Create new configuration |
-| 3 | Set Parent DocType: `Customer` |
-| 4 | Set Child DocType: `Sales Order` |
-| 5 | Set Link Field: `customer` |
-| 6 | Add fields to display |
-| 7 | **Save** |
+| 1️⃣ | Go to **Desk → SVADatatable Configuration** |
+| 2️⃣ | Click **New** |
+| 3️⃣ | Set Parent DocType: `Customer` |
+| 4️⃣ | Set Child DocType: `Sales Order` |
+| 5️⃣ | Set Link Field: `customer` |
+| 6️⃣ | Add fields to display |
+| 7️⃣ | **Save** |
+
+<br/>
+
+<div align="center">
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  📊 Perfect! Custom table will show in Customer form.                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+![Table](https://img.shields.io/badge/Table-Configured-4A90E2?style=for-the-badge)
+
+</div>
+
+</details>
+
+<br/>
+
+---
 
 ### 5️⃣ Setup Bulk Permissions
 
+<div align="center">
+
+<img src="https://img.icons8.com/fluency/96/000000/lock.png" width="64"/>
+
+</div>
+
+<details open>
+<summary><b>🔐 Click to expand permission setup</b></summary>
+
+<br/>
+
+```yaml
+Configuration:
+  Location: Desk → Bulk Role Profile Permissions
+  
+Quick Presets:
+  Read Only: Read permission only
+  Full Access: All permissions
+  Report Only: Read, Report, Export, Print
+  Data Entry: Read, Write, Create, Report, Export, Print, Email
+```
+
+<br/>
+
+**📋 Step-by-step:**
+
 | Step | Action |
 |:---:|:---|
-| 1 | Go to **Desk > Bulk Role Profile Permissions** |
-| 2 | Select DocType |
-| 3 | Click "**Load Role Profiles**" |
-| 4 | Apply preset (e.g., "Full Access") |
-| 5 | Click "**Apply Permissions**" |
+| 1️⃣ | Go to **Desk → Bulk Role Profile Permissions** |
+| 2️⃣ | Select DocType (e.g., "Sales Order") |
+| 3️⃣ | Click **"Load Role Profiles"** |
+| 4️⃣ | Apply preset (e.g., "Full Access") |
+| 5️⃣ | Click **"Apply Permissions"** |
+
+<br/>
+
+<div align="center">
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  🎊 Congratulations! You're all set up and ready to go!                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+![Permissions](https://img.shields.io/badge/Permissions-Configured-9C27B0?style=for-the-badge)
+
+</div>
+
+</details>
+
+<br/>
+
+<div align="center">
+
+```
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║                    ✅ Setup Complete! Happy Customizing! 🎉                  ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+```
+
+**Next Steps:** Explore [200+ Features](FEATURES_SUMMARY.md) or dive into [Complete Documentation](DOCUMENTATION.md)
+
+</div>
+
+<details open>
+<summary><b>📋 Click to expand table configuration</b></summary>
+
+<br/>
+
+```yaml
+Configuration:
+  Location: Desk → SVADatatable Configuration
+  Action: Create New
+  
+Settings:
+  Parent DocType: "Customer"
+  Child DocType: "Sales Order"
+  Link Field: "customer"
+  Display Fields:
+    - name
+    - transaction_date
+    - grand_total
+    - status
+```
+
+**Step-by-step:**
+
+1. Go to **Desk → SVADatatable Configuration**
+2. Click **New**
+3. Set Parent DocType: `Customer`
+4. Set Child DocType: `Sales Order`
+5. Set Link Field: `customer`
+6. Add fields to display
+7. **Save**
+
+<div align="center">
+
+📊 **Perfect!** Custom table will show in Customer form.
+
+</div>
+
+</details>
+
+---
+
+### 5️⃣ Setup Bulk Permissions
+
+<details open>
+<summary><b>🔐 Click to expand permission setup</b></summary>
+
+<br/>
+
+```yaml
+Configuration:
+  Location: Desk → Bulk Role Profile Permissions
+  
+Quick Presets:
+  Read Only: Read permission only
+  Full Access: All permissions
+  Report Only: Read, Report, Export, Print
+  Data Entry: Read, Write, Create, Report, Export, Print, Email
+```
+
+**Step-by-step:**
+
+1. Go to **Desk → Bulk Role Profile Permissions**
+2. Select DocType (e.g., "Sales Order")
+3. Click **"Load Role Profiles"**
+4. Apply preset (e.g., "Full Access")
+5. Click **"Apply Permissions"**
+
+<div align="center">
+
+🎊 **Congratulations!** You're all set up and ready to go!
+
+</div>
+
+</details>
 
 ---
 
@@ -433,69 +855,169 @@ tail -f sites/your-site/logs/error.log
 
 ## 📞 Need Help?
 
+```
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    🤝 We're Here to Help You Succeed                        ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+```
+
 </div>
 
-<table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
+<table>
 <tr>
-<td style="width: 33.33%; text-align: center; padding: 20px; border: 1px solid #30363d;">
+<td width="33%" align="center">
 
-### 📖
-**[Complete Docs](DOCUMENTATION.md)**
-<sub>Detailed technical guide with API reference</sub>
+<img src="https://img.icons8.com/fluency/96/000000/book.png" width="64"/>
+
+### 📖 [Complete Documentation](DOCUMENTATION.md)
+
+**Detailed technical guide**
+
+API reference, configuration,  
+development guide & more
+
+<br/>
+
+![Docs](https://img.shields.io/badge/Documentation-2500+_Lines-4A90E2?style=for-the-badge)
 
 </td>
-<td style="width: 33.33%; text-align: center; padding: 20px; border: 1px solid #30363d;">
+<td width="33%" align="center">
 
-### 📋
-**[Features Summary](FEATURES_SUMMARY.md)**
-<sub>200+ features with examples</sub>
+<img src="https://img.icons8.com/fluency/96/000000/list.png" width="64"/>
+
+### 📋 [Features Summary](FEATURES_SUMMARY.md)
+
+**200+ features overview**
+
+Complete feature list with  
+statistics and use cases
+
+<br/>
+
+![Features](https://img.shields.io/badge/Total_Features-200+-FF6B35?style=for-the-badge)
 
 </td>
-<td style="width: 33.33%; text-align: center; padding: 20px; border: 1px solid #30363d;">
+<td width="33%" align="center">
 
-### 🐛
-**[Report Issues](https://github.com/Suvaidyam/frappe_theme/issues)**
-<sub>Bug reports and feature requests</sub>
+<img src="https://img.icons8.com/fluency/96/000000/bug.png" width="64"/>
+
+### 🐛 [Report Issues](https://github.com/Suvaidyam/frappe_theme/issues)
+
+**Bug reports & features**
+
+Track and resolve issues  
+with our team
+
+<br/>
+
+![Issues](https://img.shields.io/github/issues/Suvaidyam/frappe_theme?style=for-the-badge&color=E91E63)
 
 </td>
 </tr>
 <tr>
-<td style="width: 33.33%; text-align: center; padding: 20px; border: 1px solid #30363d;">
+<td width="33%" align="center">
 
-### 📧
-**Email Support**
-<sub>tech@suvaidyam.com</sub>
+<img src="https://img.icons8.com/fluency/96/000000/email.png" width="64"/>
+
+### 📧 Email Support
+
+**tech@suvaidyam.com**
+
+Get help from our expert team
+
+<br/>
+
+![Response](https://img.shields.io/badge/Response_Time-24h-50C878?style=for-the-badge)
 
 </td>
-<td style="width: 33.33%; text-align: center; padding: 20px; border: 1px solid #30363d;">
+<td width="33%" align="center">
 
-### 💬
-**Community**
-<sub>Join our discussions</sub>
+<img src="https://img.icons8.com/fluency/96/000000/chat.png" width="64"/>
+
+### 💬 Community
+
+**[Join Discussions](https://github.com/Suvaidyam/frappe_theme/discussions)**
+
+Connect with other users
+
+<br/>
+
+![Community](https://img.shields.io/badge/Community-Active-FF6B35?style=for-the-badge)
 
 </td>
-<td style="width: 33.33%; text-align: center; padding: 20px; border: 1px solid #30363d;">
+<td width="33%" align="center">
 
-### 🎓
-**Training**
-<sub>Custom training available</sub>
+<img src="https://img.icons8.com/fluency/96/000000/training.png" width="64"/>
+
+### 🎓 Training
+
+**Custom Enterprise Training**
+
+Tailored to your needs
+
+<br/>
+
+![Training](https://img.shields.io/badge/Available-On_Request-9C27B0?style=for-the-badge)
 
 </td>
 </tr>
 </table>
 
+<br/>
+
 ---
 
 <div align="center">
 
-**Happy Customizing! 🎉**
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│              This project wouldn't be possible without:                     │
+│                                                                             │
+│  🎉 Frappe Framework Team  •  👥 All Contributors  •  💻 OSS Community     │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+<br/>
+
+<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=14,17,20&height=120&section=footer" width="100%"/>
 
 **Made with ❤️ by [Suvaidyam](https://suvaidyam.com)**
 
-### 📚 Navigation
+*Empowering businesses with innovative technology solutions since 2020*
 
-<a href="README.md"><img src="https://img.shields.io/badge/🏠_Home-grey?style=flat-square" /></a> · <a href="DOCUMENTATION.md"><img src="https://img.shields.io/badge/📖_Docs-grey?style=flat-square" /></a> · <a href="QUICK_START.md"><img src="https://img.shields.io/badge/⚡_Quick_Start-active-blue?style=flat-square" /></a> · <a href="FEATURES_SUMMARY.md"><img src="https://img.shields.io/badge/📋_Features-grey?style=flat-square" /></a>
+<br/>
 
-**[⬆ Back to Top](#-frappe-theme--quick-start-guide)**
+### 📚 Quick Navigation
+
+<p align="center">
+  <a href="README.md">
+    <img src="https://img.shields.io/badge/🏠_HOME-grey?style=for-the-badge" alt="Home"/>
+  </a>
+  <a href="DOCUMENTATION.md">
+    <img src="https://img.shields.io/badge/📖_DOCUMENTATION-grey?style=for-the-badge" alt="Docs"/>
+  </a>
+  <a href="QUICK_START.md">
+    <img src="https://img.shields.io/badge/⚡_QUICK_START-You_Are_Here-50C878?style=for-the-badge" alt="Quick Start"/>
+  </a>
+  <a href="FEATURES_SUMMARY.md">
+    <img src="https://img.shields.io/badge/📋_FEATURES-grey?style=for-the-badge" alt="Features"/>
+  </a>
+</p>
+
+<br/>
+
+**[⬆ Back to Top](#)**
+
+<br/>
+
+---
+
+<sub>⭐ **If you find this project useful, please consider giving it a star on GitHub!** ⭐</sub>
+
+<br/>
+
+<img src="https://img.shields.io/github/stars/Suvaidyam/frappe_theme?style=social" alt="GitHub stars"/>
+<img src="https://img.shields.io/github/forks/Suvaidyam/frappe_theme?style=social" alt="GitHub forks"/>
+<img src="https://img.shields.io/github/watchers/Suvaidyam/frappe_theme?style=social" alt="GitHub watchers"/>
 
 </div>
