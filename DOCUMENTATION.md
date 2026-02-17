@@ -16,7 +16,7 @@
 
 ## 📑 Table of Contents
 
-<table>
+<table width="100%">
 <tr>
 <td width="50%" valign="top">
 
@@ -64,7 +64,7 @@
 
 ### Key Highlights
 
-<table>
+<table width="100%">
 <tr>
 <td width="25%" align="center">
 
@@ -2510,7 +2510,28 @@ MIT License - Copyright (c) 2024 Suvaidyam
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our contributing guidelines.
+We welcome contributions! Here's how you can help:
+
+### Getting Started
+
+1. **Fork the repository**
+2. **Create a feature branch** (`git checkout -b feature/amazing-feature`)
+3. **Install pre-commit hooks** (`pre-commit install`)
+4. **Make your changes** - Write clean, documented code
+5. **Run tests and linting**
+6. **Commit your changes** (`git commit -m 'Add amazing feature'`)
+7. **Push to your fork** (`git push origin feature/amazing-feature`)
+8. **Open a Pull Request**
+
+### Contribution Guidelines
+
+- **Code Style**: Follow PEP 8 for Python, ESLint for JavaScript
+- **Documentation**: Update docs for new features
+- **Tests**: Add tests for bug fixes and new features
+- **Commits**: Use clear, descriptive commit messages
+- **Issues**: Reference issue numbers in commits and PRs
+
+**[→ See detailed contributing guide in README.md](README.md#-contributing)**
 
 ---
 

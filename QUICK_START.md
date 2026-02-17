@@ -27,7 +27,7 @@
 
 ## 🚀 5-Minute Setup
 
-<table>
+<table width="100%">
 <tr>
 <td width="20%" align="center">
 
@@ -266,7 +266,7 @@ data = export_data(
 
 ## 🔧 Configuration Checklist
 
-<table>
+<table width="100%">
 <tr>
 <td width="50%" valign="top">
 
@@ -328,7 +328,7 @@ data = export_data(
 
 ## 🐛 Quick Troubleshooting
 
-<table>
+<table width="100%">
 <tr>
 <td width="50%" valign="top">
 
@@ -403,7 +403,7 @@ bench clear-cache
 
 ## 📞 Need Help?
 
-<table>
+<table width="100%">
 <tr>
 <td width="33%" align="center">
 

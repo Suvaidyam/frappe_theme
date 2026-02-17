@@ -22,7 +22,7 @@ workflow management, and enterprise-grade security.
 
 ## 📚 Documentation Hub
 
-<table>
+<table width="100%">
 <tr>
 <td width="33%" align="center">
 
@@ -55,7 +55,7 @@ statistics and use cases
 
 ## ✨ Key Features
 
-<table>
+<table width="100%">
 <tr>
 <td width="50%" valign="top">
 
@@ -132,7 +132,7 @@ statistics and use cases
 
 ## 📸 Screenshots
 
-<table>
+<table width="100%">
 <tr>
 <td width="50%" valign="top">
 
@@ -208,7 +208,7 @@ bench setup requirements
 
 ## 📚 Documentation
 
-<table>
+<table width="100%">
 <tr>
 <td width="33%" align="center">
 

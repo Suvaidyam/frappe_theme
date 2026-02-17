@@ -16,7 +16,7 @@
 
 ## 📊 Quick Stats
 
-<table>
+<table width="100%">
 <tr>
 <td width="25%" align="center">
 
@@ -348,7 +348,7 @@ Export Formats
 
 ## 🎯 Use Cases
 
-<table>
+<table width="100%">
 <tr>
 <td width="50%" valign="top">
 
@@ -399,7 +399,7 @@ Export Formats
 
 ## 🚀 Performance
 
-<table>
+<table width="100%">
 <tr>
 <td width="33%" align="center">
 
@@ -448,7 +448,7 @@ Fast delivery
 
 ## 🔒 Security
 
-<table>
+<table width="100%">
 <tr>
 <td width="33%" align="center">
 
@@ -497,7 +497,7 @@ Complete trail
 
 ## 📈 Scalability
 
-<table>
+<table width="100%">
 <tr>
 <td width="50%" valign="top">
 
