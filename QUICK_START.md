@@ -1,14 +1,18 @@
 <div align="center">
 
-# ⚡ Frappe Theme - Quick Start Guide
+<img src="https://img.shields.io/badge/%E2%9A%A1-QUICK%20START-blueviolet?style=for-the-badge&labelColor=1a1a2e" alt="Quick Start" />
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Frappe](https://img.shields.io/badge/Frappe-Framework-blue)](https://frappeframework.com/)
+# ⚡ Frappe Theme — Quick Start Guide
 
-> **Get started in 5 minutes**  
-> Installation, setup, and common use cases
+### _Get Up and Running in 5 Minutes_
 
-[🏠 Home](README.md) • [📖 Documentation](DOCUMENTATION.md) • [📋 Features](FEATURES_SUMMARY.md) • [🐛 Issues](https://github.com/Suvaidyam/frappe_theme/issues)
+<p>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-f7df1e?style=flat-square" alt="License: MIT" /></a>
+  <a href="https://frappeframework.com/"><img src="https://img.shields.io/badge/Frappe-Framework-0089ff?style=flat-square" alt="Frappe" /></a>
+  <img src="https://img.shields.io/badge/Setup-5_Minutes-4CAF50?style=flat-square" alt="5 Min Setup" />
+</p>
+
+<a href="README.md"><img src="https://img.shields.io/badge/🏠_Home-grey?style=flat-square" /></a> · <a href="DOCUMENTATION.md"><img src="https://img.shields.io/badge/📖_Docs-grey?style=flat-square" /></a> · <a href="FEATURES_SUMMARY.md"><img src="https://img.shields.io/badge/📋_Features-grey?style=flat-square" /></a> · <a href="https://github.com/Suvaidyam/frappe_theme/issues"><img src="https://img.shields.io/badge/🐛_Issues-grey?style=flat-square" /></a>
 
 </div>
 
@@ -16,47 +20,53 @@
 
 ## 📑 Table of Contents
 
-- [🚀 5-Minute Setup](#-5-minute-setup)
-- [📋 Common Use Cases](#-common-use-cases)
-- [🎨 Customization Examples](#-customization-examples)
-- [🔧 Configuration Checklist](#-configuration-checklist)
-- [🐛 Quick Troubleshooting](#-quick-troubleshooting)
-- [📞 Need Help?](#-need-help)
+| # | Section | Description |
+|:---:|:---|:---|
+| 1 | [🚀 5-Minute Setup](#-5-minute-setup) | Install and configure |
+| 2 | [📋 Common Use Cases](#-common-use-cases) | Real-world examples |
+| 3 | [🎨 Customization Examples](#-customization-examples) | Configuration samples |
+| 4 | [🔧 Configuration Checklist](#-configuration-checklist) | Step-by-step checklist |
+| 5 | [🐛 Quick Troubleshooting](#-quick-troubleshooting) | Fix common issues |
+| 6 | [📞 Need Help?](#-need-help) | Support & resources |
 
 ---
 
+<div align="center">
+
 ## 🚀 5-Minute Setup
+
+</div>
 
 <table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
 <tr>
-<td style="width: 20%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
+<td style="width: 20%; text-align: center; padding: 16px; border: 1px solid #30363d;">
 
-**Step 1**  
-Install
-
-</td>
-<td style="width: 20%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
-
-**Step 2**  
-Configure Theme
+### 1️⃣
+**Install**
 
 </td>
-<td style="width: 20%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
+<td style="width: 20%; text-align: center; padding: 16px; border: 1px solid #30363d;">
 
-**Step 3**  
-Add Heatmap
-
-</td>
-<td style="width: 20%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
-
-**Step 4**  
-Add Table
+### 2️⃣
+**Configure Theme**
 
 </td>
-<td style="width: 20%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
+<td style="width: 20%; text-align: center; padding: 16px; border: 1px solid #30363d;">
 
-**Step 5**  
-Setup Permissions
+### 3️⃣
+**Add Heatmap**
+
+</td>
+<td style="width: 20%; text-align: center; padding: 16px; border: 1px solid #30363d;">
+
+### 4️⃣
+**Add Table**
+
+</td>
+<td style="width: 20%; text-align: center; padding: 16px; border: 1px solid #30363d;">
+
+### 5️⃣
+**Setup Permissions**
 
 </td>
 </tr>
@@ -64,7 +74,7 @@ Setup Permissions
 
 ---
 
-### 1. Install the App
+### 1️⃣ Install the App
 
 ```bash
 cd ~/frappe-bench
@@ -75,51 +85,60 @@ bench build --app frappe_theme
 bench restart
 ```
 
-### 2. Configure Theme
+### 2️⃣ Configure Theme
 
-1. Login to your site
-2. Go to **Desk > My Theme**
-3. Set your colors:
-   - Primary Color: `#3498db`
-   - Secondary Color: `#2ecc71`
-   - Text Color: `#2c3e50`
-4. Save and refresh
+| Step | Action |
+|:---:|:---|
+| 1 | Login to your site |
+| 2 | Go to **Desk > My Theme** |
+| 3 | Set Primary Color: `#3498db` |
+| 4 | Set Secondary Color: `#2ecc71` |
+| 5 | Set Text Color: `#2c3e50` |
+| 6 | **Save** and refresh |
 
-### 3. Add Heatmap to Workspace
+### 3️⃣ Add Heatmap to Workspace
 
-1. Go to **Desk > SVAWorkspace Configuration**
-2. Create new configuration
-3. Select workspace (e.g., "Sales")
-4. Add heatmap:
-   - DocType: `Sales Order`
-   - Date Field: `transaction_date`
-   - Value Field: `grand_total`
-5. Save
+| Step | Action |
+|:---:|:---|
+| 1 | Go to **Desk > SVAWorkspace Configuration** |
+| 2 | Create new configuration |
+| 3 | Select workspace (e.g., "Sales") |
+| 4 | Set DocType: `Sales Order` |
+| 5 | Set Date Field: `transaction_date` |
+| 6 | Set Value Field: `grand_total` |
+| 7 | **Save** |
 
-### 4. Add Custom Table to Form
+### 4️⃣ Add Custom Table to Form
 
-1. Go to **Desk > SVADatatable Configuration**
-2. Create new configuration
-3. Configure:
-   - Parent DocType: `Customer`
-   - Child DocType: `Sales Order`
-   - Link Field: `customer`
-4. Add fields to display
-5. Save
+| Step | Action |
+|:---:|:---|
+| 1 | Go to **Desk > SVADatatable Configuration** |
+| 2 | Create new configuration |
+| 3 | Set Parent DocType: `Customer` |
+| 4 | Set Child DocType: `Sales Order` |
+| 5 | Set Link Field: `customer` |
+| 6 | Add fields to display |
+| 7 | **Save** |
 
-### 5. Setup Bulk Permissions
+### 5️⃣ Setup Bulk Permissions
 
-1. Go to **Desk > Bulk Role Profile Permissions**
-2. Select DocType
-3. Click "Load Role Profiles"
-4. Apply preset (e.g., "Full Access")
-5. Click "Apply Permissions"
+| Step | Action |
+|:---:|:---|
+| 1 | Go to **Desk > Bulk Role Profile Permissions** |
+| 2 | Select DocType |
+| 3 | Click "**Load Role Profiles**" |
+| 4 | Apply preset (e.g., "Full Access") |
+| 5 | Click "**Apply Permissions**" |
 
 ---
 
+<div align="center">
+
 ## 📋 Common Use Cases
 
-### Use Case 1: Add Number Card to Form
+</div>
+
+### 🔢 Use Case 1: Add Number Card to Form
 
 ```javascript
 // In your DocType's JS file
@@ -133,7 +152,7 @@ frappe.ui.form.on('Sales Order', {
 });
 ```
 
-### Use Case 2: Custom Datatable with Events
+### 📋 Use Case 2: Custom Datatable with Events
 
 ```javascript
 frm.dt_events = {
@@ -148,7 +167,6 @@ frm.dt_events = {
             });
         },
         customize_form_fields: function(dt, fields) {
-            // Hide certain fields
             fields.forEach(field => {
                 if (field.fieldname === 'internal_field') {
                     field.hidden = 1;
@@ -159,7 +177,7 @@ frm.dt_events = {
 };
 ```
 
-### Use Case 3: Add Approval Timeline
+### ✅ Use Case 3: Add Approval Timeline
 
 ```python
 # In your DocType's Python file
@@ -169,7 +187,7 @@ def get_approval_history(name):
     return get_timeline('Sales Order', name)
 ```
 
-### Use Case 4: Encrypt Sensitive Field
+### 🔐 Use Case 4: Encrypt Sensitive Field
 
 ```python
 # In Custom Field
@@ -181,10 +199,9 @@ def get_approval_history(name):
 }
 ```
 
-### Use Case 5: Export Data as JSON
+### 📤 Use Case 5: Export Data as JSON
 
 ```python
-# In your script
 import frappe
 from frappe_theme.apis.export_json import export_data
 
@@ -197,9 +214,13 @@ data = export_data(
 
 ---
 
+<div align="center">
+
 ## 🎨 Customization Examples
 
-### Example 1: Custom Theme Colors
+</div>
+
+### 🌈 Example 1: Custom Theme Colors
 
 ```python
 # In My Theme DocType
@@ -215,10 +236,9 @@ data = export_data(
 }
 ```
 
-### Example 2: Workspace Heatmap
+### 🔥 Example 2: Workspace Heatmap
 
 ```javascript
-// Configuration
 {
     "workspace": "Sales",
     "heatmap_doctype": "Sales Order",
@@ -229,93 +249,91 @@ data = export_data(
 }
 ```
 
-### Example 3: Custom Datatable
+### 📋 Example 3: Custom Datatable
 
 ```javascript
-// SVADatatable Configuration
 {
     "doctype": "Customer",
-    "fields": [
-        "name",
-        "customer_name",
-        "territory",
-        "customer_group",
-        "mobile_no",
-        "email_id"
-    ],
-    "filters": {
-        "disabled": 0,
-        "territory": "India"
-    },
+    "fields": ["name", "customer_name", "territory",
+               "customer_group", "mobile_no", "email_id"],
+    "filters": { "disabled": 0, "territory": "India" },
     "page_length": 20,
     "enable_actions": true,
     "custom_actions": [
-        {
-            "label": "Send Email",
-            "method": "send_welcome_email",
-            "icon": "mail"
-        }
+        { "label": "Send Email", "method": "send_welcome_email", "icon": "mail" }
     ]
 }
 ```
 
 ---
 
+<div align="center">
+
 ## 🔧 Configuration Checklist
+
+</div>
 
 <table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
 <tr>
-<td style="width: 50%; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
+<td style="width: 50%; vertical-align: top; padding: 24px; border: 1px solid #30363d;">
 
-### Initial Setup
+### 🚀 Initial Setup
 - [ ] Install app
 - [ ] Configure theme colors
 - [ ] Set up logo and branding
-- [ ] Configure encryption key (if using encryption)
+- [ ] Configure encryption key (if needed)
 
-**[→ Installation guide](#1-install-the-app)**
+<sub><a href="#1️⃣-install-the-app">→ Installation guide</a></sub>
 
-### Workspace Setup
+---
+
+### 🖥️ Workspace Setup
 - [ ] Add heatmaps to relevant workspaces
 - [ ] Add custom tables
 - [ ] Configure number cards
 - [ ] Set up quick filters
 
-**[→ Workspace guide](DOCUMENTATION.md#2--workspace-enhancements)**
+<sub><a href="DOCUMENTATION.md#2--workspace-enhancements">→ Workspace guide</a></sub>
 
-### Form Enhancements
+---
+
+### 📝 Form Enhancements
 - [ ] Add number cards to forms
 - [ ] Add charts to forms
 - [ ] Configure custom datatables
 - [ ] Add field comments
 
-**[→ Form guide](DOCUMENTATION.md#9--form-enhancements)**
+<sub><a href="DOCUMENTATION.md#9--form-enhancements">→ Form guide</a></sub>
 
 </td>
-<td style="width: 50%; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
+<td style="width: 50%; vertical-align: top; padding: 24px; border: 1px solid #30363d;">
 
-### Security Setup
+### 🔐 Security Setup
 - [ ] Configure field encryption
 - [ ] Set up data masking rules
 - [ ] Configure role-based permissions
 - [ ] Enable global sanitizer
 
-**[→ Security guide](DOCUMENTATION.md#6--security--data-protection)**
+<sub><a href="DOCUMENTATION.md#6--security--data-protection">→ Security guide</a></sub>
 
-### Workflow Setup
+---
+
+### 🔄 Workflow Setup
 - [ ] Configure custom workflow actions
 - [ ] Set up approval tracking
 - [ ] Configure email notifications
 
-**[→ Workflow guide](DOCUMENTATION.md#5--workflow-management)**
+<sub><a href="DOCUMENTATION.md#5--workflow-management">→ Workflow guide</a></sub>
 
-### Testing
+---
+
+### ✅ Testing
 - [ ] Test theme customization
 - [ ] Verify permissions
 - [ ] Test datatables
 - [ ] Check mobile responsiveness
 
-**[→ Troubleshooting](#-quick-troubleshooting)**
+<sub><a href="#-quick-troubleshooting">→ Troubleshooting</a></sub>
 
 </td>
 </tr>
@@ -323,11 +341,15 @@ data = export_data(
 
 ---
 
+<div align="center">
+
 ## 🐛 Quick Troubleshooting
+
+</div>
 
 <table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
 <tr>
-<td style="width: 50%; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
+<td style="width: 50%; vertical-align: top; padding: 24px; border: 1px solid #30363d;">
 
 ### ❌ Assets not loading
 
@@ -337,7 +359,7 @@ bench build --app frappe_theme --force
 bench restart
 ```
 
-**[→ More details](DOCUMENTATION.md#-troubleshooting)**
+<sub><a href="DOCUMENTATION.md#-troubleshooting">→ More details</a></sub>
 
 ---
 
@@ -348,123 +370,132 @@ bench execute frappe_theme.setup.reset_permissions
 bench clear-cache
 ```
 
-**[→ Permission guide](DOCUMENTATION.md#7--permission-management)**
+<sub><a href="DOCUMENTATION.md#7--permission-management">→ Permission guide</a></sub>
 
 ---
 
 ### ❌ JavaScript errors
 
-1. Check browser console (F12)
-2. Rebuild assets: `bench build --app frappe_theme --force`
-3. Clear browser cache (Ctrl+Shift+R)
+| Step | Action |
+|:---:|:---|
+| 1 | Check browser console (F12) |
+| 2 | `bench build --app frappe_theme --force` |
+| 3 | Clear browser cache (Ctrl+Shift+R) |
 
-**[→ Development guide](DOCUMENTATION.md#-development-guide)**
+<sub><a href="DOCUMENTATION.md#-development-guide">→ Dev guide</a></sub>
 
 </td>
-<td style="width: 50%; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
+<td style="width: 50%; vertical-align: top; padding: 24px; border: 1px solid #30363d;">
 
 ### ❌ Theme not applying
 
-1. Clear cache: `bench clear-cache`
-2. Check My Theme DocType is saved
-3. Refresh browser (Ctrl+F5)
+| Step | Action |
+|:---:|:---|
+| 1 | `bench clear-cache` |
+| 2 | Check My Theme DocType is saved |
+| 3 | Refresh browser (Ctrl+F5) |
 
-**[→ Theme guide](DOCUMENTATION.md#1--theme-customization)**
+<sub><a href="DOCUMENTATION.md#1--theme-customization">→ Theme guide</a></sub>
 
 ---
 
 ### ❌ Datatable not showing
 
-1. Check SVADatatable Configuration
-2. Verify DocType permissions
-3. Check browser console for errors
-4. Rebuild: `bench build --app frappe_theme`
+| Step | Action |
+|:---:|:---|
+| 1 | Check SVADatatable Configuration |
+| 2 | Verify DocType permissions |
+| 3 | Check browser console |
+| 4 | `bench build --app frappe_theme` |
 
-**[→ Datatable guide](DOCUMENTATION.md#4--custom-datatables-svadatatable)**
+<sub><a href="DOCUMENTATION.md#4--custom-datatables-svadatatable">→ Datatable guide</a></sub>
 
 ---
 
 ### ❌ Still having issues?
 
-- Check error logs: `tail -f sites/your-site/logs/error.log`
-- Enable debug mode in `site_config.json`
-- Contact support: tech@suvaidyam.com
+```bash
+# Check error logs
+tail -f sites/your-site/logs/error.log
+```
 
-**[→ Full troubleshooting guide](DOCUMENTATION.md#-troubleshooting)**
+📧 Contact: **tech@suvaidyam.com**
 
-</td>
-</tr>
-</table>
-
----
-
-## 📞 Need Help?
-
-<table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
-<tr>
-<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
-
-📖  
-**[Complete Documentation](DOCUMENTATION.md)**  
-Detailed technical guide with API reference
-
-</td>
-<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
-
-📋  
-**[Features Summary](FEATURES_SUMMARY.md)**  
-200+ features with examples
-
-</td>
-<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
-
-🐛  
-**[Report Issues](https://github.com/Suvaidyam/frappe_theme/issues)**  
-Bug reports and feature requests
-
-</td>
-</tr>
-<tr>
-<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
-
-📧  
-**Email Support**  
-tech@suvaidyam.com
-
-</td>
-<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
-
-💬  
-**Community**  
-Join our discussions
-
-</td>
-<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
-
-🎓  
-**Training**  
-Custom training available
+<sub><a href="DOCUMENTATION.md#-troubleshooting">→ Full troubleshooting</a></sub>
 
 </td>
 </tr>
 </table>
-
----
-
-**Happy Customizing! 🎉**
-
----
-
-**Made with ❤️ by [Suvaidyam](https://suvaidyam.com)**
 
 ---
 
 <div align="center">
 
+## 📞 Need Help?
+
+</div>
+
+<table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
+<tr>
+<td style="width: 33.33%; text-align: center; padding: 20px; border: 1px solid #30363d;">
+
+### 📖
+**[Complete Docs](DOCUMENTATION.md)**
+<sub>Detailed technical guide with API reference</sub>
+
+</td>
+<td style="width: 33.33%; text-align: center; padding: 20px; border: 1px solid #30363d;">
+
+### 📋
+**[Features Summary](FEATURES_SUMMARY.md)**
+<sub>200+ features with examples</sub>
+
+</td>
+<td style="width: 33.33%; text-align: center; padding: 20px; border: 1px solid #30363d;">
+
+### 🐛
+**[Report Issues](https://github.com/Suvaidyam/frappe_theme/issues)**
+<sub>Bug reports and feature requests</sub>
+
+</td>
+</tr>
+<tr>
+<td style="width: 33.33%; text-align: center; padding: 20px; border: 1px solid #30363d;">
+
+### 📧
+**Email Support**
+<sub>tech@suvaidyam.com</sub>
+
+</td>
+<td style="width: 33.33%; text-align: center; padding: 20px; border: 1px solid #30363d;">
+
+### 💬
+**Community**
+<sub>Join our discussions</sub>
+
+</td>
+<td style="width: 33.33%; text-align: center; padding: 20px; border: 1px solid #30363d;">
+
+### 🎓
+**Training**
+<sub>Custom training available</sub>
+
+</td>
+</tr>
+</table>
+
+---
+
+<div align="center">
+
+**Happy Customizing! 🎉**
+
+**Made with ❤️ by [Suvaidyam](https://suvaidyam.com)**
+
 ### 📚 Navigation
 
-[🏠 Home](README.md) • [📖 Documentation](DOCUMENTATION.md) • [⚡ Quick Start](QUICK_START.md) • [📋 Features](FEATURES_SUMMARY.md)
+<a href="README.md"><img src="https://img.shields.io/badge/🏠_Home-grey?style=flat-square" /></a> · <a href="DOCUMENTATION.md"><img src="https://img.shields.io/badge/📖_Docs-grey?style=flat-square" /></a> · <a href="QUICK_START.md"><img src="https://img.shields.io/badge/⚡_Quick_Start-active-blue?style=flat-square" /></a> · <a href="FEATURES_SUMMARY.md"><img src="https://img.shields.io/badge/📋_Features-grey?style=flat-square" /></a>
 
-**[⬆ Back to Top](#-frappe-theme---quick-start-guide)**
+**[⬆ Back to Top](#-frappe-theme--quick-start-guide)**
 
 </div>

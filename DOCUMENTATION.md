@@ -1,14 +1,19 @@
 <div align="center">
 
-# 📖 Frappe Theme - Complete Documentation
+<img src="https://img.shields.io/badge/%F0%9F%93%96-DOCUMENTATION-blueviolet?style=for-the-badge&labelColor=1a1a2e" alt="Documentation" />
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Frappe](https://img.shields.io/badge/Frappe-Framework-blue)](https://frappeframework.com/)
+# 📖 Frappe Theme — Complete Documentation
 
-> **A comprehensive customization app for Frappe Framework**  
-> Built by Suvaidyam | Version 1.0.0
+### _The Definitive Technical Reference_
 
-[🏠 Home](README.md) • [⚡ Quick Start](QUICK_START.md) • [📋 Features](FEATURES_SUMMARY.md) • [🐛 Issues](https://github.com/Suvaidyam/frappe_theme/issues)
+<p>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-f7df1e?style=flat-square" alt="License: MIT" /></a>
+  <a href="https://frappeframework.com/"><img src="https://img.shields.io/badge/Frappe-Framework-0089ff?style=flat-square" alt="Frappe" /></a>
+  <img src="https://img.shields.io/badge/Version-1.0.0-e91e63?style=flat-square" alt="Version" />
+  <img src="https://img.shields.io/badge/By-Suvaidyam-4CAF50?style=flat-square" alt="Suvaidyam" />
+</p>
+
+<a href="README.md"><img src="https://img.shields.io/badge/🏠_Home-grey?style=flat-square" /></a> · <a href="QUICK_START.md"><img src="https://img.shields.io/badge/⚡_Quick_Start-grey?style=flat-square" /></a> · <a href="FEATURES_SUMMARY.md"><img src="https://img.shields.io/badge/📋_Features-grey?style=flat-square" /></a> · <a href="https://github.com/Suvaidyam/frappe_theme/issues"><img src="https://img.shields.io/badge/🐛_Issues-grey?style=flat-square" /></a>
 
 </div>
 
@@ -18,39 +23,47 @@
 
 <table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
 <tr>
-<td style="width: 50%; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
+<td style="width: 50%; vertical-align: top; padding: 24px; border: 1px solid #30363d;">
 
-**Getting Started**
-- [Overview](#-overview)
-- [Installation](#-installation)
-- [Configuration](#-configuration)
+#### 🚀 Getting Started
+| | Section |
+|:---|:---|
+| 📌 | [Overview](#-overview) |
+| 📦 | [Installation](#-installation) |
+| ⚙️ | [Configuration](#-configuration) |
 
-**Core Features**
-- [Theme Customization](#1--theme-customization)
-- [Workspace Enhancements](#2--workspace-enhancements)
-- [Data Visualization](#3--data-visualization)
-- [Custom Datatables](#4--custom-datatables-svadatatable)
-- [Workflow Management](#5--workflow-management)
-- [Security & Data Protection](#6--security--data-protection)
-- [Permission Management](#7--permission-management)
+#### 🔥 Core Features
+| | Section |
+|:---|:---|
+| 🎨 | [Theme Customization](#1--theme-customization) |
+| 📊 | [Workspace Enhancements](#2--workspace-enhancements) |
+| 📈 | [Data Visualization](#3--data-visualization) |
+| 🗂️ | [Custom Datatables](#4--custom-datatables-svadatatable) |
+| 🔄 | [Workflow Management](#5--workflow-management) |
+| 🔐 | [Security & Data Protection](#6--security--data-protection) |
+| 👥 | [Permission Management](#7--permission-management) |
 
 </td>
-<td style="width: 50%; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
+<td style="width: 50%; vertical-align: top; padding: 24px; border: 1px solid #30363d;">
 
-**Advanced Features**
-- [Property Setters](#8--property-setters)
-- [Form Enhancements](#9--form-enhancements)
-- [Export & Reporting](#10--export--reporting)
-- [Integrations](#11--integrations)
-- [Utilities](#12--utilities)
-- [Geographic Data](#14--geographic-data)
-- [Mobile Enhancements](#15--mobile-enhancements)
+#### ⚡ Advanced Features
+| | Section |
+|:---|:---|
+| 🛠️ | [Property Setters](#8--property-setters) |
+| 📝 | [Form Enhancements](#9--form-enhancements) |
+| 📤 | [Export & Reporting](#10--export--reporting) |
+| 🔌 | [Integrations](#11--integrations) |
+| 🧰 | [Utilities](#12--utilities) |
+| 🌍 | [Geographic Data](#14--geographic-data) |
+| 📱 | [Mobile Enhancements](#15--mobile-enhancements) |
 
-**Technical Reference**
-- [Frontend Features](#-frontend-features)
-- [Backend Features](#-backend-features)
-- [API Reference](#-api-reference)
-- [Development Guide](#-development-guide)
+#### 📚 Technical Reference
+| | Section |
+|:---|:---|
+| 🖥️ | [Frontend Features](#-frontend-features) |
+| ⚙️ | [Backend Features](#-backend-features) |
+| 🔌 | [API Reference](#-api-reference) |
+| 🛠️ | [Development Guide](#-development-guide) |
 
 </td>
 </tr>
@@ -66,62 +79,62 @@
 
 <table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
 <tr>
-<td style="width: 25%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
+<td style="width: 25%; text-align: center; vertical-align: top; padding: 20px; border: 1px solid #30363d;">
 
-🎨  
-**Advanced Theming**  
-Complete UI customization
-
-</td>
-<td style="width: 25%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
-
-📊  
-**Data Visualization**  
-Charts, heatmaps, number cards
+### 🎨
+**Advanced Theming**
+<sub>Complete UI customization</sub>
 
 </td>
-<td style="width: 25%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
+<td style="width: 25%; text-align: center; vertical-align: top; padding: 20px; border: 1px solid #30363d;">
 
-🔐  
-**Security**  
-Field encryption, data masking
+### 📊
+**Data Visualization**
+<sub>Charts, heatmaps, number cards</sub>
 
 </td>
-<td style="width: 25%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
+<td style="width: 25%; text-align: center; vertical-align: top; padding: 20px; border: 1px solid #30363d;">
 
-🔄  
-**Workflow Extensions**  
-Custom actions, approval tracking
+### 🔐
+**Security**
+<sub>Field encryption, data masking</sub>
+
+</td>
+<td style="width: 25%; text-align: center; vertical-align: top; padding: 20px; border: 1px solid #30363d;">
+
+### 🔄
+**Workflow Extensions**
+<sub>Custom actions, approval tracking</sub>
 
 </td>
 </tr>
 <tr>
-<td style="width: 25%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
+<td style="width: 25%; text-align: center; vertical-align: top; padding: 20px; border: 1px solid #30363d;">
 
-📋  
-**Bulk Operations**  
-Mass permission management
-
-</td>
-<td style="width: 25%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
-
-🎯  
-**Custom Datatables**  
-Advanced filtering & actions
+### 📋
+**Bulk Operations**
+<sub>Mass permission management</sub>
 
 </td>
-<td style="width: 25%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
+<td style="width: 25%; text-align: center; vertical-align: top; padding: 20px; border: 1px solid #30363d;">
 
-🌐  
-**Geographic Data**  
-India states & districts boundaries
+### 🎯
+**Custom Datatables**
+<sub>Advanced filtering & actions</sub>
 
 </td>
-<td style="width: 25%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
+<td style="width: 25%; text-align: center; vertical-align: top; padding: 20px; border: 1px solid #30363d;">
 
-🤖  
-**AI Integration**  
-OpenAI & WrenAI support
+### 🌐
+**Geographic Data**
+<sub>India states & districts</sub>
+
+</td>
+<td style="width: 25%; text-align: center; vertical-align: top; padding: 20px; border: 1px solid #30363d;">
+
+### 🤖
+**AI Integration**
+<sub>OpenAI & WrenAI support</sub>
 
 </td>
 </tr>
@@ -2551,22 +2564,14 @@ We welcome contributions! Here's how you can help:
 
 ---
 
-**Made with ❤️ by Suvaidyam**
-
-
-
----
+<div align="center">
 
 **Made with ❤️ by [Suvaidyam](https://suvaidyam.com)**
 
----
-
-<div align="center">
-
 ### 📚 Navigation
 
-[🏠 Home](README.md) • [📖 Documentation](DOCUMENTATION.md) • [⚡ Quick Start](QUICK_START.md) • [📋 Features](FEATURES_SUMMARY.md)
+<a href="README.md"><img src="https://img.shields.io/badge/🏠_Home-grey?style=flat-square" /></a> · <a href="DOCUMENTATION.md"><img src="https://img.shields.io/badge/📖_Docs-active-blue?style=flat-square" /></a> · <a href="QUICK_START.md"><img src="https://img.shields.io/badge/⚡_Quick_Start-grey?style=flat-square" /></a> · <a href="FEATURES_SUMMARY.md"><img src="https://img.shields.io/badge/📋_Features-grey?style=flat-square" /></a>
 
-**[⬆ Back to Top](#-frappe-theme---complete-documentation)**
+**[⬆ Back to Top](#-frappe-theme--complete-documentation)**
 
 </div>
