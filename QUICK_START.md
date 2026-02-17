@@ -1,5 +1,8 @@
 <div align="center">
 
+<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=14,17,20&height=180&section=header&text=Quick%20Start&fontSize=50&fontColor=fff&animation=fadeIn&fontAlignY=32" width="100%"/>
+
+
 ```
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║                                                                              ║
@@ -9,8 +12,6 @@
 ║                                                                              ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 ```
-
-<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=14,17,20&height=180&section=header&text=Quick%20Start&fontSize=50&fontColor=fff&animation=fadeIn&fontAlignY=32" width="100%"/>
 
 ### 🚀 _Get Up and Running in 5 Minutes_
 
@@ -967,19 +968,41 @@ Tailored to your needs
 
 ---
 
+---
+
+## 📄 **License**
+
 <div align="center">
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│              This project wouldn't be possible without:                     │
-│                                                                             │
-│  🎉 Frappe Framework Team  •  👥 All Contributors  •  💻 OSS Community     │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+<img src="https://img.icons8.com/fluency/96/000000/certificate.png" width="64"/>
+
+**MIT License** — Free to use, modify, and distribute
 
 <br/>
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=14,17,20&height=120&section=footer" width="100%"/>
+[![License: MIT](https://img.shields.io/badge/License-MIT-FFD700?style=for-the-badge&logo=opensourceinitiative&logoColor=white)](https://opensource.org/licenses/MIT)
+
+<br/>
+
+See the [license.txt](license.txt) file for complete details.
+
+</div>
+
+---
+
+## 🙏 **Acknowledgments**
+
+<div align="center">
+
+### _This project wouldn't be possible without:_
+
+**🎉 Frappe Framework Team • 👥 All Contributors • 💻 OSS Community**
+
+</div>
+
+<br/>
+
+---
 
 **Made with ❤️ by [Suvaidyam](https://suvaidyam.com)**
 
@@ -991,16 +1014,16 @@ Tailored to your needs
 
 <p align="center">
   <a href="README.md">
-    <img src="https://img.shields.io/badge/🏠_HOME-grey?style=for-the-badge" alt="Home"/>
+    <img src="https://img.shields.io/badge/🏠_HOME-4A90E2?style=for-the-badge" alt="Home"/>
   </a>
   <a href="DOCUMENTATION.md">
-    <img src="https://img.shields.io/badge/📖_DOCUMENTATION-grey?style=for-the-badge" alt="Docs"/>
+    <img src="https://img.shields.io/badge/📖_DOCUMENTATION-Read_Now-50C878?style=for-the-badge" alt="Docs"/>
   </a>
   <a href="QUICK_START.md">
-    <img src="https://img.shields.io/badge/⚡_QUICK_START-You_Are_Here-50C878?style=for-the-badge" alt="Quick Start"/>
+    <img src="https://img.shields.io/badge/⚡_QUICK_START-You_Are_Here-FF6B35?style=for-the-badge" alt="Quick Start"/>
   </a>
   <a href="FEATURES_SUMMARY.md">
-    <img src="https://img.shields.io/badge/📋_FEATURES-grey?style=for-the-badge" alt="Features"/>
+    <img src="https://img.shields.io/badge/📋_FEATURES-Explore-9C27B0?style=for-the-badge" alt="Features"/>
   </a>
 </p>
 
@@ -1019,5 +1042,9 @@ Tailored to your needs
 <img src="https://img.shields.io/github/stars/Suvaidyam/frappe_theme?style=social" alt="GitHub stars"/>
 <img src="https://img.shields.io/github/forks/Suvaidyam/frappe_theme?style=social" alt="GitHub forks"/>
 <img src="https://img.shields.io/github/watchers/Suvaidyam/frappe_theme?style=social" alt="GitHub watchers"/>
+
+<br/>
+
+<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=120&section=footer" width="100%"/>
 
 </div>

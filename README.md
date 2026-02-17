@@ -1,16 +1,10 @@
 <div align="center">
 
-```
-╔══════════════════════════════════════════════════════════════════════════════╗
-║                                                                              ║
-║                           🎨  FRAPPE THEME  🎨                               ║
-║                                                                              ║
-║              Transform Your Frappe Experience with 200+ Features            ║
-║                                                                              ║
-╚══════════════════════════════════════════════════════════════════════════════╝
-```
+<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=200&section=header&text=Frappe%20Theme&fontSize=60&fontColor=fff&animation=twinkling&fontAlignY=35&desc=Transform%20Your%20Frappe%20Experience%20with%20200%2B%20Features&descSize=20&descAlignY=55" width="100%"/>
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=180&section=header&text=Frappe%20Theme&fontSize=50&fontColor=fff&animation=twinkling&fontAlignY=32" width="100%"/>
+<br/>
+
+# 🎨 **FRAPPE THEME** 🎨
 
 ### ✨ _Enterprise-Grade Customization Platform for Frappe/ERPNext_ ✨
 
@@ -51,11 +45,11 @@
 
 <br/>
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  ⭐ Star us on GitHub  •  🐛 Report Issues  •  🤝 Contribute to the project │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+<p align="center">
+  <kbd>⭐ Star us on GitHub</kbd> • <kbd>🐛 Report Issues</kbd> • <kbd>🤝 Contribute to the project</kbd>
+</p>
+
+<br/>
 
 <sub>**Built with ❤️ by [Suvaidyam](https://suvaidyam.com) • Trusted by enterprises worldwide**</sub>
 
@@ -67,13 +61,9 @@
 
 <div align="center">
 
-## 📚 Documentation Hub
+## 📚 **Documentation Hub**
 
-```
-╔══════════════════════════════════════════════════════════════════════════════╗
-║                  🎯 Everything You Need to Get Started                      ║
-╚══════════════════════════════════════════════════════════════════════════════╝
-```
+### 🎯 _Everything You Need to Get Started_
 
 </div>
 
@@ -158,15 +148,11 @@
 
 ---
 
-## ✨ Key Features
+## ✨ **Key Features**
 
 <div align="center">
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│              🎯 Enterprise-Grade Features That Set You Apart                │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+### 🎯 _Enterprise-Grade Features That Set You Apart_
 
 </div>
 
@@ -327,13 +313,9 @@ Features:
 
 <div align="center">
 
-## 📸 Visual Showcase
+## 📸 **Visual Showcase**
 
-```
-╔══════════════════════════════════════════════════════════════════════════════╗
-║                    🎨 See Frappe Theme in Action                            ║
-╚══════════════════════════════════════════════════════════════════════════════╝
-```
+### 🎨 _See Frappe Theme in Action_
 
 </div>
 
@@ -397,13 +379,9 @@ Features:
 
 <div align="center">
 
-## 🚀 Quick Installation
+## 🚀 **Quick Installation**
 
-```
-╔══════════════════════════════════════════════════════════════════════════════╗
-║                    ⏱️ Get Started in Under 5 Minutes                        ║
-╚══════════════════════════════════════════════════════════════════════════════╝
-```
+### ⏱️ _Get Started in Under 5 Minutes_
 
 </div>
 
@@ -486,11 +464,7 @@ bench restart
 
 <div align="center">
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  ✅ Installation Complete! Login and start customizing your Frappe instance │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+> ✅ **Installation Complete!** Login and start customizing your Frappe instance
 
 **Need detailed setup instructions?** → [Complete Quick Start Guide](QUICK_START.md)
 
@@ -498,15 +472,11 @@ bench restart
 
 <br/>
 
-<br/>
-
 ---
-
-<br/>
 
 <div align="center">
 
-## 📚 Documentation
+## 📚 **Documentation**
 
 </div>
 
@@ -561,11 +531,9 @@ bench restart
 
 ---
 
-<br/>
-
 <div align="center">
 
-## 🎯 Key Components
+## 🎯 **Key Components**
 
 </div>
 
@@ -620,11 +588,9 @@ bench restart
 
 ---
 
-<br/>
-
 <div align="center">
 
-## 🛠️ Development
+## 🛠️ **Development**
 
 </div>
 
@@ -668,11 +634,9 @@ bench run-tests --app frappe_theme --coverage
 
 ---
 
-<br/>
-
 <div align="center">
 
-## 📦 What's Included
+## 📦 **What's Included**
 
 </div>
 
@@ -721,15 +685,11 @@ bench run-tests --app frappe_theme --coverage
 
 ---
 
-## 🤝 Contributing
+## 🤝 **Contributing**
 
 <div align="center">
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│              💡 We Welcome Contributions from the Community!                │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+### 💡 _We Welcome Contributions from the Community!_
 
 </div>
 
@@ -858,27 +818,11 @@ git push origin feature/amazing-feature
 
 ---
 
-<br/>
-
 <div align="center">
 
-## 📄 License
+## 📞 **Support & Community**
 
-**MIT License** — see the [license.txt](license.txt) file for details.
-
-</div>
-
----
-
-<div align="center">
-
-## 📞 Support & Community
-
-```
-╔══════════════════════════════════════════════════════════════════════════════╗
-║                    🤝 We're Here to Help You Succeed                        ║
-╚══════════════════════════════════════════════════════════════════════════════╝
-```
+### 🤝 _We're Here to Help You Succeed_
 
 </div>
 
@@ -983,7 +927,7 @@ Show your support!
 
 ---
 
-## 🗺️ Roadmap
+## 🗺️ **Roadmap**
 
 <div align="center">
 
@@ -1024,7 +968,7 @@ Show your support!
 
 ---
 
-## 📄 License
+## 📄 **License**
 
 <div align="center">
 
@@ -1044,25 +988,19 @@ See the [license.txt](license.txt) file for complete details.
 
 ---
 
-## 🙏 Acknowledgments
+## 🙏 **Acknowledgments**
 
 <div align="center">
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│              This project wouldn't be possible without:                     │
-│                                                                             │
-│  🎉 Frappe Framework Team  •  👥 All Contributors  •  💻 OSS Community     │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+### _This project wouldn't be possible without:_
+
+**🎉 Frappe Framework Team • 👥 All Contributors • 💻 OSS Community**
+
+</div>
 
 <br/>
 
 ---
-
-<br/>
-
-<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=120&section=footer" width="100%"/>
 
 **Made with ❤️ by [Suvaidyam](https://suvaidyam.com)**
 
@@ -1102,5 +1040,9 @@ See the [license.txt](license.txt) file for complete details.
 <img src="https://img.shields.io/github/stars/Suvaidyam/frappe_theme?style=social" alt="GitHub stars"/>
 <img src="https://img.shields.io/github/forks/Suvaidyam/frappe_theme?style=social" alt="GitHub forks"/>
 <img src="https://img.shields.io/github/watchers/Suvaidyam/frappe_theme?style=social" alt="GitHub watchers"/>
+
+<br/>
+
+<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=120&section=footer" width="100%"/>
 
 </div>

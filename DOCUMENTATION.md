@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=180&section=header&text=Documentation&fontSize=50&fontColor=fff&animation=fadeIn&fontAlignY=32" width="100%"/>
+
 ```
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║                                                                              ║
@@ -10,7 +12,6 @@
 ╚══════════════════════════════════════════════════════════════════════════════╝
 ```
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=180&section=header&text=Documentation&fontSize=50&fontColor=fff&animation=fadeIn&fontAlignY=32" width="100%"/>
 
 ### 📚 _Complete API Reference, Configuration Guide & Development Documentation_
 
@@ -2580,60 +2581,281 @@ MIT License - Copyright (c) 2024 Suvaidyam
 
 ---
 
-## 🤝 Contributing
-
-We welcome contributions! Here's how you can help:
-
-### Getting Started
-
-1. **Fork the repository**
-2. **Create a feature branch** (`git checkout -b feature/amazing-feature`)
-3. **Install pre-commit hooks** (`pre-commit install`)
-4. **Make your changes** - Write clean, documented code
-5. **Run tests and linting**
-6. **Commit your changes** (`git commit -m 'Add amazing feature'`)
-7. **Push to your fork** (`git push origin feature/amazing-feature`)
-8. **Open a Pull Request**
-
-### Contribution Guidelines
-
-- **Code Style**: Follow PEP 8 for Python, ESLint for JavaScript
-- **Documentation**: Update docs for new features
-- **Tests**: Add tests for bug fixes and new features
-- **Commits**: Use clear, descriptive commit messages
-- **Issues**: Reference issue numbers in commits and PRs
-
-**[→ See detailed contributing guide in README.md](README.md#-contributing)**
-
----
-
-## 📞 Support
-
-- **Email:** tech@suvaidyam.com
-- **GitHub Issues:** [Report bugs](https://github.com/Suvaidyam/frappe_theme/issues)
-- **Documentation:** [Full docs](https://docs.your-domain.com)
-
----
-
-## 🙏 Acknowledgments
+## 🤝 **Contributing**
 
 <div align="center">
 
+### 💡 _We Welcome Contributions from the Community!_
+
+</div>
+
+### 🚀 Quick Contribution Guide
+
+<table>
+<tr>
+<td width="20%" align="center">
+
+**1️⃣**
+
+🍴 Fork
+
+</td>
+<td width="20%" align="center">
+
+**2️⃣**
+
+🌿 Branch
+
+</td>
+<td width="20%" align="center">
+
+**3️⃣**
+
+✏️ Code
+
+</td>
+<td width="20%" align="center">
+
+**4️⃣**
+
+✅ Test
+
+</td>
+<td width="20%" align="center">
+
+**5️⃣**
+
+🚀 PR
+
+</td>
+</tr>
+</table>
+
+### 💻 Step-by-Step
+
+```bash
+# 1. Fork on GitHub, then clone your fork
+git clone https://github.com/YOUR_USERNAME/frappe_theme.git
+cd frappe_theme
+
+# 2. Create a feature branch
+git checkout -b feature/amazing-feature
+
+# 3. Install pre-commit hooks
+pre-commit install
+
+# 4. Make your changes, then run quality checks
+ruff check . && ruff format .
+eslint frappe_theme/public/js
+bench run-tests --app frappe_theme
+
+# 5. Commit with a clear message
+git commit -m '✨ Add amazing feature'
+
+# 6. Push to your fork
+git push origin feature/amazing-feature
+
+# 7. Open a Pull Request on GitHub
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│              This project wouldn't be possible without:                     │
-│                                                                             │
-│  🎉 Frappe Framework Team  •  👥 All Contributors  •  💻 OSS Community     │
-└─────────────────────────────────────────────────────────────────────────────┘
+
+### 📝 Contribution Guidelines
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+#### ✅ Do's
+
+```diff
++ Follow PEP 8 for Python code
++ Use ESLint for JavaScript
++ Write clear commit messages
++ Add tests for new features
++ Update documentation
++ Reference issue numbers
 ```
+
+</td>
+<td width="50%" valign="top">
+
+#### ❌ Don'ts
+
+```diff
+- Don't commit directly to main
+- Don't skip pre-commit hooks
+- Don't forget to test
+- Don't leave console.log()
+- Don't ignore linting errors
+- Don't break existing tests
+```
+
+</td>
+</tr>
+</table>
+
+### 🎯 What Can You Contribute?
+
+| Type | Examples |
+|:---|:---|
+| 🐛 **Bug Fixes** | Fix issues, improve stability |
+| ✨ **Features** | New components, integrations |
+| 📖 **Documentation** | Improve guides, add examples |
+| 🎨 **UI/UX** | Design improvements, themes |
+| 🧪 **Tests** | Add test coverage |
+| 🌍 **Translations** | Multi-language support |
+
+<div align="center">
+
+**Questions?** Open an [issue](https://github.com/Suvaidyam/frappe_theme/issues) or email us at **tech@suvaidyam.com**
+
+</div>
+
+<br/>
+
+---
+
+<div align="center">
+
+## 📞 **Support & Community**
+
+### 🤝 _We're Here to Help You Succeed_
+
+</div>
+
+<table>
+<tr>
+<td width="33%" align="center">
+
+<img src="https://img.icons8.com/fluency/96/000000/email.png" width="64"/>
+
+### 📧 Email Support
+
+**tech@suvaidyam.com**
+
+Get help from our expert team
+
+<br/>
+
+![Response](https://img.shields.io/badge/Response_Time-24h-50C878?style=for-the-badge)
+
+</td>
+<td width="33%" align="center">
+
+<img src="https://img.icons8.com/fluency/96/000000/bug.png" width="64"/>
+
+### 🐛 GitHub Issues
+
+**[Report Bugs & Request Features](https://github.com/Suvaidyam/frappe_theme/issues)**
+
+Track and resolve issues
+
+<br/>
+
+![Issues](https://img.shields.io/github/issues/Suvaidyam/frappe_theme?style=for-the-badge&color=E91E63)
+
+</td>
+<td width="33%" align="center">
+
+<img src="https://img.icons8.com/fluency/96/000000/book.png" width="64"/>
+
+### 📖 Documentation
+
+**[Complete Technical Reference](DOCUMENTATION.md)**
+
+2500+ lines of detailed docs
+
+<br/>
+
+![Docs](https://img.shields.io/badge/Documentation-Complete-4A90E2?style=for-the-badge)
+
+</td>
+</tr>
+<tr>
+<td width="33%" align="center">
+
+<img src="https://img.icons8.com/fluency/96/000000/chat.png" width="64"/>
+
+### 💬 Community
+
+**[Join Discussions](https://github.com/Suvaidyam/frappe_theme/discussions)**
+
+Connect with other users
+
+<br/>
+
+![Community](https://img.shields.io/badge/Community-Active-FF6B35?style=for-the-badge)
+
+</td>
+<td width="33%" align="center">
+
+<img src="https://img.icons8.com/fluency/96/000000/training.png" width="64"/>
+
+### 🎓 Training
+
+**Custom Enterprise Training**
+
+Tailored to your needs
+
+<br/>
+
+![Training](https://img.shields.io/badge/Available-On_Request-9C27B0?style=for-the-badge)
+
+</td>
+<td width="33%" align="center">
+
+<img src="https://img.icons8.com/fluency/96/000000/star.png" width="64"/>
+
+### 🌟 Star Us
+
+**[GitHub Repository](https://github.com/Suvaidyam/frappe_theme)**
+
+Show your support!
+
+<br/>
+
+![Stars](https://img.shields.io/github/stars/Suvaidyam/frappe_theme?style=for-the-badge&color=FFD700)
+
+</td>
+</tr>
+</table>
+
+<br/>
+
+---
+
+## 📄 **License**
+
+<div align="center">
+
+<img src="https://img.icons8.com/fluency/96/000000/certificate.png" width="64"/>
+
+**MIT License** — Free to use, modify, and distribute
+
+<br/>
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-FFD700?style=for-the-badge&logo=opensourceinitiative&logoColor=white)](https://opensource.org/licenses/MIT)
+
+<br/>
+
+See the [license.txt](license.txt) file for complete details.
 
 </div>
 
 ---
 
+## 🙏 **Acknowledgments**
+
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=120&section=footer" width="100%"/>
+### _This project wouldn't be possible without:_
+
+**🎉 Frappe Framework Team • 👥 All Contributors • 💻 OSS Community**
+
+</div>
+
+<br/>
+
+---
 
 **Made with ❤️ by [Suvaidyam](https://suvaidyam.com)**
 
@@ -2645,16 +2867,16 @@ We welcome contributions! Here's how you can help:
 
 <p align="center">
   <a href="README.md">
-    <img src="https://img.shields.io/badge/🏠_HOME-grey?style=for-the-badge" alt="Home"/>
+    <img src="https://img.shields.io/badge/🏠_HOME-4A90E2?style=for-the-badge" alt="Home"/>
   </a>
   <a href="DOCUMENTATION.md">
-    <img src="https://img.shields.io/badge/📖_DOCUMENTATION-You_Are_Here-4A90E2?style=for-the-badge" alt="Docs"/>
+    <img src="https://img.shields.io/badge/📖_DOCUMENTATION-You_Are_Here-50C878?style=for-the-badge" alt="Docs"/>
   </a>
   <a href="QUICK_START.md">
-    <img src="https://img.shields.io/badge/⚡_QUICK_START-grey?style=for-the-badge" alt="Quick Start"/>
+    <img src="https://img.shields.io/badge/⚡_QUICK_START-Begin-FF6B35?style=for-the-badge" alt="Quick Start"/>
   </a>
   <a href="FEATURES_SUMMARY.md">
-    <img src="https://img.shields.io/badge/📋_FEATURES-grey?style=for-the-badge" alt="Features"/>
+    <img src="https://img.shields.io/badge/📋_FEATURES-Explore-9C27B0?style=for-the-badge" alt="Features"/>
   </a>
 </p>
 
@@ -2673,5 +2895,9 @@ We welcome contributions! Here's how you can help:
 <img src="https://img.shields.io/github/stars/Suvaidyam/frappe_theme?style=social" alt="GitHub stars"/>
 <img src="https://img.shields.io/github/forks/Suvaidyam/frappe_theme?style=social" alt="GitHub forks"/>
 <img src="https://img.shields.io/github/watchers/Suvaidyam/frappe_theme?style=social" alt="GitHub watchers"/>
+
+<br/>
+
+<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=120&section=footer" width="100%"/>
 
 </div>
