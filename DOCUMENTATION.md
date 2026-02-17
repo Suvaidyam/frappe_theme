@@ -16,9 +16,9 @@
 
 ## 📑 Table of Contents
 
-<table width="100%">
+<table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
 <tr>
-<td width="50%" valign="top">
+<td style="width: 50%; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 **Getting Started**
 - [Overview](#-overview)
@@ -35,7 +35,7 @@
 - [Permission Management](#7--permission-management)
 
 </td>
-<td width="50%" valign="top">
+<td style="width: 50%; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 **Advanced Features**
 - [Property Setters](#8--property-setters)
@@ -64,30 +64,30 @@
 
 ### Key Highlights
 
-<table width="100%">
+<table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
 <tr>
-<td width="25%" align="center">
+<td style="width: 25%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 🎨  
 **Advanced Theming**  
 Complete UI customization
 
 </td>
-<td width="25%" align="center">
+<td style="width: 25%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 📊  
 **Data Visualization**  
 Charts, heatmaps, number cards
 
 </td>
-<td width="25%" align="center">
+<td style="width: 25%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 🔐  
 **Security**  
 Field encryption, data masking
 
 </td>
-<td width="25%" align="center">
+<td style="width: 25%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 🔄  
 **Workflow Extensions**  
@@ -96,28 +96,28 @@ Custom actions, approval tracking
 </td>
 </tr>
 <tr>
-<td width="25%" align="center">
+<td style="width: 25%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 📋  
 **Bulk Operations**  
 Mass permission management
 
 </td>
-<td width="25%" align="center">
+<td style="width: 25%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 🎯  
 **Custom Datatables**  
 Advanced filtering & actions
 
 </td>
-<td width="25%" align="center">
+<td style="width: 25%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 🌐  
 **Geographic Data**  
 India states & districts boundaries
 
 </td>
-<td width="25%" align="center">
+<td style="width: 25%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 🤖  
 **AI Integration**  

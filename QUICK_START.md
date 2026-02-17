@@ -27,33 +27,33 @@
 
 ## 🚀 5-Minute Setup
 
-<table width="100%">
+<table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
 <tr>
-<td width="20%" align="center">
+<td style="width: 20%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 **Step 1**  
 Install
 
 </td>
-<td width="20%" align="center">
+<td style="width: 20%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 **Step 2**  
 Configure Theme
 
 </td>
-<td width="20%" align="center">
+<td style="width: 20%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 **Step 3**  
 Add Heatmap
 
 </td>
-<td width="20%" align="center">
+<td style="width: 20%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 **Step 4**  
 Add Table
 
 </td>
-<td width="20%" align="center">
+<td style="width: 20%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 **Step 5**  
 Setup Permissions
@@ -71,9 +71,6 @@ cd ~/frappe-bench
 bench get-app https://github.com/Suvaidyam/frappe_theme --branch main
 bench --site your-site install-app frappe_theme
 bench setup requirements
-bench build --app frappe_theme
-bench restart
-```
 bench build --app frappe_theme
 bench restart
 ```
@@ -266,9 +263,9 @@ data = export_data(
 
 ## 🔧 Configuration Checklist
 
-<table width="100%">
+<table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
 <tr>
-<td width="50%" valign="top">
+<td style="width: 50%; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 ### Initial Setup
 - [ ] Install app
@@ -295,7 +292,7 @@ data = export_data(
 **[→ Form guide](DOCUMENTATION.md#9--form-enhancements)**
 
 </td>
-<td width="50%" valign="top">
+<td style="width: 50%; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 ### Security Setup
 - [ ] Configure field encryption
@@ -328,9 +325,9 @@ data = export_data(
 
 ## 🐛 Quick Troubleshooting
 
-<table width="100%">
+<table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
 <tr>
-<td width="50%" valign="top">
+<td style="width: 50%; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 ### ❌ Assets not loading
 
@@ -364,7 +361,7 @@ bench clear-cache
 **[→ Development guide](DOCUMENTATION.md#-development-guide)**
 
 </td>
-<td width="50%" valign="top">
+<td style="width: 50%; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 ### ❌ Theme not applying
 
@@ -403,23 +400,23 @@ bench clear-cache
 
 ## 📞 Need Help?
 
-<table width="100%">
+<table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
 <tr>
-<td width="33%" align="center">
+<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 📖  
 **[Complete Documentation](DOCUMENTATION.md)**  
 Detailed technical guide with API reference
 
 </td>
-<td width="33%" align="center">
+<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 📋  
 **[Features Summary](FEATURES_SUMMARY.md)**  
 200+ features with examples
 
 </td>
-<td width="33%" align="center">
+<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 🐛  
 **[Report Issues](https://github.com/Suvaidyam/frappe_theme/issues)**  
@@ -428,21 +425,21 @@ Bug reports and feature requests
 </td>
 </tr>
 <tr>
-<td width="33%" align="center">
+<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 📧  
 **Email Support**  
 tech@suvaidyam.com
 
 </td>
-<td width="33%" align="center">
+<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 💬  
 **Community**  
 Join our discussions
 
 </td>
-<td width="33%" align="center">
+<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 🎓  
 **Training**  

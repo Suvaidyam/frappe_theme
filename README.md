@@ -22,9 +22,9 @@ workflow management, and enterprise-grade security.
 
 ## 📚 Documentation Hub
 
-<table width="100%">
+<table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
 <tr>
-<td width="33%" align="center">
+<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 ### [📖 Complete Documentation](DOCUMENTATION.md)
 **Detailed technical guide**  
@@ -32,7 +32,7 @@ API reference, configuration,
 development guide, and more
 
 </td>
-<td width="33%" align="center">
+<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 ### [⚡ Quick Start Guide](QUICK_START.md)
 **Get started in 5 minutes**  
@@ -40,7 +40,7 @@ Installation, setup, and
 common use cases
 
 </td>
-<td width="33%" align="center">
+<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 ### [📋 Features Summary](FEATURES_SUMMARY.md)
 **200+ features overview**  
@@ -55,9 +55,9 @@ statistics and use cases
 
 ## ✨ Key Features
 
-<table width="100%">
+<table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
 <tr>
-<td width="50%" valign="top">
+<td style="width: 50%; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 ### 🎨 **Advanced Theming**
 - Complete UI customization with color schemes
@@ -92,7 +92,7 @@ statistics and use cases
 [→ Learn more](DOCUMENTATION.md#5--workflow-management)
 
 </td>
-<td width="50%" valign="top">
+<td style="width: 50%; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 ### 📋 **Bulk Operations**
 - Mass permission management
@@ -132,15 +132,15 @@ statistics and use cases
 
 ## 📸 Screenshots
 
-<table width="100%">
+<table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
 <tr>
-<td width="50%" valign="top">
+<td style="width: 50%; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 ### Heatmaps in Workspace
 ![Heatmap](https://github.com/user-attachments/assets/ac26b819-3df2-4697-a74d-3dfae57e6f90)
 
 </td>
-<td width="50%" valign="top">
+<td style="width: 50%; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 ### Custom Tables in Workspace
 ![Custom Table](https://github.com/user-attachments/assets/d3b65bbf-bbbe-4fae-a5f8-a19556e5c3b6)
@@ -148,13 +148,13 @@ statistics and use cases
 </td>
 </tr>
 <tr>
-<td width="50%" valign="top">
+<td style="width: 50%; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 ### Number Cards & Charts in Forms
 ![Number Cards](https://github.com/user-attachments/assets/93181000-ad65-4a90-84ab-d4ad694ab06c)
 
 </td>
-<td width="50%" valign="top">
+<td style="width: 50%; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 ### Custom Linked Tables in Forms
 ![Linked Tables](https://github.com/user-attachments/assets/b27bdb58-0e4d-489a-93ef-ec434098eca4)
@@ -162,7 +162,7 @@ statistics and use cases
 </td>
 </tr>
 <tr>
-<td colspan="2" align="center">
+<td colspan="2" style="text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 ### Theme Customization
 ![Theme Colors](https://github.com/user-attachments/assets/f56fca43-229a-4246-9fdb-b0e534df6f8b)
@@ -208,21 +208,21 @@ bench setup requirements
 
 ## 📚 Documentation
 
-<table width="100%">
+<table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
 <tr>
-<td width="33%" align="center">
+<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 **[📖 Complete Documentation](DOCUMENTATION.md)**  
 Detailed technical documentation with API reference, configuration options, and development guide
 
 </td>
-<td width="33%" align="center">
+<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 **[⚡ Quick Start Guide](QUICK_START.md)**  
 Get started in 5 minutes with installation, setup, and common use cases
 
 </td>
-<td width="33%" align="center">
+<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 **[📋 Features Summary](FEATURES_SUMMARY.md)**  
 Complete feature list (200+) with statistics and use cases
@@ -470,4 +470,3 @@ This project is licensed under the MIT License - see the [license.txt](license.t
 **[⬆ Back to Top](#-frappe-theme)**
 
 </div>
-

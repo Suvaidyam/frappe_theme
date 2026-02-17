@@ -16,27 +16,27 @@
 
 ## 📊 Quick Stats
 
-<table width="100%">
+<table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
 <tr>
-<td width="25%" align="center">
+<td style="width: 25%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 **200+**  
 Total Features
 
 </td>
-<td width="25%" align="center">
+<td style="width: 25%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 **40+**  
 DocTypes
 
 </td>
-<td width="25%" align="center">
+<td style="width: 25%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 **100+**  
 JavaScript Files
 
 </td>
-<td width="25%" align="center">
+<td style="width: 25%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 **20+ MB**  
 Geographic Data
@@ -44,25 +44,25 @@ Geographic Data
 </td>
 </tr>
 <tr>
-<td width="25%" align="center">
+<td style="width: 25%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 **15+**  
 Vue Components
 
 </td>
-<td width="25%" align="center">
+<td style="width: 25%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 **30+**  
 API Endpoints
 
 </td>
-<td width="25%" align="center">
+<td style="width: 25%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 **6**  
 Field Overrides
 
 </td>
-<td width="25%" align="center">
+<td style="width: 25%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 **4**  
 Export Formats
@@ -348,9 +348,9 @@ Export Formats
 
 ## 🎯 Use Cases
 
-<table width="100%">
+<table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
 <tr>
-<td width="50%" valign="top">
+<td style="width: 50%; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 ### For Administrators
 - ✅ Bulk permission management
@@ -371,7 +371,7 @@ Export Formats
 **[→ Learn more](DOCUMENTATION.md#-development-guide)**
 
 </td>
-<td width="50%" valign="top">
+<td style="width: 50%; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 ### For End Users
 - ✅ Enhanced forms
@@ -399,21 +399,21 @@ Export Formats
 
 ## 🚀 Performance
 
-<table width="100%">
+<table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
 <tr>
-<td width="33%" align="center">
+<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 **Virtual Scrolling**  
 Handle 10,000+ rows
 
 </td>
-<td width="33%" align="center">
+<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 **Lazy Loading**  
 Load on demand
 
 </td>
-<td width="33%" align="center">
+<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 **Caching**  
 Redis integration
@@ -421,19 +421,19 @@ Redis integration
 </td>
 </tr>
 <tr>
-<td width="33%" align="center">
+<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 **Query Optimization**  
 Indexed queries
 
 </td>
-<td width="33%" align="center">
+<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 **Asset Minification**  
 Smaller files
 
 </td>
-<td width="33%" align="center">
+<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 **CDN Support**  
 Fast delivery
@@ -448,21 +448,21 @@ Fast delivery
 
 ## 🔒 Security
 
-<table width="100%">
+<table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
 <tr>
-<td width="33%" align="center">
+<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 **AES-256 Encryption**  
 Military-grade
 
 </td>
-<td width="33%" align="center">
+<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 **XSS Protection**  
 Input sanitization
 
 </td>
-<td width="33%" align="center">
+<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 **SQL Injection Prevention**  
 Parameterized queries
@@ -470,19 +470,19 @@ Parameterized queries
 </td>
 </tr>
 <tr>
-<td width="33%" align="center">
+<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 **CSRF Protection**  
 Token validation
 
 </td>
-<td width="33%" align="center">
+<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 **Role-Based Access**  
 Granular control
 
 </td>
-<td width="33%" align="center">
+<td style="width: 33.33%; text-align: center; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 **Audit Logging**  
 Complete trail
@@ -497,9 +497,9 @@ Complete trail
 
 ## 📈 Scalability
 
-<table width="100%">
+<table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
 <tr>
-<td width="50%" valign="top">
+<td style="width: 50%; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 ### Data Handling
 - ✅ Handles Large Datasets - Millions of records
@@ -507,7 +507,7 @@ Complete trail
 - ✅ Cloud Storage - Unlimited files
 
 </td>
-<td width="50%" valign="top">
+<td style="width: 50%; vertical-align: top; padding: 16px; border: 1px solid #e1e4e8;">
 
 ### Infrastructure
 - ✅ Horizontal Scaling - Add more servers
@@ -539,4 +539,3 @@ Complete trail
 **[⬆ Back to Top](#-frappe-theme---features-summary)**
 
 </div>
-
