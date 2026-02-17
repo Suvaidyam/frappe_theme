@@ -65,9 +65,15 @@ Setup Permissions
 ---
 
 ### 1. Install the App
+
+```bash
 cd ~/frappe-bench
-bench get-app https://github.com/your-repo/frappe_theme --branch main
+bench get-app https://github.com/Suvaidyam/frappe_theme --branch main
 bench --site your-site install-app frappe_theme
+bench setup requirements
+bench build --app frappe_theme
+bench restart
+```
 bench build --app frappe_theme
 bench restart
 ```

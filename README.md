@@ -57,7 +57,7 @@ statistics and use cases
 
 <table>
 <tr>
-<td width="50%">
+<td width="50%" valign="top">
 
 ### 🎨 **Advanced Theming**
 - Complete UI customization with color schemes
@@ -92,7 +92,7 @@ statistics and use cases
 [→ Learn more](DOCUMENTATION.md#5--workflow-management)
 
 </td>
-<td width="50%">
+<td width="50%" valign="top">
 
 ### 📋 **Bulk Operations**
 - Mass permission management
@@ -134,13 +134,13 @@ statistics and use cases
 
 <table>
 <tr>
-<td width="50%">
+<td width="50%" valign="top">
 
 ### Heatmaps in Workspace
 ![Heatmap](https://github.com/user-attachments/assets/ac26b819-3df2-4697-a74d-3dfae57e6f90)
 
 </td>
-<td width="50%">
+<td width="50%" valign="top">
 
 ### Custom Tables in Workspace
 ![Custom Table](https://github.com/user-attachments/assets/d3b65bbf-bbbe-4fae-a5f8-a19556e5c3b6)
@@ -148,13 +148,13 @@ statistics and use cases
 </td>
 </tr>
 <tr>
-<td width="50%">
+<td width="50%" valign="top">
 
 ### Number Cards & Charts in Forms
 ![Number Cards](https://github.com/user-attachments/assets/93181000-ad65-4a90-84ab-d4ad694ab06c)
 
 </td>
-<td width="50%">
+<td width="50%" valign="top">
 
 ### Custom Linked Tables in Forms
 ![Linked Tables](https://github.com/user-attachments/assets/b27bdb58-0e4d-489a-93ef-ec434098eca4)
@@ -186,8 +186,9 @@ statistics and use cases
 
 ```bash
 cd $PATH_TO_YOUR_BENCH
-bench get-app https://github.com/your-repo/frappe_theme --branch main
+bench get-app https://github.com/Suvaidyam/frappe_theme --branch main
 bench install-app frappe_theme
+bench setup requirements
 bench build --app frappe_theme
 bench restart
 ```
@@ -196,8 +197,9 @@ bench restart
 
 ```bash
 cd $PATH_TO_YOUR_BENCH
-bench get-app https://github.com/your-repo/frappe_theme --branch development
+bench get-app https://github.com/Suvaidyam/frappe_theme --branch development
 bench install-app frappe_theme
+bench setup requirements
 ```
 
 **→ [Complete setup guide](QUICK_START.md)**
@@ -340,29 +342,83 @@ bench run-tests --app frappe_theme --coverage
 
 ## 🤝 Contributing
 
-We welcome contributions! Please follow these steps:
+We welcome contributions! Here's how you can help:
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Install pre-commit hooks (`pre-commit install`)
-4. Make your changes
-5. Run tests and linting
-6. Commit your changes (`git commit -m 'Add amazing feature'`)
-7. Push to the branch (`git push origin feature/amazing-feature`)
-8. Open a Pull Request
+### Getting Started
 
-### Pre-commit Setup
+1. **Fork the repository**
+   ```bash
+   # Fork on GitHub, then clone your fork
+   git clone https://github.com/YOUR_USERNAME/frappe_theme.git
+   cd frappe_theme
+   ```
 
-```bash
-cd apps/frappe_theme
-pre-commit install
-```
+2. **Create a feature branch**
+   ```bash
+   git checkout -b feature/amazing-feature
+   ```
 
-Pre-commit runs these tools automatically:
-- ruff (Python linting & formatting)
-- eslint (JavaScript linting)
-- prettier (Code formatting)
-- pyupgrade (Python syntax upgrades)
+3. **Install pre-commit hooks**
+   ```bash
+   pre-commit install
+   ```
+
+4. **Make your changes**
+   - Write clean, documented code
+   - Follow existing code style
+   - Add tests if applicable
+
+5. **Run tests and linting**
+   ```bash
+   # Python linting
+   ruff check .
+   ruff format .
+   
+   # JavaScript linting
+   eslint frappe_theme/public/js
+   prettier --write "frappe_theme/public/js/**/*.js"
+   
+   # Run tests
+   bench run-tests --app frappe_theme
+   ```
+
+6. **Commit your changes**
+   ```bash
+   git commit -m 'Add amazing feature'
+   ```
+
+7. **Push to your fork**
+   ```bash
+   git push origin feature/amazing-feature
+   ```
+
+8. **Open a Pull Request**
+   - Go to the original repository
+   - Click "New Pull Request"
+   - Select your branch
+   - Describe your changes
+
+### Contribution Guidelines
+
+- **Code Style**: Follow PEP 8 for Python, ESLint for JavaScript
+- **Documentation**: Update docs for new features
+- **Tests**: Add tests for bug fixes and new features
+- **Commits**: Use clear, descriptive commit messages
+- **Issues**: Reference issue numbers in commits and PRs
+
+### Pre-commit Tools
+
+Pre-commit automatically runs these tools:
+- **ruff** - Python linting & formatting
+- **eslint** - JavaScript linting
+- **prettier** - Code formatting
+- **pyupgrade** - Python syntax upgrades
+
+### Need Help?
+
+- Check existing [issues](https://github.com/Suvaidyam/frappe_theme/issues)
+- Read the [documentation](DOCUMENTATION.md)
+- Email us: tech@suvaidyam.com
 
 ---
 

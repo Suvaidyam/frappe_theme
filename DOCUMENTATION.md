@@ -144,8 +144,9 @@ OpenAI & WrenAI support
 
 ```bash
 cd $PATH_TO_YOUR_BENCH
-bench get-app https://github.com/your-repo/frappe_theme --branch main
+bench get-app https://github.com/Suvaidyam/frappe_theme --branch main
 bench install-app frappe_theme
+bench setup requirements
 bench build --app frappe_theme
 bench restart
 ```
@@ -154,8 +155,9 @@ bench restart
 
 ```bash
 cd $PATH_TO_YOUR_BENCH
-bench get-app https://github.com/your-repo/frappe_theme --branch development
+bench get-app https://github.com/Suvaidyam/frappe_theme --branch development
 bench install-app frappe_theme
+bench setup requirements
 ```
 
 ---
