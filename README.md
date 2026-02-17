@@ -1,51 +1,292 @@
-### Frappe Theme
+# Frappe Theme
 
-A custom app to customize color theme of frappe desk and web along with adding custom element inside the forms and workspaces
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Frappe](https://img.shields.io/badge/Frappe-Framework-blue)](https://frappeframework.com/)
+[![Python](https://img.shields.io/badge/Python-3.10+-green.svg)](https://www.python.org/)
+[![Vue.js](https://img.shields.io/badge/Vue.js-3.5-brightgreen.svg)](https://vuejs.org/)
 
-### Installation
+> **A comprehensive customization app for Frappe Framework**  
+> Transform your Frappe/ERPNext instance with advanced theming, data visualization, workflow management, and enterprise-grade security.
 
-You can install this app using the [bench](https://github.com/frappe/bench) CLI (STABLE):
+Built by [Suvaidyam](https://suvaidyam.com) | Version 1.0.0
+
+---
+
+## ✨ Features
+
+### 🎨 **Advanced Theming**
+- Complete UI customization with color schemes
+- Custom fonts, logos, and branding
+- Real-time theme preview
+- CSS injection support
+
+### 📊 **Data Visualization**
+- **Heatmaps** - Activity tracking and pattern analysis
+- **Charts** - Line, Bar, Pie, Donut, Area charts
+- **Number Cards** - Real-time KPI metrics
+- **Custom Tables** - Configurable datatables with advanced filtering
+
+### 🔐 **Security & Data Protection**
+- **Field-Level Encryption** - AES-256 encryption for sensitive data
+- **Data Masking** - Protect sensitive information in views
+- **Global Sanitizer** - XSS protection for all inputs
+- **Role-Based Access** - Granular permission control
+
+### 🔄 **Workflow Extensions**
+- Custom workflow actions with pre/post hooks
+- Approval tracking and timeline
+- State-based automation
+- Email notifications
+
+### 📋 **Bulk Operations**
+- Mass permission management
+- Role profile configuration
+- Workspace permissions
+- Property setters
+
+### 🌐 **Geographic Data**
+- Complete India boundaries (States & Districts)
+- GeoJSON format for mapping
+- 39 individual district files
+- 20+ MB of geographic data
+
+### 🤖 **AI Integration**
+- OpenAI integration for smart features
+- WrenAI custom assistant
+- Data analysis and suggestions
+
+### 📱 **Mobile Optimized**
+- Responsive design
+- Touch-optimized controls
+- Mobile-friendly forms
+
+---
+
+## 📸 Screenshots
+
+### Heatmaps in Workspace
+![Heatmap](https://github.com/user-attachments/assets/ac26b819-3df2-4697-a74d-3dfae57e6f90)
+
+### Custom Tables in Workspace
+![Custom Table](https://github.com/user-attachments/assets/d3b65bbf-bbbe-4fae-a5f8-a19556e5c3b6)
+
+### Number Cards & Charts in Forms
+![Number Cards](https://github.com/user-attachments/assets/93181000-ad65-4a90-84ab-d4ad694ab06c)
+
+### Custom Linked Tables in Forms
+![Linked Tables](https://github.com/user-attachments/assets/b27bdb58-0e4d-489a-93ef-ec434098eca4)
+
+### Theme Customization
+![Theme Colors](https://github.com/user-attachments/assets/f56fca43-229a-4246-9fdb-b0e534df6f8b)
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Frappe Framework v14+
+- Python 3.10+
+- Node.js 18+
+- MariaDB 10.6+ / PostgreSQL 13+
+
+### Installation (Stable)
+
 ```bash
 cd $PATH_TO_YOUR_BENCH
-bench get-app $URL_OF_THIS_REPO --branch main
+bench get-app https://github.com/your-repo/frappe_theme --branch main
 bench install-app frappe_theme
+bench build --app frappe_theme
+bench restart
 ```
-You can install this app using the [bench](https://github.com/frappe/bench) CLI (LATEST):
+
+### Installation (Development)
+
 ```bash
 cd $PATH_TO_YOUR_BENCH
-bench get-app $URL_OF_THIS_REPO --branch development
+bench get-app https://github.com/your-repo/frappe_theme --branch development
 bench install-app frappe_theme
 ```
 
-### Contributing
+---
 
-This app uses `pre-commit` for code formatting and linting. Please [install pre-commit](https://pre-commit.com/#installation) and enable it for this repository:
+## 📚 Documentation
+
+- **[📖 Complete Documentation](DOCUMENTATION.md)** - Detailed technical documentation
+- **[⚡ Quick Start Guide](QUICK_START.md)** - Get started in 5 minutes
+- **[📋 Features Summary](FEATURES_SUMMARY.md)** - Complete feature list (200+)
+
+### What's Included
+
+- Detailed feature guides
+- API reference with examples
+- Configuration options
+- Development guide
+- Troubleshooting tips
+- Use cases and examples
+
+---
+
+## 🎯 Key Components
+
+### Frontend (Vue.js 3)
+- **Custom Components** - Heatmaps, Timeline, Charts, Gallery
+- **Field Overrides** - Enhanced Link, Select, Multiselect, Date fields
+- **Datatables** - Advanced filtering, sorting, bulk actions
+- **Mobile View** - Responsive optimizations
+
+### Backend (Python)
+- **40+ DocTypes** - Configuration, permissions, workflow
+- **Security Utils** - Encryption, masking, sanitization
+- **SQL Builder** - Secure query construction
+- **APIs** - Export, approval, AI integration
+- **Cron Jobs** - Automated synchronization
+
+### Dependencies
+```json
+{
+  "vue": "^3.5.13",
+  "vue-router": "^4.5.0",
+  "pinia": "^3.0.2",
+  "chart.js": "^4.1.1",
+  "vue-chartjs": "^5.3.2",
+  "chartjs-plugin-datalabels": "^2.2.0"
+}
+```
+
+---
+
+## 🛠️ Development
+
+### Setup Development Environment
+
+```bash
+# Clone and install
+cd apps/frappe_theme
+yarn install
+pre-commit install
+
+# Build assets
+bench build --app frappe_theme
+
+# Watch for changes
+bench watch
+```
+
+### Code Quality Tools
+
+- **ruff** - Python linting and formatting
+- **eslint** - JavaScript linting
+- **prettier** - Code formatting
+- **pyupgrade** - Python syntax upgrades
+
+### Running Tests
+
+```bash
+# Run all tests
+bench run-tests --app frappe_theme
+
+# Run with coverage
+bench run-tests --app frappe_theme --coverage
+```
+
+---
+
+## 📦 What's Included
+
+### 40+ DocTypes
+- Theme configuration
+- Workspace customization
+- Datatable configuration
+- Permission management
+- Workflow actions
+- Approval tracking
+- And more...
+
+### 100+ JavaScript Files
+- Vue components
+- Custom UI elements
+- Field overrides
+- Datatable system
+- Utilities and helpers
+
+### 20+ MB Geographic Data
+- India state boundaries
+- District boundaries
+- GeoJSON format
+- Ready for mapping
+
+### Complete API Suite
+- Theme API
+- Export API
+- Approval API
+- AI Integration API
+- Meta API
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Install pre-commit hooks (`pre-commit install`)
+4. Make your changes
+5. Run tests and linting
+6. Commit your changes (`git commit -m 'Add amazing feature'`)
+7. Push to the branch (`git push origin feature/amazing-feature`)
+8. Open a Pull Request
+
+### Pre-commit Setup
 
 ```bash
 cd apps/frappe_theme
 pre-commit install
 ```
 
-Pre-commit is configured to use the following tools for checking and formatting your code:
+Pre-commit runs these tools automatically:
+- ruff (Python linting & formatting)
+- eslint (JavaScript linting)
+- prettier (Code formatting)
+- pyupgrade (Python syntax upgrades)
 
-- ruff
-- eslint
-- prettier
-- pyupgrade
+---
 
-# frappe_theme (All the below features can be achieved through the configurations only):
-## Heatmaps in the workspace
-![image](https://github.com/user-attachments/assets/ac26b819-3df2-4697-a74d-3dfae57e6f90)
+## 📄 License
 
-## Custom table of any doctype in the workspace
-![image](https://github.com/user-attachments/assets/d3b65bbf-bbbe-4fae-a5f8-a19556e5c3b6)
+This project is licensed under the MIT License - see the [license.txt](license.txt) file for details.
 
-## Number Cards/Charts inside the tabs of the doctype forms
-![image](https://github.com/user-attachments/assets/93181000-ad65-4a90-84ab-d4ad694ab06c)
+---
 
-## Custom table of linked doctypes inside the tabs of doctype forms
-![image](https://github.com/user-attachments/assets/b27bdb58-0e4d-489a-93ef-ec434098eca4)
+## 📞 Support
 
-## Change the colors of the given elements
-![image](https://github.com/user-attachments/assets/f56fca43-229a-4246-9fdb-b0e534df6f8b)
+- **Email:** tech@suvaidyam.com
+- **GitHub Issues:** [Report bugs or request features](https://github.com/your-repo/frappe_theme/issues)
+- **Documentation:** [Full documentation](DOCUMENTATION.md)
+
+---
+
+## 🙏 Acknowledgments
+
+- Frappe Framework team for the excellent framework
+- All contributors who have helped improve this app
+- The open-source community
+
+---
+
+## 🗺️ Roadmap
+
+- [ ] Advanced analytics dashboard
+- [ ] More AI-powered features
+- [ ] Mobile app support
+- [ ] Real-time collaboration
+- [ ] Advanced workflow designer
+- [ ] Custom report builder
+- [ ] Multi-language support
+- [ ] Dark mode enhancements
+
+---
+
+**Made with ❤️ by [Suvaidyam](https://suvaidyam.com)**
 
