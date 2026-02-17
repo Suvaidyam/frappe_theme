@@ -1,10 +1,70 @@
-# Frappe Theme - Quick Start Guide
+<div align="center">
+
+# ⚡ Frappe Theme - Quick Start Guide
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Frappe](https://img.shields.io/badge/Frappe-Framework-blue)](https://frappeframework.com/)
+
+> **Get started in 5 minutes**  
+> Installation, setup, and common use cases
+
+[🏠 Home](README.md) • [📖 Documentation](DOCUMENTATION.md) • [📋 Features](FEATURES_SUMMARY.md) • [🐛 Issues](https://github.com/Suvaidyam/frappe_theme/issues)
+
+</div>
+
+---
+
+## 📑 Table of Contents
+
+- [🚀 5-Minute Setup](#-5-minute-setup)
+- [📋 Common Use Cases](#-common-use-cases)
+- [🎨 Customization Examples](#-customization-examples)
+- [🔧 Configuration Checklist](#-configuration-checklist)
+- [🐛 Quick Troubleshooting](#-quick-troubleshooting)
+- [📞 Need Help?](#-need-help)
+
+---
 
 ## 🚀 5-Minute Setup
 
-### 1. Install the App
+<table>
+<tr>
+<td width="20%" align="center">
 
-```bash
+**Step 1**  
+Install
+
+</td>
+<td width="20%" align="center">
+
+**Step 2**  
+Configure Theme
+
+</td>
+<td width="20%" align="center">
+
+**Step 3**  
+Add Heatmap
+
+</td>
+<td width="20%" align="center">
+
+**Step 4**  
+Add Table
+
+</td>
+<td width="20%" align="center">
+
+**Step 5**  
+Setup Permissions
+
+</td>
+</tr>
+</table>
+
+---
+
+### 1. Install the App
 cd ~/frappe-bench
 bench get-app https://github.com/your-repo/frappe_theme --branch main
 bench --site your-site install-app frappe_theme
@@ -200,11 +260,17 @@ data = export_data(
 
 ## 🔧 Configuration Checklist
 
+<table>
+<tr>
+<td width="50%" valign="top">
+
 ### Initial Setup
 - [ ] Install app
 - [ ] Configure theme colors
 - [ ] Set up logo and branding
 - [ ] Configure encryption key (if using encryption)
+
+**[→ Installation guide](#1-install-the-app)**
 
 ### Workspace Setup
 - [ ] Add heatmaps to relevant workspaces
@@ -212,11 +278,18 @@ data = export_data(
 - [ ] Configure number cards
 - [ ] Set up quick filters
 
+**[→ Workspace guide](DOCUMENTATION.md#2--workspace-enhancements)**
+
 ### Form Enhancements
 - [ ] Add number cards to forms
 - [ ] Add charts to forms
 - [ ] Configure custom datatables
 - [ ] Add field comments
+
+**[→ Form guide](DOCUMENTATION.md#9--form-enhancements)**
+
+</td>
+<td width="50%" valign="top">
 
 ### Security Setup
 - [ ] Configure field encryption
@@ -224,52 +297,171 @@ data = export_data(
 - [ ] Configure role-based permissions
 - [ ] Enable global sanitizer
 
+**[→ Security guide](DOCUMENTATION.md#6--security--data-protection)**
+
 ### Workflow Setup
 - [ ] Configure custom workflow actions
 - [ ] Set up approval tracking
 - [ ] Configure email notifications
 
+**[→ Workflow guide](DOCUMENTATION.md#5--workflow-management)**
+
+### Testing
+- [ ] Test theme customization
+- [ ] Verify permissions
+- [ ] Test datatables
+- [ ] Check mobile responsiveness
+
+**[→ Troubleshooting](#-quick-troubleshooting)**
+
+</td>
+</tr>
+</table>
+
 ---
 
 ## 🐛 Quick Troubleshooting
 
-### Issue: Assets not loading
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### ❌ Assets not loading
+
 ```bash
 bench clear-cache
 bench build --app frappe_theme --force
 bench restart
 ```
 
-### Issue: Permission errors
+**[→ More details](DOCUMENTATION.md#-troubleshooting)**
+
+---
+
+### ❌ Permission errors
+
 ```bash
 bench execute frappe_theme.setup.reset_permissions
 bench clear-cache
 ```
 
-### Issue: JavaScript errors
+**[→ Permission guide](DOCUMENTATION.md#7--permission-management)**
+
+---
+
+### ❌ JavaScript errors
+
 1. Check browser console (F12)
 2. Rebuild assets: `bench build --app frappe_theme --force`
 3. Clear browser cache (Ctrl+Shift+R)
 
-### Issue: Theme not applying
+**[→ Development guide](DOCUMENTATION.md#-development-guide)**
+
+</td>
+<td width="50%" valign="top">
+
+### ❌ Theme not applying
+
 1. Clear cache: `bench clear-cache`
 2. Check My Theme DocType is saved
 3. Refresh browser (Ctrl+F5)
 
-### Issue: Datatable not showing
+**[→ Theme guide](DOCUMENTATION.md#1--theme-customization)**
+
+---
+
+### ❌ Datatable not showing
+
 1. Check SVADatatable Configuration
 2. Verify DocType permissions
 3. Check browser console for errors
 4. Rebuild: `bench build --app frappe_theme`
 
+**[→ Datatable guide](DOCUMENTATION.md#4--custom-datatables-svadatatable)**
+
+---
+
+### ❌ Still having issues?
+
+- Check error logs: `tail -f sites/your-site/logs/error.log`
+- Enable debug mode in `site_config.json`
+- Contact support: tech@suvaidyam.com
+
+**[→ Full troubleshooting guide](DOCUMENTATION.md#-troubleshooting)**
+
+</td>
+</tr>
+</table>
+
 ---
 
 ## 📞 Need Help?
 
-- **Documentation:** [DOCUMENTATION.md](DOCUMENTATION.md)
-- **Email:** tech@suvaidyam.com
-- **GitHub Issues:** [Report a bug](https://github.com/your-repo/frappe_theme/issues)
+<table>
+<tr>
+<td width="33%" align="center">
+
+📖  
+**[Complete Documentation](DOCUMENTATION.md)**  
+Detailed technical guide with API reference
+
+</td>
+<td width="33%" align="center">
+
+📋  
+**[Features Summary](FEATURES_SUMMARY.md)**  
+200+ features with examples
+
+</td>
+<td width="33%" align="center">
+
+🐛  
+**[Report Issues](https://github.com/Suvaidyam/frappe_theme/issues)**  
+Bug reports and feature requests
+
+</td>
+</tr>
+<tr>
+<td width="33%" align="center">
+
+📧  
+**Email Support**  
+tech@suvaidyam.com
+
+</td>
+<td width="33%" align="center">
+
+💬  
+**Community**  
+Join our discussions
+
+</td>
+<td width="33%" align="center">
+
+🎓  
+**Training**  
+Custom training available
+
+</td>
+</tr>
+</table>
 
 ---
 
 **Happy Customizing! 🎉**
+
+---
+
+**Made with ❤️ by [Suvaidyam](https://suvaidyam.com)**
+
+---
+
+<div align="center">
+
+### 📚 Navigation
+
+[🏠 Home](README.md) • [📖 Documentation](DOCUMENTATION.md) • [⚡ Quick Start](QUICK_START.md) • [📋 Features](FEATURES_SUMMARY.md)
+
+**[⬆ Back to Top](#-frappe-theme---quick-start-guide)**
+
+</div>

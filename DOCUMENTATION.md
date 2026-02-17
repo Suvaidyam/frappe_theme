@@ -1,4 +1,6 @@
-# Frappe Theme - Complete Documentation
+<div align="center">
+
+# 📖 Frappe Theme - Complete Documentation
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Frappe](https://img.shields.io/badge/Frappe-Framework-blue)](https://frappeframework.com/)
@@ -6,18 +8,53 @@
 > **A comprehensive customization app for Frappe Framework**  
 > Built by Suvaidyam | Version 1.0.0
 
+[🏠 Home](README.md) • [⚡ Quick Start](QUICK_START.md) • [📋 Features](FEATURES_SUMMARY.md) • [🐛 Issues](https://github.com/Suvaidyam/frappe_theme/issues)
+
+</div>
+
 ---
 
 ## 📑 Table of Contents
 
-- [Overview](#overview)
-- [Installation](#installation)
-- [Core Features](#core-features)
-- [Frontend Features](#frontend-features)
-- [Backend Features](#backend-features)
-- [API Reference](#api-reference)
-- [Configuration](#configuration)
-- [Development Guide](#development-guide)
+<table>
+<tr>
+<td width="50%" valign="top">
+
+**Getting Started**
+- [Overview](#-overview)
+- [Installation](#-installation)
+- [Configuration](#-configuration)
+
+**Core Features**
+- [Theme Customization](#1--theme-customization)
+- [Workspace Enhancements](#2--workspace-enhancements)
+- [Data Visualization](#3--data-visualization)
+- [Custom Datatables](#4--custom-datatables-svadatatable)
+- [Workflow Management](#5--workflow-management)
+- [Security & Data Protection](#6--security--data-protection)
+- [Permission Management](#7--permission-management)
+
+</td>
+<td width="50%" valign="top">
+
+**Advanced Features**
+- [Property Setters](#8--property-setters)
+- [Form Enhancements](#9--form-enhancements)
+- [Export & Reporting](#10--export--reporting)
+- [Integrations](#11--integrations)
+- [Utilities](#12--utilities)
+- [Geographic Data](#14--geographic-data)
+- [Mobile Enhancements](#15--mobile-enhancements)
+
+**Technical Reference**
+- [Frontend Features](#-frontend-features)
+- [Backend Features](#-backend-features)
+- [API Reference](#-api-reference)
+- [Development Guide](#-development-guide)
+
+</td>
+</tr>
+</table>
 
 ---
 
@@ -27,15 +64,70 @@
 
 ### Key Highlights
 
-- 🎨 **Advanced Theming** - Complete UI customization
-- 📊 **Data Visualization** - Charts, heatmaps, number cards
-- 🔐 **Security** - Field encryption, data masking
-- 🔄 **Workflow Extensions** - Custom actions, approval tracking
-- 📋 **Bulk Operations** - Mass permission management
-- 🎯 **Custom Datatables** - Advanced filtering & actions
-- 🌐 **Geographic Data** - India states & districts boundaries
-- 📱 **Mobile Optimized** - Responsive design
-- 🤖 **AI Integration** - OpenAI & WrenAI support
+<table>
+<tr>
+<td width="25%" align="center">
+
+🎨  
+**Advanced Theming**  
+Complete UI customization
+
+</td>
+<td width="25%" align="center">
+
+📊  
+**Data Visualization**  
+Charts, heatmaps, number cards
+
+</td>
+<td width="25%" align="center">
+
+🔐  
+**Security**  
+Field encryption, data masking
+
+</td>
+<td width="25%" align="center">
+
+🔄  
+**Workflow Extensions**  
+Custom actions, approval tracking
+
+</td>
+</tr>
+<tr>
+<td width="25%" align="center">
+
+📋  
+**Bulk Operations**  
+Mass permission management
+
+</td>
+<td width="25%" align="center">
+
+🎯  
+**Custom Datatables**  
+Advanced filtering & actions
+
+</td>
+<td width="25%" align="center">
+
+🌐  
+**Geographic Data**  
+India states & districts boundaries
+
+</td>
+<td width="25%" align="center">
+
+🤖  
+**AI Integration**  
+OpenAI & WrenAI support
+
+</td>
+</tr>
+</table>
+
+**→ [See all 200+ features](FEATURES_SUMMARY.md)**
 
 ---
 
@@ -2423,7 +2515,7 @@ We welcome contributions! Please see our contributing guidelines.
 ## 📞 Support
 
 - **Email:** tech@suvaidyam.com
-- **GitHub Issues:** [Report bugs](https://github.com/your-repo/frappe_theme/issues)
+- **GitHub Issues:** [Report bugs](https://github.com/Suvaidyam/frappe_theme/issues)
 - **Documentation:** [Full docs](https://docs.your-domain.com)
 
 ---
@@ -2438,3 +2530,20 @@ We welcome contributions! Please see our contributing guidelines.
 
 **Made with ❤️ by Suvaidyam**
 
+
+
+---
+
+**Made with ❤️ by [Suvaidyam](https://suvaidyam.com)**
+
+---
+
+<div align="center">
+
+### 📚 Navigation
+
+[🏠 Home](README.md) • [📖 Documentation](DOCUMENTATION.md) • [⚡ Quick Start](QUICK_START.md) • [📋 Features](FEATURES_SUMMARY.md)
+
+**[⬆ Back to Top](#-frappe-theme---complete-documentation)**
+
+</div>

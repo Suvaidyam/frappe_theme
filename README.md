@@ -1,18 +1,63 @@
-# Frappe Theme
+<div align="center">
+
+# 🎨 Frappe Theme
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Frappe](https://img.shields.io/badge/Frappe-Framework-blue)](https://frappeframework.com/)
 [![Python](https://img.shields.io/badge/Python-3.10+-green.svg)](https://www.python.org/)
 [![Vue.js](https://img.shields.io/badge/Vue.js-3.5-brightgreen.svg)](https://vuejs.org/)
 
-> **A comprehensive customization app for Frappe Framework**  
-> Transform your Frappe/ERPNext instance with advanced theming, data visualization, workflow management, and enterprise-grade security.
+### **A comprehensive customization app for Frappe Framework**
 
-Built by [Suvaidyam](https://suvaidyam.com) | Version 1.0.0
+Transform your Frappe/ERPNext instance with advanced theming, data visualization,  
+workflow management, and enterprise-grade security.
+
+**Built by [Suvaidyam](https://suvaidyam.com) | Version 1.0.0**
+
+[📖 Documentation](DOCUMENTATION.md) • [⚡ Quick Start](QUICK_START.md) • [📋 Features](FEATURES_SUMMARY.md) • [🐛 Issues](https://github.com/Suvaidyam/frappe_theme/issues)
+
+</div>
 
 ---
 
-## ✨ Features
+## 📚 Documentation Hub
+
+<table>
+<tr>
+<td width="33%" align="center">
+
+### [📖 Complete Documentation](DOCUMENTATION.md)
+**Detailed technical guide**  
+API reference, configuration,  
+development guide, and more
+
+</td>
+<td width="33%" align="center">
+
+### [⚡ Quick Start Guide](QUICK_START.md)
+**Get started in 5 minutes**  
+Installation, setup, and  
+common use cases
+
+</td>
+<td width="33%" align="center">
+
+### [📋 Features Summary](FEATURES_SUMMARY.md)
+**200+ features overview**  
+Complete feature list with  
+statistics and use cases
+
+</td>
+</tr>
+</table>
+
+---
+
+## ✨ Key Features
+
+<table>
+<tr>
+<td width="50%">
 
 ### 🎨 **Advanced Theming**
 - Complete UI customization with color schemes
@@ -20,11 +65,15 @@ Built by [Suvaidyam](https://suvaidyam.com) | Version 1.0.0
 - Real-time theme preview
 - CSS injection support
 
+[→ Learn more](DOCUMENTATION.md#1--theme-customization)
+
 ### 📊 **Data Visualization**
 - **Heatmaps** - Activity tracking and pattern analysis
 - **Charts** - Line, Bar, Pie, Donut, Area charts
 - **Number Cards** - Real-time KPI metrics
 - **Custom Tables** - Configurable datatables with advanced filtering
+
+[→ Learn more](DOCUMENTATION.md#3--data-visualization)
 
 ### 🔐 **Security & Data Protection**
 - **Field-Level Encryption** - AES-256 encryption for sensitive data
@@ -32,11 +81,18 @@ Built by [Suvaidyam](https://suvaidyam.com) | Version 1.0.0
 - **Global Sanitizer** - XSS protection for all inputs
 - **Role-Based Access** - Granular permission control
 
+[→ Learn more](DOCUMENTATION.md#6--security--data-protection)
+
 ### 🔄 **Workflow Extensions**
 - Custom workflow actions with pre/post hooks
 - Approval tracking and timeline
 - State-based automation
 - Email notifications
+
+[→ Learn more](DOCUMENTATION.md#5--workflow-management)
+
+</td>
+<td width="50%">
 
 ### 📋 **Bulk Operations**
 - Mass permission management
@@ -44,40 +100,76 @@ Built by [Suvaidyam](https://suvaidyam.com) | Version 1.0.0
 - Workspace permissions
 - Property setters
 
+[→ Learn more](DOCUMENTATION.md#7--permission-management)
+
 ### 🌐 **Geographic Data**
 - Complete India boundaries (States & Districts)
 - GeoJSON format for mapping
 - 39 individual district files
 - 20+ MB of geographic data
 
+[→ Learn more](DOCUMENTATION.md#14--geographic-data)
+
 ### 🤖 **AI Integration**
 - OpenAI integration for smart features
 - WrenAI custom assistant
 - Data analysis and suggestions
+
+[→ Learn more](DOCUMENTATION.md#11--integrations)
 
 ### 📱 **Mobile Optimized**
 - Responsive design
 - Touch-optimized controls
 - Mobile-friendly forms
 
+[→ Learn more](DOCUMENTATION.md#15--mobile-enhancements)
+
+</td>
+</tr>
+</table>
+
 ---
 
 ## 📸 Screenshots
 
+<table>
+<tr>
+<td width="50%">
+
 ### Heatmaps in Workspace
 ![Heatmap](https://github.com/user-attachments/assets/ac26b819-3df2-4697-a74d-3dfae57e6f90)
+
+</td>
+<td width="50%">
 
 ### Custom Tables in Workspace
 ![Custom Table](https://github.com/user-attachments/assets/d3b65bbf-bbbe-4fae-a5f8-a19556e5c3b6)
 
+</td>
+</tr>
+<tr>
+<td width="50%">
+
 ### Number Cards & Charts in Forms
 ![Number Cards](https://github.com/user-attachments/assets/93181000-ad65-4a90-84ab-d4ad694ab06c)
+
+</td>
+<td width="50%">
 
 ### Custom Linked Tables in Forms
 ![Linked Tables](https://github.com/user-attachments/assets/b27bdb58-0e4d-489a-93ef-ec434098eca4)
 
+</td>
+</tr>
+<tr>
+<td colspan="2" align="center">
+
 ### Theme Customization
 ![Theme Colors](https://github.com/user-attachments/assets/f56fca43-229a-4246-9fdb-b0e534df6f8b)
+
+</td>
+</tr>
+</table>
 
 ---
 
@@ -108,22 +200,43 @@ bench get-app https://github.com/your-repo/frappe_theme --branch development
 bench install-app frappe_theme
 ```
 
+**→ [Complete setup guide](QUICK_START.md)**
+
 ---
 
 ## 📚 Documentation
 
-- **[📖 Complete Documentation](DOCUMENTATION.md)** - Detailed technical documentation
-- **[⚡ Quick Start Guide](QUICK_START.md)** - Get started in 5 minutes
-- **[📋 Features Summary](FEATURES_SUMMARY.md)** - Complete feature list (200+)
+<table>
+<tr>
+<td width="33%" align="center">
+
+**[📖 Complete Documentation](DOCUMENTATION.md)**  
+Detailed technical documentation with API reference, configuration options, and development guide
+
+</td>
+<td width="33%" align="center">
+
+**[⚡ Quick Start Guide](QUICK_START.md)**  
+Get started in 5 minutes with installation, setup, and common use cases
+
+</td>
+<td width="33%" align="center">
+
+**[📋 Features Summary](FEATURES_SUMMARY.md)**  
+Complete feature list (200+) with statistics and use cases
+
+</td>
+</tr>
+</table>
 
 ### What's Included
 
-- Detailed feature guides
-- API reference with examples
-- Configuration options
-- Development guide
-- Troubleshooting tips
-- Use cases and examples
+- ✅ Detailed feature guides with examples
+- ✅ API reference with code samples
+- ✅ Configuration options and best practices
+- ✅ Development guide and contribution guidelines
+- ✅ Troubleshooting tips and solutions
+- ✅ Real-world use cases and examples
 
 ---
 
@@ -262,7 +375,7 @@ This project is licensed under the MIT License - see the [license.txt](license.t
 ## 📞 Support
 
 - **Email:** tech@suvaidyam.com
-- **GitHub Issues:** [Report bugs or request features](https://github.com/your-repo/frappe_theme/issues)
+- **GitHub Issues:** [Report bugs or request features](https://github.com/Suvaidyam/frappe_theme/issues)
 - **Documentation:** [Full documentation](DOCUMENTATION.md)
 
 ---
@@ -289,4 +402,16 @@ This project is licensed under the MIT License - see the [license.txt](license.t
 ---
 
 **Made with ❤️ by [Suvaidyam](https://suvaidyam.com)**
+
+---
+
+<div align="center">
+
+### 📚 Navigation
+
+[🏠 Home](README.md) • [📖 Documentation](DOCUMENTATION.md) • [⚡ Quick Start](QUICK_START.md) • [📋 Features](FEATURES_SUMMARY.md)
+
+**[⬆ Back to Top](#-frappe-theme)**
+
+</div>
 
