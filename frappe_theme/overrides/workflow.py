@@ -48,7 +48,6 @@ def get_custom_transitions(
 		for row in (custom_workflow_doc.approval_assignments or [])
 		if (row.user == sva_user or user == "Administrator") and row.action == "Pending"
 	]
-
 	if user_assignments and len(user_assignments) > 0:
 		custom_transitions = make_custom_transitions(custom_workflow_doc)
 		return custom_transitions
