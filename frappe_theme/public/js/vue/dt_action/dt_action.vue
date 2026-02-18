@@ -88,6 +88,27 @@ const exportData = async () => {
 			]);
 		}
 
+		let filters_to_apply = [...filters, ...props.dt.additional_list_filters];
+		if (props.dt.connection.connection_type == "Report") {
+			filters_to_apply = {};
+			if (
+				props.dt.frm?.["dt_events"]?.[props.dt.doctype || props.dt.link_report]
+					?.get_filters
+			) {
+				let get_filters =
+					props.dt.frm?.["dt_events"]?.[props.dt.doctype || props.dt.link_report]
+						?.get_filters;
+				filters_to_apply =
+					(await get_filters(
+						props.dt.doctype || props.dt.link_report,
+						props.dt.frm || {}
+					)) || {};
+			}
+			[...filters, ...props.dt.additional_list_filters].forEach((f) => {
+				filters_to_apply[f[1]] = [f[2], f[3]];
+			});
+		}
+
 		try {
 			// Get filtered data using the same method as datatable
 			let res = await props.dt.sva_db.call({
@@ -95,38 +116,40 @@ const exportData = async () => {
 				doctype: props.dt.doctype || props.dt.link_report,
 				doc: props.dt.frm?.doc?.name,
 				ref_doctype: props.dt.frm?.doc?.doctype,
-				filters: [...filters, ...props.dt.additional_list_filters],
+				filters: filters_to_apply,
 				fields: props.dt.fields || ["*"],
 				limit_page_length: 0,
 				order_by: `${props.dt.sort_by} ${props.dt.sort_order}`,
 				limit_start: 0,
 				_type: props.dt.connection.connection_type,
 				unfiltered: props.dt.connection?.unfiltered,
+				return_columns: 1,
 			});
 
-			if (res.message && res.message.length > 0) {
+			if (res.message && res.message.result && res.message.result.length > 0) {
 				// Get column headers from datatable
-				let columns = props.dt.header || [];
+				let columns = props.dt.header?.length
+					? props.dt.header
+					: res.message.columns || [];
 				let headers = columns.map((col) => col.label || col.fieldname);
+				let data = res.message.result;
 
 				// Prepare data based on transpose state
 				let dataWithHeaders;
 				if (props.dt.isTransposed) {
 					// For transposed export: rows become columns
 					dataWithHeaders = [
-						["Fields", ...res.message.map((_, index) => index + 1)],
+						["Fields", ...data.map((_, index) => index + 1)],
 						...columns.map((col) => [
 							col.label || col.fieldname,
-							...res.message.map((row) => row[col.fieldname] || ""),
+							...data.map((row) => row[col.fieldname] || ""),
 						]),
 					];
 				} else {
 					// Normal export
 					dataWithHeaders = [
 						headers,
-						...res.message.map((row) =>
-							columns.map((col) => row[col.fieldname] || "")
-						),
+						...data.map((row) => columns.map((col) => row[col.fieldname] || "")),
 					];
 				}
 

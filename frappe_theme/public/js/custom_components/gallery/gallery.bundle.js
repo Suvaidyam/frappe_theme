@@ -375,7 +375,12 @@ class SVAGalleryComponent {
 				const folder = file.folder || "Home";
 				path = folder === "Home" ? "Attachments" : folder.replace(/^Home\//, "");
 			} else {
-				path = file.attached_to_doctype || "Attachments";
+				// If parent_doctype exists, create parent-to-child folder structure
+				if (file.parent_doctype) {
+					path = `${file.parent_doctype}/${file.attached_to_doctype || "Attachments"}`;
+				} else {
+					path = file.attached_to_doctype || "Attachments";
+				}
 			}
 
 			const parts = path.split("/");

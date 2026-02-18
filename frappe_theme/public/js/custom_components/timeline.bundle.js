@@ -562,7 +562,6 @@ class SVATimelineGenerator {
 			}
 		}
 	}
-
 	fetchTimelineData(append = false) {
 		if (!append) {
 			this.showSkeletonLoader();

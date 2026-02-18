@@ -1,6 +1,7 @@
 class FilterRibbon {
 	constructor({ wrapper, frm, filters = [] }) {
 		this.wrapper = wrapper;
+		this.wrapper.style.padding = "15px !important";
 		this.filters = filters;
 		this.frm = frm;
 		this.lastUpdated = new Date();
@@ -27,14 +28,15 @@ class FilterRibbon {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                padding: 10px 16px;
+                padding: 10px 10px;
                 background: #F8F8F8;
-                border-left: 4px solid ${frappe.boot?.my_theme?.navbar_color || "#2196F3"};
+                border-left: 4px solid #757575;
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
                 font-size: 14px;
                 color: #333;
                 box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-                margin-bottom: 15px;
+				margin-left: 15px;
+				margin-right: 15px;
                 border-radius: 0 4px 4px 0;
             }
 
@@ -48,7 +50,7 @@ class FilterRibbon {
             .filter-ribbon .check-icon {
                 width: 24px;
                 height: 24px;
-                background: ${frappe.boot?.my_theme?.navbar_color || "#2196F3"};
+                background: #757575;
                 border-radius: 50%;
                 display: flex;
                 align-items: center;
@@ -57,13 +59,13 @@ class FilterRibbon {
             }
 
             .filter-ribbon .filter-text {
-                color: ${frappe.boot?.my_theme?.navbar_color || "#1976D2"};
+                color: #757575;
                 line-height: 1.4;
             }
 
             .filter-ribbon .filter-text strong {
                 font-weight: 600;
-                color: ${frappe.boot?.my_theme?.navbar_color || "#1565C0"};
+                color: #757575;
             }
 
             .filter-ribbon .filter-chip {
@@ -73,8 +75,8 @@ class FilterRibbon {
                 border-radius: 14px;
                 margin: 0 3px;
                 font-size: 12px;
-                border: 1px solid ${frappe.boot?.my_theme?.navbar_color || "#2196F3"};
-                color: ${frappe.boot?.my_theme?.navbar_color || "#1565C0"};
+                border: 1px solid #757575;
+                color: #757575;
                 font-weight: 500;
             }
 

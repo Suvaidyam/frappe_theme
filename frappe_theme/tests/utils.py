@@ -1,5 +1,6 @@
 import json
-import random
+import secrets
+import string
 
 import frappe
 
@@ -18,15 +19,15 @@ class SvaTestUtils:
 		if field.fieldtype in ["Data", "Text", "Long Text", "Small Text", "Text Editor", "Markdown Editor"]:
 			return "Test Data"
 		if field.fieldtype == "Int":
-			return random.randint(1, 100)
+			return secrets.randbelow(100) + 1
 		if field.fieldtype == "Float":
-			return random.uniform(1.0, 100.0)
+			return (secrets.randbelow(10000) / 100) + 1.0
 		if field.fieldtype == "Percent":
-			return random.uniform(1.0, 100.0)
+			return (secrets.randbelow(10000) / 100) + 1.0
 		if field.fieldtype == "Currency":
-			return random.uniform(1.0, 100.0)
+			return (secrets.randbelow(10000) / 100) + 1.0
 		if field.fieldtype == "Rating":
-			return random.randint(1, 5)
+			return secrets.randbelow(5) + 1
 		if field.fieldtype == "Date":
 			return frappe.utils.nowdate()
 		if field.fieldtype == "Datetime":
@@ -47,7 +48,7 @@ class SvaTestUtils:
 			if field.options:
 				options = [opt.strip() for opt in field.options.split("\n") if opt.strip()]
 				if options:
-					return options[random.randint(0, len(options) - 1)]
+					return secrets.choice(options)
 		if field.fieldtype == "JSON":
 			return {"key": "value"}
 		if field.fieldtype == "Html":
@@ -101,8 +102,8 @@ class SvaTestUtils:
 				length = int(length)
 			except ValueError:
 				length = 20
-		letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-		return "".join(random.choice(letters) for i in range(length))
+		letters = string.ascii_letters
+		return "".join(secrets.choice(letters) for _ in range(length))
 
 	@staticmethod
 	def generate_random_phone_number(is_country_code: bool = True) -> str:
@@ -115,8 +116,8 @@ class SvaTestUtils:
 		    str: A valid Indian phone number string.
 		"""
 		# First digit should be between 6 and 9 for valid Indian numbers
-		first_digit = random.choice("6789")
-		remaining_digits = "".join(random.choice("0123456789") for _ in range(9))
+		first_digit = secrets.choice("6789")
+		remaining_digits = "".join(secrets.choice(string.digits) for _ in range(9))
 		number = first_digit + remaining_digits
 
 		if is_country_code:

@@ -3414,7 +3414,7 @@ class SvaDataTable {
 					);
 					td.appendChild(spanElement);
 					td.title =
-						frappe.utils.get_link_title(column.options, row[column.fieldname]) || "";
+						frappe.utils.get_link_title(column.options, row[column.fieldname]) || "-";
 				} else {
 					spanElement = document.createElement("span");
 					td.appendChild(spanElement);
@@ -3422,12 +3422,12 @@ class SvaDataTable {
 						frappe.utils
 							.fetch_link_title(column.options, row[column.fieldname])
 							.then((res) => {
-								spanElement.textContent = res || "";
-								td.title = res || "";
+								spanElement.textContent = res || "-";
+								td.title = res || "-";
 							});
 					} catch (error) {
-						spanElement.textContent = row[column.fieldname] || "";
-						td.title = row[column.fieldname] || "";
+						spanElement.textContent = row[column.fieldname] || "-";
+						td.title = row[column.fieldname] || "-";
 					}
 				}
 
@@ -3547,7 +3547,7 @@ class SvaDataTable {
 							}
 						},
 					},
-					value: row[column.fieldname] || "",
+					value: row[column.fieldname] || "-",
 					render_input: true,
 					only_input: true,
 				});
@@ -3572,8 +3572,8 @@ class SvaDataTable {
 						];
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
-					td.innerHTML = `<span title="${row[column.fieldname] || ""}">${
-						row[column.fieldname] || ""
+					td.innerHTML = `<span title="${row[column.fieldname] || "-"}">${
+						row[column.fieldname] || "-"
 					}</span>`;
 					if (col?.width) {
 						$(td).css({
@@ -3734,12 +3734,15 @@ class SvaDataTable {
 				return;
 			}
 			if (columnField.fieldtype === "Attach") {
-				if (row[column.fieldname]) {
+				if (
+					row[column.fieldname] &&
+					!["null", "undefined", null, undefined].includes(row[column.fieldname])
+				) {
 					td.innerHTML = `<a title="${row[column.fieldname]}" href="${
 						row[column.fieldname]
-					}" target = "_blank" >${row[column.fieldname]}</a> `;
+					}" target = "_blank" >${row[column.fieldname] || "-"}</a> `;
 				} else {
-					td.innerHTML = "";
+					td.innerHTML = "-";
 				}
 				if (col?.width) {
 					$(td).css({
@@ -3767,12 +3770,18 @@ class SvaDataTable {
 				return;
 			}
 			if (columnField.fieldtype === "Attach Image") {
-				if (row[column.fieldname]) {
+				if (
+					row[column.fieldname] &&
+					!["null", "undefined", null, undefined].includes(row[column.fieldname])
+				) {
 					td.innerHTML = `<img title="${row[column.fieldname]}" alt="${
 						row[column.fieldname]
 					}" src="${
 						row[column.fieldname]
 					}" style = "width:30px;border-radius:50%;height:30px;object-fit:cover;" /> `;
+					return;
+				} else {
+					td.innerHTML = "-";
 					return;
 				}
 			}
@@ -3893,8 +3902,8 @@ class SvaDataTable {
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
 					td.innerHTML = `<span title="${
-						row[column.fieldname] ? formaDate(row[column.fieldname]) : ""
-					}">${row[column.fieldname] ? formaDate(row[column.fieldname]) : ""}</span>`;
+						row[column.fieldname] ? formaDate(row[column.fieldname]) : "-"
+					}">${row[column.fieldname] ? formaDate(row[column.fieldname]) : "-"}</span>`;
 					if (col?.width) {
 						$(td).css({
 							width: `${Number(col?.width) * 50}px`,
@@ -3923,11 +3932,18 @@ class SvaDataTable {
 				return;
 			}
 			if (["name", this.meta?.title_field].includes(columnField.fieldname)) {
-				td.innerHTML = `<p title="${
-					row[column.fieldname]
-				}" style="cursor: pointer; text-decoration:underline;">${
-					row[column.fieldname]
-				}</p>`;
+				if (
+					row[column.fieldname] &&
+					!["null", "undefined", null, undefined].includes(row[column.fieldname])
+				) {
+					td.innerHTML = `<p title="${
+						row[column.fieldname]
+					}" style="cursor: pointer; text-decoration:underline;">${
+						row[column.fieldname]
+					}</p>`;
+				} else {
+					td.innerHTML = `<p title="-">-</p>`;
+				}
 				td.querySelector("p").addEventListener("click", () => {
 					let route = frappe.get_route();
 					frappe.set_route("Form", this.doctype, row["name"]).then(() => {
@@ -4012,9 +4028,16 @@ class SvaDataTable {
 					];
 				td.innerHTML = formatter(row[column.fieldname], column, row, this);
 			} else {
-				td.innerHTML = `<span title="${row[column.fieldname] || ""}">${
-					row[column.fieldname] || ""
-				}</span>`;
+				if (
+					row[column.fieldname] &&
+					!["null", "undefined", null, undefined].includes(row[column.fieldname])
+				) {
+					td.innerHTML = `<span title="${row[column.fieldname] || ""}">${
+						row[column.fieldname] || ""
+					}</span>`;
+				} else {
+					td.innerHTML = `<span title="-">-</span>`;
+				}
 				if (col?.width) {
 					$(td).css({
 						width: `${Number(col?.width) * 50}px`,

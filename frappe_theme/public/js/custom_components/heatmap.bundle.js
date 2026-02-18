@@ -387,7 +387,7 @@ class SVAHeatmap {
 
 	applyDataToMap() {
 		if (this.defaultView == "District") {
-			this.loadDistricts()
+			this.loadDistricts();
 		} else {
 			if (!this.stateLayer) return;
 			this.stateData = {};
@@ -588,10 +588,10 @@ class SVAHeatmap {
 		const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
 		return result
 			? {
-				r: parseInt(result[1], 16),
-				g: parseInt(result[2], 16),
-				b: parseInt(result[3], 16),
-			}
+					r: parseInt(result[1], 16),
+					g: parseInt(result[2], 16),
+					b: parseInt(result[3], 16),
+			  }
 			: null;
 	}
 
@@ -699,14 +699,14 @@ class SVAHeatmap {
 								data: row, // Store the complete row data
 								count: this.districtData[districtName]
 									? this.districtData[districtName].count +
-									row[this.primaryTargetField]
+									  row[this.primaryTargetField]
 									: row[this.primaryTargetField],
 								id: districtName,
 							};
 						}
 					});
 				} else {
-					this.districtData = {}
+					this.districtData = {};
 				}
 				const range = this.calculateDataRange(this.districtData);
 				this.createLegend(range);
@@ -881,13 +881,14 @@ class SVAHeatmap {
 		return `
             <div>
                 <strong>${name}</strong><br/>
-                ${column?.label || "Count"}: ${column?.fieldtype == "Currency"
+                ${column?.label || "Count"}: ${
+			column?.fieldtype == "Currency"
 				? frappe.utils.format_currency(
-					data?.count || 0,
-					frappe.boot?.sysdefaults?.currency || "INR"
-				)
+						data?.count || 0,
+						frappe.boot?.sysdefaults?.currency || "INR"
+				  )
 				: frappe.utils.shorten_number(data?.count || 0, frappe.sys_defaults.country)
-			}
+		}
                 ${additionalFields}
             </div>
         `;
