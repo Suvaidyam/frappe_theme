@@ -45,7 +45,7 @@
             "name": "Workflow Document State-custom_closure",
             "no_copy": 0,
             "non_negative": 0,
-            "options": "\nSign-Off Prerequisite\nCompleted\nPositive\nNegative\nNeutral",
+            "options": "\nSign-Off Prerequisite\nCompleted\nPositive\nNegative\nNeutral\nCancelled",
             "owner": "Administrator",
             "permlevel": 0,
             "placeholder": null,

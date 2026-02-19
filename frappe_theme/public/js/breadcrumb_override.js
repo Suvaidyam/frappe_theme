@@ -59,9 +59,9 @@ frappe.breadcrumbs.update = function () {
 	}
 
 	if (
-		breadcrumbs.workspace &&
-		frappe.workspace_map[breadcrumbs.workspace]?.app &&
-		frappe.workspace_map[breadcrumbs.workspace]?.app != frappe.current_app
+		breadcrumbs?.workspace &&
+		frappe?.workspace_map?.[breadcrumbs.workspace]?.app &&
+		frappe?.workspace_map?.[breadcrumbs.workspace]?.app != frappe.current_app
 	) {
 		let app = frappe.workspace_map[breadcrumbs.workspace].app;
 		frappe.app.sidebar.apps_switcher.set_current_app(app);
