@@ -17,6 +17,8 @@ def get_my_theme():
 
 @frappe.whitelist(allow_guest=True)
 def get_property_set(doctype):
+	if not doctype:
+		return {"message": []}
 	return frappe.db.get_list(
 		"Property Setter",
 		fields=["*"],
@@ -1077,13 +1079,13 @@ def get_files(doctype, docname):
 			elif (
 				child.connection_type == "Referenced"
 				and child.referenced_link_doctype
-				and child.dn_reference_field
+				and child.dt_reference_field
 			):
 				if frappe.has_permission(child.referenced_link_doctype, "read"):
 					all_doctype.append(child.referenced_link_doctype)
 					docname_list = frappe.get_all(
 						child.referenced_link_doctype,
-						filters={child.dn_reference_field: docname},
+						filters={child.dt_reference_field: docname},
 						fields=["name"],
 					)
 					all_docname.extend([doc.name for doc in docname_list])
@@ -1096,6 +1098,52 @@ def get_files(doctype, docname):
 
 	except Exception as e:
 		frappe.log_error(title="Error in get_files config from svadatatable configuration", message=str(e))
+
+	# child cofig
+	# Track parent doctype for each child document
+	child_to_parent_doctype = {}
+	try:
+		for child_conf in get_config.child_confs:
+			if child_conf.parent_doctype and child_conf.link_doctype and child_conf.link_fieldname:
+				if frappe.has_permission(child_conf.link_doctype, "read"):
+					# Find parent documents that are already in our list
+					parent_docnames = [
+						docname
+						for docname in all_docname
+						if frappe.db.exists(child_conf.parent_doctype, docname)
+					]
+
+					# Also find parent documents linked to the main docname
+					# Check if parent_doctype is in child_doctypes to find the link field
+					for child in get_config.child_doctypes:
+						if child.link_doctype == child_conf.parent_doctype and child.link_fieldname:
+							parent_docs = frappe.get_all(
+								child_conf.parent_doctype,
+								filters={child.link_fieldname: docname},
+								fields=["name"],
+							)
+							parent_docnames.extend([doc.name for doc in parent_docs])
+							break
+
+					# Remove duplicates
+					parent_docnames = list(set(parent_docnames))
+
+					if parent_docnames:
+						all_doctype.append(child_conf.link_doctype)
+						# Find child documents linked to parent documents
+						child_docnames = frappe.get_all(
+							child_conf.link_doctype,
+							filters={child_conf.link_fieldname: ["in", parent_docnames]},
+							fields=["name"],
+						)
+						# Map each child document to its parent doctype
+						for child_doc in child_docnames:
+							child_to_parent_doctype[child_doc.name] = child_conf.parent_doctype
+						all_docname.extend([doc.name for doc in child_docnames])
+	except Exception as e:
+		frappe.log_error(
+			title="Error in get_files child_confs from svadatatable configuration", message=str(e)
+		)
 
 	try:
 		file_list = frappe.get_all(
@@ -1120,6 +1168,12 @@ def get_files(doctype, docname):
 			],
 			as_list=False,
 		)
+		# Add parent doctype information for files attached to child documents
+		for file_item in file_list:
+			if file_item.get("attached_to_name") in child_to_parent_doctype:
+				file_item["parent_doctype"] = child_to_parent_doctype[file_item["attached_to_name"]]
+			else:
+				file_item["parent_doctype"] = None
 		return file_list
 	except Exception as e:
 		frappe.log_error(title="Error fetching files", message=str(e))

@@ -58,6 +58,9 @@ class SVAHTTP {
 		const signal = this.newRequest();
 		let method = args.method;
 		delete args.method;
+		if (args?.args) {
+			args = args.args;
+		}
 		const response = await fetch(`/api/method/${method}`, {
 			method: "POST",
 			headers: {
