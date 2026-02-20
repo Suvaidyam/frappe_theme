@@ -44,6 +44,9 @@ class SVAHeatmap {
                 background-color:#F2F2F3;
                 display: none;
             }
+			.leaflet-pane, .leaflet-tile, .leaflet-marker-icon, .leaflet-marker-shadow, .leaflet-tile-container, .leaflet-pane > svg, .leaflet-pane > canvas, .leaflet-zoom-box, .leaflet-image-layer, .leaflet-layer {
+				position: static !important;
+			}
             .legend-container {
                 position: absolute;
                 bottom: 18px;
