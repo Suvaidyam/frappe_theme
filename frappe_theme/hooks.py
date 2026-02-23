@@ -65,6 +65,7 @@ doctype_js = {
 	"Workflow": "public/js/doctype/workflow.js",
 	"Web Form": "public/js/doctype/web_form.js",
 	"Customize Form": ["public/js/doctype/property_setter.js", "public/js/doctype/customize_form.js"],
+	"Custom HTML Block": "public/js/doctype/custom_html_block.js",
 	"DocType": ["public/js/doctype/property_setter.js", "public/js/doctype/doctype.js"],
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}

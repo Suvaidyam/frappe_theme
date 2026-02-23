@@ -1,0 +1,127 @@
+# AI Dashboard Builder — Cursor Context
+
+## Project Overview
+AI-powered dashboard generator for Frappe's Custom HTML Block. Users describe what they want, AI generates Vue 3 dashboard code (html/script/style), saves to the block doc. Follow-up edits read current code from the doc, send to AI with edit instruction, save result back. Frappe's Version doctype provides rollback.
+
+## Tech Stack
+- **Backend**: Frappe (Python), Anthropic Claude API
+- **Frontend**: Vue 3 (Composition API, loaded via frappe.require), Tailwind CSS (CDN in shadow DOM)
+- **No build tools**: Everything runs inside Frappe Custom HTML Block — no webpack, no npm, no SFC
+
+## Architecture
+
+### Flow
+```
+User prompt → generate_system_prompt() builds system prompt from report configs
+            → generate_html_block() sends to Claude API
+            → Response parsed as JSON {html, script, style}
+            → Saved to Custom HTML Block doc
+            → Next edit reads doc → sends current code + instruction → saves back
+            → Frappe Version doctype tracks every save for rollback
+```
+
+### Key Files
+```
+frappe_theme/
+├── apis/ai/
+│   ├── utils.py          # generate_system_prompt() — builds system prompt from report metadata
+│   └── anthropic.py            # generate_html_block(), get_versions(), rollback() — API endpoints
+|   └── service.py
+└── public/custom_html_block.js
+└── dt_api.py             # get_dt_list() — report data fetcher used by frontend
+```
+
+### API Endpoints
+```python
+# Generate or edit a block (auto-detects mode based on existing code in doc)
+frappe_theme.apis.ai.api.generate_html_block(client_prompt, system_prompt, block_name)
+
+# List version history
+frappe_theme.apis.ai.api.get_versions(block_name)
+
+# Rollback to a specific version
+frappe_theme.apis.ai.api.rollback(block_name, version_name)
+```
+
+### Data API (used by generated frontend code)
+```javascript
+frappe.call({
+  method: "frappe_theme.dt_api.get_dt_list",
+  args: {
+    doctype: "<report name>",
+    _type: "Report",
+    filters: {},        // pageFilters for data reports
+    unfiltered: 1       // for filter reports (no filters needed)
+  }
+})
+// Returns { message: [{ col: val }] }
+```
+
+## Custom HTML Block Output Format
+The AI always returns JSON with these 3 keys:
+```json
+{
+  "html": "<div id='cb-block-name'>...Vue template...</div>",
+  "script": "frappe.require('...vue...', () => { let el = root_element.querySelector('#cb-block-name'); Vue.createApp({...}).mount(el); });",
+  "style": "/* custom CSS overrides */"
+}
+```
+
+### HTML Rules
+- Single root `<div id="cb-{block_name}">`
+- Vue template syntax inside
+- Use `v-text` to avoid Jinja `{{ }}` conflicts
+- Component markers: `<!-- COMPONENT:kpi-ReportName -->` with `data-component` attributes
+
+### Script Rules
+- Outer wrapper: `frappe.require('/assets/frappe/node_modules/vue/dist/vue.global.prod.js', () => { ... })`
+- DOM access: `root_element.querySelector('#cb-block-name')` — NOT `document.querySelector`
+- Mount: `app.mount(el)` — pass element, not selector string
+- Tailwind injection for shadow DOM:
+  ```javascript
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = 'https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css';
+  el.parentElement.appendChild(link);
+  ```
+- Currency formatting: `frappe.utils.format_currency(val)` only for Currency fieldtype
+- All data aggregation via `computed()`
+
+### Style Rules
+- Tailwind classes inline in HTML
+- Only custom overrides in style key
+- No parent CSS cascades into shadow DOM
+
+## System Prompt Generator (utils.py)
+- `generate_system_prompt(custom_filter_report, custom_data_report, block_name, ref_doctype)`
+- Reads Report docs, compacts field metadata (fn/ft/opt/label)
+- Builds CONFIG JSON with compact keys: f=filters, d=data, r=report, dt=doctype, cols=columns
+- Token-optimized: `json.dumps(config, separators=(",",":"))`
+
+## API Logic (api.py)
+- `generate_html_block()`: Reads doc → if code exists, edit mode (injects current code) → else generate mode → calls Claude → parses JSON → saves to doc
+- `get_versions()`: Reads Frappe Version doctype for the block, returns list of changes
+- `rollback()`: Reads Version diff, applies old_value for html/script/style fields
+- `_parse_response()`: Strips markdown fences, validates JSON, extracts html/script/style
+- Model: `claude-sonnet-4-20250514`, max_tokens: 8192, temperature: 0, timeout: 120s
+
+## Forbidden in Generated Code
+window, document (except Tailwind link injection), eval, import, external JS libs, innerHTML, iframe
+
+## What's Done
+- [x] System prompt generator with token optimization
+- [x] Generate + Edit API (stateless, reads current code from doc)
+- [x] Version history listing
+- [x] Rollback to any version
+- [x] Shadow DOM styling via Tailwind CDN
+- [x] Component markers for targeted edits
+
+## What's Next (TODO)
+- [ ] Frontend UI: chat-like interface on the Custom HTML Block form to send prompts
+- [ ] "Regenerate" button that clears html/script/style and generates fresh
+- [ ] Component picker dropdown (populated from data-component attributes in saved html)
+- [ ] Version history sidebar with preview + one-click rollback
+- [ ] Streaming response support (show code as it generates)
+- [ ] Error recovery: if AI returns broken JSON, retry once with "Fix this JSON: ..."
+- [ ] Rate limiting / token budget tracking per user
+- [ ] Support for multiple AI models (dropdown: Sonnet for speed, Opus for quality)
