@@ -1,0 +1,1844 @@
+/* ============================================================
+   mGrant NUO — Frappe v16 Custom Theme
+   Version : 2.0  (Enhanced Hover & Component Styling)
+   Palette : Deep Teal + Warm Gold + Slate
+   ============================================================ */
+
+/* ── 0. CSS Variables (Design Tokens) ──────────────────────── */
+:root {
+    /* Brand */
+    --mgrant-primary: #0D4F5C;
+    --mgrant-primary-light: #137E8F;
+    --mgrant-primary-dark: #093A44;
+    --mgrant-primary-ultra: #062930;
+    --mgrant-accent: #E1A836;
+    --mgrant-accent-light: #F5CE6E;
+    --mgrant-accent-hover: #C8922A;
+    --mgrant-accent-glow: rgba(225, 168, 54, 0.15);
+
+    /* Surfaces */
+    --mgrant-bg: #F4F6F8;
+    --mgrant-surface: #FFFFFF;
+    --mgrant-surface-hover: #EEF2F5;
+    --mgrant-surface-active: #E4EBF0;
+    --mgrant-border: #DFE5EB;
+    --mgrant-border-light: #EDF1F5;
+    --mgrant-border-hover: #C5CDD5;
+
+    /* Text */
+    --mgrant-text: #1C2B36;
+    --mgrant-text-muted: #6B7D8D;
+    --mgrant-text-light: #9AABB8;
+    --mgrant-text-on-dark: #FFFFFF;
+    --mgrant-text-on-accent: #3A2D00;
+
+    /* Sidebar */
+    --mgrant-sidebar-bg: #0D2B33;
+    --mgrant-sidebar-bg-hover: #143E48;
+    --mgrant-sidebar-bg-active: #1A5060;
+    --mgrant-sidebar-text: #B8CDD4;
+    --mgrant-sidebar-text-active: #FFFFFF;
+    --mgrant-sidebar-divider: rgba(255, 255, 255, 0.08);
+    --mgrant-sidebar-glow: rgba(19, 126, 143, 0.25);
+
+    /* Status */
+    --mgrant-success: #27AE60;
+    --mgrant-success-bg: rgba(39, 174, 96, 0.08);
+    --mgrant-warning: #E1A836;
+    --mgrant-warning-bg: rgba(225, 168, 54, 0.08);
+    --mgrant-danger: #E15241;
+    --mgrant-danger-bg: rgba(225, 82, 65, 0.08);
+    --mgrant-info: #2D9CDB;
+    --mgrant-info-bg: rgba(45, 156, 219, 0.08);
+
+    /* Radius & Shadows */
+    --mgrant-radius-xs: 4px;
+    --mgrant-radius-sm: 6px;
+    --mgrant-radius-md: 8px;
+    --mgrant-radius-lg: 12px;
+    --mgrant-radius-xl: 16px;
+    --mgrant-shadow-xs: 0 1px 2px rgba(13, 43, 51, 0.04);
+    --mgrant-shadow-sm: 0 1px 3px rgba(13, 43, 51, 0.06);
+    --mgrant-shadow-md: 0 4px 12px rgba(13, 43, 51, 0.08);
+    --mgrant-shadow-lg: 0 8px 24px rgba(13, 43, 51, 0.10);
+    --mgrant-shadow-xl: 0 12px 40px rgba(13, 43, 51, 0.14);
+    --mgrant-shadow-focus: 0 0 0 3px rgba(19, 126, 143, 0.14);
+
+    /* Transitions */
+    --mgrant-ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    --mgrant-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --mgrant-ease-snap: cubic-bezier(0.2, 0, 0, 1);
+    --mgrant-t-fast: 120ms;
+    --mgrant-t-base: 220ms;
+    --mgrant-t-slow: 350ms;
+}
+
+
+/* ============================================================
+   1. SIDEBAR
+   ============================================================ */
+
+/* ── 1a. Sidebar Container ──────────────────────────────────── */
+.main-sidebar,
+.desk-sidebar {
+    background: linear-gradient(180deg, #0E2F38 0%, var(--mgrant-sidebar-bg) 100%) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.10) transparent;
+}
+
+.main-sidebar::-webkit-scrollbar,
+.desk-sidebar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.main-sidebar::-webkit-scrollbar-thumb,
+.desk-sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.10);
+    border-radius: 4px;
+}
+
+.main-sidebar::-webkit-scrollbar-thumb:hover,
+.desk-sidebar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.22);
+}
+
+/* Sidebar section labels */
+.sidebar-menu .sidebar-label,
+.desk-sidebar .sidebar-label {
+    color: var(--mgrant-accent) !important;
+    font-weight: 700 !important;
+    font-size: 10.5px !important;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 18px 16px 6px !important;
+    opacity: 0.85;
+    transition: opacity var(--mgrant-t-base) var(--mgrant-ease) !important;
+}
+
+.desk-sidebar:hover .sidebar-label {
+    opacity: 1;
+}
+
+/* ── 1b. Menu Items ─────────────────────────────────────────── */
+.sidebar-menu .sidebar-menu-item>a,
+.desk-sidebar .sidebar-menu a,
+.desk-sidebar .standard-sidebar-item a {
+    color: var(--mgrant-sidebar-text) !important;
+    padding: 9px 14px 9px 16px !important;
+    margin: 2px 8px !important;
+    border-radius: var(--mgrant-radius-sm) !important;
+    font-size: 13px !important;
+    font-weight: 450 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    border-left: 3px solid transparent !important;
+    position: relative !important;
+    overflow: hidden !important;
+    transition: all var(--mgrant-t-base) var(--mgrant-ease) !important;
+}
+
+/* Hover shimmer pseudo-element */
+.sidebar-menu .sidebar-menu-item>a::after,
+.desk-sidebar .standard-sidebar-item a::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.03) 50%, transparent 100%);
+    transform: translateX(-100%);
+    transition: transform 0.4s var(--mgrant-ease-out);
+    pointer-events: none;
+}
+
+.sidebar-menu .sidebar-menu-item>a:hover::after,
+.desk-sidebar .standard-sidebar-item a:hover::after {
+    transform: translateX(100%);
+}
+
+.sidebar-menu .sidebar-menu-item>a:hover,
+.desk-sidebar .sidebar-menu a:hover,
+.desk-sidebar .standard-sidebar-item a:hover {
+    background: var(--mgrant-sidebar-bg-hover) !important;
+    color: #FFFFFF !important;
+    text-decoration: none !important;
+    padding-left: 20px !important;
+    border-left-color: rgba(225, 168, 54, 0.4) !important;
+}
+
+/* Active state */
+.sidebar-menu .sidebar-menu-item.active>a,
+.desk-sidebar .sidebar-menu a.active,
+.desk-sidebar .standard-sidebar-item a.active,
+.desk-sidebar .standard-sidebar-item.selected a {
+    background: var(--mgrant-sidebar-bg-active) !important;
+    color: var(--mgrant-sidebar-text-active) !important;
+    font-weight: 600 !important;
+    border-left-color: var(--mgrant-accent) !important;
+    box-shadow: inset 0 0 20px rgba(19, 126, 143, 0.08) !important;
+}
+
+/* Sidebar icons */
+.sidebar-menu .sidebar-icon,
+.desk-sidebar .sidebar-menu .sidebar-icon,
+.desk-sidebar svg.icon {
+    color: var(--mgrant-text-light) !important;
+    opacity: 0.6;
+    transition: all var(--mgrant-t-base) var(--mgrant-ease);
+    flex-shrink: 0;
+}
+
+.sidebar-menu .sidebar-menu-item>a:hover .sidebar-icon,
+.desk-sidebar .standard-sidebar-item a:hover svg.icon {
+    color: var(--mgrant-accent-light) !important;
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.sidebar-menu .sidebar-menu-item.active>a .sidebar-icon,
+.desk-sidebar .standard-sidebar-item.selected svg.icon {
+    color: var(--mgrant-accent-light) !important;
+    opacity: 1;
+    filter: drop-shadow(0 0 4px rgba(245, 206, 110, 0.3));
+}
+
+/* ── 1c. Sub-Menu / Nested Items ────────────────────────────── */
+.sidebar-menu .sidebar-child-item>a,
+.desk-sidebar .sidebar-child-item a {
+    color: var(--mgrant-sidebar-text) !important;
+    padding: 7px 16px 7px 44px !important;
+    margin: 0 8px !important;
+    border-radius: var(--mgrant-radius-sm) !important;
+    font-size: 12.5px !important;
+    font-weight: 400 !important;
+    opacity: 0.75;
+    position: relative;
+    transition: all var(--mgrant-t-base) var(--mgrant-ease) !important;
+}
+
+/* Connecting line from parent */
+.sidebar-menu .sidebar-child-item>a::before,
+.desk-sidebar .sidebar-child-item a::before {
+    content: "";
+    position: absolute;
+    left: 28px;
+    top: 50%;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--mgrant-sidebar-text);
+    opacity: 0.25;
+    transform: translateY(-50%) scale(1);
+    transition: all var(--mgrant-t-base) var(--mgrant-ease);
+}
+
+.sidebar-menu .sidebar-child-item>a:hover,
+.desk-sidebar .sidebar-child-item a:hover {
+    background: var(--mgrant-sidebar-bg-hover) !important;
+    color: #FFFFFF !important;
+    opacity: 1;
+    padding-left: 48px !important;
+}
+
+.sidebar-menu .sidebar-child-item>a:hover::before,
+.desk-sidebar .sidebar-child-item a:hover::before {
+    background: var(--mgrant-accent-light);
+    opacity: 1;
+    transform: translateY(-50%) scale(1.3);
+    box-shadow: 0 0 6px rgba(245, 206, 110, 0.5);
+}
+
+.sidebar-menu .sidebar-child-item.active>a,
+.desk-sidebar .sidebar-child-item a.active {
+    color: var(--mgrant-sidebar-text-active) !important;
+    opacity: 1;
+    font-weight: 500 !important;
+}
+
+.sidebar-menu .sidebar-child-item.active>a::before,
+.desk-sidebar .sidebar-child-item a.active::before {
+    background: var(--mgrant-accent);
+    opacity: 1;
+    width: 6px;
+    height: 6px;
+    box-shadow: 0 0 8px rgba(225, 168, 54, 0.6);
+}
+
+/* Sidebar dividers */
+.desk-sidebar .divider,
+.sidebar-menu hr {
+    border-color: var(--mgrant-sidebar-divider) !important;
+    margin: 10px 16px !important;
+}
+
+/* ── 1d. Sidebar Collapse Toggle ────────────────────────────── */
+.sidebar-toggle-btn,
+.collapse-sidebar {
+    color: var(--mgrant-sidebar-text) !important;
+    transition: all var(--mgrant-t-base) var(--mgrant-ease) !important;
+    border-radius: var(--mgrant-radius-sm) !important;
+}
+
+.sidebar-toggle-btn:hover,
+.collapse-sidebar:hover {
+    background: var(--mgrant-sidebar-bg-hover) !important;
+    color: var(--mgrant-accent-light) !important;
+    transform: scale(1.05);
+}
+
+
+/* ============================================================
+   2. INPUT FIELDS
+   ============================================================ */
+
+/* ── 2a. Text / Select / Textarea ───────────────────────────── */
+.frappe-control .form-control,
+.frappe-control input[type="text"],
+.frappe-control input[type="password"],
+.frappe-control input[type="number"],
+.frappe-control input[type="email"],
+.frappe-control input[type="url"],
+.frappe-control textarea,
+.frappe-control select,
+.input-with-feedback {
+    background: var(--mgrant-surface) !important;
+    border: 1.5px solid var(--mgrant-border) !important;
+    border-radius: var(--mgrant-radius-sm) !important;
+    color: var(--mgrant-text) !important;
+    font-size: 13px !important;
+    padding: 8px 12px !important;
+    min-height: 36px;
+    transition: border-color var(--mgrant-t-fast) var(--mgrant-ease),
+        box-shadow var(--mgrant-t-fast) var(--mgrant-ease),
+        background var(--mgrant-t-fast) var(--mgrant-ease),
+        transform var(--mgrant-t-fast) var(--mgrant-ease) !important;
+}
+
+/* Hover — subtle lift + border shift */
+.frappe-control .form-control:hover:not(:focus):not([disabled]):not([readonly]),
+.frappe-control input:hover:not(:focus):not([disabled]):not([readonly]),
+.frappe-control textarea:hover:not(:focus):not([disabled]):not([readonly]),
+.frappe-control select:hover:not(:focus):not([disabled]),
+.input-with-feedback:hover:not(:focus):not([disabled]) {
+    border-color: var(--mgrant-border-hover) !important;
+    background: #FCFDFE !important;
+    box-shadow: var(--mgrant-shadow-xs) !important;
+}
+
+/* Focus — ring + slight scale */
+.frappe-control .form-control:focus,
+.frappe-control input:focus,
+.frappe-control textarea:focus,
+.frappe-control select:focus,
+.input-with-feedback:focus {
+    border-color: var(--mgrant-primary-light) !important;
+    box-shadow: var(--mgrant-shadow-focus),
+        0 2px 8px rgba(19, 126, 143, 0.06) !important;
+    outline: none !important;
+    background: #FFFFFF !important;
+}
+
+/* Disabled */
+.frappe-control .form-control[disabled],
+.frappe-control .form-control[readonly] {
+    background: var(--mgrant-bg) !important;
+    opacity: 0.65;
+    cursor: not-allowed;
+    border-style: dashed !important;
+}
+
+/* ── 2b. Labels ─────────────────────────────────────────────── */
+.frappe-control .control-label,
+.frappe-control label {
+    color: var(--mgrant-text-muted) !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    margin-bottom: 4px !important;
+    transition: color var(--mgrant-t-fast) var(--mgrant-ease) !important;
+}
+
+/* Label darkens when sibling input is focused */
+.frappe-control:focus-within .control-label,
+.frappe-control:focus-within label {
+    color: var(--mgrant-primary) !important;
+}
+
+/* ── 2c. Link / Autocomplete ────────────────────────────────── */
+.frappe-control .link-field .btn-open,
+.frappe-control .link-field .link-btn {
+    color: var(--mgrant-primary) !important;
+    border: none !important;
+    transition: all var(--mgrant-t-fast) var(--mgrant-ease) !important;
+}
+
+.frappe-control .link-field .btn-open:hover,
+.frappe-control .link-field .link-btn:hover {
+    color: var(--mgrant-primary-dark) !important;
+    transform: scale(1.12);
+}
+
+/* Autocomplete dropdown */
+.frappe-control .awesomplete>ul,
+ul.awesomplete-list,
+.link-select-dialog .modal-body .list-group {
+    background: var(--mgrant-surface) !important;
+    border: 1.5px solid var(--mgrant-border) !important;
+    border-radius: var(--mgrant-radius-md) !important;
+    box-shadow: var(--mgrant-shadow-lg) !important;
+    padding: 4px !important;
+    margin-top: 4px !important;
+    animation: mgrant-dropdown-in var(--mgrant-t-base) var(--mgrant-ease-out);
+}
+
+@keyframes mgrant-dropdown-in {
+    from {
+        opacity: 0;
+        transform: translateY(-6px) scale(0.97);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.frappe-control .awesomplete li,
+ul.awesomplete-list li {
+    padding: 8px 12px !important;
+    border-radius: var(--mgrant-radius-sm) !important;
+    font-size: 13px !important;
+    color: var(--mgrant-text) !important;
+    transition: all var(--mgrant-t-fast) var(--mgrant-ease) !important;
+    cursor: pointer;
+}
+
+.frappe-control .awesomplete li:hover,
+.frappe-control .awesomplete li[aria-selected="true"],
+ul.awesomplete-list li:hover {
+    background: rgba(13, 79, 92, 0.06) !important;
+    color: var(--mgrant-primary) !important;
+    padding-left: 16px !important;
+}
+
+/* ── 2d. Checkbox & Radio ───────────────────────────────────── */
+.frappe-control .checkbox .label-area,
+.frappe-control .radio .label-area {
+    color: var(--mgrant-text) !important;
+    font-size: 13px !important;
+    transition: color var(--mgrant-t-fast) var(--mgrant-ease) !important;
+}
+
+.frappe-control .checkbox:hover .label-area {
+    color: var(--mgrant-primary) !important;
+}
+
+.frappe-control input[type="checkbox"],
+.frappe-control input[type="radio"] {
+    accent-color: var(--mgrant-primary) !important;
+    transition: transform var(--mgrant-t-fast) var(--mgrant-ease) !important;
+    cursor: pointer;
+}
+
+.frappe-control input[type="checkbox"]:hover,
+.frappe-control input[type="radio"]:hover {
+    transform: scale(1.15);
+}
+
+.frappe-control input[type="checkbox"]:checked,
+.frappe-control input[type="radio"]:checked {
+    accent-color: var(--mgrant-primary) !important;
+}
+
+/* ── 2e. Date / Time picker ─────────────────────────────────── */
+.datepicker {
+    border-radius: var(--mgrant-radius-md) !important;
+    box-shadow: var(--mgrant-shadow-lg) !important;
+    border: 1px solid var(--mgrant-border) !important;
+    animation: mgrant-dropdown-in var(--mgrant-t-base) var(--mgrant-ease-out);
+}
+
+.datepicker--cell {
+    border-radius: var(--mgrant-radius-sm) !important;
+    transition: all var(--mgrant-t-fast) var(--mgrant-ease) !important;
+}
+
+.datepicker--cell:hover {
+    background: rgba(13, 79, 92, 0.08) !important;
+    transform: scale(1.1);
+}
+
+.datepicker--cell.-selected- {
+    background: var(--mgrant-primary) !important;
+    color: #FFF !important;
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(13, 79, 92, 0.25) !important;
+}
+
+.datepicker--cell.-current- {
+    color: var(--mgrant-primary) !important;
+    font-weight: 700 !important;
+}
+
+.datepicker--cell.-current-.-selected- {
+    color: #FFF !important;
+}
+
+.datepicker--nav-action:hover {
+    background: rgba(13, 79, 92, 0.06) !important;
+    border-radius: var(--mgrant-radius-sm) !important;
+}
+
+/* ── 2f. Mandatory / Error / Success field highlight ────────── */
+.has-error .form-control,
+.frappe-control.has-error input,
+.frappe-control.has-error select {
+    border-color: var(--mgrant-danger) !important;
+    box-shadow: 0 0 0 3px rgba(225, 82, 65, 0.10) !important;
+    animation: mgrant-shake 0.3s var(--mgrant-ease);
+}
+
+@keyframes mgrant-shake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-3px);
+    }
+
+    75% {
+        transform: translateX(3px);
+    }
+}
+
+.frappe-control.has-success input,
+.frappe-control .form-control.is-valid {
+    border-color: var(--mgrant-success) !important;
+    box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.10) !important;
+}
+
+/* ── 2g. Like / Rating ──────────────────────────────────────── */
+.like-active-item .like-action,
+.rating .star-icon {
+    transition: all var(--mgrant-t-fast) var(--mgrant-ease) !important;
+}
+
+.like-active-item .like-action:hover,
+.rating .star-icon:hover {
+    transform: scale(1.25);
+    filter: drop-shadow(0 2px 4px rgba(225, 168, 54, 0.3));
+}
+
+/* ── 2h. File Uploader ──────────────────────────────────────── */
+.file-uploader .upload-area,
+.frappe-control[data-fieldtype="Attach"] .attached-file,
+.frappe-control[data-fieldtype="Attach Image"] .attached-file {
+    border: 2px dashed var(--mgrant-border) !important;
+    border-radius: var(--mgrant-radius-md) !important;
+    background: var(--mgrant-bg) !important;
+    transition: all var(--mgrant-t-base) var(--mgrant-ease) !important;
+}
+
+.file-uploader .upload-area:hover {
+    border-color: var(--mgrant-primary-light) !important;
+    background: rgba(19, 126, 143, 0.03) !important;
+    transform: scale(1.005);
+    box-shadow: var(--mgrant-shadow-sm) !important;
+}
+
+/* ── 2i. Select / Dropdown ──────────────────────────────────── */
+.frappe-control select {
+    appearance: none !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7D8D' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 12px center !important;
+    padding-right: 32px !important;
+}
+
+.frappe-control select:hover:not(:focus) {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%230D4F5C' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") !important;
+}
+
+/* ── 2j. Code / Text Editor ─────────────────────────────────── */
+.frappe-control[data-fieldtype="Code"] .CodeMirror,
+.frappe-control[data-fieldtype="Text Editor"] .ql-container {
+    border: 1.5px solid var(--mgrant-border) !important;
+    border-radius: var(--mgrant-radius-sm) !important;
+    transition: border-color var(--mgrant-t-fast) var(--mgrant-ease),
+        box-shadow var(--mgrant-t-fast) var(--mgrant-ease) !important;
+}
+
+.frappe-control[data-fieldtype="Code"] .CodeMirror:hover,
+.frappe-control[data-fieldtype="Text Editor"] .ql-container:hover {
+    border-color: var(--mgrant-border-hover) !important;
+}
+
+.frappe-control[data-fieldtype="Code"] .CodeMirror-focused,
+.frappe-control[data-fieldtype="Text Editor"] .ql-container:focus-within {
+    border-color: var(--mgrant-primary-light) !important;
+    box-shadow: var(--mgrant-shadow-focus) !important;
+}
+
+/* Text Editor toolbar */
+.frappe-control[data-fieldtype="Text Editor"] .ql-toolbar {
+    border: 1.5px solid var(--mgrant-border) !important;
+    border-bottom: none !important;
+    border-radius: var(--mgrant-radius-sm) var(--mgrant-radius-sm) 0 0 !important;
+    background: var(--mgrant-bg) !important;
+}
+
+.frappe-control[data-fieldtype="Text Editor"] .ql-toolbar button:hover {
+    background: rgba(13, 79, 92, 0.08) !important;
+    border-radius: var(--mgrant-radius-xs) !important;
+}
+
+
+/* ============================================================
+   3. TABS
+   ============================================================ */
+
+/* ── 3a. Tab Header / Nav ───────────────────────────────────── */
+.form-tabs .nav-tabs,
+.frappe-control[data-fieldtype="Tab Break"] .form-tabs .nav-tabs {
+    border-bottom: 2px solid var(--mgrant-border-light) !important;
+    gap: 0 !important;
+    padding: 0 4px !important;
+}
+
+.form-tabs .nav-tabs .nav-item .nav-link,
+.form-tabs .nav-link {
+    color: var(--mgrant-text-muted) !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    padding: 10px 18px !important;
+    border: none !important;
+    border-bottom: 2.5px solid transparent !important;
+    margin-bottom: -2px !important;
+    border-radius: 0 !important;
+    background: none !important;
+    position: relative;
+    overflow: hidden;
+    transition: all var(--mgrant-t-base) var(--mgrant-ease) !important;
+}
+
+/* Hover underline grows from center */
+.form-tabs .nav-link::after {
+    content: "";
+    position: absolute;
+    bottom: -2px;
+    left: 50%;
+    width: 0;
+    height: 2.5px;
+    background: var(--mgrant-primary-light);
+    border-radius: 2px;
+    transition: all var(--mgrant-t-base) var(--mgrant-ease-out);
+    transform: translateX(-50%);
+}
+
+.form-tabs .nav-link:hover::after {
+    width: 60%;
+}
+
+.form-tabs .nav-link.active::after {
+    width: 100%;
+    background: var(--mgrant-primary);
+}
+
+.form-tabs .nav-tabs .nav-item .nav-link:hover,
+.form-tabs .nav-link:hover {
+    color: var(--mgrant-primary) !important;
+    background: rgba(13, 79, 92, 0.03) !important;
+}
+
+.form-tabs .nav-tabs .nav-item .nav-link.active,
+.form-tabs .nav-link.active {
+    color: var(--mgrant-primary) !important;
+    font-weight: 600 !important;
+    border-bottom-color: transparent !important;
+    background: transparent !important;
+}
+
+/* Tab badge */
+.form-tabs .nav-link .tab-badge,
+.form-tabs .nav-link .badge {
+    background: var(--mgrant-accent) !important;
+    color: var(--mgrant-text-on-accent) !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    border-radius: 10px !important;
+    padding: 1px 7px !important;
+    margin-left: 6px !important;
+    transition: transform var(--mgrant-t-fast) var(--mgrant-ease) !important;
+}
+
+.form-tabs .nav-link:hover .badge {
+    transform: scale(1.1);
+}
+
+
+/* ============================================================
+   4. WORKSPACE
+   ============================================================ */
+
+/* ── 4a. Container ──────────────────────────────────────────── */
+.workspace-container,
+#page-Workspaces .layout-main,
+.page-container[data-page-name="Workspaces"] {
+    background: var(--mgrant-bg) !important;
+}
+
+/* ── 4b. Header ─────────────────────────────────────────────── */
+.workspace-container .workspace-title,
+#page-Workspaces .title-text {
+    color: var(--mgrant-text) !important;
+    font-size: 22px !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.01em;
+}
+
+/* ── 4c. Workspace Sidebar ──────────────────────────────────── */
+.workspace-sidebar-item,
+.workspace-sidebar .sidebar-item {
+    padding: 8px 14px !important;
+    margin: 2px 0 !important;
+    border-radius: var(--mgrant-radius-sm) !important;
+    color: var(--mgrant-text-muted) !important;
+    font-size: 13px !important;
+    position: relative;
+    overflow: hidden;
+    transition: all var(--mgrant-t-base) var(--mgrant-ease) !important;
+}
+
+/* Hover — slide-in bg from left */
+.workspace-sidebar-item::before,
+.workspace-sidebar .sidebar-item::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 0;
+    height: 100%;
+    background: rgba(13, 79, 92, 0.06);
+    border-radius: inherit;
+    transition: width var(--mgrant-t-base) var(--mgrant-ease-out);
+    z-index: 0;
+}
+
+.workspace-sidebar-item:hover::before,
+.workspace-sidebar .sidebar-item:hover::before {
+    width: 100%;
+}
+
+.workspace-sidebar-item:hover,
+.workspace-sidebar .sidebar-item:hover {
+    color: var(--mgrant-primary) !important;
+    padding-left: 18px !important;
+}
+
+.workspace-sidebar-item.selected,
+.workspace-sidebar .sidebar-item.selected {
+    background: rgba(13, 79, 92, 0.08) !important;
+    color: var(--mgrant-primary) !important;
+    font-weight: 600 !important;
+    border-left: 3px solid var(--mgrant-primary) !important;
+}
+
+/* ── 4d. Shortcut Cards ─────────────────────────────────────── */
+.workspace-container .shortcut-widget-box .shortcut-widget {
+    background: var(--mgrant-surface) !important;
+    border: 1.5px solid var(--mgrant-border-light) !important;
+    border-radius: var(--mgrant-radius-md) !important;
+    padding: 14px 16px !important;
+    box-shadow: var(--mgrant-shadow-sm) !important;
+    position: relative;
+    overflow: hidden;
+    transition: all var(--mgrant-t-base) var(--mgrant-ease) !important;
+}
+
+/* Top accent bar on hover */
+.workspace-container .shortcut-widget-box .shortcut-widget::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--mgrant-primary), var(--mgrant-accent));
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform var(--mgrant-t-slow) var(--mgrant-ease-out);
+}
+
+.workspace-container .shortcut-widget-box .shortcut-widget:hover {
+    border-color: var(--mgrant-primary-light) !important;
+    box-shadow: var(--mgrant-shadow-md) !important;
+    transform: translateY(-2px);
+}
+
+.workspace-container .shortcut-widget-box .shortcut-widget:hover::before {
+    transform: scaleX(1);
+}
+
+.workspace-container .shortcut-widget-box .shortcut-widget:active {
+    transform: translateY(0);
+    box-shadow: var(--mgrant-shadow-sm) !important;
+}
+
+
+/* ============================================================
+   5. WIDGETS
+   ============================================================ */
+
+/* ── 5a. Widget Container ───────────────────────────────────── */
+.widget,
+.widget-group .widget {
+    background: var(--mgrant-surface) !important;
+    border: 1px solid var(--mgrant-border-light) !important;
+    border-radius: var(--mgrant-radius-lg) !important;
+    box-shadow: var(--mgrant-shadow-sm) !important;
+    padding: 20px !important;
+    position: relative;
+    overflow: hidden;
+    transition: all var(--mgrant-t-base) var(--mgrant-ease) !important;
+}
+
+/* Left accent strip on hover */
+.widget::before,
+.widget-group .widget::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg, var(--mgrant-primary), var(--mgrant-accent));
+    opacity: 0;
+    transition: opacity var(--mgrant-t-base) var(--mgrant-ease);
+}
+
+.widget:hover,
+.widget-group .widget:hover {
+    box-shadow: var(--mgrant-shadow-md) !important;
+    transform: translateY(-1px);
+    border-color: var(--mgrant-border) !important;
+}
+
+.widget:hover::before,
+.widget-group .widget:hover::before {
+    opacity: 1;
+}
+
+/* ── 5b. Widget Header ──────────────────────────────────────── */
+.widget .widget-head,
+.widget-group .widget-head {
+    margin-bottom: 14px !important;
+    padding-bottom: 12px !important;
+    border-bottom: 1px solid var(--mgrant-border-light) !important;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.widget .widget-head .widget-title,
+.widget-group .widget-title,
+.widget .widget-label {
+    color: var(--mgrant-text) !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.005em;
+}
+
+.widget .widget-head .widget-control,
+.widget-group .widget-control {
+    color: var(--mgrant-text-muted) !important;
+    transition: color var(--mgrant-t-fast) var(--mgrant-ease) !important;
+}
+
+.widget .widget-head .widget-control:hover {
+    color: var(--mgrant-primary) !important;
+}
+
+/* ── 5c. Number Card Widget ─────────────────────────────────── */
+.number-widget-box {
+    position: relative;
+}
+
+.number-widget-box .widget-body .number-widget-title {
+    color: var(--mgrant-text-muted) !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.number-widget-box .widget-body .number {
+    color: var(--mgrant-primary-dark) !important;
+    font-size: 30px !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    transition: all var(--mgrant-t-base) var(--mgrant-ease) !important;
+}
+
+.number-widget-box:hover .widget-body .number {
+    color: var(--mgrant-primary) !important;
+    transform: scale(1.03);
+}
+
+.number-widget-box .widget-body .number-percentage,
+.number-widget-box .widget-body .indicator-pill {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    border-radius: 20px !important;
+    padding: 2px 8px !important;
+}
+
+/* ── 5d. Chart Widget ───────────────────────────────────────── */
+.chart-widget {
+    overflow: visible !important;
+}
+
+.chart-widget .chart-container {
+    padding: 8px 0 !important;
+}
+
+.chart-widget:hover {
+    z-index: 1;
+}
+
+/* ── 5e. Quick List Widget ──────────────────────────────────── */
+.quick-list-widget-box .quick-list-item,
+.widget .list-item {
+    padding: 9px 4px !important;
+    border-bottom: 1px solid var(--mgrant-border-light) !important;
+    border-radius: var(--mgrant-radius-xs) !important;
+    transition: all var(--mgrant-t-fast) var(--mgrant-ease) !important;
+    position: relative;
+}
+
+.quick-list-widget-box .quick-list-item:hover,
+.widget .list-item:hover {
+    background: var(--mgrant-surface-hover) !important;
+    padding-left: 10px !important;
+    border-color: transparent !important;
+    box-shadow: var(--mgrant-shadow-xs) !important;
+}
+
+.quick-list-widget-box .quick-list-item:last-child,
+.widget .list-item:last-child {
+    border-bottom: none !important;
+}
+
+/* ── 5f. Onboarding Widget ──────────────────────────────────── */
+.onboarding-widget-box .onboarding-step {
+    border-radius: var(--mgrant-radius-sm) !important;
+    padding: 10px 14px !important;
+    transition: all var(--mgrant-t-base) var(--mgrant-ease) !important;
+    border-left: 3px solid transparent !important;
+}
+
+.onboarding-widget-box .onboarding-step:hover {
+    background: var(--mgrant-surface-hover) !important;
+    border-left-color: var(--mgrant-primary-light) !important;
+    transform: translateX(2px);
+}
+
+.onboarding-widget-box .onboarding-step.complete {
+    opacity: 0.7;
+}
+
+.onboarding-widget-box .onboarding-step.complete:hover {
+    opacity: 1;
+}
+
+.onboarding-widget-box .onboarding-step .step-index {
+    transition: all var(--mgrant-t-base) var(--mgrant-ease) !important;
+    border-radius: 50% !important;
+}
+
+.onboarding-widget-box .onboarding-step:hover .step-index {
+    transform: scale(1.1);
+    box-shadow: var(--mgrant-shadow-sm) !important;
+}
+
+.onboarding-widget-box .onboarding-step.complete .step-index {
+    background: var(--mgrant-success) !important;
+    color: #FFF !important;
+}
+
+/* ── 5g. New Card Widget ────────────────────────────────────── */
+.new-card-widget {
+    border: 2px dashed var(--mgrant-border) !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    transition: all var(--mgrant-t-base) var(--mgrant-ease) !important;
+    cursor: pointer;
+}
+
+.new-card-widget::before {
+    display: none !important;
+}
+
+.new-card-widget:hover {
+    border-color: var(--mgrant-primary-light) !important;
+    background: rgba(19, 126, 143, 0.02) !important;
+    transform: scale(1.01);
+}
+
+
+/* ============================================================
+   6. BUTTONS
+   ============================================================ */
+
+/* ── 6a. Primary ────────────────────────────────────────────── */
+.btn-primary,
+.btn-primary-dark {
+    background: var(--mgrant-primary) !important;
+    border-color: var(--mgrant-primary) !important;
+    color: var(--mgrant-text-on-dark) !important;
+    border-radius: var(--mgrant-radius-sm) !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+    padding: 7px 20px !important;
+    box-shadow: 0 1px 3px rgba(13, 79, 92, 0.2) !important;
+    position: relative;
+    overflow: hidden;
+    transition: all var(--mgrant-t-fast) var(--mgrant-ease) !important;
+}
+
+/* Shine sweep on hover */
+.btn-primary::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+    transition: left 0.5s var(--mgrant-ease-out);
+}
+
+.btn-primary:hover::after {
+    left: 100%;
+}
+
+.btn-primary:hover,
+.btn-primary-dark:hover {
+    background: var(--mgrant-primary-dark) !important;
+    border-color: var(--mgrant-primary-dark) !important;
+    box-shadow: 0 3px 10px rgba(13, 79, 92, 0.3) !important;
+    transform: translateY(-1px);
+}
+
+.btn-primary:active {
+    transform: translateY(0.5px) !important;
+    box-shadow: 0 1px 2px rgba(13, 79, 92, 0.15) !important;
+}
+
+/* ── 6b. Default / Secondary ────────────────────────────────── */
+.btn-default {
+    background: var(--mgrant-surface) !important;
+    border: 1.5px solid var(--mgrant-border) !important;
+    color: var(--mgrant-text) !important;
+    border-radius: var(--mgrant-radius-sm) !important;
+    font-weight: 500 !important;
+    transition: all var(--mgrant-t-fast) var(--mgrant-ease) !important;
+}
+
+.btn-default:hover {
+    border-color: var(--mgrant-primary-light) !important;
+    color: var(--mgrant-primary) !important;
+    background: rgba(13, 79, 92, 0.03) !important;
+    box-shadow: var(--mgrant-shadow-xs) !important;
+    transform: translateY(-0.5px);
+}
+
+.btn-default:active {
+    transform: translateY(0.5px);
+    box-shadow: none !important;
+}
+
+/* ── 6c. Danger ─────────────────────────────────────────────── */
+.btn-danger {
+    background: var(--mgrant-danger) !important;
+    border-color: var(--mgrant-danger) !important;
+    color: #FFF !important;
+    border-radius: var(--mgrant-radius-sm) !important;
+    transition: all var(--mgrant-t-fast) var(--mgrant-ease) !important;
+}
+
+.btn-danger:hover {
+    background: #C9392A !important;
+    box-shadow: 0 3px 10px rgba(225, 82, 65, 0.25) !important;
+    transform: translateY(-1px);
+}
+
+/* ── 6d. Success ────────────────────────────────────────────── */
+.btn-success {
+    background: var(--mgrant-success) !important;
+    border-color: var(--mgrant-success) !important;
+    color: #FFF !important;
+    border-radius: var(--mgrant-radius-sm) !important;
+    transition: all var(--mgrant-t-fast) var(--mgrant-ease) !important;
+}
+
+.btn-success:hover {
+    background: #1E9B52 !important;
+    box-shadow: 0 3px 10px rgba(39, 174, 96, 0.25) !important;
+    transform: translateY(-1px);
+}
+
+/* ── 6e. Button Groups & Icon Buttons ───────────────────────── */
+.btn-group .btn {
+    transition: all var(--mgrant-t-fast) var(--mgrant-ease) !important;
+}
+
+.btn-group .btn:hover {
+    z-index: 1;
+    box-shadow: var(--mgrant-shadow-sm) !important;
+}
+
+.btn-icon,
+.btn-xs,
+.icon-btn {
+    transition: all var(--mgrant-t-fast) var(--mgrant-ease) !important;
+}
+
+.btn-icon:hover,
+.btn-xs:hover,
+.icon-btn:hover {
+    background: var(--mgrant-surface-hover) !important;
+    transform: scale(1.08);
+}
+
+.btn-icon:active,
+.btn-xs:active,
+.icon-btn:active {
+    transform: scale(0.95);
+}
+
+
+/* ============================================================
+   7. FRAPPE LIST VIEW (deep)
+   ============================================================ */
+
+/* ── 7a. List Container ─────────────────────────────────────── */
+.frappe-list .result {
+    background: var(--mgrant-surface) !important;
+    border-radius: var(--mgrant-radius-lg) !important;
+    border: 1px solid var(--mgrant-border-light) !important;
+    overflow: hidden;
+}
+
+/* ── 7b. List Header ────────────────────────────────────────── */
+.frappe-list .list-headers,
+.list-row-head {
+    background: var(--mgrant-bg) !important;
+    border-bottom: 2px solid var(--mgrant-border) !important;
+}
+
+.list-row-head .list-header-subject,
+.list-row-head .list-row--col {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
+    color: var(--mgrant-text-muted) !important;
+}
+
+/* ── 7c. List Rows ──────────────────────────────────────────── */
+.list-row {
+    border-bottom: 1px solid var(--mgrant-border-light) !important;
+    transition: all var(--mgrant-t-fast) var(--mgrant-ease) !important;
+    position: relative;
+}
+
+.list-row::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--mgrant-primary);
+    transform: scaleY(0);
+    transition: transform var(--mgrant-t-base) var(--mgrant-ease-out);
+}
+
+.list-row:hover {
+    background: var(--mgrant-surface-hover) !important;
+    box-shadow: inset 0 0 0 1px rgba(13, 79, 92, 0.04) !important;
+}
+
+.list-row:hover::before {
+    transform: scaleY(1);
+}
+
+.list-row .level-left .list-row--col .ellipsis {
+    color: var(--mgrant-text) !important;
+}
+
+/* List row subject link */
+.list-row .list-row--col .ellipsis a {
+    color: var(--mgrant-text) !important;
+    transition: color var(--mgrant-t-fast) var(--mgrant-ease) !important;
+}
+
+.list-row:hover .list-row--col .ellipsis a {
+    color: var(--mgrant-primary) !important;
+}
+
+/* ── 7d. List Checkbox ──────────────────────────────────────── */
+.list-row .list-row-checkbox {
+    transition: transform var(--mgrant-t-fast) var(--mgrant-ease) !important;
+}
+
+.list-row:hover .list-row-checkbox {
+    transform: scale(1.1);
+}
+
+/* ── 7e. List Footer / Paging ───────────────────────────────── */
+.list-paging-area .btn {
+    border-radius: var(--mgrant-radius-sm) !important;
+    transition: all var(--mgrant-t-fast) var(--mgrant-ease) !important;
+}
+
+.list-paging-area .btn:hover {
+    background: var(--mgrant-surface-hover) !important;
+    color: var(--mgrant-primary) !important;
+}
+
+
+/* ============================================================
+   8. FORM VIEW (deep)
+   ============================================================ */
+
+/* ── 8a. Form Card ──────────────────────────────────────────── */
+.form-layout,
+.form-page {
+    background: var(--mgrant-surface) !important;
+    border-radius: var(--mgrant-radius-lg) !important;
+    border: 1px solid var(--mgrant-border-light) !important;
+    box-shadow: var(--mgrant-shadow-sm) !important;
+}
+
+/* ── 8b. Section Heads ──────────────────────────────────────── */
+.section-head,
+.form-section .section-head {
+    color: var(--mgrant-text) !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    padding-bottom: 8px !important;
+    border-bottom: 2px solid var(--mgrant-accent) !important;
+    margin-bottom: 16px !important;
+    transition: border-color var(--mgrant-t-base) var(--mgrant-ease) !important;
+}
+
+.form-section:hover .section-head {
+    border-bottom-color: var(--mgrant-primary) !important;
+}
+
+/* ── 8c. Collapsible Sections ───────────────────────────────── */
+.section-head.collapsible {
+    cursor: pointer !important;
+    transition: all var(--mgrant-t-base) var(--mgrant-ease) !important;
+    border-radius: var(--mgrant-radius-sm) !important;
+    padding: 10px 12px !important;
+    margin: 0 -12px 16px !important;
+}
+
+.section-head.collapsible:hover {
+    background: var(--mgrant-surface-hover) !important;
+}
+
+.section-head.collapsible .collapse-indicator {
+    transition: transform var(--mgrant-t-base) var(--mgrant-ease) !important;
+}
+
+/* ── 8d. Form Grid / Table ──────────────────────────────────── */
+.frappe-control[data-fieldtype="Table"] .form-grid {
+    border: 1px solid var(--mgrant-border-light) !important;
+    border-radius: var(--mgrant-radius-md) !important;
+    overflow: hidden;
+}
+
+.frappe-control[data-fieldtype="Table"] .grid-heading-row {
+    background: var(--mgrant-bg) !important;
+    border-bottom: 2px solid var(--mgrant-border) !important;
+}
+
+.frappe-control[data-fieldtype="Table"] .rows .row {
+    border-bottom: 1px solid var(--mgrant-border-light) !important;
+    transition: background var(--mgrant-t-fast) var(--mgrant-ease) !important;
+}
+
+.frappe-control[data-fieldtype="Table"] .rows .row:hover {
+    background: var(--mgrant-surface-hover) !important;
+}
+
+.frappe-control[data-fieldtype="Table"] .grid-footer {
+    border-top: 1px solid var(--mgrant-border-light) !important;
+    background: var(--mgrant-bg) !important;
+}
+
+.frappe-control[data-fieldtype="Table"] .grid-footer .btn {
+    transition: all var(--mgrant-t-fast) var(--mgrant-ease) !important;
+}
+
+.frappe-control[data-fieldtype="Table"] .grid-footer .btn:hover {
+    color: var(--mgrant-primary) !important;
+    transform: translateY(-0.5px);
+}
+
+/* ── 8e. Timeline / Activity ────────────────────────────────── */
+.timeline-item {
+    transition: all var(--mgrant-t-fast) var(--mgrant-ease) !important;
+    border-radius: var(--mgrant-radius-sm) !important;
+    padding: 8px !important;
+    margin-left: 20px !important;
+}
+
+.timeline-item:hover {
+    background: var(--mgrant-surface-hover) !important;
+}
+
+.timeline-dot {
+    transition: all var(--mgrant-t-base) var(--mgrant-ease) !important;
+}
+
+.timeline-item:hover .timeline-dot {
+    transform: scale(1.3);
+    box-shadow: 0 0 0 3px var(--mgrant-surface-hover);
+}
+
+/* ── 8f. Comment Box ────────────────────────────────────────── */
+.comment-box .ql-editor {
+    border-radius: var(--mgrant-radius-sm) !important;
+    transition: border-color var(--mgrant-t-fast) var(--mgrant-ease),
+        box-shadow var(--mgrant-t-fast) var(--mgrant-ease) !important;
+}
+
+.comment-box .ql-editor:focus {
+    border-color: var(--mgrant-primary-light) !important;
+    box-shadow: var(--mgrant-shadow-focus) !important;
+}
+
+/* ── 8g. Form Sidebar (right pane) ──────────────────────────── */
+.form-sidebar .sidebar-image-wrapper {
+    border-radius: var(--mgrant-radius-lg) !important;
+    overflow: hidden;
+    transition: transform var(--mgrant-t-base) var(--mgrant-ease) !important;
+}
+
+.form-sidebar .sidebar-image-wrapper:hover {
+    transform: scale(1.03);
+    box-shadow: var(--mgrant-shadow-md) !important;
+}
+
+.form-sidebar .form-assignments .assignment-row,
+.form-sidebar .form-shared .share-row {
+    transition: all var(--mgrant-t-fast) var(--mgrant-ease) !important;
+    border-radius: var(--mgrant-radius-xs) !important;
+    padding: 4px 6px !important;
+}
+
+.form-sidebar .form-assignments .assignment-row:hover,
+.form-sidebar .form-shared .share-row:hover {
+    background: var(--mgrant-surface-hover) !important;
+}
+
+/* ── 8h. Workflow States ────────────────────────────────────── */
+.form-group .workflow-button-area .btn {
+    transition: all var(--mgrant-t-base) var(--mgrant-ease) !important;
+    position: relative;
+    overflow: hidden;
+}
+
+.form-group .workflow-button-area .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--mgrant-shadow-md) !important;
+}
+
+.form-group .workflow-button-area .btn:active {
+    transform: translateY(0.5px);
+}
+
+
+/* ============================================================
+   9. NAVBAR & GLOBAL CHROME
+   ============================================================ */
+
+/* ── 9a. Navbar ─────────────────────────────────────────────── */
+body,
+#body,
+.main-section {
+    background: var(--mgrant-bg) !important;
+}
+
+.navbar {
+    background: var(--mgrant-surface) !important;
+    border-bottom: 1px solid var(--mgrant-border-light) !important;
+    box-shadow: var(--mgrant-shadow-sm) !important;
+}
+
+.navbar .navbar-nav>li>a {
+    transition: all var(--mgrant-t-fast) var(--mgrant-ease) !important;
+    border-radius: var(--mgrant-radius-sm) !important;
+}
+
+.navbar .navbar-nav>li>a:hover {
+    background: var(--mgrant-surface-hover) !important;
+    color: var(--mgrant-primary) !important;
+}
+
+/* Search bar in navbar */
+.navbar .search-bar input,
+.navbar .navbar-search input {
+    border-radius: 20px !important;
+    border: 1.5px solid var(--mgrant-border) !important;
+    transition: all var(--mgrant-t-base) var(--mgrant-ease) !important;
+    padding-left: 36px !important;
+}
+
+.navbar .search-bar input:focus,
+.navbar .navbar-search input:focus {
+    border-color: var(--mgrant-primary-light) !important;
+    box-shadow: var(--mgrant-shadow-focus) !important;
+    width: 280px !important;
+}
+
+/* Notification bell */
+.navbar .notifications-icon {
+    transition: all var(--mgrant-t-fast) var(--mgrant-ease) !important;
+}
+
+.navbar .notifications-icon:hover {
+    transform: scale(1.1) rotate(-8deg);
+    color: var(--mgrant-accent) !important;
+}
+
+/* ── 9b. Page Head ──────────────────────────────────────────── */
+.page-head {
+    background: var(--mgrant-surface) !important;
+    border-bottom: 1px solid var(--mgrant-border-light) !important;
+}
+
+.page-head .page-title .title-text {
+    color: var(--mgrant-text) !important;
+    font-weight: 700 !important;
+}
+
+/* ── 9c. Breadcrumbs ────────────────────────────────────────── */
+.breadcrumb-container .breadcrumb a {
+    color: var(--mgrant-text-muted) !important;
+    transition: all var(--mgrant-t-fast) var(--mgrant-ease) !important;
+    padding: 2px 4px !important;
+    border-radius: var(--mgrant-radius-xs) !important;
+}
+
+.breadcrumb-container .breadcrumb a:hover {
+    color: var(--mgrant-primary) !important;
+    background: rgba(13, 79, 92, 0.04) !important;
+}
+
+
+/* ============================================================
+   10. MODAL & DIALOG
+   ============================================================ */
+
+.modal-backdrop.show {
+    backdrop-filter: blur(2px);
+}
+
+.modal-content {
+    border-radius: var(--mgrant-radius-xl) !important;
+    border: none !important;
+    box-shadow: var(--mgrant-shadow-xl) !important;
+    animation: mgrant-modal-in var(--mgrant-t-slow) var(--mgrant-ease-out);
+}
+
+@keyframes mgrant-modal-in {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.96);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.modal-header {
+    border-bottom: 1px solid var(--mgrant-border-light) !important;
+    padding: 18px 24px !important;
+}
+
+.modal-header .modal-title {
+    font-weight: 700 !important;
+    color: var(--mgrant-text) !important;
+    font-size: 16px !important;
+}
+
+.modal-header .btn-close,
+.modal-header .close {
+    transition: all var(--mgrant-t-fast) var(--mgrant-ease) !important;
+    border-radius: var(--mgrant-radius-sm) !important;
+}
+
+.modal-header .btn-close:hover,
+.modal-header .close:hover {
+    background: var(--mgrant-danger-bg) !important;
+    transform: scale(1.1);
+}
+
+.modal-footer {
+    border-top: 1px solid var(--mgrant-border-light) !important;
+    padding: 14px 24px !important;
+}
+
+
+/* ============================================================
+   11. DROPDOWNS & POPOVER
+   ============================================================ */
+
+.dropdown-menu {
+    border: 1.5px solid var(--mgrant-border) !important;
+    border-radius: var(--mgrant-radius-md) !important;
+    box-shadow: var(--mgrant-shadow-lg) !important;
+    padding: 4px !important;
+    animation: mgrant-dropdown-in var(--mgrant-t-base) var(--mgrant-ease-out);
+}
+
+.dropdown-menu .dropdown-item,
+.dropdown-menu a {
+    border-radius: var(--mgrant-radius-sm) !important;
+    padding: 8px 12px !important;
+    font-size: 13px !important;
+    color: var(--mgrant-text) !important;
+    transition: all var(--mgrant-t-fast) var(--mgrant-ease) !important;
+}
+
+.dropdown-menu .dropdown-item:hover,
+.dropdown-menu a:hover {
+    background: rgba(13, 79, 92, 0.06) !important;
+    color: var(--mgrant-primary) !important;
+    padding-left: 16px !important;
+}
+
+.dropdown-menu .dropdown-item:active,
+.dropdown-menu a:active {
+    background: rgba(13, 79, 92, 0.10) !important;
+}
+
+.dropdown-menu .dropdown-divider {
+    border-color: var(--mgrant-border-light) !important;
+    margin: 4px 8px !important;
+}
+
+/* Popover */
+.popover {
+    border-radius: var(--mgrant-radius-md) !important;
+    border: 1px solid var(--mgrant-border) !important;
+    box-shadow: var(--mgrant-shadow-lg) !important;
+    animation: mgrant-dropdown-in var(--mgrant-t-base) var(--mgrant-ease-out);
+}
+
+
+/* ============================================================
+   12. INDICATOR PILLS & TAGS
+   ============================================================ */
+
+.indicator-pill {
+    border-radius: 20px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    padding: 3px 10px !important;
+    transition: all var(--mgrant-t-fast) var(--mgrant-ease) !important;
+}
+
+.indicator-pill:hover {
+    transform: scale(1.05);
+    box-shadow: var(--mgrant-shadow-xs) !important;
+}
+
+/* Color-coded indicators */
+.indicator-pill.green {
+    background: var(--mgrant-success-bg) !important;
+    color: var(--mgrant-success) !important;
+}
+
+.indicator-pill.blue {
+    background: var(--mgrant-info-bg) !important;
+    color: var(--mgrant-info) !important;
+}
+
+.indicator-pill.orange {
+    background: var(--mgrant-warning-bg) !important;
+    color: var(--mgrant-warning) !important;
+}
+
+.indicator-pill.red {
+    background: var(--mgrant-danger-bg) !important;
+    color: var(--mgrant-danger) !important;
+}
+
+/* Tags */
+.tag-pill,
+.frappe-tag,
+.tags-input .tag {
+    border-radius: 14px !important;
+    padding: 3px 10px !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    background: rgba(13, 79, 92, 0.06) !important;
+    color: var(--mgrant-primary) !important;
+    border: 1px solid rgba(13, 79, 92, 0.12) !important;
+    transition: all var(--mgrant-t-fast) var(--mgrant-ease) !important;
+}
+
+.tag-pill:hover,
+.frappe-tag:hover,
+.tags-input .tag:hover {
+    background: rgba(13, 79, 92, 0.12) !important;
+    transform: scale(1.03);
+}
+
+/* Tag remove button */
+.tags-input .tag .remove,
+.tag-pill .remove {
+    transition: all var(--mgrant-t-fast) var(--mgrant-ease) !important;
+}
+
+.tags-input .tag .remove:hover,
+.tag-pill .remove:hover {
+    color: var(--mgrant-danger) !important;
+    transform: scale(1.2);
+}
+
+
+/* ============================================================
+   13. ALERTS & TOASTS
+   ============================================================ */
+
+.alert {
+    border-radius: var(--mgrant-radius-md) !important;
+    border-left: 4px solid !important;
+    padding: 12px 16px !important;
+    animation: mgrant-alert-in var(--mgrant-t-base) var(--mgrant-ease-out);
+}
+
+@keyframes mgrant-alert-in {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.alert-info {
+    border-left-color: var(--mgrant-info) !important;
+    background: var(--mgrant-info-bg) !important;
+}
+
+.alert-success {
+    border-left-color: var(--mgrant-success) !important;
+    background: var(--mgrant-success-bg) !important;
+}
+
+.alert-warning {
+    border-left-color: var(--mgrant-warning) !important;
+    background: var(--mgrant-warning-bg) !important;
+}
+
+.alert-danger {
+    border-left-color: var(--mgrant-danger) !important;
+    background: var(--mgrant-danger-bg) !important;
+}
+
+/* Toast */
+.desk-alert {
+    border-radius: var(--mgrant-radius-md) !important;
+    box-shadow: var(--mgrant-shadow-lg) !important;
+    animation: mgrant-toast-in 0.4s var(--mgrant-ease-out);
+}
+
+@keyframes mgrant-toast-in {
+    from {
+        opacity: 0;
+        transform: translateX(40px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+
+/* ============================================================
+   14. AVATAR & USER ELEMENTS
+   ============================================================ */
+
+.avatar,
+.avatar-frame {
+    transition: all var(--mgrant-t-base) var(--mgrant-ease) !important;
+}
+
+.avatar:hover,
+.avatar-frame:hover {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 3px rgba(13, 79, 92, 0.12) !important;
+}
+
+.avatar-group .avatar {
+    border: 2px solid var(--mgrant-surface) !important;
+    transition: all var(--mgrant-t-fast) var(--mgrant-ease) !important;
+}
+
+.avatar-group .avatar:hover {
+    z-index: 2;
+    transform: scale(1.15) translateY(-2px);
+}
+
+
+/* ============================================================
+   15. PROGRESS BARS
+   ============================================================ */
+
+.progress {
+    border-radius: 20px !important;
+    background: var(--mgrant-border-light) !important;
+    overflow: hidden;
+    height: 8px !important;
+}
+
+.progress-bar {
+    background: linear-gradient(90deg, var(--mgrant-primary), var(--mgrant-primary-light)) !important;
+    border-radius: 20px !important;
+    transition: width 0.6s var(--mgrant-ease-out) !important;
+    position: relative;
+}
+
+/* Subtle shine animation */
+.progress-bar::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    animation: mgrant-progress-shine 2s infinite;
+}
+
+@keyframes mgrant-progress-shine {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(200%);
+    }
+}
+
+
+/* ============================================================
+   16. TOOLTIP
+   ============================================================ */
+
+.tooltip-inner {
+    background: var(--mgrant-primary-dark) !important;
+    border-radius: var(--mgrant-radius-sm) !important;
+    font-size: 12px !important;
+    padding: 6px 10px !important;
+    box-shadow: var(--mgrant-shadow-md) !important;
+    animation: mgrant-tooltip-in var(--mgrant-t-fast) var(--mgrant-ease-out);
+}
+
+@keyframes mgrant-tooltip-in {
+    from {
+        opacity: 0;
+        transform: scale(0.92);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+
+/* ============================================================
+   17. GLOBAL SCROLLBAR
+   ============================================================ */
+
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(13, 43, 51, 0.14);
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(13, 43, 51, 0.28);
+}
+
+
+/* ============================================================
+   18. RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 768px) {
+
+    .widget,
+    .widget-group .widget {
+        padding: 14px !important;
+        border-radius: var(--mgrant-radius-md) !important;
+    }
+
+    .form-tabs .nav-link {
+        padding: 8px 12px !important;
+        font-size: 12px !important;
+    }
+
+    .number-widget-box .widget-body .number {
+        font-size: 22px !important;
+    }
+
+    .modal-content {
+        border-radius: var(--mgrant-radius-lg) !important;
+    }
+
+    .btn-primary,
+    .btn-default {
+        padding: 6px 14px !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

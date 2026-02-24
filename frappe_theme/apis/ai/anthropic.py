@@ -8,7 +8,7 @@ def generate_html_block(client_prompt="", system_prompt=None, existing=None):
         if not system_prompt:
             frappe.throw("System prompt not provided")
 
-        api_key = frappe.conf.get("anthropic_api_key")
+        api_key = frappe.get_cached_doc("My Theme","My Theme").get_password("anthropic")
         if not api_key:
             frappe.throw("Anthropic API key not configured in site_config.json")
 

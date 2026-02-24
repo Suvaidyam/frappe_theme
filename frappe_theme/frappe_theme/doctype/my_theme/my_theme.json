@@ -115,6 +115,10 @@
   "hd_url",
   "column_break_yjyk",
   "hd_creds",
+  "ai_section",
+  "openai",
+  "column_break_anpc",
+  "anthropic",
   "change_logs_tab",
   "change_logs"
  ],
@@ -668,14 +672,12 @@
   {
    "fieldname": "hd_url",
    "fieldtype": "Data",
-   "label": "URL",
-   "mandatory_depends_on": "eval:doc.hd_creds"
+   "label": "URL"
   },
   {
    "fieldname": "hd_creds",
    "fieldtype": "Data",
-   "label": "Creds",
-   "mandatory_depends_on": "eval:doc.hd_url"
+   "label": "Creds"
   },
   {
    "fieldname": "helpdesk_section",
@@ -685,13 +687,32 @@
   {
    "fieldname": "column_break_yjyk",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ai_section",
+   "fieldtype": "Section Break",
+   "label": "AI"
+  },
+  {
+   "fieldname": "openai",
+   "fieldtype": "Password",
+   "label": "OpenAI (API Key)"
+  },
+  {
+   "fieldname": "column_break_anpc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "anthropic",
+   "fieldtype": "Password",
+   "label": "Anthropic (API Key)"
   }
  ],
  "hide_toolbar": 1,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-01-21 16:54:16.845937",
+ "modified": "2026-02-23 10:43:16.256184",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "My Theme",
