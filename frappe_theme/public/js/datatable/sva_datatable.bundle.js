@@ -502,7 +502,7 @@ class SvaDataTable {
 			// 	.map((e) => `${e.action} by ${e.allowed}`)
 			// 	.join("\n");
 
-			el.setAttribute("title", row[workflow_state_field]);
+			el.setAttribute("title", __(row[workflow_state_field]));
 			el.style.width = "100px";
 			el.style.minWidth = "100px";
 			el.style.padding = "2px 5px";
@@ -514,8 +514,10 @@ class SvaDataTable {
 			if (isClosed) {
 				el.disabled = true;
 				el.classList.add("ellipsis");
-				el.setAttribute("title", row[workflow_state_field]);
-				el.innerHTML = `<option value="" style="color:black" selected disabled">${row[workflow_state_field]}</option>`;
+				el.setAttribute("title", __(row[workflow_state_field]));
+				el.innerHTML = `<option value="" style="color:black" selected disabled>${__(
+					row[workflow_state_field]
+				)}</option>`;
 				el.style["-webkit-appearance"] = "none";
 				el.style["-moz-appearance"] = "none";
 				el.style["appearance"] = "none";
@@ -535,12 +537,14 @@ class SvaDataTable {
 					);
 
 				// Note: We'll need to handle the async workflow transitions loading
-				el.innerHTML = `<option value="" style="color:black" selected disabled class="ellipsis">${row[workflow_state_field]}</option>`;
+				el.innerHTML = `<option value="" style="color:black" selected disabled class="ellipsis">${__(
+					row[workflow_state_field]
+				)}</option>`;
 
 				el.addEventListener("focus", (event) => {
 					const originalState = el?.getAttribute("title");
 					el.value = "";
-					el.title = originalState;
+					el.title = __(originalState);
 				});
 
 				el.addEventListener("change", async (event) => {
@@ -566,11 +570,11 @@ class SvaDataTable {
 								await this.wf_action(link, primaryKey, el, originalState, row);
 							} catch (error) {
 								el.value = ""; // Reset dropdown value
-								el.title = originalState;
+								el.title = __(originalState);
 							}
 						}
 						el.value = "";
-						el.title = originalState;
+						el.title = __(originalState);
 					}
 				});
 
@@ -2751,14 +2755,16 @@ class SvaDataTable {
 							el.classList.add("ellipsis");
 							el.setAttribute(
 								"title",
-								this.workflow_state_map?.[row[workflow_state_field]] ||
-									row[workflow_state_field]
+								__(
+									this.workflow_state_map?.[row[workflow_state_field]] ||
+										row[workflow_state_field]
+								)
 							);
 							// frappe.utils.make_popover(el, "Closed : ", row[workflow_state_field]);
-							el.innerHTML = `<option value="" style="color:black" selected disabled">${
+							el.innerHTML = `<option value="" style="color:black" selected disabled">${__(
 								this.workflow_state_map?.[row[workflow_state_field]] ||
-								row[workflow_state_field]
-							}</option>`;
+									row[workflow_state_field]
+							)}</option>`;
 							el.style["-webkit-appearance"] = "none";
 							el.style["-moz-appearance"] = "none";
 							el.style["appearance"] = "none";
@@ -2795,18 +2801,22 @@ class SvaDataTable {
 							// frappe.utils.make_popover(el, `CS : ${row[workflow_state_field]}`, titleText);
 							el.setAttribute(
 								"title",
-								this.workflow_state_map?.[row[workflow_state_field]] ||
-									row[workflow_state_field]
+								__(
+									this.workflow_state_map?.[row[workflow_state_field]] ||
+										row[workflow_state_field]
+								)
 							);
 							el.innerHTML =
-								`<option value="" style="color:black" selected disabled class="ellipsis">${
+								`<option value="" style="color:black" selected disabled class="ellipsis">${__(
 									this.workflow_state_map?.[row[workflow_state_field]] ||
-									row[workflow_state_field]
-								}</option>` +
+										row[workflow_state_field]
+								)}</option>` +
 								[...new Set(transitions?.map((e) => e.action))]
 									?.map(
 										(action) =>
-											`<option value="${action}" style="background-color:white; color:black; cursor:pointer;" class="rounded p-1">${action}</option>`
+											`<option value="${action}" style="background-color:white; color:black; cursor:pointer;" class="rounded p-1">${__(
+												action
+											)}</option>`
 									)
 									.join("");
 							el.addEventListener("focus", (event) => {
@@ -2843,11 +2853,11 @@ class SvaDataTable {
 											);
 										} catch (error) {
 											el.value = ""; // Reset dropdown value
-											el.title = originalState;
+											el.title = __(originalState);
 										}
 									}
 									el.value = "";
-									el.title = originalState;
+									el.title = __(originalState);
 								}
 							});
 
