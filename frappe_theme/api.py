@@ -547,7 +547,7 @@ def save_field_comment(
 		# ── Permission check ────────────────────────────────────────────────────
 		# User must have read access on the parent document to comment on it
 		if not frappe.has_permission(doctype_name, "read", docname):
-			frappe.throw("Not permitted to comment on this document", frappe.PermissionError)
+			frappe.throw(_("Not permitted to comment on this document"), frappe.PermissionError)
 
 		# ── Derive flags server-side — never trust client ────────────────────────
 		user_type = get_usr_type_roll()
@@ -571,7 +571,7 @@ def save_field_comment(
 			is_summary = 1 if cint(is_summary) else 0
 			# Internal users cannot set both is_external and is_vendor simultaneously
 			if is_external and is_vendor:
-				frappe.throw("A comment cannot be marked for both NGO and Vendor simultaneously")
+				frappe.throw(_("A comment cannot be marked for both NGO and Vendor simultaneously"))
 
 		existing_comments = frappe.get_all(
 			"DocType Field Comment",
@@ -825,7 +825,7 @@ def load_field_comments(doctype_name: str, docname: str, field_name: str):
 	"""Load all comment threads for a specific field."""
 	try:
 		if not frappe.has_permission(doctype_name, "read", docname):
-			frappe.throw("Not permitted", frappe.PermissionError)
+			frappe.throw(_("Not permitted"), frappe.PermissionError)
 
 		user_type = get_usr_type_roll()
 
@@ -913,7 +913,7 @@ def load_all_comments(doctype_name: str, docname: str):
 	"""Load all comments for a document (global sidebar view)."""
 	try:
 		if not frappe.has_permission(doctype_name, "read", docname):
-			frappe.throw("Not permitted", frappe.PermissionError)
+			frappe.throw(_("Not permitted"), frappe.PermissionError)
 
 		user_type = get_usr_type_roll()
 
@@ -1107,10 +1107,10 @@ def get_comments_summary(doctype_name: str, docname: str):
 		# Deny external users entirely
 		user_type = get_usr_type_roll()
 		if user_type in ("NGO", "Vendor"):
-			frappe.throw("Not permitted", frappe.PermissionError)
+			frappe.throw(_("Not permitted"), frappe.PermissionError)
 
 		if not frappe.has_permission(doctype_name, "read", docname):
-			frappe.throw("Not permitted", frappe.PermissionError)
+			frappe.throw(_("Not permitted"), frappe.PermissionError)
 
 		comment_docs = frappe.get_all(
 			"DocType Field Comment",
