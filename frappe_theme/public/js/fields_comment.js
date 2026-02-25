@@ -66,6 +66,17 @@ const getUserColor = (username) => {
 	return colors[index];
 };
 
+// Returns a human-readable display name — never shows raw email
+const getDisplayName = (userEmail) => {
+	if (!userEmail) return "Unknown";
+	const fullName = frappe.user.full_name(userEmail);
+	// frappe.user.full_name returns email itself when user is not in cache
+	if (fullName && fullName !== userEmail) return fullName;
+	// Fallback: capitalise the part before @ in the email
+	const localPart = userEmail.split("@")[0];
+	return localPart.replace(/[._-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
 function get_comment_html(comment, commentMap) {
 	const userColor = getUserColor(comment.user);
 	const isCurrentUser = comment.user === frappe.session.user;
@@ -78,7 +89,7 @@ function get_comment_html(comment, commentMap) {
 				!isCurrentUser
 					? `
                 <div style="background: ${userColor}; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px; font-weight: 600; font-size: 13px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                    ${getUserAvatar(comment.full_name || comment.user)}
+                    ${getUserAvatar(getDisplayName(comment.user))}
                 </div>
             `
 					: ""
@@ -89,7 +100,7 @@ function get_comment_html(comment, commentMap) {
 						? `
                     <div style="margin-bottom: 6px;">
                         <div style="font-weight: 600; font-size: 13px; color: ${userColor}; display: flex; align-items: center; gap: 6px;">
-                            ${comment.full_name || comment.user}
+                            ${getDisplayName(comment.user)}
                             <span style="font-size: 11px; color: var(--text-muted); font-weight: normal;">${frappe.datetime.prettyDate(
 								comment.creation_date
 							)}</span>
@@ -141,7 +152,7 @@ function get_comment_html(comment, commentMap) {
 					isCurrentUser
 						? `
                     <div style="background: ${userColor}; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-left: 10px; font-weight: 600; font-size: 13px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                        You
+                        ${getDisplayName(comment.user)}
                     </div>
                     ${
 						comment.is_external && !isExternalUser()
@@ -196,7 +207,7 @@ function refreshSummaryContainer(frm) {
 				emptyMsg.hide();
 				const sc = latest;
 				const userColor = getUserColor(sc.user);
-				const fullName = sc.full_name || sc.user;
+				const fullName = getDisplayName(sc.user);
 				const initial = fullName[0].toUpperCase();
 				const fieldLabel = sc.field_label || sc.field_name;
 
@@ -907,10 +918,10 @@ function initializeCommentControl(field_section, fieldName, field, get_comment_h
 			// Detach the button from wherever Frappe placed it
 			commentButton.detach();
 
-			// Build footer: 3 stacked rows (for internal users) + button row
+			// Build footer: single row with all checkboxes + button row
 			const footer = $(`
 				<div class="comment-action-container" style="margin-top: 8px; padding: 0 4px;">
-					<div class="comment-rows-wrap" style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px;"></div>
+					<div class="comment-rows-wrap" style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px; overflow: hidden;"></div>
 					<div style="display: flex; justify-content: flex-end;"></div>
 				</div>
 			`);
@@ -919,30 +930,19 @@ function initializeCommentControl(field_section, fieldName, field, get_comment_h
 			const buttonRow = footer.find("div:last-child");
 
 			if (!isExternalUser()) {
-				// Row 1 — Mark as Summary
 				rowsWrap.append(`
 					<div style="display: flex; align-items: center; gap: 6px;">
 						<input type="checkbox" id="new_comment_summary_${fieldName}" class="summary-checkbox" style="margin: 0; width: 14px; height: 14px; cursor: pointer;">
 						<label for="new_comment_summary_${fieldName}" style="font-size: 11px; color: var(--text-muted); cursor: pointer; margin: 0; font-weight: 500; user-select: none; white-space: nowrap;">Mark as Summary</label>
 					</div>
-				`);
-
-				// Row 2 — "Show to :" label
-				rowsWrap.append(`
-					<div style="font-size: 11px; color: var(--text-muted); font-weight: 900; padding-left: 1px;">Show to :</div>
-				`);
-
-				// Row 3 — NGO and Vendor checkboxes side by side
-				rowsWrap.append(`
-					<div style="display: flex; align-items: center; gap: 14px;">
-						<div style="display: flex; align-items: center; gap: 5px;">
-							<input type="checkbox" id="new_comment_external_${fieldName}" class="external-checkbox" style="margin: 0; width: 14px; height: 14px; cursor: pointer;">
-							<label for="new_comment_external_${fieldName}" style="font-size: 11px; color: var(--text-muted); cursor: pointer; margin: 0; font-weight: 500; user-select: none; white-space: nowrap;">NGO</label>
-						</div>
-						<div style="display: flex; align-items: center; gap: 5px;">
-							<input type="checkbox" id="new_comment_vendor_${fieldName}" class="vendor-checkbox" style="margin: 0; width: 14px; height: 14px; cursor: pointer;">
-							<label for="new_comment_vendor_${fieldName}" style="font-size: 11px; color: var(--text-muted); cursor: pointer; margin: 0; font-weight: 500; user-select: none; white-space: nowrap;">Vendor</label>
-						</div>
+					<span style="font-size: 11px; color: var(--text-muted); font-weight: 900; white-space: nowrap;">Show to :</span>
+					<div style="display: flex; align-items: center; gap: 5px;">
+						<input type="checkbox" id="new_comment_external_${fieldName}" class="external-checkbox" style="margin: 0; width: 14px; height: 14px; cursor: pointer;">
+						<label for="new_comment_external_${fieldName}" style="font-size: 11px; color: var(--text-muted); cursor: pointer; margin: 0; font-weight: 500; user-select: none; white-space: nowrap;">NGO</label>
+					</div>
+					<div style="display: flex; align-items: center; gap: 5px;">
+						<input type="checkbox" id="new_comment_vendor_${fieldName}" class="vendor-checkbox" style="margin: 0; width: 14px; height: 14px; cursor: pointer;">
+						<label for="new_comment_vendor_${fieldName}" style="font-size: 11px; color: var(--text-muted); cursor: pointer; margin: 0; font-weight: 500; user-select: none; white-space: nowrap;">Vendor</label>
 					</div>
 				`);
 			}
