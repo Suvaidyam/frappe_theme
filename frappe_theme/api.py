@@ -544,6 +544,35 @@ def save_field_comment(
 	is_summary: int = 0,
 ):
 	try:
+		# ── Permission check ────────────────────────────────────────────────────
+		# User must have read access on the parent document to comment on it
+		if not frappe.has_permission(doctype_name, "read", docname):
+			frappe.throw("Not permitted to comment on this document", frappe.PermissionError)
+
+		# ── Derive flags server-side — never trust client ────────────────────────
+		user_type = get_usr_type_roll()
+
+		# NGO users can only create external comments, never internal/vendor/summary
+		if user_type == "NGO":
+			is_external = 1
+			is_vendor = 0
+			is_summary = 0  # external users cannot mark summaries
+
+		# Vendor users can only create vendor comments, never internal/external/summary
+		elif user_type == "Vendor":
+			is_vendor = 1
+			is_external = 0
+			is_summary = 0  # external users cannot mark summaries
+
+		# Internal users — validate flags are boolean 0/1, no spoofing
+		else:
+			is_external = 1 if cint(is_external) else 0
+			is_vendor = 1 if cint(is_vendor) else 0
+			is_summary = 1 if cint(is_summary) else 0
+			# Internal users cannot set both is_external and is_vendor simultaneously
+			if is_external and is_vendor:
+				frappe.throw("A comment cannot be marked for both NGO and Vendor simultaneously")
+
 		existing_comments = frappe.get_all(
 			"DocType Field Comment",
 			filters={"doctype_name": doctype_name, "docname": docname, "field_name": field_name},
@@ -566,7 +595,8 @@ def save_field_comment(
 			comment_doc.insert(ignore_permissions=True)
 
 		# If marked as summary, clear all previous is_summary=1 on this document
-		if cint(is_summary):
+		# Only reachable by internal users since is_summary forced to 0 above for externals
+		if is_summary:
 			all_parent_docs = frappe.get_all(
 				"DocType Field Comment",
 				filters={"doctype_name": doctype_name, "docname": docname},
@@ -590,9 +620,9 @@ def save_field_comment(
 				"comment": comment_text,
 				"user": frappe.session.user,
 				"creation_date": frappe.utils.now_datetime(),
-				"is_external": cint(is_external),
-				"is_vendor": cint(is_vendor),
-				"is_summary": cint(is_summary),
+				"is_external": is_external,
+				"is_vendor": is_vendor,
+				"is_summary": is_summary,
 			}
 		)
 		comment_log_entry.insert(ignore_permissions=True)
@@ -608,6 +638,8 @@ def save_field_comment(
 			"is_summary": comment_log_entry.is_summary,
 		}
 
+	except frappe.PermissionError:
+		raise
 	except Exception as e:
 		frappe.log_error(
 			f"Error in save_field_comment: {str(e)}\nTraceback: {frappe.get_traceback()}",
@@ -792,6 +824,9 @@ def get_usr_type_roll():
 def load_field_comments(doctype_name: str, docname: str, field_name: str):
 	"""Load all comment threads for a specific field."""
 	try:
+		if not frappe.has_permission(doctype_name, "read", docname):
+			frappe.throw("Not permitted", frappe.PermissionError)
+
 		user_type = get_usr_type_roll()
 
 		comment_docs = frappe.get_all(
@@ -805,32 +840,69 @@ def load_field_comments(doctype_name: str, docname: str, field_name: str):
 		if not comment_docs:
 			return {"threads": []}
 
+		parent_names = [d.name for d in comment_docs]
+
+		# Fetch all logs for all threads in ONE query
+		log_filters = {
+			"parent": ["in", parent_names],
+			"parenttype": "DocType Field Comment",
+			"parentfield": "comment_log",
+		}
+		if user_type == "NGO":
+			log_filters["is_external"] = 1
+		elif user_type == "Vendor":
+			log_filters["is_vendor"] = 1
+
+		all_logs = frappe.get_all(
+			"DocType Field Comment Log",
+			filters=log_filters,
+			fields=[
+				"name",
+				"comment",
+				"user",
+				"creation_date",
+				"is_external",
+				"is_vendor",
+				"is_summary",
+				"parent",
+			],
+			order_by="creation_date asc",
+			ignore_permissions=True,
+		)
+
+		# Batch-fetch full_name for all unique users in ONE query
+		unique_users = {log["user"] for log in all_logs}
+		user_names = {}
+		if unique_users:
+			rows = frappe.get_all(
+				"User",
+				filters={"name": ["in", list(unique_users)]},
+				fields=["name", "full_name"],
+			)
+			user_names = {r["name"]: r["full_name"] for r in rows}
+
+		for log in all_logs:
+			log["full_name"] = user_names.get(log["user"]) or log["user"]
+
+		# Group logs by parent thread
+		logs_by_parent = {}
+		for log in all_logs:
+			logs_by_parent.setdefault(log["parent"], []).append(log)
+
 		threads = []
 		for doc in comment_docs:
-			filters = {
-				"parent": doc.name,
-				"parenttype": "DocType Field Comment",
-				"parentfield": "comment_log",
-			}
-			# External team users only see their own type of comments
-			if user_type == "NGO":
-				filters["is_external"] = 1
-			elif user_type == "Vendor":
-				filters["is_vendor"] = 1
-
-			comment_logs = frappe.get_all(
-				"DocType Field Comment Log",
-				filters=filters,
-				fields=["name", "comment", "user", "creation_date", "is_external", "is_vendor", "is_summary"],
-				order_by="creation_date asc",
-				ignore_permissions=True,
+			threads.append(
+				{
+					"name": doc.name,
+					"status": doc.status,
+					"comments": logs_by_parent.get(doc.name, []),
+				}
 			)
-			for log in comment_logs:
-				log["full_name"] = frappe.db.get_value("User", log["user"], "full_name") or log["user"]
-			threads.append({"name": doc.name, "status": doc.status, "comments": comment_logs})
 
 		return {"threads": threads}
 
+	except frappe.PermissionError:
+		raise
 	except Exception as e:
 		frappe.log_error(f"Error in load_field_comments: {str(e)}")
 		return {"threads": []}
@@ -840,6 +912,9 @@ def load_field_comments(doctype_name: str, docname: str, field_name: str):
 def load_all_comments(doctype_name: str, docname: str):
 	"""Load all comments for a document (global sidebar view)."""
 	try:
+		if not frappe.has_permission(doctype_name, "read", docname):
+			frappe.throw("Not permitted", frappe.PermissionError)
+
 		user_type = get_usr_type_roll()
 
 		comment_docs = frappe.get_all(
@@ -852,40 +927,67 @@ def load_all_comments(doctype_name: str, docname: str):
 		if not comment_docs:
 			return []
 
-		all_comments = []
-		for doc in comment_docs:
-			filters = {
-				"parent": doc.name,
-				"parenttype": "DocType Field Comment",
-				"parentfield": "comment_log",
+		parent_names = [d.name for d in comment_docs]
+
+		# Fetch all logs in ONE query
+		log_filters = {
+			"parent": ["in", parent_names],
+			"parenttype": "DocType Field Comment",
+			"parentfield": "comment_log",
+		}
+		if user_type == "NGO":
+			log_filters["is_external"] = 1
+		elif user_type == "Vendor":
+			log_filters["is_vendor"] = 1
+
+		all_logs = frappe.get_all(
+			"DocType Field Comment Log",
+			filters=log_filters,
+			fields=[
+				"name",
+				"comment",
+				"user",
+				"creation_date",
+				"is_external",
+				"is_vendor",
+				"is_summary",
+				"parent",
+			],
+			order_by="creation_date asc",
+			ignore_permissions=True,
+		)
+
+		# Batch-fetch full_name for all unique users in ONE query
+		unique_users = {log["user"] for log in all_logs}
+		user_names = {}
+		if unique_users:
+			rows = frappe.get_all(
+				"User",
+				filters={"name": ["in", list(unique_users)]},
+				fields=["name", "full_name"],
+			)
+			user_names = {r["name"]: r["full_name"] for r in rows}
+
+		for log in all_logs:
+			log["full_name"] = user_names.get(log["user"]) or log["user"]
+
+		# Group logs by parent
+		logs_by_parent = {}
+		for log in all_logs:
+			logs_by_parent.setdefault(log["parent"], []).append(log)
+
+		return [
+			{
+				"field_name": doc.field_name,
+				"field_label": doc.field_label,
+				"status": doc.status,
+				"comments": logs_by_parent.get(doc.name, []),
 			}
-			# External team users only see their own type of comments
-			if user_type == "NGO":
-				filters["is_external"] = 1
-			elif user_type == "Vendor":
-				filters["is_vendor"] = 1
+			for doc in comment_docs
+		]
 
-			comment_logs = frappe.get_all(
-				"DocType Field Comment Log",
-				filters=filters,
-				fields=["name", "comment", "user", "creation_date", "is_external", "is_vendor", "is_summary"],
-				order_by="creation_date asc",
-				ignore_permissions=True,
-			)
-
-			for log in comment_logs:
-				log["full_name"] = frappe.db.get_value("User", log["user"], "full_name") or log["user"]
-			all_comments.append(
-				{
-					"field_name": doc.field_name,
-					"field_label": doc.field_label,
-					"status": doc.status,
-					"comments": comment_logs,
-				}
-			)
-
-		return all_comments
-
+	except frappe.PermissionError:
+		raise
 	except Exception as e:
 		frappe.log_error(f"Error in load_all_comments: {str(e)}")
 		return []
@@ -948,6 +1050,10 @@ def update_comment_external_flag(comment_name: str, is_external: int):
 
 @frappe.whitelist()
 def get_total_open_resolved_comment_count(doctype_name: str, docname: str):
+	"""
+	Counts distinct fields with open threads — badge number.
+	Uses at most 2 queries total (no N+1).
+	"""
 	try:
 		user_type = get_usr_type_roll()
 
@@ -961,25 +1067,30 @@ def get_total_open_resolved_comment_count(doctype_name: str, docname: str):
 		if not open_threads:
 			return 0
 
-		if user_type in ("NGO", "Vendor"):
-			flag_field = "is_external" if user_type == "NGO" else "is_vendor"
-			counted_fields = set()
-			for thread in open_threads:
-				has_qualifying = frappe.db.count(
-					"DocType Field Comment Log",
-					filters={
-						"parent": thread.name,
-						"parenttype": "DocType Field Comment",
-						"parentfield": "comment_log",
-						flag_field: 1,
-					},
-				)
-				if has_qualifying:
-					counted_fields.add(thread.field_name)
-			return len(counted_fields)
+		# Internal users: just count distinct fields — no extra query needed
+		if user_type not in ("NGO", "Vendor"):
+			return len({t.field_name for t in open_threads})
 
-		# Internal users: 1 per distinct field regardless of reply count
-		return len({t.field_name for t in open_threads})
+		# External users: single query to find which parent threads have qualifying logs
+		flag_field = "is_external" if user_type == "NGO" else "is_vendor"
+		parent_names = [t.name for t in open_threads]
+		thread_field_map = {t.name: t.field_name for t in open_threads}
+
+		qualifying_logs = frappe.get_all(
+			"DocType Field Comment Log",
+			filters={
+				"parent": ["in", parent_names],
+				"parenttype": "DocType Field Comment",
+				"parentfield": "comment_log",
+				flag_field: 1,
+			},
+			fields=["parent"],
+			ignore_permissions=True,
+		)
+
+		# Count distinct field_names from qualifying threads
+		counted_fields = {thread_field_map[log["parent"]] for log in qualifying_logs}
+		return len(counted_fields)
 
 	except Exception as e:
 		frappe.log_error(f"Error in get_total_open_resolved_comment_count: {str(e)}")
@@ -990,9 +1101,17 @@ def get_total_open_resolved_comment_count(doctype_name: str, docname: str):
 def get_comments_summary(doctype_name: str, docname: str):
 	"""
 	Returns Open/Closed counts + single most-recent is_summary=1 comment.
-	Only called for internal (non-NGO/Vendor) users.
+	Internal users only — NGO/Vendor are denied.
 	"""
 	try:
+		# Deny external users entirely
+		user_type = get_usr_type_roll()
+		if user_type in ("NGO", "Vendor"):
+			frappe.throw("Not permitted", frappe.PermissionError)
+
+		if not frappe.has_permission(doctype_name, "read", docname):
+			frappe.throw("Not permitted", frappe.PermissionError)
+
 		comment_docs = frappe.get_all(
 			"DocType Field Comment",
 			filters={"doctype_name": doctype_name, "docname": docname},
@@ -1000,41 +1119,65 @@ def get_comments_summary(doctype_name: str, docname: str):
 			ignore_permissions=True,
 		)
 
+		if not comment_docs:
+			return {"open": 0, "closed": 0, "summary_comments": []}
+
+		# Count statuses + build lookup maps in one pass
 		counts = {"Open": 0, "Closed": 0}
-		summary_comments = []
-
+		parent_names = []
+		field_map = {}
 		for doc in comment_docs:
-			status = doc.status or "Open"
-			if status in counts:
-				counts[status] += 1
+			counts[doc.status or "Open"] = counts.get(doc.status or "Open", 0) + 1
+			parent_names.append(doc.name)
+			field_map[doc.name] = {"field_name": doc.field_name, "field_label": doc.field_label}
 
-			logs = frappe.get_all(
-				"DocType Field Comment Log",
-				filters={
-					"parent": doc.name,
-					"parenttype": "DocType Field Comment",
-					"parentfield": "comment_log",
-					"is_summary": 1,
-				},
-				fields=["name", "comment", "user", "creation_date", "is_external", "is_vendor", "is_summary"],
-				order_by="creation_date asc",
-				ignore_permissions=True,
+		# Fetch ALL is_summary logs in ONE query
+		summary_logs = frappe.get_all(
+			"DocType Field Comment Log",
+			filters={
+				"parent": ["in", parent_names],
+				"parenttype": "DocType Field Comment",
+				"parentfield": "comment_log",
+				"is_summary": 1,
+			},
+			fields=[
+				"name",
+				"comment",
+				"user",
+				"creation_date",
+				"is_external",
+				"is_vendor",
+				"is_summary",
+				"parent",
+			],
+			order_by="creation_date asc",
+			ignore_permissions=True,
+		)
+
+		# Batch-fetch full_name in ONE query
+		unique_users = {log["user"] for log in summary_logs}
+		user_names = {}
+		if unique_users:
+			rows = frappe.get_all(
+				"User",
+				filters={"name": ["in", list(unique_users)]},
+				fields=["name", "full_name"],
 			)
-			for log in logs:
-				log["full_name"] = frappe.db.get_value("User", log["user"], "full_name") or log["user"]
-				log["field_name"] = doc.field_name
-				log["field_label"] = doc.field_label
-				summary_comments.append(log)
+			user_names = {r["name"]: r["full_name"] for r in rows}
 
-		# Sort ascending — JS takes the last one as the active summary
-		summary_comments.sort(key=lambda x: x.get("creation_date") or "")
+		for log in summary_logs:
+			log["full_name"] = user_names.get(log["user"]) or log["user"]
+			log["field_name"] = field_map[log["parent"]]["field_name"]
+			log["field_label"] = field_map[log["parent"]]["field_label"]
 
 		return {
-			"open": counts["Open"],
-			"closed": counts["Closed"],
-			"summary_comments": summary_comments,
+			"open": counts.get("Open", 0),
+			"closed": counts.get("Closed", 0),
+			"summary_comments": summary_logs,
 		}
 
+	except frappe.PermissionError:
+		raise
 	except Exception as e:
 		frappe.log_error(f"Error in get_comments_summary: {str(e)}")
 		return {"open": 0, "closed": 0, "summary_comments": []}
