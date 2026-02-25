@@ -910,7 +910,7 @@ function initializeCommentControl(field_section, fieldName, field, get_comment_h
 			// Build footer: single row with all checkboxes + button row
 			const footer = $(`
 				<div class="comment-action-container" style="margin-top: 8px; padding: 0 4px;">
-					<div class="comment-rows-wrap" style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px; overflow: hidden;"></div>
+					<div class="comment-rows-wrap" style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px;flex-wrap: wrap;"></div>
 					<div style="display: flex; justify-content: flex-end;"></div>
 				</div>
 			`);
@@ -922,16 +922,16 @@ function initializeCommentControl(field_section, fieldName, field, get_comment_h
 				rowsWrap.append(`
 					<div style="display: flex; align-items: center; gap: 6px;">
 						<input type="checkbox" id="new_comment_summary_${fieldName}" class="summary-checkbox" style="margin: 0; width: 14px; height: 14px; cursor: pointer;">
-						<label for="new_comment_summary_${fieldName}" style="font-size: 11px; color: var(--text-muted); cursor: pointer; margin: 0; font-weight: 500; user-select: none; white-space: nowrap;">Mark as Summary</label>
+						<label for="new_comment_summary_${fieldName}" style="font-size: 10px; color: var(--text-muted); cursor: pointer; margin: 0; font-weight: 500; user-select: none; white-space: nowrap;">Mark as Summary</label>
 					</div>
-					<span style="font-size: 11px; color: var(--text-muted); font-weight: 900; white-space: nowrap;">Show to :</span>
+					<span style="font-size: 10px; color: var(--text-muted); font-weight: 900; white-space: nowrap;">Show to :</span>
 					<div style="display: flex; align-items: center; gap: 5px;">
 						<input type="checkbox" id="new_comment_external_${fieldName}" class="external-checkbox" style="margin: 0; width: 14px; height: 14px; cursor: pointer;">
-						<label for="new_comment_external_${fieldName}" style="font-size: 11px; color: var(--text-muted); cursor: pointer; margin: 0; font-weight: 500; user-select: none; white-space: nowrap;">NGO</label>
+						<label for="new_comment_external_${fieldName}" style="font-size: 10px; color: var(--text-muted); cursor: pointer; margin: 0; font-weight: 500; user-select: none; white-space: nowrap;">NGO</label>
 					</div>
 					<div style="display: flex; align-items: center; gap: 5px;">
 						<input type="checkbox" id="new_comment_vendor_${fieldName}" class="vendor-checkbox" style="margin: 0; width: 14px; height: 14px; cursor: pointer;">
-						<label for="new_comment_vendor_${fieldName}" style="font-size: 11px; color: var(--text-muted); cursor: pointer; margin: 0; font-weight: 500; user-select: none; white-space: nowrap;">Vendor</label>
+						<label for="new_comment_vendor_${fieldName}" style="font-size: 10px; color: var(--text-muted); cursor: pointer; margin: 0; font-weight: 500; user-select: none; white-space: nowrap;">Vendor</label>
 					</div>
 				`);
 			}
