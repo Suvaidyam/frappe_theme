@@ -66,17 +66,6 @@ const getUserColor = (username) => {
 	return colors[index];
 };
 
-// Returns a human-readable display name — never shows raw email
-const getDisplayName = (userEmail) => {
-	if (!userEmail) return "Unknown";
-	const fullName = frappe.user.full_name(userEmail);
-	// frappe.user.full_name returns email itself when user is not in cache
-	if (fullName && fullName !== userEmail) return fullName;
-	// Fallback: capitalise the part before @ in the email
-	const localPart = userEmail.split("@")[0];
-	return localPart.replace(/[._-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-};
-
 function get_comment_html(comment, commentMap) {
 	const userColor = getUserColor(comment.user);
 	const isCurrentUser = comment.user === frappe.session.user;
@@ -89,7 +78,7 @@ function get_comment_html(comment, commentMap) {
 				!isCurrentUser
 					? `
                 <div style="background: ${userColor}; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px; font-weight: 600; font-size: 13px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                    ${getUserAvatar(getDisplayName(comment.user))}
+                    ${getUserAvatar(comment.full_name || comment.user)}
                 </div>
             `
 					: ""
@@ -100,7 +89,7 @@ function get_comment_html(comment, commentMap) {
 						? `
                     <div style="margin-bottom: 6px;">
                         <div style="font-weight: 600; font-size: 13px; color: ${userColor}; display: flex; align-items: center; gap: 6px;">
-                            ${getDisplayName(comment.user)}
+                            ${comment.full_name || comment.user}
                             <span style="font-size: 11px; color: var(--text-muted); font-weight: normal;">${frappe.datetime.prettyDate(
 								comment.creation_date
 							)}</span>
@@ -152,7 +141,7 @@ function get_comment_html(comment, commentMap) {
 					isCurrentUser
 						? `
                     <div style="background: ${userColor}; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-left: 10px; font-weight: 600; font-size: 13px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                        ${getDisplayName(comment.user)}
+                        You
                     </div>
                     ${
 						comment.is_external && !isExternalUser()
@@ -207,7 +196,7 @@ function refreshSummaryContainer(frm) {
 				emptyMsg.hide();
 				const sc = latest;
 				const userColor = getUserColor(sc.user);
-				const fullName = getDisplayName(sc.user);
+				const fullName = sc.full_name || sc.user;
 				const initial = fullName[0].toUpperCase();
 				const fieldLabel = sc.field_label || sc.field_name;
 
