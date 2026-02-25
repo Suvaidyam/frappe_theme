@@ -533,15 +533,15 @@ def apply_common_permissions(doc, perms):
 
 @frappe.whitelist()
 def save_field_comment(
-	doctype_name,
-	docname,
-	field_name,
-	field_label,
-	comment_text,
-	is_external=0,
-	is_vendor=0,
-	status="Open",
-	is_summary=0,
+	doctype_name: str,
+	docname: str,
+	field_name: str,
+	field_label: str,
+	comment_text: str,
+	is_external: int = 0,
+	is_vendor: int = 0,
+	status: str = "Open",
+	is_summary: int = 0,
 ):
 	try:
 		existing_comments = frappe.get_all(
@@ -743,7 +743,7 @@ def send_mention_notification(
 
 
 @frappe.whitelist()
-def create_new_comment_thread(doctype_name, docname, field_name, field_label):
+def create_new_comment_thread(doctype_name: str, docname: str, field_name: str, field_label: str):
 	"""Create a new comment thread for a field."""
 	try:
 		comment_doc = frappe.get_doc(
@@ -789,7 +789,7 @@ def get_usr_type_roll():
 
 
 @frappe.whitelist()
-def load_field_comments(doctype_name, docname, field_name):
+def load_field_comments(doctype_name: str, docname: str, field_name: str):
 	"""Load all comment threads for a specific field."""
 	try:
 		user_type = get_usr_type_roll()
@@ -837,7 +837,7 @@ def load_field_comments(doctype_name, docname, field_name):
 
 
 @frappe.whitelist()
-def load_all_comments(doctype_name, docname):
+def load_all_comments(doctype_name: str, docname: str):
 	"""Load all comments for a document (global sidebar view)."""
 	try:
 		user_type = get_usr_type_roll()
@@ -892,7 +892,7 @@ def load_all_comments(doctype_name, docname):
 
 
 @frappe.whitelist()
-def get_all_field_comment_counts(doctype_name, docname):
+def get_all_field_comment_counts(doctype_name: str, docname: str):
 	"""Get comment counts for all fields — respects team visibility."""
 	try:
 		user_type = get_usr_type_roll()
@@ -934,7 +934,7 @@ def get_all_field_comment_counts(doctype_name, docname):
 
 
 @frappe.whitelist()
-def update_comment_external_flag(comment_name, is_external):
+def update_comment_external_flag(comment_name: str, is_external: int):
 	"""Update the is_external flag for a comment."""
 	try:
 		if not frappe.db.exists("DocType Field Comment Log", comment_name):
@@ -947,7 +947,7 @@ def update_comment_external_flag(comment_name, is_external):
 
 
 @frappe.whitelist()
-def get_total_open_resolved_comment_count(doctype_name, docname):
+def get_total_open_resolved_comment_count(doctype_name: str, docname: str):
 	try:
 		user_type = get_usr_type_roll()
 
@@ -987,7 +987,7 @@ def get_total_open_resolved_comment_count(doctype_name, docname):
 
 
 @frappe.whitelist()
-def get_comments_summary(doctype_name, docname):
+def get_comments_summary(doctype_name: str, docname: str):
 	"""
 	Returns Open/Closed counts + single most-recent is_summary=1 comment.
 	Only called for internal (non-NGO/Vendor) users.
@@ -1041,7 +1041,7 @@ def get_comments_summary(doctype_name, docname):
 
 
 @frappe.whitelist()
-def update_comment_summary_flag(comment_name, is_summary):
+def update_comment_summary_flag(comment_name: str, is_summary: int):
 	"""Toggle is_summary on a DocType Field Comment Log row."""
 	try:
 		if not frappe.db.exists("DocType Field Comment Log", comment_name):
