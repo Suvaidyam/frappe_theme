@@ -25,7 +25,7 @@ import { computed } from "vue";
 
 const getCardStyles = computed(() => {
 	const styles = {
-		padding: "12px 12px 12px 12px",
+		padding: "12px",
 		backgroundColor: "white",
 	};
 	return Object.entries(styles)
