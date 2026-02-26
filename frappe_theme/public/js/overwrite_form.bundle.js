@@ -962,7 +962,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 						_type: "Report",
 					}
 				);
-				if (heatmap_settings_data?.permitted) {
+				if (!heatmap_settings_data?.permitted) {
 					frm.sva_ft_instances[field.fieldname] = new SVAHeatmap({
 						wrapper: $(wrapper),
 						...(field?.sva_ft || {}),
@@ -971,7 +971,13 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					});
 				} else {
 					let placeholder = createApp({
-						render: () => h(ChartPlaceholder),
+						render: () =>
+							h(ChartPlaceholder, {
+								label:
+									field.sva_ft.label ||
+									field.sva_ft.heatmap_report ||
+									"Heatmap Label",
+							}),
 					});
 					placeholder.config.globalProperties.frappe = frappe;
 					placeholder.mount(wrapper);
@@ -1003,7 +1009,13 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					});
 				} else {
 					let placeholder = createApp({
-						render: () => h(ChartPlaceholder),
+						render: () =>
+							h(ChartPlaceholder, {
+								label:
+									field.sva_ft.label ||
+									field.sva_ft.sdg_report ||
+									"SDG Wheel Label",
+							}),
 					});
 					placeholder.config.globalProperties.frappe = frappe;
 					placeholder.mount(wrapper);
