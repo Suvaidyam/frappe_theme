@@ -71,7 +71,7 @@ def get_number_card_count(type, details, report=None, doctype=None, docname=None
 
 
 @frappe.whitelist()
-def check_card_permissions_and_settings(number_card_name):
+def check_card_permissions_and_settings(number_card_name: str):
 	return NumberCard.check_card_permissions_and_settings(number_card_name)
 
 
@@ -81,7 +81,7 @@ def get_chart_data(type, details, report=None, doctype=None, docname=None, filte
 
 
 @frappe.whitelist()
-def check_chart_permissions_and_settings(chart_name):
+def check_chart_permissions_and_settings(chart_name: str):
 	return Chart.check_chart_permissions_and_settings(chart_name)
 
 
@@ -91,7 +91,7 @@ def link_report_list(doctype):
 
 
 @frappe.whitelist()
-def check_list_permissions(doctype, _type="Direct"):
+def check_list_permissions(doctype: str, _type="Direct"):
 	return DTConf.check_list_permissions(doctype, _type)
 
 
