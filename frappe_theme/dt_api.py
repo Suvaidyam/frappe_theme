@@ -91,7 +91,7 @@ def link_report_list(doctype):
 
 
 @frappe.whitelist()
-def check_list_permissions(doctype: str, _type="Direct"):
+def check_list_permissions(doctype: str, _type: str = "Direct"):
 	return DTConf.check_list_permissions(doctype, _type)
 
 
