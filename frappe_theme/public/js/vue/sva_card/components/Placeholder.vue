@@ -8,14 +8,15 @@
 			<p
 				class="text-truncate card-label"
 				:style="`font-size: 11px; width: 90%; color: #999999`"
-				title="No access"
+				:about="label"
 			>
-				{{ "No access".toUpperCase() }}
+				{{ label }}
 			</p>
 			<span class="card-icon lock-icon" v-html="frappe.utils.icon('lock')"></span>
 		</div>
 		<div class="d-flex align-items-center" style="gap: 8px">
 			<h4 class="card-value na-text">NA</h4>
+			<span class="no-access-badge">No Access</span>
 		</div>
 	</div>
 </template>
@@ -23,6 +24,12 @@
 <script setup>
 import { computed } from "vue";
 
+const props = defineProps({
+	label: {
+		type: String,
+		default: "Card Label",
+	},
+});
 const getCardStyles = computed(() => {
 	const styles = {
 		padding: "12px",
@@ -53,6 +60,15 @@ h4 {
 
 .card-label {
 	color: #999999;
+}
+
+.no-access-badge {
+	background-color: #f8f9fa;
+	color: #999999;
+	font-size: 10px;
+	padding: 2px 8px;
+	border-radius: 999px;
+	border: 1px solid #e0e0e0;
 }
 
 .lock-icon :deep(svg),

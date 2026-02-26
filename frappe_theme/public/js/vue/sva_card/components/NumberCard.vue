@@ -9,35 +9,13 @@
 						:style="`font-size: 11px; width: 90%; color: ${card.text_color}`"
 						:title="card.card_label"
 					>
-						{{ card.card_label?.toUpperCase() }}
+						{{ card.card_label }}
 					</p>
 					<span
 						class="card-icon"
 						v-if="card.icon_value"
 						v-html="frappe.utils.icon(card.icon_value)"
 					></span>
-					<!-- <div class="dropdown" v-if="actions.length">
-						<span
-							title="action"
-							class="pointer d-flex justify-content-center align-items-center"
-							id="dropdownMenuButton"
-							data-toggle="dropdown"
-							aria-haspopup="true"
-							aria-expanded="false"
-						>
-							<svg class="icon icon-sm"><use href="#icon-dot-horizontal"></use></svg>
-						</span>
-						<div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-							<a
-								v-for="action in actions"
-								:key="action.action"
-								class="dropdown-item"
-								@click="handleAction(action.action)"
-							>
-								{{ action.label }}
-							</a>
-						</div>
-					</div> -->
 				</div>
 				<!-- number -->
 				<div class="d-flex justify-content-between align-items-center">
@@ -52,7 +30,7 @@
 				</div>
 			</div>
 		</div>
-		<Placeholder v-else />
+		<Placeholder v-else :label="card.card_label" />
 	</transition>
 </template>
 
