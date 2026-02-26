@@ -36,6 +36,7 @@ import FilterRibbon from "./custom_components/filters_ribbon.bundle.js";
 import SVASDGWheel from "./custom_components/sdg_wheel.bundle.js";
 // Vue components
 import NumberCardSkeleton from "./vue/sva_card/components/Skeleton.vue";
+import ChartPlaceholder from "./vue/sva_chart/components/Placeholder.vue";
 import ChartSkeleton from "./vue/sva_chart/components/Skeleton.vue";
 import { h, createApp } from "vue";
 
@@ -854,26 +855,29 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					}
 				}
 				break;
-			case "Number Card":
+			case "Number Card": {
 				if (field.sva_ft.number_card) {
 					createApp({
 						render: () => h(NumberCardSkeleton),
 					}).mount(wrapper);
-					let card_doc = await frappe.db.get_doc(
-						"Number Card",
-						field.sva_ft.number_card
+
+					let card_settings_data = await frappe.xcall(
+						"frappe_theme.dt_api.check_card_permissions_and_settings",
+						{
+							number_card_name: field.sva_ft.number_card,
+						}
 					);
-					if (card_doc.type == "Report" && card_doc.report_name) {
-						card_doc.report = await frappe.db.get_doc("Report", card_doc.report_name);
-					}
 					let item = {
 						html_field: field.fieldname,
 						fetch_from: "Number Card",
 						number_card: field.sva_ft.number_card,
-						card_label: field.sva_ft.label || card_doc.label || "Untitled",
-						details: card_doc,
+						card_label:
+							field.sva_ft.label ||
+							card_settings_data?.number_card?.label ||
+							"Untitled",
+						details: card_settings_data?.number_card,
 						listview_settings: field.sva_ft.listview_settings || null,
-						report: card_doc.report || null,
+						report: card_settings_data?.report || null,
 						icon_value: field.sva_ft.icon || null,
 						icon_color: field.sva_ft.icon_color || null,
 						background_color: field.sva_ft.background_color || null,
@@ -883,6 +887,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 						text_color: field.sva_ft.text_color || null,
 						value_color: field.sva_ft.value_color || null,
 						border_color: field.sva_ft.border_color || null,
+						is_permitted: card_settings_data?.permitted || false,
 					};
 					let { _wrapper, ref } = new SVADashboardManager({
 						wrapper,
@@ -894,24 +899,30 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					wrapper._dashboard = _wrapper;
 				}
 				break;
-
-			case "Dashboard Chart":
+			}
+			case "Dashboard Chart": {
 				if (field.sva_ft.chart) {
 					createApp({
 						render: () => h(ChartSkeleton),
 					}).mount(wrapper);
-					let chart_doc = await frappe.db.get_doc("Dashboard Chart", field.sva_ft.chart);
-					let report_doc = null;
-					if (chart_doc.chart_type === "Report" && chart_doc.report_name) {
-						report_doc = await frappe.db.get_doc("Report", chart_doc.report_name);
-					}
+
+					let chart_settings_data = await frappe.xcall(
+						"frappe_theme.dt_api.check_chart_permissions_and_settings",
+						{
+							chart_name: field.sva_ft.chart,
+						}
+					);
 					let item = {
 						...field.sva_ft,
 						fetch_from: "Dashboard Chart",
-						chart_label: field.sva_ft.label || chart_doc.chart_name,
-						details: chart_doc,
-						report: report_doc,
+						chart_label:
+							field.sva_ft.label ||
+							chart_settings_data?.chart?.chart_name ||
+							"Untitled",
+						details: chart_settings_data?.chart,
+						report: chart_settings_data?.report || null,
 						html_field: field.fieldname,
+						is_permitted: chart_settings_data?.permitted || false,
 					};
 					let { _wrapper, ref } = new SVADashboardManager({
 						wrapper,
@@ -923,6 +934,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					wrapper._dashboard = _wrapper;
 				}
 				break;
+			}
 			case "DocType (Direct)":
 			case "DocType (Indirect)":
 			case "DocType (Referenced)":
@@ -941,15 +953,31 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					await this.renderSavedFormContent(field.sva_ft, frm, field.sva_ft, signal);
 				}
 				break;
-			case "Heatmap (India Map)":
+			case "Heatmap (India Map)": {
 				field.sva_ft["report"] = field.sva_ft["heatmap_report"];
-				frm.sva_ft_instances[field.fieldname] = new SVAHeatmap({
-					wrapper: $(wrapper),
-					...(field?.sva_ft || {}),
-					html_field: field.fieldname,
-					frm,
-				});
+				let heatmap_settings_data = await frappe.xcall(
+					"frappe_theme.dt_api.check_list_permissions",
+					{
+						doctype: field.sva_ft.heatmap_report,
+						_type: "Report",
+					}
+				);
+				if (heatmap_settings_data?.permitted) {
+					frm.sva_ft_instances[field.fieldname] = new SVAHeatmap({
+						wrapper: $(wrapper),
+						...(field?.sva_ft || {}),
+						html_field: field.fieldname,
+						frm,
+					});
+				} else {
+					let placeholder = createApp({
+						render: () => h(ChartPlaceholder),
+					});
+					placeholder.config.globalProperties.frappe = frappe;
+					placeholder.mount(wrapper);
+				}
 				break;
+			}
 			case "Carousel":
 				frm.sva_ft_instances[field.fieldname] = new SVACarousel({
 					wrapper: $(wrapper),
@@ -958,14 +986,30 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					frm,
 				});
 				break;
-			case "SDG Wheel":
-				frm.sva_ft_instances[field.fieldname] = new SVASDGWheel({
-					wrapper: wrapper,
-					conf: field?.sva_ft || {},
-					html_field: field.fieldname,
-					frm,
-				});
+			case "SDG Wheel": {
+				let sdg_wheel_settings_data = await frappe.xcall(
+					"frappe_theme.dt_api.check_list_permissions",
+					{
+						doctype: field.sva_ft.sdg_report,
+						_type: "Report",
+					}
+				);
+				if (sdg_wheel_settings_data?.permitted) {
+					frm.sva_ft_instances[field.fieldname] = new SVASDGWheel({
+						wrapper: wrapper,
+						conf: field?.sva_ft || {},
+						html_field: field.fieldname,
+						frm,
+					});
+				} else {
+					let placeholder = createApp({
+						render: () => h(ChartPlaceholder),
+					});
+					placeholder.config.globalProperties.frappe = frappe;
+					placeholder.mount(wrapper);
+				}
 				break;
+			}
 		}
 	};
 	async initializeDashboards(dts, frm, currentTabFields, signal) {

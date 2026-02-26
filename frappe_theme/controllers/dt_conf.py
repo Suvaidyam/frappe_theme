@@ -9,6 +9,24 @@ from frappe_theme.controllers.number_card import NumberCard
 
 
 class DTConf:
+	@staticmethod
+	def check_list_permissions(doctype, _type="List"):
+		response = {"permitted": False, "message": ""}
+		if _type == "Report":
+			if not frappe.has_permission("Report", "read"):
+				response["message"] = "No permission to read Report doctype"
+				return response
+			report = frappe.get_cached_doc("Report", doctype)
+			response["permitted"] = True if report.is_permitted() else False
+			if not response["permitted"]:
+				response["message"] = f"No permission to access report {doctype}"
+			return response
+		else:
+			response["permitted"] = True if frappe.has_permission(doctype, "read") else False
+			if not response["permitted"]:
+				response["message"] = f"No permission to access doctype {doctype}"
+			return response
+
 	# datatable settings
 	def get_direct_connection_dts(dt):
 		standard_dts = frappe.get_list(
