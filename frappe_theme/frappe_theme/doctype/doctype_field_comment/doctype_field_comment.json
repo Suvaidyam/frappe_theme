@@ -50,7 +50,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Status",
-   "options": "Open\nResolved\nClosed"
+   "options": "Open\nClosed"
   },
   {
    "fieldname": "comment_log",
@@ -60,7 +60,7 @@
   }
  ],
  "links": [],
- "modified": "2025-06-05 17:35:28.430981",
+ "modified": "2026-02-24 18:25:48.808789",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "DocType Field Comment",
@@ -80,6 +80,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
