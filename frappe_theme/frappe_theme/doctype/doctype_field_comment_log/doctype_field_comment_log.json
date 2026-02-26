@@ -1,57 +1,72 @@
 {
-    "actions": [],
-    "autoname": "hash",
-    "creation": "2025-06-03 14:51:42.941958",
-    "doctype": "DocType",
-    "editable_grid": 1,
-    "engine": "InnoDB",
-    "field_order": [
-        "comment",
-        "user",
-        "creation_date",
-        "is_external"
-    ],
-    "fields": [
-        {
-            "fieldname": "comment",
-            "fieldtype": "Small Text",
-            "in_list_view": 1,
-            "label": "Comment",
-            "reqd": 1
-        },
-        {
-            "fieldname": "user",
-            "fieldtype": "Link",
-            "in_list_view": 1,
-            "label": "User",
-            "options": "User",
-            "read_only": 1
-        },
-        {
-            "fieldname": "creation_date",
-            "fieldtype": "Datetime",
-            "in_list_view": 1,
-            "label": "Creation Date",
-            "read_only": 1
-        },
-        {
-            "fieldname": "is_external",
-            "fieldtype": "Check",
-            "label": "External",
-            "default": 0
-        }
-    ],
-    "istable": 1,
-    "links": [],
-    "modified": "2025-06-05 12:28:11.220816",
-    "modified_by": "Administrator",
-    "module": "Frappe Theme",
-    "name": "DocType Field Comment Log",
-    "naming_rule": "Random",
-    "owner": "Administrator",
-    "permissions": [],
-    "sort_field": "modified",
-    "sort_order": "DESC",
-    "states": [],
-    "track_changes": 1
+ "actions": [],
+ "autoname": "hash",
+ "creation": "2025-06-03 14:51:42.941958",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "comment",
+  "user",
+  "creation_date",
+  "is_external",
+  "is_summary",
+  "is_vendor"
+ ],
+ "fields": [
+  {
+   "fieldname": "comment",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Comment",
+   "reqd": 1
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "User",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "creation_date",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Creation Date",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "is_external",
+   "fieldtype": "Check",
+   "label": "External"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_summary",
+   "fieldtype": "Check",
+   "label": "Is Summary"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_vendor",
+   "fieldtype": "Check",
+   "label": "Is Vendor"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-02-24 18:24:37.662599",
+ "modified_by": "Administrator",
+ "module": "Frappe Theme",
+ "name": "DocType Field Comment Log",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
 }
