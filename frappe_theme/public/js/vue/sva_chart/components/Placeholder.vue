@@ -5,15 +5,23 @@
 		title="You do not have permission to view this data"
 	>
 		<div class="d-flex justify-content-between align-items-center">
-			<span class="chart-title">No access</span>
+			<span class="chart-title" :title="label">{{ label }}</span>
 			<span class="lock-icon" v-html="frappe.utils.icon('lock')"></span>
 		</div>
 		<div class="placeholder-body">
 			<h4 class="na-text">NA</h4>
+			<span class="no-access-badge">No Access</span>
 		</div>
 	</div>
 </template>
-<script setup></script>
+<script setup>
+const props = defineProps({
+	label: {
+		type: String,
+		default: "Chart Label",
+	},
+});
+</script>
 <style scoped>
 h4 {
 	margin-bottom: 0;
@@ -44,6 +52,15 @@ h4 {
 	height: 297px;
 	background-color: #f8f9fa;
 	margin-top: 10px;
+}
+
+.no-access-badge {
+	background-color: #f8f9fa;
+	color: #999999;
+	font-size: 10px;
+	padding: 2px 8px;
+	border-radius: 999px;
+	border: 1px solid #e0e0e0;
 }
 
 .na-text {
