@@ -6,22 +6,36 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "section_break_uana",
   "task_name",
-  "is_group",
-  "parent_task_name",
-  "reference_doctype",
   "column_break_pfce",
+  "parent_task_name",
+  "section_break_apcx",
+  "is_group",
+  "task_description",
+  "section_break_tfgu",
+  "task_start_date",
+  "column_break_vcug",
+  "task_end_date",
+  "section_break_apny",
   "frequency",
+  "column_break_gfxg",
+  "repeat_every",
+  "section_break_cwru",
   "day",
-  "reference_doc"
+  "column_break_ivox",
+  "end_condition",
+  "section_break_rowv",
+  "reference_doc",
+  "column_break_jvsc",
+  "reference_doctype"
  ],
  "fields": [
   {
    "fieldname": "task_name",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Task Name",
-   "reqd": 1
+   "label": "Task Name"
   },
   {
    "default": "0",
@@ -49,30 +63,108 @@
    "depends_on": "eval:!doc.is_group",
    "fieldname": "day",
    "fieldtype": "Select",
-   "label": "Day"
+   "label": "Repeat On"
   },
   {
    "fieldname": "reference_doctype",
    "fieldtype": "Link",
    "hidden": 1,
-   "label": "reference_doctype",
+   "label": "Reference Doctype",
    "options": "DocType"
   },
   {
    "fieldname": "reference_doc",
    "fieldtype": "Dynamic Link",
    "hidden": 1,
-   "label": "reference_doc",
+   "label": "Reference Doc",
    "options": "reference_doctype"
   },
   {
    "fieldname": "column_break_pfce",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_uana",
+   "fieldtype": "Section Break",
+   "hide_border": 1
+  },
+  {
+   "fieldname": "section_break_apcx",
+   "fieldtype": "Section Break",
+   "hide_border": 1
+  },
+  {
+   "depends_on": "eval:!doc.is_group",
+   "fieldname": "task_description",
+   "fieldtype": "Small Text",
+   "label": "Task Description",
+   "mandatory_depends_on": "eval:!doc.is_group"
+  },
+  {
+   "depends_on": "eval:!doc.is_group",
+   "fieldname": "section_break_tfgu",
+   "fieldtype": "Section Break",
+   "hide_border": 1
+  },
+  {
+   "fieldname": "task_start_date",
+   "fieldtype": "Date",
+   "label": "Task Start Date",
+   "mandatory_depends_on": "eval:!doc.is_group"
+  },
+  {
+   "fieldname": "column_break_vcug",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "task_end_date",
+   "fieldtype": "Date",
+   "label": "Task End Date",
+   "mandatory_depends_on": "eval:!doc.is_group"
+  },
+  {
+   "depends_on": "eval:!doc.is_group",
+   "fieldname": "section_break_apny",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_gfxg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "repeat_every",
+   "fieldtype": "Int",
+   "label": "Repeat Every"
+  },
+  {
+   "depends_on": "eval:!doc.is_group",
+   "fieldname": "section_break_cwru",
+   "fieldtype": "Section Break",
+   "hide_border": 1
+  },
+  {
+   "fieldname": "column_break_ivox",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "end_condition",
+   "fieldtype": "Date",
+   "label": "End Condition"
+  },
+  {
+   "fieldname": "section_break_rowv",
+   "fieldtype": "Section Break",
+   "hidden": 1
+  },
+  {
+   "fieldname": "column_break_jvsc",
+   "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-24 15:28:57.801951",
+ "modified": "2026-02-26 10:46:30.103438",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "SVA Task Planner",

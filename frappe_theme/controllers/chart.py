@@ -15,6 +15,34 @@ from frappe_theme.controllers.filters import DTFilters
 
 class Chart:
 	@staticmethod
+	def check_chart_permissions_and_settings(chart_name: str) -> dict:
+		"""Check if the user has permission to view the dashboard chart."""
+		response = {"permitted": False, "chart": None, "report": None, "message": ""}
+		try:
+			if not frappe.has_permission("Dashboard Chart", "read", chart_name):
+				response["message"] = "You do not have permission to view this Dashboard Chart"
+				return response
+			if not frappe.db.exists("Dashboard Chart", chart_name):
+				response["message"] = "Dashboard Chart does not exist"
+				return response
+			chart = frappe.get_cached_doc("Dashboard Chart", chart_name)
+			response["chart"] = chart
+			if chart.chart_type == "Report" and chart.report_name:
+				if not frappe.db.exists("Report", chart.report_name):
+					response["message"] = "Report does not exist"
+					return response
+				report = frappe.get_cached_doc("Report", chart.report_name)
+				response["report"] = report
+				response["permitted"] = True if report.is_permitted() else False
+			elif chart.chart_type == "Document Type":
+				response["permitted"] = True if frappe.has_permission(chart.document_type, "read") else False
+			return response
+		except Exception as e:
+			frappe.log_error(f"Error in check_chart_permissions: {str(e)}")
+			response["message"] = f"Error checking permissions: {str(e)}"
+			return response
+
+	@staticmethod
 	def hex_to_rgba(hex_color, alpha=0.2):
 		hex_color = hex_color.lstrip("#")
 

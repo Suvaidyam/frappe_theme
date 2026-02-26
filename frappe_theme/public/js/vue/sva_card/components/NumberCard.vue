@@ -52,11 +52,13 @@
 				</div>
 			</div>
 		</div>
+		<Placeholder v-else />
 	</transition>
 </template>
 
 <script setup>
 import Skeleton from "./Skeleton.vue";
+import Placeholder from "./Placeholder.vue";
 import SvaDataTable from "../../../datatable/sva_datatable.bundle.js";
 import Loader from "../../../loader-element.js";
 import { ref, onMounted, inject, computed } from "vue";
@@ -267,7 +269,7 @@ const getCount = async () => {
 onMounted(async () => {
 	// Initial delay based on card position
 	setTimeout(async () => {
-		showCard.value = true;
+		showCard.value = props.card.is_permitted ? true : false;
 		await getCount();
 	}, props.delay);
 });
