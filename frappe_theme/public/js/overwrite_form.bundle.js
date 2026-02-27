@@ -887,7 +887,10 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 						text_color: field.sva_ft.text_color || null,
 						value_color: field.sva_ft.value_color || null,
 						border_color: field.sva_ft.border_color || null,
-						is_permitted: card_settings_data?.permitted || false,
+						is_permitted:
+							card_settings_data?.permitted || field.sva_ft.fetch_from == "DocField"
+								? true
+								: false,
 					};
 					let { _wrapper, ref } = new SVADashboardManager({
 						wrapper,
