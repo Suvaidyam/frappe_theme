@@ -54,22 +54,13 @@ class NumberCard:
 
 			for card in visible_cards:
 				if card.fetch_from == "DocField":
+					card["is_permitted"] = True
 					updated_cards.append(card)
 				else:
-					if not frappe.db.exists("Number Card", card.number_card):
-						continue
-
-					card_details = frappe.get_cached_doc("Number Card", card.number_card)
-					card["details"] = card_details
-
-					if card_details.type == "Report" and card_details.report_name:
-						if frappe.db.exists("Report", card_details.report_name):
-							card["report"] = frappe.get_cached_doc("Report", card_details.report_name)
-						else:
-							card["report"] = None
-					elif card_details.type == "Document Type":
-						card["report"] = None
-
+					result = NumberCard.check_card_permissions_and_settings(card.number_card)
+					card["is_permitted"] = result["permitted"]
+					card["details"] = result["number_card"]
+					card["report"] = result["report"]
 					updated_cards.append(card)
 
 			return updated_cards
