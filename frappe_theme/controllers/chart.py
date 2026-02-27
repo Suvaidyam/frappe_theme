@@ -106,18 +106,11 @@ class Chart:
 		updated_charts = []
 
 		for chart in visible_charts:
-			if not frappe.db.exists("Dashboard Chart", chart.dashboard_chart):
-				continue
-			chart_details = frappe.get_cached_doc("Dashboard Chart", chart.dashboard_chart)
-			chart["details"] = chart_details
-
-			if chart.details.chart_type == "Report":
-				chart["report"] = (
-					frappe.get_cached_doc("Report", chart.details.report_name)
-					if frappe.db.exists("Report", chart.details.report_name)
-					else None
-				)
-
+			result = Chart.check_chart_permissions_and_settings(chart.dashboard_chart)
+			chart["details"] = result["chart"]
+			chart["is_permitted"] = result["permitted"]
+			chart["report"] = result["report"]
+			chart["message"] = result["message"]
 			updated_charts.append(chart)
 
 		return updated_charts

@@ -63,7 +63,8 @@
    "depends_on": "eval:!doc.is_group",
    "fieldname": "day",
    "fieldtype": "Select",
-   "label": "Repeat On"
+   "label": "Repeat On",
+   "mandatory_depends_on": "eval:!doc.is_group"
   },
   {
    "fieldname": "reference_doctype",
@@ -133,9 +134,11 @@
   },
   {
    "default": "1",
+   "depends_on": "eval:!doc.is_group",
    "fieldname": "repeat_every",
    "fieldtype": "Int",
-   "label": "Repeat Every"
+   "label": "Repeat Every",
+   "mandatory_depends_on": "eval:!doc.is_group"
   },
   {
    "depends_on": "eval:!doc.is_group",
@@ -164,7 +167,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-02-26 10:46:30.103438",
+ "modified": "2026-02-27 12:05:57.705608",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "SVA Task Planner",

@@ -887,7 +887,10 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 						text_color: field.sva_ft.text_color || null,
 						value_color: field.sva_ft.value_color || null,
 						border_color: field.sva_ft.border_color || null,
-						is_permitted: card_settings_data?.permitted || false,
+						is_permitted:
+							card_settings_data?.permitted || field.sva_ft.fetch_from == "DocField"
+								? true
+								: false,
 					};
 					let { _wrapper, ref } = new SVADashboardManager({
 						wrapper,
@@ -962,7 +965,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 						_type: "Report",
 					}
 				);
-				if (heatmap_settings_data?.permitted) {
+				if (!heatmap_settings_data?.permitted) {
 					frm.sva_ft_instances[field.fieldname] = new SVAHeatmap({
 						wrapper: $(wrapper),
 						...(field?.sva_ft || {}),
@@ -971,7 +974,13 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					});
 				} else {
 					let placeholder = createApp({
-						render: () => h(ChartPlaceholder),
+						render: () =>
+							h(ChartPlaceholder, {
+								label:
+									field.sva_ft.label ||
+									field.sva_ft.heatmap_report ||
+									"Heatmap Label",
+							}),
 					});
 					placeholder.config.globalProperties.frappe = frappe;
 					placeholder.mount(wrapper);
@@ -1003,7 +1012,13 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					});
 				} else {
 					let placeholder = createApp({
-						render: () => h(ChartPlaceholder),
+						render: () =>
+							h(ChartPlaceholder, {
+								label:
+									field.sva_ft.label ||
+									field.sva_ft.sdg_report ||
+									"SDG Wheel Label",
+							}),
 					});
 					placeholder.config.globalProperties.frappe = frappe;
 					placeholder.mount(wrapper);
