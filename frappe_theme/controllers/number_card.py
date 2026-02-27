@@ -16,6 +16,36 @@ class NumberCard:
 	}
 
 	@staticmethod
+	def check_card_permissions_and_settings(number_card_name: str) -> dict:
+		"""Check if the user has permission to view the number card."""
+		response = {"permitted": False, "number_card": None, "report": None, "message": ""}
+		try:
+			if not frappe.has_permission("Number Card", "read", number_card_name):
+				response["message"] = "You do not have permission to view this Number Card"
+				return response
+			if not frappe.db.exists("Number Card", number_card_name):
+				response["message"] = "Number Card does not exist"
+				return response
+			number_card = frappe.get_cached_doc("Number Card", number_card_name)
+			response["number_card"] = number_card
+			if number_card.type == "Report" and number_card.report_name:
+				if not frappe.db.exists("Report", number_card.report_name):
+					response["message"] = "Report does not exist"
+					return response
+				report = frappe.get_cached_doc("Report", number_card.report_name)
+				response["report"] = report
+				response["permitted"] = True if report.is_permitted() else False
+			elif number_card.type == "Document Type":
+				response["permitted"] = (
+					True if frappe.has_permission(number_card.document_type, "read") else False
+				)
+			return response
+		except Exception as e:
+			frappe.log_error(f"Error in check_card_permissions: {str(e)}")
+			response["message"] = f"Error checking permissions: {str(e)}"
+			return response
+
+	@staticmethod
 	def number_card_settings(settings) -> list[dict]:
 		"""Get visible number cards with their details."""
 		try:
@@ -24,22 +54,13 @@ class NumberCard:
 
 			for card in visible_cards:
 				if card.fetch_from == "DocField":
+					card["is_permitted"] = True
 					updated_cards.append(card)
 				else:
-					if not frappe.db.exists("Number Card", card.number_card):
-						continue
-
-					card_details = frappe.get_cached_doc("Number Card", card.number_card)
-					card["details"] = card_details
-
-					if card_details.type == "Report" and card_details.report_name:
-						if frappe.db.exists("Report", card_details.report_name):
-							card["report"] = frappe.get_cached_doc("Report", card_details.report_name)
-						else:
-							card["report"] = None
-					elif card_details.type == "Document Type":
-						card["report"] = None
-
+					result = NumberCard.check_card_permissions_and_settings(card.number_card)
+					card["is_permitted"] = result["permitted"]
+					card["details"] = result["number_card"]
+					card["report"] = result["report"]
 					updated_cards.append(card)
 
 			return updated_cards
