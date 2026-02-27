@@ -61,12 +61,13 @@
 				<div class="frappe-theme-no-data" v-else>No data</div>
 			</div>
 		</div>
+		<Placeholder v-else />
 	</transition>
 </template>
 <!-- Used as Button & Heading Control -->
 <script setup>
 import Skeleton from "./Skeleton.vue";
-
+import Placeholder from "./Placeholder.vue";
 import Loader from "../../../loader-element.js";
 import SvaDataTable from "../../../datatable/sva_datatable.bundle.js";
 
@@ -461,7 +462,7 @@ const getCount = async () => {
 	let pre_filters = {};
 	if (props.frm) {
 		if (
-			props.frm?.["dt_events"]?.[details.name]?.get_filters ||
+			props.frm?.["dt_events"]?.[details?.name]?.get_filters ||
 			props.frm?.["dt_events"]?.[props?.chart?.html_field]?.get_filters
 		) {
 			let get_filters =
@@ -499,7 +500,7 @@ const getCount = async () => {
 onMounted(async () => {
 	// Initial delay based on card position
 	setTimeout(async () => {
-		showChart.value = true;
+		showChart.value = props?.chart?.is_permitted ? true : false;
 		await getCount();
 	}, props.delay);
 });
