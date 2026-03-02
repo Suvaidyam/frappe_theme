@@ -15,7 +15,7 @@ import time
 app_include_css = [
 	# "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
 	f"/assets/frappe_theme/css/frappe_theme.css?ver={time.time()}",
-	f"/assets/frappe_theme/css/frappe.css?ver={time.time()}",
+	# f"/assets/frappe_theme/css/frappe.css?ver={time.time()}",
 	f"/assets/frappe_theme/css/number_card_mapper.css?ver={time.time()}",
 ]
 app_include_js = [
@@ -31,7 +31,6 @@ app_include_js = [
 	"override_table_multiselect.bundle.js",
 	"override_button.bundle.js",
 	"override_multiselect.bundle.js",
-	f"/assets/frappe_theme/js/svadb.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/fields_comment.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/extended_chart.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/mobile_view.js?ver={time.time()}",
@@ -43,6 +42,8 @@ app_include_js = [
 	f"/assets/frappe_theme/js/breadcrumb_override.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/sidebar_override.js?ver={time.time()}",
 	"/assets/frappe_theme/js/multi_image_gallery.js",
+	f"/assets/frappe_theme/js/svadb.js?ver={time.time()}",
+	f"/assets/frappe_theme/js/DocTypeTree.js?ver={time.time()}",
 ]
 extend_bootinfo = "frappe_theme.boot.boot_theme"
 # include js, css files in header of web template
