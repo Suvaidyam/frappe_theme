@@ -10,7 +10,7 @@ class SVACustomizeForm(CustomizeForm):
         """
         if self.doc_type in core_doctypes_list:
             frappe.throw(_("Core DocTypes cannot be customized."))
-        if meta.issingle and (meta.get("is_dashboard", 0) or 0) == 0:
+        if meta.issingle and meta.get("is_dashboard") != 1:
             frappe.throw(_("Single DocTypes cannot be customized."))
 
         if meta.custom:
