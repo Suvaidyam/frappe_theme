@@ -1,12 +1,12 @@
 <template>
 	<transition name="fade">
-		<div v-if="showCard">
+		<div v-if="showCard" style="overflow: hidden; min-width: 0">
 			<Skeleton v-if="loading" />
 			<div v-else class="card mb-2 number-card" :style="getCardStyles">
-				<div class="d-flex justify-content-between">
+				<div class="d-flex justify-content-between" style="overflow: hidden; gap: 5px">
 					<p
 						class="text-truncate card-label"
-						:style="`font-size: 11px; width: 90%; color: ${card.text_color}`"
+						:style="`font-size: 11px; min-width: 0; flex: 1; color: ${card.text_color}`"
 						:title="card.card_label"
 					>
 						{{ card.card_label }}
@@ -294,12 +294,14 @@ h4 {
 }
 
 .number-card {
+	overflow: hidden;
 	transition: background-color 0.3s ease;
 
 	&:hover {
 		background-color: var(--hover-bg-color) !important;
 		transition: transform 0.3s ease;
 		transform: scale(1.01);
+
 		.card-label {
 			color: var(--hover-text-color) !important;
 		}
