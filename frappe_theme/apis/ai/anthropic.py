@@ -1,18 +1,15 @@
 import frappe
 import requests
 import json
-
+from .utils import get_api_key
 
 def generate_html_block(client_prompt="", system_prompt=None, existing=None):
     try:
         if not system_prompt:
             frappe.throw("System prompt not provided")
-
-        api_key_db = frappe.get_cached_doc("My Theme","My Theme").get_password("anthropic")
-        api_key_site_config = frappe.conf.get("anthropic_api_key")
-        api_key = api_key_db or api_key_site_config
+        api_key = get_api_key("anthropic")
         if not api_key:
-            frappe.throw("Anthropic API key not configured in site_config.json")
+            frappe.throw("Anthropic API key not configured")
 
         # Build user message based on mode
         if existing:

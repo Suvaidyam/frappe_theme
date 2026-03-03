@@ -112,8 +112,9 @@ def generate_system_prompt(custom_filter_report=[], custom_data_report=[], block
         ref_doctype = ""
         block_id = "cb-" + (block_name or "dash").lower().replace(" ", "-")
 
-        filter_reports = json.loads(custom_filter_report or "[]")
-        data_reports = json.loads(custom_data_report or "[]")
+        filter_reports = json.loads(custom_filter_report or "[]") if isinstance(custom_filter_report, str) else custom_filter_report
+        data_reports = json.loads(custom_data_report or "[]") if isinstance(custom_data_report, str) else custom_data_report
+
 
         config = {"name": block_name, "ref": ref_doctype, "f": [], "d": []}
 
@@ -150,3 +151,16 @@ def generate_system_prompt(custom_filter_report=[], custom_data_report=[], block
     except Exception as e:
         frappe.log_error(f"generate_system_prompt error: {str(e)}")
         return f"Error: {str(e)}"
+
+def get_api_key(provider: str) -> str|None:
+    try:
+        site_api_key = frappe.conf.get(provider.lower(), None)
+        my_theme = frappe.get_cached_doc("My Theme","My Theme")
+        if provider.lower() == "openai" and my_theme.openai:
+            return my_theme.get_password("openai")
+        elif provider.lower() == "anthropic" and my_theme.anthropic:
+            return my_theme.get_password("anthropic")
+        return site_api_key
+    except Exception as e:
+        frappe.log_error("AI Generation[get_api_key]",f"get_api_key error for provider: {provider}, error: {str(e)}")
+        return None
