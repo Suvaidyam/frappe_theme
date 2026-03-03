@@ -1,43 +1,21 @@
 <template>
 	<transition name="fade">
-		<div v-if="showCard">
+		<div v-if="showCard" style="overflow: hidden; min-width: 0">
 			<Skeleton v-if="loading" />
 			<div v-else class="card mb-2 number-card" :style="getCardStyles">
-				<div class="d-flex justify-content-between">
+				<div class="d-flex justify-content-between" style="overflow: hidden; gap: 5px">
 					<p
 						class="text-truncate card-label"
-						:style="`font-size: 11px; width: 90%; color: ${card.text_color}`"
+						:style="`font-size: 11px; min-width: 0; flex: 1; color: ${card.text_color}`"
 						:title="card.card_label"
 					>
-						{{ card.card_label?.toUpperCase() }}
+						{{ card.card_label }}
 					</p>
 					<span
 						class="card-icon"
 						v-if="card.icon_value"
 						v-html="frappe.utils.icon(card.icon_value)"
 					></span>
-					<!-- <div class="dropdown" v-if="actions.length">
-						<span
-							title="action"
-							class="pointer d-flex justify-content-center align-items-center"
-							id="dropdownMenuButton"
-							data-toggle="dropdown"
-							aria-haspopup="true"
-							aria-expanded="false"
-						>
-							<svg class="icon icon-sm"><use href="#icon-dot-horizontal"></use></svg>
-						</span>
-						<div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-							<a
-								v-for="action in actions"
-								:key="action.action"
-								class="dropdown-item"
-								@click="handleAction(action.action)"
-							>
-								{{ action.label }}
-							</a>
-						</div>
-					</div> -->
 				</div>
 				<!-- number -->
 				<div class="d-flex justify-content-between align-items-center">
@@ -52,11 +30,13 @@
 				</div>
 			</div>
 		</div>
+		<Placeholder v-else :label="card.card_label" />
 	</transition>
 </template>
 
 <script setup>
 import Skeleton from "./Skeleton.vue";
+import Placeholder from "./Placeholder.vue";
 import SvaDataTable from "../../../datatable/sva_datatable.bundle.js";
 import Loader from "../../../loader-element.js";
 import { ref, onMounted, inject, computed } from "vue";
@@ -267,7 +247,7 @@ const getCount = async () => {
 onMounted(async () => {
 	// Initial delay based on card position
 	setTimeout(async () => {
-		showCard.value = true;
+		showCard.value = props.card.is_permitted ? true : false;
 		await getCount();
 	}, props.delay);
 });
@@ -314,12 +294,14 @@ h4 {
 }
 
 .number-card {
+	overflow: hidden;
 	transition: background-color 0.3s ease;
 
 	&:hover {
 		background-color: var(--hover-bg-color) !important;
 		transition: transform 0.3s ease;
 		transform: scale(1.01);
+
 		.card-label {
 			color: var(--hover-text-color) !important;
 		}
