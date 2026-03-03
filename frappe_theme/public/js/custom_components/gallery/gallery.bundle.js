@@ -733,7 +733,24 @@ class SVAGalleryComponent {
 		});
 		let $preview = "";
 		const officeExts = ["doc", "docx", "xls", "xlsx", "ppt", "pptx", "odt", "ods", "odp"];
-		const textExts = ["txt", "log", "json", "xml", "md", "css", "js", "py", "html", "yml", "yaml", "ini", "cfg", "conf", "sh", "bat"];
+		const textExts = [
+			"txt",
+			"log",
+			"json",
+			"xml",
+			"md",
+			"css",
+			"js",
+			"py",
+			"html",
+			"yml",
+			"yaml",
+			"ini",
+			"cfg",
+			"conf",
+			"sh",
+			"bat",
+		];
 
 		if (frappe.utils.is_image_file(frm.file_url)) {
 			$preview = $(`<div class="img_preview position-relative">
@@ -760,7 +777,11 @@ class SVAGalleryComponent {
 					>
 				</object>
 			</div>`);
-		} else if (file_extension === "mp3" || file_extension === "wav" || file_extension === "ogg") {
+		} else if (
+			file_extension === "mp3" ||
+			file_extension === "wav" ||
+			file_extension === "ogg"
+		) {
 			$preview = $(`<div class="img_preview d-flex justify-content-center">
 				<audio width="480" height="60" controls>
 					<source src="${frappe.utils.escape_html(frm.file_url)}">
@@ -773,22 +794,32 @@ class SVAGalleryComponent {
 			$preview = $(`<div class="img_preview">
 				<div class="doc-preview-loading" style="text-align: center; padding: 40px 0;">
 					<div class="spinner-border spinner-border-sm text-muted" role="status"></div>
-					<p style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">${__("Loading document preview...")}</p>
+					<p style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">${__(
+						"Loading document preview..."
+					)}</p>
 				</div>
 				<div class="doc-preview-content" style="display: none; max-height: 70vh; overflow: auto; padding: 24px 32px; background: white; border: 1px solid var(--border-color); border-radius: 8px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 14px; line-height: 1.6; color: #333;"></div>
 				<div class="doc-preview-error" style="display: none; text-align: center; padding: 40px 20px;">
 					<div style="width: 72px; height: 72px; border-radius: 18px; background: var(--control-bg, #f4f5f6); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
 						<i class="${iconClass}" style="font-size: 32px; color: var(--text-muted);"></i>
 					</div>
-					<h5 style="margin-bottom: 4px; color: var(--text-color);">${frappe.utils.escape_html(frm.file_name)}</h5>
-					<p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;" class="doc-error-msg">${__("Could not load document preview")}</p>
-					<a href="${frappe.utils.escape_html(frm.file_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-default btn-sm">
+					<h5 style="margin-bottom: 4px; color: var(--text-color);">${frappe.utils.escape_html(
+						frm.file_name
+					)}</h5>
+					<p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;" class="doc-error-msg">${__(
+						"Could not load document preview"
+					)}</p>
+					<a href="${frappe.utils.escape_html(
+						frm.file_url
+					)}" target="_blank" rel="noopener noreferrer" class="btn btn-default btn-sm">
 						<i class="fa fa-external-link"></i> ${__("Open in New Tab")}
 					</a>
 				</div>
 			</div>`);
 
-			this._loadScript("https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js")
+			this._loadScript(
+				"https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js"
+			)
 				.then(() => fetch(frm.file_url))
 				.then((response) => {
 					if (!response.ok) throw new Error("Failed to fetch file");
@@ -819,7 +850,9 @@ class SVAGalleryComponent {
 			$preview = $(`<div class="img_preview">
 				<div class="doc-preview-loading" style="text-align: center; padding: 40px 0;">
 					<div class="spinner-border spinner-border-sm text-muted" role="status"></div>
-					<p style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">${__("Loading spreadsheet preview...")}</p>
+					<p style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">${__(
+						"Loading spreadsheet preview..."
+					)}</p>
 				</div>
 				<div class="sheet-tabs" style="display: none; margin-bottom: 8px; border-bottom: 1px solid var(--border-color); padding: 0 4px;"></div>
 				<div class="doc-preview-content" style="display: none; max-height: 65vh; overflow: auto; border: 1px solid var(--border-color); border-radius: 8px; background: white;"></div>
@@ -827,9 +860,15 @@ class SVAGalleryComponent {
 					<div style="width: 72px; height: 72px; border-radius: 18px; background: var(--control-bg, #f4f5f6); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
 						<i class="${iconClass}" style="font-size: 32px; color: var(--text-muted);"></i>
 					</div>
-					<h5 style="margin-bottom: 4px; color: var(--text-color);">${frappe.utils.escape_html(frm.file_name)}</h5>
-					<p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">${__("Could not load spreadsheet preview")}</p>
-					<a href="${frappe.utils.escape_html(frm.file_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-default btn-sm">
+					<h5 style="margin-bottom: 4px; color: var(--text-color);">${frappe.utils.escape_html(
+						frm.file_name
+					)}</h5>
+					<p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">${__(
+						"Could not load spreadsheet preview"
+					)}</p>
+					<a href="${frappe.utils.escape_html(
+						frm.file_url
+					)}" target="_blank" rel="noopener noreferrer" class="btn btn-default btn-sm">
 						<i class="fa fa-external-link"></i> ${__("Open in New Tab")}
 					</a>
 				</div>
@@ -854,19 +893,43 @@ class SVAGalleryComponent {
 						const html = XLSX.utils.sheet_to_html(sheet, { editable: false });
 						$content.html(html);
 						// Style the generated table
-						$content.find("table").css({ "border-collapse": "collapse", width: "100%", "font-size": "13px" });
-						$content.find("td, th").css({ border: "1px solid #e2e2e2", padding: "6px 10px", "white-space": "nowrap" });
-						$content.find("th").css({ background: "#f8f9fa", "font-weight": "600", position: "sticky", top: "0", "z-index": "1" });
+						$content.find("table").css({
+							"border-collapse": "collapse",
+							width: "100%",
+							"font-size": "13px",
+						});
+						$content.find("td, th").css({
+							border: "1px solid #e2e2e2",
+							padding: "6px 10px",
+							"white-space": "nowrap",
+						});
+						$content.find("th").css({
+							background: "#f8f9fa",
+							"font-weight": "600",
+							position: "sticky",
+							top: "0",
+							"z-index": "1",
+						});
 					};
 
 					// Render sheet tabs if multiple sheets
 					if (workbook.SheetNames.length > 1) {
-						const tabsHtml = workbook.SheetNames.map((name, idx) =>
-							`<button class="btn btn-xs sheet-tab-btn ${idx === 0 ? "btn-primary" : "btn-default"}" data-sheet="${frappe.utils.escape_html(name)}" style="margin: 0 2px 4px; border-radius: 4px 4px 0 0;">${frappe.utils.escape_html(name)}</button>`
+						const tabsHtml = workbook.SheetNames.map(
+							(name, idx) =>
+								`<button class="btn btn-xs sheet-tab-btn ${
+									idx === 0 ? "btn-primary" : "btn-default"
+								}" data-sheet="${frappe.utils.escape_html(
+									name
+								)}" style="margin: 0 2px 4px; border-radius: 4px 4px 0 0;">${frappe.utils.escape_html(
+									name
+								)}</button>`
 						).join("");
 						$tabs.html(tabsHtml).show();
 						$tabs.find(".sheet-tab-btn").on("click", function () {
-							$tabs.find(".sheet-tab-btn").removeClass("btn-primary").addClass("btn-default");
+							$tabs
+								.find(".sheet-tab-btn")
+								.removeClass("btn-primary")
+								.addClass("btn-default");
 							$(this).removeClass("btn-default").addClass("btn-primary");
 							renderSheet($(this).data("sheet"));
 						});
@@ -892,7 +955,9 @@ class SVAGalleryComponent {
 			$preview = $(`<div class="img_preview" style="position: relative;">
 				<div class="doc-preview-loading" style="text-align: center; padding: 40px 0;">
 					<div class="spinner-border spinner-border-sm text-muted" role="status"></div>
-					<p style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">${__("Loading document preview...")}</p>
+					<p style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">${__(
+						"Loading document preview..."
+					)}</p>
 				</div>
 				<iframe
 					src="https://docs.google.com/gview?url=${encodedUrl}&embedded=true"
@@ -904,12 +969,16 @@ class SVAGalleryComponent {
 					<div style="width: 72px; height: 72px; border-radius: 18px; background: var(--control-bg, #f4f5f6); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
 						<i class="${iconClass}" style="font-size: 32px; color: var(--text-muted);"></i>
 					</div>
-					<h5 style="margin-bottom: 4px; color: var(--text-color);">${frappe.utils.escape_html(frm.file_name)}</h5>
+					<h5 style="margin-bottom: 4px; color: var(--text-color);">${frappe.utils.escape_html(
+						frm.file_name
+					)}</h5>
 					<span class="file-ext-badge ext-${file_extension}" style="display: inline-block; margin-bottom: 12px;">${extLabel}</span>
 					<p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
 						${__("Preview is not available for .{0} files. Please download to view.", [file_extension])}
 					</p>
-					<a href="${frappe.utils.escape_html(frm.file_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-default btn-sm">
+					<a href="${frappe.utils.escape_html(
+						frm.file_url
+					)}" target="_blank" rel="noopener noreferrer" class="btn btn-default btn-sm">
 						<i class="fa fa-external-link"></i> ${__("Open in New Tab")}
 					</a>
 				</div>
@@ -948,13 +1017,17 @@ class SVAGalleryComponent {
 			$preview = $(`<div class="img_preview">
 				<div class="text-preview-loading" style="text-align: center; padding: 20px 0;">
 					<div class="spinner-border spinner-border-sm text-muted" role="status"></div>
-					<p style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">${__("Loading file content...")}</p>
+					<p style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">${__(
+						"Loading file content..."
+					)}</p>
 				</div>
 				<pre class="text-preview-content" style="display: none; max-height: 70vh; overflow: auto; padding: 16px; background: #1e1e1e; color: #d4d4d4; border-radius: 8px; font-size: 13px; line-height: 1.5; white-space: pre-wrap; word-wrap: break-word;"></pre>
 				<div class="text-preview-error" style="display: none; text-align: center; padding: 40px 20px;">
 					<i class="fa fa-exclamation-triangle" style="font-size: 32px; color: var(--text-muted); margin-bottom: 12px;"></i>
 					<p style="color: var(--text-muted);">${__("Could not load file content")}</p>
-					<a href="${frappe.utils.escape_html(frm.file_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-default btn-sm mt-2">
+					<a href="${frappe.utils.escape_html(
+						frm.file_url
+					)}" target="_blank" rel="noopener noreferrer" class="btn btn-default btn-sm mt-2">
 						<i class="fa fa-external-link"></i> ${__("Open in New Tab")}
 					</a>
 				</div>
@@ -979,14 +1052,25 @@ class SVAGalleryComponent {
 					$wrapper.find(".text-preview-error").show();
 				});
 		} else {
-			$preview = $(`<div class="img_preview d-flex flex-column align-items-center justify-content-center" style="padding: 40px 20px;">
+			$preview =
+				$(`<div class="img_preview d-flex flex-column align-items-center justify-content-center" style="padding: 40px 20px;">
 				<div style="width: 72px; height: 72px; border-radius: 18px; background: var(--control-bg, #f4f5f6); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
-					<i class="${this.getFileIcon(file_extension)}" style="font-size: 32px; color: var(--text-muted);"></i>
+					<i class="${this.getFileIcon(
+						file_extension
+					)}" style="font-size: 32px; color: var(--text-muted);"></i>
 				</div>
-				<h5 style="margin-bottom: 4px; color: var(--text-color);">${frappe.utils.escape_html(frm.file_name)}</h5>
-				<span class="file-ext-badge ext-${file_extension}" style="display: inline-block; margin-bottom: 12px;">${(file_extension || "FILE").toUpperCase()}</span>
-				<p class="text-muted" style="font-size: 13px;">${__("Preview not available for this file type")}</p>
-				<a href="${frappe.utils.escape_html(frm.file_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-default btn-sm mt-2">
+				<h5 style="margin-bottom: 4px; color: var(--text-color);">${frappe.utils.escape_html(
+					frm.file_name
+				)}</h5>
+				<span class="file-ext-badge ext-${file_extension}" style="display: inline-block; margin-bottom: 12px;">${(
+					file_extension || "FILE"
+				).toUpperCase()}</span>
+				<p class="text-muted" style="font-size: 13px;">${__(
+					"Preview not available for this file type"
+				)}</p>
+				<a href="${frappe.utils.escape_html(
+					frm.file_url
+				)}" target="_blank" rel="noopener noreferrer" class="btn btn-default btn-sm mt-2">
 					<i class="fa fa-external-link"></i> ${__("Open in New Tab")}
 				</a>
 			</div>`);
