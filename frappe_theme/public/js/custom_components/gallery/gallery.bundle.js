@@ -710,7 +710,7 @@ class SVAGalleryComponent {
 		let file_extension = this._getFileExtension(frm);
 		let show_file = new frappe.ui.Dialog({
 			title: __("Preview File"),
-			size: "large",
+			size: "extra-large",
 			fields: [
 				{
 					fieldtype: "HTML",
@@ -732,6 +732,9 @@ class SVAGalleryComponent {
 			},
 		});
 		let $preview = "";
+		const officeExts = ["doc", "docx", "xls", "xlsx", "ppt", "pptx", "odt", "ods", "odp"];
+		const textExts = ["txt", "log", "json", "xml", "md", "css", "js", "py", "html", "yml", "yaml", "ini", "cfg", "conf", "sh", "bat"];
+
 		if (frappe.utils.is_image_file(frm.file_url)) {
 			$preview = $(`<div class="img_preview position-relative">
 				<img style="width: 100%; max-height:75vh;object-fit: contain;"
@@ -757,16 +760,235 @@ class SVAGalleryComponent {
 					>
 				</object>
 			</div>`);
-		} else if (file_extension === "mp3") {
+		} else if (file_extension === "mp3" || file_extension === "wav" || file_extension === "ogg") {
 			$preview = $(`<div class="img_preview d-flex justify-content-center">
 				<audio width="480" height="60" controls>
-					<source src="${frappe.utils.escape_html(frm.file_url)}" type="audio/mpeg">
+					<source src="${frappe.utils.escape_html(frm.file_url)}">
 					${__("Your browser does not support the audio element.")}
 				</audio >
 			</div>`);
+		} else if (file_extension === "docx") {
+			// DOCX preview using mammoth.js (client-side rendering)
+			const iconClass = this.getFileIcon(file_extension);
+			$preview = $(`<div class="img_preview">
+				<div class="doc-preview-loading" style="text-align: center; padding: 40px 0;">
+					<div class="spinner-border spinner-border-sm text-muted" role="status"></div>
+					<p style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">${__("Loading document preview...")}</p>
+				</div>
+				<div class="doc-preview-content" style="display: none; max-height: 70vh; overflow: auto; padding: 24px 32px; background: white; border: 1px solid var(--border-color); border-radius: 8px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 14px; line-height: 1.6; color: #333;"></div>
+				<div class="doc-preview-error" style="display: none; text-align: center; padding: 40px 20px;">
+					<div style="width: 72px; height: 72px; border-radius: 18px; background: var(--control-bg, #f4f5f6); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+						<i class="${iconClass}" style="font-size: 32px; color: var(--text-muted);"></i>
+					</div>
+					<h5 style="margin-bottom: 4px; color: var(--text-color);">${frappe.utils.escape_html(frm.file_name)}</h5>
+					<p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;" class="doc-error-msg">${__("Could not load document preview")}</p>
+					<a href="${frappe.utils.escape_html(frm.file_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-default btn-sm">
+						<i class="fa fa-external-link"></i> ${__("Open in New Tab")}
+					</a>
+				</div>
+			</div>`);
+
+			this._loadScript("https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js")
+				.then(() => fetch(frm.file_url))
+				.then((response) => {
+					if (!response.ok) throw new Error("Failed to fetch file");
+					return response.arrayBuffer();
+				})
+				.then((arrayBuffer) => mammoth.convertToHtml({ arrayBuffer }))
+				.then((result) => {
+					const $wrapper = show_file.get_field("preview_html").$wrapper;
+					$wrapper.find(".doc-preview-loading").hide();
+					const $content = $wrapper.find(".doc-preview-content");
+					$content.html(result.value);
+					// Style images inside the rendered doc to be responsive
+					$content.find("img").css({ "max-width": "100%", height: "auto" });
+					// Style tables inside the rendered doc
+					$content.find("table").css({ "border-collapse": "collapse", width: "100%" });
+					$content.find("td, th").css({ border: "1px solid #ddd", padding: "6px 10px" });
+					$content.show();
+				})
+				.catch((err) => {
+					console.error("DOCX preview error:", err);
+					const $wrapper = show_file.get_field("preview_html").$wrapper;
+					$wrapper.find(".doc-preview-loading").hide();
+					$wrapper.find(".doc-preview-error").show();
+				});
+		} else if (["xls", "xlsx", "csv"].includes(file_extension)) {
+			// Spreadsheet preview using SheetJS (client-side rendering)
+			const iconClass = this.getFileIcon(file_extension);
+			$preview = $(`<div class="img_preview">
+				<div class="doc-preview-loading" style="text-align: center; padding: 40px 0;">
+					<div class="spinner-border spinner-border-sm text-muted" role="status"></div>
+					<p style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">${__("Loading spreadsheet preview...")}</p>
+				</div>
+				<div class="sheet-tabs" style="display: none; margin-bottom: 8px; border-bottom: 1px solid var(--border-color); padding: 0 4px;"></div>
+				<div class="doc-preview-content" style="display: none; max-height: 65vh; overflow: auto; border: 1px solid var(--border-color); border-radius: 8px; background: white;"></div>
+				<div class="doc-preview-error" style="display: none; text-align: center; padding: 40px 20px;">
+					<div style="width: 72px; height: 72px; border-radius: 18px; background: var(--control-bg, #f4f5f6); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+						<i class="${iconClass}" style="font-size: 32px; color: var(--text-muted);"></i>
+					</div>
+					<h5 style="margin-bottom: 4px; color: var(--text-color);">${frappe.utils.escape_html(frm.file_name)}</h5>
+					<p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">${__("Could not load spreadsheet preview")}</p>
+					<a href="${frappe.utils.escape_html(frm.file_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-default btn-sm">
+						<i class="fa fa-external-link"></i> ${__("Open in New Tab")}
+					</a>
+				</div>
+			</div>`);
+
+			this._loadScript("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js")
+				.then(() => fetch(frm.file_url))
+				.then((response) => {
+					if (!response.ok) throw new Error("Failed to fetch file");
+					return response.arrayBuffer();
+				})
+				.then((arrayBuffer) => {
+					const workbook = XLSX.read(arrayBuffer, { type: "array" });
+					const $wrapper = show_file.get_field("preview_html").$wrapper;
+					$wrapper.find(".doc-preview-loading").hide();
+
+					const $content = $wrapper.find(".doc-preview-content");
+					const $tabs = $wrapper.find(".sheet-tabs");
+
+					const renderSheet = (sheetName) => {
+						const sheet = workbook.Sheets[sheetName];
+						const html = XLSX.utils.sheet_to_html(sheet, { editable: false });
+						$content.html(html);
+						// Style the generated table
+						$content.find("table").css({ "border-collapse": "collapse", width: "100%", "font-size": "13px" });
+						$content.find("td, th").css({ border: "1px solid #e2e2e2", padding: "6px 10px", "white-space": "nowrap" });
+						$content.find("th").css({ background: "#f8f9fa", "font-weight": "600", position: "sticky", top: "0", "z-index": "1" });
+					};
+
+					// Render sheet tabs if multiple sheets
+					if (workbook.SheetNames.length > 1) {
+						const tabsHtml = workbook.SheetNames.map((name, idx) =>
+							`<button class="btn btn-xs sheet-tab-btn ${idx === 0 ? "btn-primary" : "btn-default"}" data-sheet="${frappe.utils.escape_html(name)}" style="margin: 0 2px 4px; border-radius: 4px 4px 0 0;">${frappe.utils.escape_html(name)}</button>`
+						).join("");
+						$tabs.html(tabsHtml).show();
+						$tabs.find(".sheet-tab-btn").on("click", function () {
+							$tabs.find(".sheet-tab-btn").removeClass("btn-primary").addClass("btn-default");
+							$(this).removeClass("btn-default").addClass("btn-primary");
+							renderSheet($(this).data("sheet"));
+						});
+					}
+
+					renderSheet(workbook.SheetNames[0]);
+					$content.show();
+				})
+				.catch((err) => {
+					console.error("Spreadsheet preview error:", err);
+					const $wrapper = show_file.get_field("preview_html").$wrapper;
+					$wrapper.find(".doc-preview-loading").hide();
+					$wrapper.find(".doc-preview-error").show();
+				});
+		} else if (officeExts.includes(file_extension)) {
+			// Other office formats (doc, ppt, pptx, odt, etc.)
+			// Try Google Docs Viewer first, fallback to card after 15s
+			const fullUrl = new URL(frm.file_url, window.location.origin).href;
+			const encodedUrl = encodeURIComponent(fullUrl);
+			const iconClass = this.getFileIcon(file_extension);
+			const extLabel = (file_extension || "FILE").toUpperCase();
+
+			$preview = $(`<div class="img_preview" style="position: relative;">
+				<div class="doc-preview-loading" style="text-align: center; padding: 40px 0;">
+					<div class="spinner-border spinner-border-sm text-muted" role="status"></div>
+					<p style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">${__("Loading document preview...")}</p>
+				</div>
+				<iframe
+					src="https://docs.google.com/gview?url=${encodedUrl}&embedded=true"
+					style="width: 100%; height: 70vh; border: none; display: none;"
+					frameborder="0"
+					class="doc-preview-iframe"
+				></iframe>
+				<div class="doc-preview-fallback" style="display: none; text-align: center; padding: 40px 20px;">
+					<div style="width: 72px; height: 72px; border-radius: 18px; background: var(--control-bg, #f4f5f6); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+						<i class="${iconClass}" style="font-size: 32px; color: var(--text-muted);"></i>
+					</div>
+					<h5 style="margin-bottom: 4px; color: var(--text-color);">${frappe.utils.escape_html(frm.file_name)}</h5>
+					<span class="file-ext-badge ext-${file_extension}" style="display: inline-block; margin-bottom: 12px;">${extLabel}</span>
+					<p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+						${__("Preview is not available for .{0} files. Please download to view.", [file_extension])}
+					</p>
+					<a href="${frappe.utils.escape_html(frm.file_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-default btn-sm">
+						<i class="fa fa-external-link"></i> ${__("Open in New Tab")}
+					</a>
+				</div>
+			</div>`);
+
+			// Track whether iframe loaded successfully
+			let iframeLoaded = false;
+			const checkIframe = () => {
+				const $wrapper = show_file.get_field("preview_html").$wrapper;
+				const $iframe = $wrapper.find(".doc-preview-iframe");
+				const $loading = $wrapper.find(".doc-preview-loading");
+				const $fallback = $wrapper.find(".doc-preview-fallback");
+				if (!iframeLoaded) {
+					$loading.hide();
+					$iframe.hide();
+					$fallback.show();
+				}
+			};
+
+			// When iframe loads, show it and hide the spinner
+			setTimeout(() => {
+				const $wrapper = show_file.get_field("preview_html").$wrapper;
+				const iframe = $wrapper.find(".doc-preview-iframe")[0];
+				if (iframe) {
+					iframe.onload = function () {
+						iframeLoaded = true;
+						$wrapper.find(".doc-preview-loading").hide();
+						$(iframe).show();
+					};
+				}
+			}, 50);
+
+			// Fallback after 15 seconds if iframe didn't load
+			setTimeout(checkIframe, 15000);
+		} else if (textExts.includes(file_extension)) {
+			$preview = $(`<div class="img_preview">
+				<div class="text-preview-loading" style="text-align: center; padding: 20px 0;">
+					<div class="spinner-border spinner-border-sm text-muted" role="status"></div>
+					<p style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">${__("Loading file content...")}</p>
+				</div>
+				<pre class="text-preview-content" style="display: none; max-height: 70vh; overflow: auto; padding: 16px; background: #1e1e1e; color: #d4d4d4; border-radius: 8px; font-size: 13px; line-height: 1.5; white-space: pre-wrap; word-wrap: break-word;"></pre>
+				<div class="text-preview-error" style="display: none; text-align: center; padding: 40px 20px;">
+					<i class="fa fa-exclamation-triangle" style="font-size: 32px; color: var(--text-muted); margin-bottom: 12px;"></i>
+					<p style="color: var(--text-muted);">${__("Could not load file content")}</p>
+					<a href="${frappe.utils.escape_html(frm.file_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-default btn-sm mt-2">
+						<i class="fa fa-external-link"></i> ${__("Open in New Tab")}
+					</a>
+				</div>
+			</div>`);
+
+			// Fetch text content
+			fetch(frm.file_url)
+				.then((response) => {
+					if (!response.ok) throw new Error("Failed to fetch");
+					return response.text();
+				})
+				.then((text) => {
+					const $wrapper = show_file.get_field("preview_html").$wrapper;
+					$wrapper.find(".text-preview-loading").hide();
+					const $content = $wrapper.find(".text-preview-content");
+					$content.text(text.substring(0, 500000)); // Limit to 500K chars
+					$content.show();
+				})
+				.catch(() => {
+					const $wrapper = show_file.get_field("preview_html").$wrapper;
+					$wrapper.find(".text-preview-loading").hide();
+					$wrapper.find(".text-preview-error").show();
+				});
 		} else {
-			$preview = $(`<div class="img_preview d-flex justify-content-center">
-				<p class="text-muted">Preview not available for this file type</p>
+			$preview = $(`<div class="img_preview d-flex flex-column align-items-center justify-content-center" style="padding: 40px 20px;">
+				<div style="width: 72px; height: 72px; border-radius: 18px; background: var(--control-bg, #f4f5f6); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+					<i class="${this.getFileIcon(file_extension)}" style="font-size: 32px; color: var(--text-muted);"></i>
+				</div>
+				<h5 style="margin-bottom: 4px; color: var(--text-color);">${frappe.utils.escape_html(frm.file_name)}</h5>
+				<span class="file-ext-badge ext-${file_extension}" style="display: inline-block; margin-bottom: 12px;">${(file_extension || "FILE").toUpperCase()}</span>
+				<p class="text-muted" style="font-size: 13px;">${__("Preview not available for this file type")}</p>
+				<a href="${frappe.utils.escape_html(frm.file_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-default btn-sm mt-2">
+					<i class="fa fa-external-link"></i> ${__("Open in New Tab")}
+				</a>
 			</div>`);
 		}
 
@@ -774,6 +996,28 @@ class SVAGalleryComponent {
 			show_file.show();
 			show_file.get_field("preview_html").$wrapper.html($preview);
 		}
+	}
+
+	// ─── Script loader (for lazy-loading CDN libs) ─────────────────
+
+	_loadScript(src) {
+		// Return existing promise if already loading/loaded
+		if (!SVAGalleryComponent._scriptCache) SVAGalleryComponent._scriptCache = {};
+		if (SVAGalleryComponent._scriptCache[src]) return SVAGalleryComponent._scriptCache[src];
+
+		SVAGalleryComponent._scriptCache[src] = new Promise((resolve, reject) => {
+			// Check if script tag already exists
+			if (document.querySelector(`script[src="${src}"]`)) {
+				resolve();
+				return;
+			}
+			const script = document.createElement("script");
+			script.src = src;
+			script.onload = resolve;
+			script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
+			document.head.appendChild(script);
+		});
+		return SVAGalleryComponent._scriptCache[src];
 	}
 
 	// ─── Utility helpers ────────────────────────────────────────────
