@@ -51,6 +51,10 @@ def file_upload_to_cloud(doc, method):
 	parent_doctype = doc.attached_to_doctype or "File"
 	parent_name = doc.attached_to_name
 
+	# Skip folders or File docs that don't have an actual file on disk
+	if getattr(doc, "is_folder", 0) or not path:
+		return
+
 	if parent_doctype not in get_cloud_upload_exclusions(cloud_assets.cloud_asset_exclusion):
 		if not doc.is_private:
 			file_path = site_path + "/public" + path
