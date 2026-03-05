@@ -573,14 +573,20 @@ def save_field_comment(
 			if is_external and is_vendor:
 				frappe.throw(_("A comment cannot be marked for both NGO and Vendor simultaneously"))
 
-		existing_comments = frappe.get_all(
+		existing_open = frappe.get_all(
 			"DocType Field Comment",
-			filters={"doctype_name": doctype_name, "docname": docname, "field_name": field_name},
+			filters={
+				"doctype_name": doctype_name,
+				"docname": docname,
+				"field_name": field_name,
+				"status": "Open",
+			},
 			fields=["name"],
+			order_by="creation desc",
+			limit=1,
 		)
-
-		if existing_comments:
-			comment_doc = frappe.get_doc("DocType Field Comment", existing_comments[0].name)
+		if existing_open:
+			comment_doc = frappe.get_doc("DocType Field Comment", existing_open[0].name)
 		else:
 			comment_doc = frappe.get_doc(
 				{
@@ -589,7 +595,7 @@ def save_field_comment(
 					"docname": docname,
 					"field_name": field_name,
 					"field_label": field_label,
-					"status": status,
+					"status": "Open",
 				}
 			)
 			comment_doc.insert(ignore_permissions=True)

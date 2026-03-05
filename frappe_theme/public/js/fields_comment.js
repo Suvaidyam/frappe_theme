@@ -230,11 +230,12 @@ function refreshSummaryContainer(frm) {
 				card.on("click", function () {
 					const fieldName = sc.field_name;
 
-					// Try to find the section already rendered in the global list
-					const target = $(".comments-list .field-comment-section").filter(function () {
-						const h5Text = $(this).find("h5").first().text().trim();
-						return h5Text.startsWith(fieldLabel) || h5Text.includes(fieldLabel);
-					});
+					// Match by data-fieldname — not label text (avoids duplicate label matches)
+					const target = $(".comments-list .field-comment-section")
+						.filter(function () {
+							return $(this).data("fieldname") === sc.field_name;
+						})
+						.first();
 
 					if (target.length) {
 						const container = $(".comments-container");
@@ -348,7 +349,57 @@ function load_field_comments(fieldName, field, frm) {
                 `);
 
 				field_section.find(".new-thread-btn").click(() => {
-					create_new_comment_thread(fieldName, field, frm);
+					field_section.find(".new-thread-btn").hide();
+					// Create a real DB thread so the new comment saves to it correctly
+					frappe.call({
+						method: "frappe_theme.api.create_new_comment_thread",
+						args: {
+							doctype_name: frm.doctype,
+							docname: frm.docname,
+							field_name: fieldName,
+							field_label: field.df.label || fieldName,
+						},
+						callback: function (response) {
+							if (!response.message) return;
+							const newThreadName = response.message;
+							const new_thread_section = $(`
+								<div class="thread-section" style="margin-bottom: 20px; padding: 15px; border-radius: 8px; background: var(--fg-color); border: 1px solid var(--border-color);">
+									<div class="field-comments">
+										<div style="display: flex; justify-content: center; align-items: center; height: 100px;">
+											<div class="text-muted" style="text-align: center;">
+												<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-chat-square-text" viewBox="0 0 16 16" style="margin-bottom: 10px;">
+													<path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-2.5a2 2 0 0 0-1.6.8L8 14.333 6.1 11.8a2 2 0 0 0-1.6-.8H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2.5a1 1 0 0 1 .8.4l1.9 2.533a1 1 0 0 0 1.6 0l1.9-2.533a1 1 0 0 1 .8-.4H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+													<path d="M3 3.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zM3 6a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9A.5.5 0 0 1 3 6zm0 2.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5z"/>
+												</svg>
+												<div>No comments yet</div>
+											</div>
+										</div>
+									</div>
+									<div class="comment-input" style="margin-top: 15px;">
+										<div style="display: flex; align-items: center;">
+											<div style="flex-grow: 1; display: flex; align-items: center; border: 1px solid var(--border-color); border-radius: 20px; padding: 3px 6px; background-color: var(--control-bg); box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+												<div class="comment-box" style="flex-grow: 1; min-height: 24px; margin-right: 8px;"></div>
+											</div>
+										</div>
+									</div>
+								</div>
+							`);
+							// Insert before existing threads so new thread is at top
+							field_section.find(".threads-container").prepend(new_thread_section);
+							check_comment_permissions().then((permissions) => {
+								if (permissions.includes("create")) {
+									initializeCommentControl(
+										new_thread_section,
+										fieldName,
+										field,
+										get_comment_html,
+										newThreadName
+									);
+									new_thread_section.find(".comment-input").show();
+								}
+							});
+						},
+					});
 				});
 
 				if (response.message && response.message.threads) {
@@ -589,6 +640,11 @@ function load_all_comments(frm) {
 					return;
 				}
 
+				// Filter out fields that have no comments at all (e.g. empty threads)
+				fieldsToShow = fieldsToShow.filter(
+					(data) => data.comments && data.comments.length > 0
+				);
+
 				fieldsToShow.forEach((data) => {
 					let fields = [
 						...frm.fields.map((f) => ({ ...f, variant: "field" })),
@@ -598,7 +654,9 @@ function load_all_comments(frm) {
 					if (!field) return;
 
 					const field_section = $(`
-                        <div class="field-comment-section" style="margin-bottom: 25px; padding: 15px; border-radius: 12px; border: none; box-shadow: none;">
+                        <div class="field-comment-section" data-fieldname="${
+							data.field_name
+						}" style="margin-bottom: 25px; padding: 15px; border-radius: 12px; border: none; box-shadow: none;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
                                 <h5 style="margin: 0; font-size: 15px;">
                                   ${data.field_label || data.field_name}
@@ -910,7 +968,7 @@ function initializeCommentControl(field_section, fieldName, field, get_comment_h
 			// Build footer: single row with all checkboxes + button row
 			const footer = $(`
 				<div class="comment-action-container" style="margin-top: 8px; padding: 0 4px;">
-					<div class="comment-rows-wrap" style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px;flex-wrap: wrap;"></div>
+					<div class="comment-rows-wrap" style="display: flex; align-items: center; gap: 4px; margin-bottom: 8px;"></div>
 					<div style="display: flex; justify-content: flex-end;"></div>
 				</div>
 			`);
@@ -1028,25 +1086,24 @@ function initializeCommentControl(field_section, fieldName, field, get_comment_h
 							});
 						}
 
-						const isAllCommentsView =
-							$(".field-comments-sidebar").find(".comments-list").children().length >
-							1;
+						// Use current_field_context: null = global view, set = field-level view
+						const isAllCommentsView = current_field_context === null;
 						if (isAllCommentsView) {
 							load_all_comments(field.frm).then(() => {
 								updateTotalCommentCount(field.frm);
-								refreshSummaryContainer(field.frm); // ─── NEW ───
+								refreshSummaryContainer(field.frm);
 							});
 						} else {
 							load_field_comments(fieldName, field, field.frm).then(() => {
 								updateCommentCount(fieldName, field.frm);
 								updateTotalCommentCount(field.frm);
-								refreshSummaryContainer(field.frm); // ─── NEW ───
+								refreshSummaryContainer(field.frm);
 							});
 						}
 
 						setTimeout(() => {
 							updateTotalCommentCount(field.frm);
-							refreshSummaryContainer(field.frm); // ─── NEW ───
+							refreshSummaryContainer(field.frm);
 						}, 500);
 					} else {
 						console.error("Error saving comment:", response);
