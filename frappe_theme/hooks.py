@@ -149,7 +149,10 @@ after_migrate = "frappe_theme.setup.migration.after_migrate"
 # ---------------
 # Override standard doctype classes
 
-override_doctype_class = {"Report": "frappe_theme.overrides.report.CustomReport"}
+override_doctype_class = {
+	"Report": "frappe_theme.overrides.report.CustomReport",
+	"Customize Form": "frappe_theme.overrides.customize_form.SVACustomizeForm",
+}
 
 # Document Events
 # ---------------
