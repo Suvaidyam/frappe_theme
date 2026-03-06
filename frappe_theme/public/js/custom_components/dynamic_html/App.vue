@@ -33,8 +33,8 @@ export default {
 		const error = ref("");
 		const htmlContent = ref(props.html || "");
 		const observer = ref(null);
+		const extraParams = ref({});
 		const messageHandler = (e) => {
-			// Accept resize messages from the iframe content
 			try {
 				if (!iframeEl.value || e.source !== iframeEl.value.contentWindow) return;
 				const data = e.data || {};
@@ -45,6 +45,15 @@ export default {
 				) {
 					setIframeHeight(data.height);
 				}
+				// Handle refetch requests from iframe (e.g. filter changes)
+				if (data && data.type === "dynamic-html:refetch") {
+					extraParams.value = data.params || {};
+					fetchHtml();
+				}
+				// Handle download requests from iframe
+				if (data && data.type === "dynamic-html:download" && data.url) {
+					window.open(data.url, "_blank");
+				}
 			} catch {}
 		};
 
@@ -52,7 +61,9 @@ export default {
 			// Security: never combine allow-scripts with allow-same-origin to prevent potential sandbox escape.
 			// Scripts allowed => keep opaque origin (no allow-same-origin).
 			// Scripts not allowed => most restrictive (no tokens).
-			return props.allowScripts ? "allow-scripts" : "";
+			return props.allowScripts
+				? "allow-scripts allow-popups allow-popups-to-escape-sandbox"
+				: "";
 		});
 
 		const srcdoc = computed(() => {
@@ -70,7 +81,8 @@ export default {
 			error.value = "";
 			try {
 				const response = await frappe.xcall(props.connection.endpoint, {
-					doc: props.frm?.doc,
+					doc: props.frm.doc,
+					...extraParams.value,
 				});
 				htmlContent.value = response;
 			} catch (e) {

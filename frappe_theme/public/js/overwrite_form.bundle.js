@@ -36,6 +36,7 @@ import FilterRibbon from "./custom_components/filters_ribbon.bundle.js";
 import SVASDGWheel from "./custom_components/sdg_wheel.bundle.js";
 // Vue components
 import NumberCardSkeleton from "./vue/sva_card/components/Skeleton.vue";
+import ChartPlaceholder from "./vue/sva_chart/components/Placeholder.vue";
 import ChartSkeleton from "./vue/sva_chart/components/Skeleton.vue";
 import { h, createApp } from "vue";
 
@@ -162,7 +163,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 		}
 	}
 	custom_onload_post_render(frm) {
-		this.goToCommentButton(frm);
+		// 	this.goToCommentButton(frm);
 	}
 	async custom_refresh(frm) {
 		try {
@@ -175,7 +176,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			// 	}
 			// });
 			setupFieldComments(frm);
-			this.goToCommentButton(frm);
+			// this.goToCommentButton(frm);
 			if (frm.doctype == "DocType") {
 				frm.add_custom_button("Set Property", () => {
 					this.set_properties(frm.doc.name);
@@ -854,26 +855,29 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					}
 				}
 				break;
-			case "Number Card":
+			case "Number Card": {
 				if (field.sva_ft.number_card) {
 					createApp({
 						render: () => h(NumberCardSkeleton),
 					}).mount(wrapper);
-					let card_doc = await frappe.db.get_doc(
-						"Number Card",
-						field.sva_ft.number_card
+
+					let card_settings_data = await frappe.xcall(
+						"frappe_theme.dt_api.check_card_permissions_and_settings",
+						{
+							number_card_name: field.sva_ft.number_card,
+						}
 					);
-					if (card_doc.type == "Report" && card_doc.report_name) {
-						card_doc.report = await frappe.db.get_doc("Report", card_doc.report_name);
-					}
 					let item = {
 						html_field: field.fieldname,
 						fetch_from: "Number Card",
 						number_card: field.sva_ft.number_card,
-						card_label: field.sva_ft.label || card_doc.label || "Untitled",
-						details: card_doc,
+						card_label:
+							field.sva_ft.label ||
+							card_settings_data?.number_card?.label ||
+							"Untitled",
+						details: card_settings_data?.number_card,
 						listview_settings: field.sva_ft.listview_settings || null,
-						report: card_doc.report || null,
+						report: card_settings_data?.report || null,
 						icon_value: field.sva_ft.icon || null,
 						icon_color: field.sva_ft.icon_color || null,
 						background_color: field.sva_ft.background_color || null,
@@ -883,6 +887,10 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 						text_color: field.sva_ft.text_color || null,
 						value_color: field.sva_ft.value_color || null,
 						border_color: field.sva_ft.border_color || null,
+						is_permitted:
+							card_settings_data?.permitted ||
+							field.sva_ft.fetch_from == "DocField" ||
+							!frm.meta?.is_dashboard,
 					};
 					let { _wrapper, ref } = new SVADashboardManager({
 						wrapper,
@@ -894,24 +902,30 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					wrapper._dashboard = _wrapper;
 				}
 				break;
-
-			case "Dashboard Chart":
+			}
+			case "Dashboard Chart": {
 				if (field.sva_ft.chart) {
 					createApp({
 						render: () => h(ChartSkeleton),
 					}).mount(wrapper);
-					let chart_doc = await frappe.db.get_doc("Dashboard Chart", field.sva_ft.chart);
-					let report_doc = null;
-					if (chart_doc.chart_type === "Report" && chart_doc.report_name) {
-						report_doc = await frappe.db.get_doc("Report", chart_doc.report_name);
-					}
+
+					let chart_settings_data = await frappe.xcall(
+						"frappe_theme.dt_api.check_chart_permissions_and_settings",
+						{
+							chart_name: field.sva_ft.chart,
+						}
+					);
 					let item = {
 						...field.sva_ft,
 						fetch_from: "Dashboard Chart",
-						chart_label: field.sva_ft.label || chart_doc.chart_name,
-						details: chart_doc,
-						report: report_doc,
+						chart_label:
+							field.sva_ft.label ||
+							chart_settings_data?.chart?.chart_name ||
+							"Untitled",
+						details: chart_settings_data?.chart,
+						report: chart_settings_data?.report || null,
 						html_field: field.fieldname,
+						is_permitted: chart_settings_data?.permitted || !frm.meta?.is_dashboard,
 					};
 					let { _wrapper, ref } = new SVADashboardManager({
 						wrapper,
@@ -923,6 +937,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					wrapper._dashboard = _wrapper;
 				}
 				break;
+			}
 			case "DocType (Direct)":
 			case "DocType (Indirect)":
 			case "DocType (Referenced)":
@@ -941,15 +956,37 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					await this.renderSavedFormContent(field.sva_ft, frm, field.sva_ft, signal);
 				}
 				break;
-			case "Heatmap (India Map)":
+			case "Heatmap (India Map)": {
 				field.sva_ft["report"] = field.sva_ft["heatmap_report"];
-				frm.sva_ft_instances[field.fieldname] = new SVAHeatmap({
-					wrapper: $(wrapper),
-					...(field?.sva_ft || {}),
-					html_field: field.fieldname,
-					frm,
-				});
+				let heatmap_settings_data = await frappe.xcall(
+					"frappe_theme.dt_api.check_list_permissions",
+					{
+						doctype: field.sva_ft.heatmap_report,
+						_type: "Report",
+					}
+				);
+				if (frm.meta?.is_dashboard ? heatmap_settings_data?.permitted : true) {
+					frm.sva_ft_instances[field.fieldname] = new SVAHeatmap({
+						wrapper: $(wrapper),
+						...(field?.sva_ft || {}),
+						html_field: field.fieldname,
+						frm,
+					});
+				} else {
+					let placeholder = createApp({
+						render: () =>
+							h(ChartPlaceholder, {
+								label:
+									field.sva_ft.label ||
+									field.sva_ft.heatmap_report ||
+									"Heatmap Label",
+							}),
+					});
+					placeholder.config.globalProperties.frappe = frappe;
+					placeholder.mount(wrapper);
+				}
 				break;
+			}
 			case "Carousel":
 				frm.sva_ft_instances[field.fieldname] = new SVACarousel({
 					wrapper: $(wrapper),
@@ -958,14 +995,36 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					frm,
 				});
 				break;
-			case "SDG Wheel":
-				frm.sva_ft_instances[field.fieldname] = new SVASDGWheel({
-					wrapper: wrapper,
-					conf: field?.sva_ft || {},
-					html_field: field.fieldname,
-					frm,
-				});
+			case "SDG Wheel": {
+				let sdg_wheel_settings_data = await frappe.xcall(
+					"frappe_theme.dt_api.check_list_permissions",
+					{
+						doctype: field.sva_ft.sdg_report,
+						_type: "Report",
+					}
+				);
+				if (frm.meta?.is_dashboard ? sdg_wheel_settings_data?.permitted : true) {
+					frm.sva_ft_instances[field.fieldname] = new SVASDGWheel({
+						wrapper: wrapper,
+						conf: field?.sva_ft || {},
+						html_field: field.fieldname,
+						frm,
+					});
+				} else {
+					let placeholder = createApp({
+						render: () =>
+							h(ChartPlaceholder, {
+								label:
+									field.sva_ft.label ||
+									field.sva_ft.sdg_report ||
+									"SDG Wheel Label",
+							}),
+					});
+					placeholder.config.globalProperties.frappe = frappe;
+					placeholder.mount(wrapper);
+				}
 				break;
+			}
 		}
 	};
 	async initializeDashboards(dts, frm, currentTabFields, signal) {
@@ -1112,21 +1171,21 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 		}
 	};
 
-	goToCommentButton = (frm) => {
-		const buttonHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chat" viewBox="0 0 16 16">
-            <path d="M2.678 11.894a1 1 0 0 1 .287.801 11 11 0 0 1-.398 2c1.395-.323 2.247-.697 2.634-.893a1 1 0 0 1 .71-.074A8 8 0 0 0 8 14c3.996 0 7-2.807 7-6s-3.004-6-7-6-7 2.808-7 6c0 1.468.617 2.83 1.678 3.894m-.493 3.905a22 22 0 0 1-.713.129c-.2.032-.352-.176-.273-.362a10 10 0 0 0 .244-.637l.003-.01c.248-.72.45-1.548.524-2.319C.743 11.37 0 9.76 0 8c0-3.866 3.582-7 8-7s8 3.134 8 7-3.582 7-8 7a9 9 0 0 1-2.347-.306c-.52.263-1.639.742-3.468 1.105"/>
-        </svg>`;
-		frappe.db.get_single_value("My Theme", "hide_form_comment").then((value) => {
-			if (value) {
-				frm.remove_custom_button(buttonHTML);
-			} else {
-				frm.add_custom_button(buttonHTML, () => {
-					let commentSection = $(frm.$wrapper).find(".form-footer");
-					commentSection?.get(0).scrollIntoView({ behavior: "smooth", block: "center" });
-				});
-			}
-		});
-	};
+	// goToCommentButton = (frm) => {
+	// 	const buttonHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chat" viewBox="0 0 16 16">
+	//         <path d="M2.678 11.894a1 1 0 0 1 .287.801 11 11 0 0 1-.398 2c1.395-.323 2.247-.697 2.634-.893a1 1 0 0 1 .71-.074A8 8 0 0 0 8 14c3.996 0 7-2.807 7-6s-3.004-6-7-6-7 2.808-7 6c0 1.468.617 2.83 1.678 3.894m-.493 3.905a22 22 0 0 1-.713.129c-.2.032-.352-.176-.273-.362a10 10 0 0 0 .244-.637l.003-.01c.248-.72.45-1.548.524-2.319C.743 11.37 0 9.76 0 8c0-3.866 3.582-7 8-7s8 3.134 8 7-3.582 7-8 7a9 9 0 0 1-2.347-.306c-.52.263-1.639.742-3.468 1.105"/>
+	//     </svg>`;
+	// 	frappe.db.get_single_value("My Theme", "hide_form_comment").then((value) => {
+	// 		if (value) {
+	// 			frm.remove_custom_button(buttonHTML);
+	// 		} else {
+	// 			frm.add_custom_button(buttonHTML, () => {
+	// 				let commentSection = $(frm.$wrapper).find(".form-footer");
+	// 				commentSection?.get(0).scrollIntoView({ behavior: "smooth", block: "center" });
+	// 			});
+	// 		}
+	// 	});
+	// };
 
 	clearPreviousComponents() {
 		try {
