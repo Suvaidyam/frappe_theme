@@ -52,13 +52,7 @@ export default {
 				}
 				// Handle download requests from iframe
 				if (data && data.type === "dynamic-html:download" && data.url) {
-					const a = document.createElement("a");
-					a.href = data.url;
-					a.download = "";
-					a.style.display = "none";
-					document.body.appendChild(a);
-					a.click();
-					document.body.removeChild(a);
+					window.open(data.url, "_blank");
 				}
 			} catch {}
 		};
@@ -87,7 +81,7 @@ export default {
 			error.value = "";
 			try {
 				const response = await frappe.xcall(props.connection.endpoint, {
-					doc: props.frm?.doc,
+					doc: props.frm.doc,
 					...extraParams.value,
 				});
 				htmlContent.value = response;
