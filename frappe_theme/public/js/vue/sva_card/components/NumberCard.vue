@@ -43,7 +43,7 @@ import { ref, onMounted, inject, computed } from "vue";
 
 const loading = ref(true);
 const data = ref({});
-const showCard = ref(false);
+const showCard = ref(true);
 
 const props = defineProps({
 	card: {
@@ -285,7 +285,9 @@ onMounted(async () => {
 	// Initial delay based on card position
 	setTimeout(async () => {
 		showCard.value = props.card.is_permitted ? true : false;
-		await getCount();
+		if (showCard.value) {
+			await getCount();
+		}
 	}, props.delay);
 });
 
