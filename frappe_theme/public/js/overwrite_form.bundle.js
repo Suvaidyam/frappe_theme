@@ -1096,8 +1096,8 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					field?.connection_type === "Is Custom Design"
 						? field?.template
 						: ["Direct", "Unfiltered", "Indirect"].includes(field.connection_type)
-							? field.link_doctype
-							: field.referenced_link_doctype
+						? field.link_doctype
+						: field.referenced_link_doctype
 				)} items`
 			);
 			element.innerHTML = `
