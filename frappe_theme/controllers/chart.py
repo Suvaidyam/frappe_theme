@@ -15,7 +15,7 @@ from frappe_theme.controllers.filters import DTFilters
 
 class Chart:
 	@staticmethod
-	def check_chart_permissions_and_settings(chart_name: str, parent_dt_name: str | None) -> dict:
+	def check_chart_permissions_and_settings(chart_name: str, parent_dt_name: str | None = None) -> dict:
 		"""Check if the user has permission to view the dashboard chart."""
 		response = {"permitted": False, "chart": None, "report": None, "message": ""}
 		try:
@@ -111,7 +111,7 @@ class Chart:
 		updated_charts = []
 
 		for chart in visible_charts:
-			result = Chart.check_chart_permissions_and_settings(chart.dashboard_chart)
+			result = Chart.check_chart_permissions_and_settings(chart.dashboard_chart, chart.parent)
 			chart["details"] = result["chart"]
 			chart["is_permitted"] = result["permitted"]
 			chart["report"] = result["report"]

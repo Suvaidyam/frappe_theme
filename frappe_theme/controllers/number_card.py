@@ -16,7 +16,7 @@ class NumberCard:
 	}
 
 	@staticmethod
-	def check_card_permissions_and_settings(number_card_name: str, parent_dt_name: str | None) -> dict:
+	def check_card_permissions_and_settings(number_card_name: str, parent_dt_name: str | None = None) -> dict:
 		"""Check if the user has permission to view the number card."""
 		response = {"permitted": False, "number_card": None, "report": None, "message": ""}
 		try:
