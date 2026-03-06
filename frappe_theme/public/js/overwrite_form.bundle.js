@@ -888,9 +888,9 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 						value_color: field.sva_ft.value_color || null,
 						border_color: field.sva_ft.border_color || null,
 						is_permitted:
-							card_settings_data?.permitted || field.sva_ft.fetch_from == "DocField"
-								? true
-								: false,
+							card_settings_data?.permitted ||
+							field.sva_ft.fetch_from == "DocField" ||
+							!frm.meta?.is_dashboard,
 					};
 					let { _wrapper, ref } = new SVADashboardManager({
 						wrapper,
@@ -925,7 +925,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 						details: chart_settings_data?.chart,
 						report: chart_settings_data?.report || null,
 						html_field: field.fieldname,
-						is_permitted: chart_settings_data?.permitted || false,
+						is_permitted: chart_settings_data?.permitted || !frm.meta?.is_dashboard,
 					};
 					let { _wrapper, ref } = new SVADashboardManager({
 						wrapper,
@@ -965,7 +965,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 						_type: "Report",
 					}
 				);
-				if (!heatmap_settings_data?.permitted) {
+				if (frm.meta?.is_dashboard ? heatmap_settings_data?.permitted : true) {
 					frm.sva_ft_instances[field.fieldname] = new SVAHeatmap({
 						wrapper: $(wrapper),
 						...(field?.sva_ft || {}),
@@ -1003,7 +1003,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 						_type: "Report",
 					}
 				);
-				if (sdg_wheel_settings_data?.permitted) {
+				if (frm.meta?.is_dashboard ? sdg_wheel_settings_data?.permitted : true) {
 					frm.sva_ft_instances[field.fieldname] = new SVASDGWheel({
 						wrapper: wrapper,
 						conf: field?.sva_ft || {},

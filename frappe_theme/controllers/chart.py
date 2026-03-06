@@ -15,10 +15,15 @@ from frappe_theme.controllers.filters import DTFilters
 
 class Chart:
 	@staticmethod
-	def check_chart_permissions_and_settings(chart_name: str) -> dict:
+	def check_chart_permissions_and_settings(chart_name: str, parent_dt_name: str | None) -> dict:
 		"""Check if the user has permission to view the dashboard chart."""
 		response = {"permitted": False, "chart": None, "report": None, "message": ""}
 		try:
+			is_dashboard = False
+			if parent_dt_name:
+				meta = frappe.get_meta(parent_dt_name)
+				is_dashboard = meta and meta.get("is_dashboard", False)
+
 			if not frappe.has_permission("Dashboard Chart", "read", chart_name):
 				response["message"] = "You do not have permission to view this Dashboard Chart"
 				return response
@@ -33,7 +38,7 @@ class Chart:
 					return response
 				report = frappe.get_cached_doc("Report", chart.report_name)
 				response["report"] = report
-				response["permitted"] = True if report.is_permitted() else False
+				response["permitted"] = True if (report.is_permitted() or not is_dashboard) else False
 			elif chart.chart_type == "Document Type":
 				response["permitted"] = True if frappe.has_permission(chart.document_type, "read") else False
 			return response

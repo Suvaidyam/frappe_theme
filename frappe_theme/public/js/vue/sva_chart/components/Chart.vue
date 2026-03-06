@@ -126,7 +126,7 @@ const props = defineProps({
 });
 
 const loading = ref(true);
-const showChart = ref(false);
+const showChart = ref(true);
 const data = ref({
 	labels: [],
 	datasets: [{ data: [] }],
@@ -538,7 +538,9 @@ onMounted(async () => {
 	// Initial delay based on card position
 	setTimeout(async () => {
 		showChart.value = props?.chart?.is_permitted ? true : false;
-		await getCount();
+		if (showChart.value) {
+			await getCount();
+		}
 	}, props.delay);
 });
 </script>
