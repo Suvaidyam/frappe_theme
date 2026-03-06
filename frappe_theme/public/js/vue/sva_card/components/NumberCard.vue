@@ -106,11 +106,34 @@ const handleAction = async (action) => {
 		let loader = new Loader(wrapper);
 		loader.show();
 
+		let pre_filters = {};
+		if (props.frm) {
+			if (
+				props.frm?.["dt_events"]?.[props?.card?.details?.name]?.get_filters ||
+				props.frm?.["dt_events"]?.[props?.card?.html_field]?.get_filters
+			) {
+				let get_filters =
+					props.frm?.["dt_events"]?.[props?.card?.details?.name]?.get_filters ||
+					props.frm?.["dt_events"]?.[props?.card?.html_field]?.get_filters;
+				pre_filters =
+					(await get_filters(
+						props?.card?.details,
+						props.frm || {},
+						props?.card?.html_field
+					)) || {};
+			}
+		}
+
 		let table_options = {
 			label: "",
 			wrapper,
 			doctype: "",
-			frm: props.frm || cur_frm,
+			frm: Object.assign(
+				{
+					dt_events: {},
+				},
+				props.frm || cur_frm
+			),
 			connection: {
 				crud_permissions: JSON.stringify(["read"]),
 			},
@@ -138,6 +161,13 @@ const handleAction = async (action) => {
 					props.card.details?.report_field,
 				];
 			}
+			table_options.frm.dt_events = {
+				[props.card.details?.report_name]: {
+					get_filters: () => {
+						return { ...(props.filters || {}), ...pre_filters };
+					},
+				},
+			};
 			table_options.connection["connection_type"] = "Report";
 		} else if (props.card?.details?.type == "Document Type") {
 			table_options.doctype = props.card.details?.document_type;
@@ -154,6 +184,13 @@ const handleAction = async (action) => {
 			} else {
 				table_options.connection["connection_type"] = "Unfiltered";
 			}
+			table_options.frm.dt_events = {
+				[props.card.details?.document_type]: {
+					get_filters: () => {
+						return { ...(props.filters || {}) };
+					},
+				},
+			};
 		}
 
 		let dialog = new frappe.ui.Dialog({
