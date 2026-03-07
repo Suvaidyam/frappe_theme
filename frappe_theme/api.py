@@ -247,201 +247,6 @@ def get_timeline_dt(dt, dn):
 	return [row["doctype"] for row in result]
 
 
-# @frappe.whitelist()
-# def copy_role_perms(doc):
-#     # Parse the doc parameter if it's a string
-#     if isinstance(doc, str):
-#         doc = frappe.parse_json(doc)
-
-#     # Get all existing Custom DocPerm records for the source role
-#     existing_perms = frappe.get_all('Custom DocPerm',
-#                     filters={
-#                         'role': doc.get('role_from'),
-#                         'permlevel': 0,
-#                     },
-#                     fields=['name', 'parent'],
-#                     ignore_permissions=True
-#                 )
-
-#     # Check if records with role_to already exist
-#     existing_role_to_perms = frappe.get_all('Custom DocPerm',
-#                     filters={
-#                         'role': doc.get('role_to'),
-#                         'permlevel': 0,
-#                     },
-#                     fields=['name', 'parent'],
-#                     ignore_permissions=True
-#                 )
-
-#     records_updated = 0
-#     records_created = 0
-
-#     # Create a dictionary of existing doctypes for role_to for faster lookup
-#     existing_doctypes = {perm.parent: perm.name for perm in existing_role_to_perms}
-
-#     # Process each permission from the source role
-#     for perm in existing_perms:
-#         # Get the full document for the permission
-#         source_perm = frappe.get_doc('Custom DocPerm', perm.name)
-
-#         # Get common permissions between source_perm and doc
-#         common_permissions = get_common_permissions(source_perm, doc)
-
-#         # Check if this doctype already has a permission for role_to
-#         if perm.parent in existing_doctypes:
-#             # Get the existing permission for role_to with the same parent
-#             target_perm_name = existing_doctypes[perm.parent]
-#             target_perm_doc = frappe.get_doc('Custom DocPerm', target_perm_name)
-
-#             # Update the permission values based on common permissions
-#             apply_common_permissions(target_perm_doc, common_permissions)
-
-#             # Only save if there are common permissions to apply
-#             if common_permissions:
-#                 target_perm_doc.save()
-#                 records_updated += 1
-#         else:
-#             # Create a new permission with role_to
-#             new_perm = frappe.get_doc('Custom DocPerm', perm.name)
-#             new_perm.role = doc.get('role_to')
-
-#             # Copy parent from the original permission
-#             new_perm.parent = perm.parent
-
-#             # Apply common permissions
-#             apply_common_permissions(new_perm, common_permissions)
-
-#             # Only insert if there are common permissions to apply
-#             if common_permissions:
-#                 new_perm.insert()
-#                 records_created += 1
-
-#     # Create redirect link
-#     redirect_link = f'<a href="/app/custom-docperm" class="">View Permissions</a>'
-
-#     # Show appropriate message with redirect link
-#     if records_updated > 0 and records_created > 0:
-#         frappe.msgprint(f"{records_updated} permissions updated and {records_created} permissions created successfully {redirect_link}")
-#     elif records_updated > 0:
-#         frappe.msgprint(f"{records_updated} permissions updated successfully {redirect_link}")
-#     elif records_created > 0:
-#         frappe.msgprint(f"{records_created} permissions created successfully {redirect_link}")
-#     else:
-#         frappe.msgprint(f"No permissions were updated or created")
-
-#     return True
-
-# def get_common_permissions(source_perm, doc):
-#     """Get common permissions between source_perm and doc"""
-#     common_permissions = {}
-
-#     # Check each permission field
-#     if 'select' in doc and int(doc.get('select', 0)) == int(source_perm.select):
-#         common_permissions['select'] = int(doc.get('select', 0))
-#     if 'read' in doc and int(doc.get('read', 0)) == int(source_perm.read):
-#         common_permissions['read'] = int(doc.get('read', 0))
-#     if 'write' in doc and int(doc.get('write', 0)) == int(source_perm.write):
-#         common_permissions['write'] = int(doc.get('write', 0))
-#     if 'create' in doc and int(doc.get('create', 0)) == int(source_perm.create):
-#         common_permissions['create'] = int(doc.get('create', 0))
-#     if 'delete_to' in doc and int(doc.get('delete_to', 0)) == int(source_perm.delete):
-#         common_permissions['delete'] = int(doc.get('delete_to', 0))
-#     if 'submit_to' in doc and int(doc.get('submit_to', 0)) == int(source_perm.submit):
-#         common_permissions['submit'] = int(doc.get('submit_to', 0))
-#     if 'cancel_to' in doc and int(doc.get('cancel_to', 0)) == int(source_perm.cancel):
-#         common_permissions['cancel'] = int(doc.get('cancel_to', 0))
-#     if 'amend' in doc and int(doc.get('amend', 0)) == int(source_perm.amend):
-#         common_permissions['amend'] = int(doc.get('amend', 0))
-#     if 'report' in doc and int(doc.get('report', 0)) == int(source_perm.report):
-#         common_permissions['report'] = int(doc.get('report', 0))
-#     if 'export' in doc and int(doc.get('export', 0)) == int(source_perm.export):
-#         common_permissions['export'] = int(doc.get('export', 0))
-#     if 'import_to' in doc and int(doc.get('import_to', 0)) == int(getattr(source_perm, 'import', 0)):
-#         common_permissions['import'] = int(doc.get('import_to', 0))
-#     if 'share' in doc and int(doc.get('share', 0)) == int(source_perm.share):
-#         common_permissions['share'] = int(doc.get('share', 0))
-#     if 'print' in doc and int(doc.get('print', 0)) == int(source_perm.print):
-#         common_permissions['print'] = int(doc.get('print', 0))
-#     if 'email' in doc and int(doc.get('email', 0)) == int(source_perm.email):
-#         common_permissions['email'] = int(doc.get('email', 0))
-
-#     return common_permissions
-
-# def apply_common_permissions(target_perm, common_permissions):
-#     """Apply common permissions to a permission document"""
-#     # For each permission, check if it's in common_permissions
-#     # If it is, use that value, otherwise set it to 0
-#     if 'select' in common_permissions:
-#         target_perm.select = common_permissions['select']
-#     else:
-#         target_perm.select = 0
-
-#     if 'read' in common_permissions:
-#         target_perm.read = common_permissions['read']
-#     else:
-#         target_perm.read = 0
-
-#     if 'write' in common_permissions:
-#         target_perm.write = common_permissions['write']
-#     else:
-#         target_perm.write = 0
-
-#     if 'create' in common_permissions:
-#         target_perm.create = common_permissions['create']
-#     else:
-#         target_perm.create = 0
-
-#     if 'delete' in common_permissions:
-#         target_perm.delete = common_permissions['delete']
-#     else:
-#         target_perm.delete = 0
-
-#     if 'submit' in common_permissions:
-#         target_perm.submit = common_permissions['submit']
-#     else:
-#         target_perm.submit = 0
-
-#     if 'cancel' in common_permissions:
-#         target_perm.cancel = common_permissions['cancel']
-#     else:
-#         target_perm.cancel = 0
-
-#     if 'amend' in common_permissions:
-#         target_perm.amend = common_permissions['amend']
-#     else:
-#         target_perm.amend = 0
-
-#     if 'report' in common_permissions:
-#         target_perm.report = common_permissions['report']
-#     else:
-#         target_perm.report = 0
-
-#     if 'export' in common_permissions:
-#         target_perm.export = common_permissions['export']
-#     else:
-#         target_perm.export = 0
-
-#     if 'import' in common_permissions:
-#         setattr(target_perm, 'import', common_permissions['import'])
-#     else:
-#         setattr(target_perm, 'import', 0)
-
-#     if 'share' in common_permissions:
-#         target_perm.share = common_permissions['share']
-#     else:
-#         target_perm.share = 0
-
-#     if 'print' in common_permissions:
-#         target_perm.print = common_permissions['print']
-#     else:
-#         target_perm.print = 0
-
-#     if 'email' in common_permissions:
-#         target_perm.email = common_permissions['email']
-#     else:
-#         target_perm.email = 0
-
-
 @frappe.whitelist()
 def copy_role_perms(doc):
 	doc = frappe.parse_json(doc) if isinstance(doc, str) else doc
@@ -1328,16 +1133,21 @@ def get_files(doctype, docname):
 	except Exception as e:
 		frappe.log_error(title="Error fetching SVADatatable Configuration", message=str(e))
 		return []
-
 	try:
 		for child in get_config.child_doctypes:
 			if child.connection_type == "Direct" and child.link_doctype:
 				if frappe.has_permission(child.link_doctype, "read"):
 					all_doctype.append(child.link_doctype)
-					docname_list = frappe.get_all(
-						child.link_doctype, filters={child.link_fieldname: docname}, fields=["name"]
-					)
-					all_docname.extend([doc.name for doc in docname_list])
+					try:
+						docname_list = frappe.get_all(
+							child.link_doctype, filters={child.link_fieldname: docname}, fields=["name"]
+						)
+						all_docname.extend([doc.name for doc in docname_list])
+					except Exception as e:
+						frappe.log_error(
+							title="Error fetching direct child documents",
+							message=f"Error fetching documents for {child.link_doctype} with filter {child.link_fieldname}={docname}: {str(e)}",
+						)
 			elif (
 				child.connection_type == "Referenced"
 				and child.referenced_link_doctype
@@ -1345,12 +1155,18 @@ def get_files(doctype, docname):
 			):
 				if frappe.has_permission(child.referenced_link_doctype, "read"):
 					all_doctype.append(child.referenced_link_doctype)
-					docname_list = frappe.get_all(
-						child.referenced_link_doctype,
-						filters={child.dt_reference_field: docname},
-						fields=["name"],
-					)
-					all_docname.extend([doc.name for doc in docname_list])
+					try:
+						docname_list = frappe.get_all(
+							child.referenced_link_doctype,
+							filters={child.dt_reference_field: docname},
+							fields=["name"],
+						)
+						all_docname.extend([doc.name for doc in docname_list])
+					except Exception as e:
+						frappe.log_error(
+							title="Error fetching referenced documents",
+							message=f"Error fetching documents for {child.referenced_link_doctype} with filter {child.dt_reference_field}={docname}: {str(e)}",
+						)
 			elif child.connection_type == "Indirect" and child.link_doctype:
 				pass
 				# skipping this part for future enhancement
@@ -1406,7 +1222,6 @@ def get_files(doctype, docname):
 		frappe.log_error(
 			title="Error in get_files child_confs from svadatatable configuration", message=str(e)
 		)
-
 	try:
 		file_list = frappe.get_all(
 			"File",
