@@ -1138,10 +1138,16 @@ def get_files(doctype, docname):
 			if child.connection_type == "Direct" and child.link_doctype:
 				if frappe.has_permission(child.link_doctype, "read"):
 					all_doctype.append(child.link_doctype)
-					docname_list = frappe.get_all(
-						child.link_doctype, filters={child.link_fieldname: docname}, fields=["name"]
-					)
-					all_docname.extend([doc.name for doc in docname_list])
+					try:
+						docname_list = frappe.get_all(
+							child.link_doctype, filters={child.link_fieldname: docname}, fields=["name"]
+						)
+						all_docname.extend([doc.name for doc in docname_list])
+					except Exception as e:
+						frappe.log_error(
+							title="Error fetching direct child documents",
+							message=f"Error fetching documents for {child.link_doctype} with filter {child.link_fieldname}={docname}: {str(e)}",
+						)
 			elif (
 				child.connection_type == "Referenced"
 				and child.referenced_link_doctype
