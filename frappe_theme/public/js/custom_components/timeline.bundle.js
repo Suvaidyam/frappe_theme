@@ -649,10 +649,20 @@ class SVATimelineGenerator {
 
 				// Internal/system fields to skip
 				const skipFields = new Set([
-					"name", "idx", "__islocal", "doctype", "docstatus",
-					"owner", "modified_by", "creation", "modified",
-					"parent", "parentfield", "parenttype",
-					"budget_plan_doc", "planning_table",
+					"name",
+					"idx",
+					"__islocal",
+					"doctype",
+					"docstatus",
+					"owner",
+					"modified_by",
+					"creation",
+					"modified",
+					"parent",
+					"parentfield",
+					"parenttype",
+					"budget_plan_doc",
+					"planning_table",
 				]);
 
 				// Collect display keys from all rows
