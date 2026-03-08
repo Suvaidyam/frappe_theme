@@ -72,84 +72,95 @@ function get_comment_html(comment, commentMap) {
 	const isCurrentUser = comment.user === frappe.session.user;
 	const renderedComment = frappe.format(comment.comment, "Markdown");
 	return `
-        <div class="comment-item" style="margin-bottom: 28px; position: relative; display: flex; ${isCurrentUser ? "justify-content: flex-end;" : "justify-content: flex-start;"
+        <div class="comment-item" style="margin-bottom: 28px; position: relative; display: flex; ${
+			isCurrentUser ? "justify-content: flex-end;" : "justify-content: flex-start;"
 		}">
-            ${!isCurrentUser
-			? `
+            ${
+				!isCurrentUser
+					? `
                 <div style="background: ${userColor}; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px; font-weight: 600; font-size: 13px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                     ${getUserAvatar(comment.full_name || comment.user)}
                 </div>
             `
-			: ""
-		}
+					: ""
+			}
             <div style="width: fit-content; max-width: 80%;">
-                ${!isCurrentUser
-			? `
+                ${
+					!isCurrentUser
+						? `
                     <div style="margin-bottom: 6px;">
                         <div style="font-weight: 600; font-size: 13px; color: ${userColor}; display: flex; align-items: center; gap: 6px;">
                             ${comment.full_name || comment.user}
                             <span style="font-size: 11px; color: var(--text-muted); font-weight: normal;">${frappe.datetime.prettyDate(
-				comment.creation_date
-			)}</span>
-                            ${comment.is_external && !isExternalUser()
-				? `<span style="font-size: 10px; background: #e3f2fd; color: #1976d2; border: 1px solid #90caf9; border-radius: 4px; padding: 0px 5px; font-weight: 600;">NGO</span>`
-				: ""
-			}
-                            ${comment.is_vendor && !isExternalUser()
-				? `<span style="font-size: 10px; background: #fff3e0; color: #e65100; border: 1px solid #ffcc80; border-radius: 4px; padding: 0px 5px; font-weight: 600;">Vendor</span>`
-				: ""
-			}
+								comment.creation_date
+							)}</span>
+                            ${
+								comment.is_external && !isExternalUser()
+									? `<span style="font-size: 10px; background: #e3f2fd; color: #1976d2; border: 1px solid #90caf9; border-radius: 4px; padding: 0px 5px; font-weight: 600;">NGO</span>`
+									: ""
+							}
+                            ${
+								comment.is_vendor && !isExternalUser()
+									? `<span style="font-size: 10px; background: #fff3e0; color: #e65100; border: 1px solid #ffcc80; border-radius: 4px; padding: 0px 5px; font-weight: 600;">Vendor</span>`
+									: ""
+							}
                         </div>
                     </div>
                 `
-			: ""
-		}
-                <div class="comment-content" style="padding: 12px 16px; border-radius: 16px; border: 1px solid #ececec; position: relative; background: ${isCurrentUser ? "#f5f7fa" : "#fff"
-		}; margin-bottom: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); width: fit-content;">
-                    ${!isCurrentUser
-			? `
+						: ""
+				}
+                <div class="comment-content" style="padding: 12px 16px; border-radius: 16px; border: 1px solid #ececec; position: relative; background: ${
+					isCurrentUser ? "#f5f7fa" : "#fff"
+				}; margin-bottom: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); width: fit-content;">
+                    ${
+						!isCurrentUser
+							? `
                         <div style="position: absolute; left: -7px; top: 16px; width: 12px; height: 12px; background: #fff; border-left: 1px solid #ececec; border-bottom: 1px solid #ececec; transform: rotate(45deg);"></div>
                     `
-			: `
+							: `
                         <div style="position: absolute; right: -7px; top: 16px; width: 12px; height: 12px; background: #f5f7fa; border-right: 1px solid #ececec; border-bottom: 1px solid #ececec; transform: rotate(45deg);"></div>
                     `
-		}
+					}
                     <div style="font-size: 14px; line-height: 1.6; color: #222; word-wrap: break-word; white-space: pre-wrap;word-break: break-all; overflow-wrap: anywhere;">${renderedComment}</div>
                 </div>
-                <div style="display: flex; justify-content: ${isCurrentUser ? "flex-end" : "flex-start"
-		}; margin-top: 4px; align-items: center; gap: 8px;">
-                    ${isCurrentUser
-			? `
+                <div style="display: flex; justify-content: ${
+					isCurrentUser ? "flex-end" : "flex-start"
+				}; margin-top: 4px; align-items: center; gap: 8px;">
+                    ${
+						isCurrentUser
+							? `
                         <div style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
                             ${frappe.datetime.prettyDate(comment.creation_date)}
                         </div>
                     `
-			: ""
-		}
+							: ""
+					}
                 </div>
             </div>
             <div style="display: flex; justify-content: space-between; margin-top: 4px; align-items: center; gap: 8px; flex-direction: column; margin-left: 10px;">
-                ${isCurrentUser
-			? `
+                ${
+					isCurrentUser
+						? `
                     <div style="background: ${userColor}; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-left: 10px; font-weight: 600; font-size: 13px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                         You
                     </div>
-                    ${comment.is_external && !isExternalUser()
-				? '<span style="margin-left:6px;font-size:10px;background:#e3f2fd;color:#1976d2;border:1px solid #90caf9;border-radius:4px;padding:0 5px;font-weight:600;">NGO</span>'
-				: ""
-			}
-                    ${comment.is_vendor && !isExternalUser()
-				? '<span style="margin-left:6px;font-size:10px;background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:4px;padding:0 5px;font-weight:600;">Vendor</span>'
-				: ""
-			}
+                    ${
+						comment.is_external && !isExternalUser()
+							? '<span style="margin-left:6px;font-size:10px;background:#e3f2fd;color:#1976d2;border:1px solid #90caf9;border-radius:4px;padding:0 5px;font-weight:600;">NGO</span>'
+							: ""
+					}
+                    ${
+						comment.is_vendor && !isExternalUser()
+							? '<span style="margin-left:6px;font-size:10px;background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:4px;padding:0 5px;font-weight:600;">Vendor</span>'
+							: ""
+					}
                  `
-			: ""
-		}
+						: ""
+				}
             </div>
         </div>
     `;
 }
-
 
 // ─── Refresh the summary container at the top of the global sidebar ──────────
 function refreshSummaryContainer(frm) {
@@ -198,10 +209,15 @@ function refreshSummaryContainer(frm) {
 							<div style="background: ${userColor}; color: white; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; flex-shrink: 0;">${initial}</div>
 							<span style="font-weight: 600; color: ${userColor}; font-size: 11px;">${fullName}</span>
 							<span style="color: var(--text-muted); font-size: 10px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 4px; padding: 0 5px; flex-shrink: 0;">${fieldLabel}</span>
-							<span style="color: var(--text-muted); font-size: 10px; margin-left: auto; flex-shrink: 0;">${frappe.datetime.prettyDate(sc.creation_date)}</span>
+							<span style="color: var(--text-muted); font-size: 10px; margin-left: auto; flex-shrink: 0;">${frappe.datetime.prettyDate(
+								sc.creation_date
+							)}</span>
 							<button class="unpin-summary-btn" title="Remove Summary" style="background: none; border: none; cursor: pointer; color: #e53e3e; font-size: 11px; padding: 0 2px; flex-shrink: 0;" >📌✕</button>
 						</div>
-						<div style="color: #333; line-height: 1.5; padding-left: 26px; word-break: break-all; overflow-wrap: anywhere; max-height: 80px; overflow-y: auto;">${frappe.format(sc.comment, "Markdown")}</div>
+						<div style="color: #333; line-height: 1.5; padding-left: 26px; word-break: break-all; overflow-wrap: anywhere; max-height: 80px; overflow-y: auto;">${frappe.format(
+							sc.comment,
+							"Markdown"
+						)}</div>
 					</div>
 				`);
 
@@ -220,10 +236,16 @@ function refreshSummaryContainer(frm) {
 							args: { comment_name: sc.name, is_summary: 0 },
 							callback: function (r) {
 								if (r.message) {
-									frappe.show_alert({ message: __("Summary removed"), indicator: "green" });
+									frappe.show_alert({
+										message: __("Summary removed"),
+										indicator: "green",
+									});
 									refreshSummaryContainer(frm);
 								} else {
-									frappe.show_alert({ message: __("Error removing summary"), indicator: "red" });
+									frappe.show_alert({
+										message: __("Error removing summary"),
+										indicator: "red",
+									});
 								}
 							},
 						});
@@ -277,7 +299,6 @@ function refreshSummaryContainer(frm) {
 		},
 	});
 }
-
 
 function create_new_comment_thread(fieldName, field, frm) {
 	return new Promise((resolve, reject) => {
@@ -338,8 +359,9 @@ function load_field_comments(fieldName, field, frm) {
 				const field_section = $(`
                     <div class="field-comment-section" style="margin-bottom: 25px; padding: 15px; border-radius: 12px; border: none; box-shadow: none;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
-                            <h5 style="margin: 0; font-size: 15px;">${field.df.label || fieldName
-					}</h5>
+                            <h5 style="margin: 0; font-size: 15px;">${
+								field.df.label || fieldName
+							}</h5>
                             <div style="display: flex; gap: 8px;">
                                 <button class="btn btn-default btn-sm new-thread-btn" style="padding: 4px 8px; display: none;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-plus" viewBox="0 0 16 16">
@@ -417,7 +439,8 @@ function load_field_comments(fieldName, field, frm) {
 
 					threadsToShow.forEach((thread, index) => {
 						const thread_section = $(`
-                            <div class="thread-section" style="margin-bottom: 20px; padding: 15px; border-radius: 8px; background: ${index === 0 ? "var(--fg-color)" : "var(--bg-color)"
+                            <div class="thread-section" style="margin-bottom: 20px; padding: 15px; border-radius: 8px; background: ${
+								index === 0 ? "var(--fg-color)" : "var(--bg-color)"
 							}; border: 1px solid var(--border-color);">
                                 <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
                                     <div class="status-pill-container" style="position: relative;">
@@ -656,7 +679,7 @@ function load_all_comments(frm) {
 				fieldsToShow.forEach((data) => {
 					let fields = [
 						...(frm.fields || []).map((f) => ({ ...f, variant: "field" })),
-						...((frm?.layout?.tabs || []).map((t) => ({ ...t, variant: "tab" }))),
+						...(frm?.layout?.tabs || []).map((t) => ({ ...t, variant: "tab" })),
 					];
 					const field = fields.find((f) => f.df.fieldname == data.field_name);
 					let effectiveField = field;
@@ -676,15 +699,19 @@ function load_all_comments(frm) {
 					}
 
 					const field_section = $(`
-						<div class="field-comment-section" data-fieldname="${data.field_name
+						<div class="field-comment-section" data-fieldname="${
+							data.field_name
 						}" style="margin-bottom: 25px; padding: 15px; border-radius: 12px; border: none; box-shadow: none;">
 							<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
 								<h5 style="margin: 0; font-size: 15px;">
 								${data.field_label || data.field_name || __("Comments")}
-								${effectiveField.tab && effectiveField.tab.df && effectiveField.tab.df.label
-							? `<span style="color: #888; font-size: 12px; font-weight: 400;">(${effectiveField.tab.df.label})</span>`
-							: ""
-						}
+								${
+									effectiveField.tab &&
+									effectiveField.tab.df &&
+									effectiveField.tab.df.label
+										? `<span style="color: #888; font-size: 12px; font-weight: 400;">(${effectiveField.tab.df.label})</span>`
+										: ""
+								}
 								</h5>
 								<div class="status-pill-container" style="margin-left: auto;">
 									${renderStatusPill(data.status || "Open")}
@@ -865,14 +892,19 @@ function load_all_comments(frm) {
                                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-chat" viewBox="0 0 16 16">
                                             <path d="M2.678 11.894a1 1 0 0 1 .287.801 10.97 10.97 0 0 1-.398 2c1.395-.323 2.247-.697 2.634-.893a1 1 0 0 1 .71-.074A8.06 8.06 0 0 0 8 14c3.996 0 7-2.807 7-6 0-3.192-3.004-6-7-6S1 4.808 1 8c0 1.468.617 2.83 1.678 3.894zm-.493 3.905a21.682 21.682 0 0 1-.713.129c-.2.032-.352-.176-.273-.362a9.68 9.68 0 0 0 .244-.637l.003-.01c.248-.72.45-1.548.524-2.319C.743 11.37 0 9.76 0 8c0-3.866 3.582-7 8-7s8 3.134 8 7-3.582 7-8 7a9.06 9.06 0 0 1-2.347-.306c-.52.263-1.639.742-3.468 1.105z"/>
                                         </svg>
-                                        <span class="comment-count-badge" style="position: absolute; top: -4px; right: -8px; background: ${count > 0 ? primaryColor : "#e0e0e0"
-								}; color: ${count > 0 ? "#fff" : "#666"
-								}; border-radius: 50%; min-width: 16px; height: 16px; font-size: 10px; font-weight: 600; display: flex !important; align-items: center; justify-content: center; padding: 0 4px; box-shadow: ${count > 0
+                                        <span class="comment-count-badge" style="position: absolute; top: -4px; right: -8px; background: ${
+											count > 0 ? primaryColor : "#e0e0e0"
+										}; color: ${
+								count > 0 ? "#fff" : "#666"
+							}; border-radius: 50%; min-width: 16px; height: 16px; font-size: 10px; font-weight: 600; display: flex !important; align-items: center; justify-content: center; padding: 0 4px; box-shadow: ${
+								count > 0
 									? "0 2px 6px rgba(0,0,0,0.2)"
 									: "0 1px 3px rgba(0,0,0,0.1)"
-								}; border: 1.5px solid #fff; z-index: 9999; opacity: ${count > 0 ? 1 : 0.9
-								}; transition: all 0.2s ease; transform-origin: center; transform: ${count > 0 ? "scale(1)" : "scale(0.9)"
-								};">${count}</span>
+							}; border: 1.5px solid #fff; z-index: 9999; opacity: ${
+								count > 0 ? 1 : 0.9
+							}; transition: all 0.2s ease; transform-origin: center; transform: ${
+								count > 0 ? "scale(1)" : "scale(0.9)"
+							};">${count}</span>
                                     </button>
                                 </div>
                             `);
@@ -953,7 +985,14 @@ function load_all_comments(frm) {
 	});
 }
 
-function initializeCommentControl(field_section, fieldName, field, get_comment_html, threadName, frm) {
+function initializeCommentControl(
+	field_section,
+	fieldName,
+	field,
+	get_comment_html,
+	threadName,
+	frm
+) {
 	frm = frm || field.frm;
 	const commentBox = field_section.find(".comment-box")[0];
 	let control;
@@ -1307,12 +1346,18 @@ function setupFieldComments(frm) {
 							refreshBtn.find("svg").css("animation", "");
 							updateTotalCommentCount(activeFrm);
 							refreshSummaryContainer(activeFrm);
-							frappe.show_alert({ message: __("Comments refreshed"), indicator: "green" });
+							frappe.show_alert({
+								message: __("Comments refreshed"),
+								indicator: "green",
+							});
 						})
 						.catch(() => {
 							refreshBtn.prop("disabled", false);
 							refreshBtn.find("svg").css("animation", "");
-							frappe.show_alert({ message: __("Error refreshing comments"), indicator: "red" });
+							frappe.show_alert({
+								message: __("Error refreshing comments"),
+								indicator: "red",
+							});
 						});
 				});
 			}
@@ -1380,21 +1425,28 @@ function setupFieldComments(frm) {
 								if (selector && !$(selector).find(".field-comment-icon").length) {
 									const count = commentCountCache[fieldname] || 0;
 									const comment_icon = $(`
-                                        <div class="field-comment-icon" style="display: none;position: absolute; right: ${field.variant == "field" ? "-20px" : "-10px"
-										}; top: ${field.variant == "field" ? "-2px" : "7px"
-										}; z-index: 10;">
+                                        <div class="field-comment-icon" style="display: none;position: absolute; right: ${
+											field.variant == "field" ? "-20px" : "-10px"
+										}; top: ${
+										field.variant == "field" ? "-2px" : "7px"
+									}; z-index: 10;">
                                             <button class="btn" style="padding: 2px 8px; position: relative;" tabindex="-1" type="button">
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-chat" viewBox="0 0 16 16">
                                                     <path d="M2.678 11.894a1 1 0 0 1 .287.801 10.97 10.97 0 0 1-.398 2c1.395-.323 2.247-.697 2.634-.893a1 1 0 0 1 .71-.074A8.06 8.06 0 0 0 8 14c3.996 0 7-2.807 7-6 0-3.192-3.004-6-7-6S1 4.808 1 8c0 1.468.617 2.83 1.678 3.894zm-.493 3.905a21.682 21.682 0 0 1-.713.129c-.2.032-.352-.176-.273-.362a9.68 9.68 0 0 0 .244-.637l.003-.01c.248-.72.45-1.548.524-2.319C.743 11.37 0 9.76 0 8c0-3.866 3.582-7 8-7s8 3.134 8 7-3.582 7-8 7a9.06 9.06 0 0 1-2.347-.306c-.52.263-1.639.742-3.468 1.105z"/>
                                                 </svg>
-                                                <span class="comment-count-badge" style="position: absolute; top: -4px; right: -8px; background: ${count > 0 ? primaryColor : "#e0e0e0"
-										}; color: ${count > 0 ? "#fff" : "#666"
-										}; border-radius: 50%; min-width: 16px; height: 16px; font-size: 10px; font-weight: 600; display: flex !important; align-items: center; justify-content: center; padding: 0 4px; box-shadow: ${count > 0
+                                                <span class="comment-count-badge" style="position: absolute; top: -4px; right: -8px; background: ${
+													count > 0 ? primaryColor : "#e0e0e0"
+												}; color: ${
+										count > 0 ? "#fff" : "#666"
+									}; border-radius: 50%; min-width: 16px; height: 16px; font-size: 10px; font-weight: 600; display: flex !important; align-items: center; justify-content: center; padding: 0 4px; box-shadow: ${
+										count > 0
 											? "0 2px 6px rgba(0,0,0,0.2)"
 											: "0 1px 3px rgba(0,0,0,0.1)"
-										}; border: 1.5px solid #fff; z-index: 9999; opacity: ${count > 0 ? 1 : 0.9
-										}; transition: all 0.2s ease; transform-origin: center; transform: ${count > 0 ? "scale(1)" : "scale(0.9)"
-										};">${count}</span>
+									}; border: 1.5px solid #fff; z-index: 9999; opacity: ${
+										count > 0 ? 1 : 0.9
+									}; transition: all 0.2s ease; transform-origin: center; transform: ${
+										count > 0 ? "scale(1)" : "scale(0.9)"
+									};">${count}</span>
                                             </button>
                                         </div>
                                     `);
@@ -1485,7 +1537,7 @@ function setupFieldComments(frm) {
 // CHANGE signature:
 window.openCommentsForDoc = function (parentDoctype, parentDocname, rowDoctype, rowDocname) {
 	// rowDocname itself is unique — no :: needed
-	const fieldKey = rowDocname;  // e.g. "PA-OUTPUT-0838"
+	const fieldKey = rowDocname; // e.g. "PA-OUTPUT-0838"
 
 	const fakeFrm = {
 		doctype: parentDoctype,
@@ -1519,14 +1571,15 @@ window.openCommentsForDoc = function (parentDoctype, parentDocname, rowDoctype, 
 	load_field_comments(fieldKey, fakeField, fakeFrm);
 };
 function _createCommentSidebarDOM(frm) {
-	const primaryColor =
-		frappe.boot.my_theme?.button_background_color || "#171717";
+	const primaryColor = frappe.boot.my_theme?.button_background_color || "#171717";
 
 	const comment_sidebar = $(`
         <div class="field-comments-sidebar" style="display: none; position: fixed; right: -400px; top: 48px; width: 400px; height: calc(100vh - 48px); background: var(--fg-color); box-shadow: -2px 0 8px rgba(0,0,0,0.1); z-index: 100; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);">
             <div style="padding: 15px; border-bottom: none;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h5 style="margin: 0; font-size: 18px; font-weight: 600;">${__("Comments")}</h5>
+                    <h5 style="margin: 0; font-size: 18px; font-weight: 600;">${__(
+						"Comments"
+					)}</h5>
                     <div style="display: flex; gap: 8px;">
                         <button class="btn btn-default btn-sm refresh-comments" style="padding: 4px 8px;">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" style="vertical-align: middle;" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
@@ -1645,26 +1698,32 @@ function renderStatusPill(status) {
 	return `
         <div class="status-pill-container" style="position: relative;">
             <button class="status-pill" type="button"
-                ${isClosed
-			? ""
-			: 'data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"'
-		}
-                style="display: inline-flex; align-items: center; gap: 6px; padding: 2px 18px 2px 12px; border-radius: 999px; background: ${style.bg
-		} !important; color: ${style.text
-		} !important; font-weight: 500 !important; font-size: 13px !important; line-height: 1.2; cursor: ${isClosed ? "not-allowed" : "pointer"
-		}; border: none; margin: 0; opacity: ${isClosed ? "0.7" : "1"}; box-shadow: none;">
-                <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${style.dot
-		}; margin-right: 6px;"></span>
+                ${
+					isClosed
+						? ""
+						: 'data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"'
+				}
+                style="display: inline-flex; align-items: center; gap: 6px; padding: 2px 18px 2px 12px; border-radius: 999px; background: ${
+					style.bg
+				} !important; color: ${
+		style.text
+	} !important; font-weight: 500 !important; font-size: 13px !important; line-height: 1.2; cursor: ${
+		isClosed ? "not-allowed" : "pointer"
+	}; border: none; margin: 0; opacity: ${isClosed ? "0.7" : "1"}; box-shadow: none;">
+                <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${
+					style.dot
+				}; margin-right: 6px;"></span>
                 ${status}
             </button>
-            ${!isClosed
-			? `
+            ${
+				!isClosed
+					? `
                 <div class="dropdown-menu" style="min-width: 120px; padding: 8px 0; margin: 0; border: 1px solid #E0E0E0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                     ${statusOptions}
                 </div>
             `
-			: ""
-		}
+					: ""
+			}
         </div>
     `;
 }
@@ -1702,9 +1761,12 @@ function updateStatusPill(element, newStatus) {
 
 		element.attr(
 			"style",
-			`display: inline-flex; align-items: center; gap: 6px; padding: 2px 18px 2px 12px; border-radius: 999px; background: ${style.bg
-			} !important; color: ${style.text
-			} !important; font-weight: 500 !important; font-size: 13px !important; line-height: 1.2; cursor: ${isClosed ? "not-allowed" : canShowDropdown ? "pointer" : "default"
+			`display: inline-flex; align-items: center; gap: 6px; padding: 2px 18px 2px 12px; border-radius: 999px; background: ${
+				style.bg
+			} !important; color: ${
+				style.text
+			} !important; font-weight: 500 !important; font-size: 13px !important; line-height: 1.2; cursor: ${
+				isClosed ? "not-allowed" : canShowDropdown ? "pointer" : "default"
 			}; border: none; margin: 0; opacity: ${isClosed ? "0.7" : "1"}; box-shadow: none;`
 		);
 
@@ -1843,9 +1905,10 @@ function updateTotalCommentCount(frm) {
 				}
 
 				if (commentsBtn && commentsBtn.length) {
-					let label = count > 0
-						? __("Comments") + ` <span class="comments-badge">${count}</span>`
-						: __("Comments");
+					let label =
+						count > 0
+							? __("Comments") + ` <span class="comments-badge">${count}</span>`
+							: __("Comments");
 					commentsBtn.html(label);
 					commentsBtn.find(".comments-badge").css({
 						background: primaryColor,

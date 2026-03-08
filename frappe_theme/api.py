@@ -339,14 +339,14 @@ def apply_common_permissions(doc, perms):
 @frappe.whitelist()
 def save_field_comment(
 	doctype_name: str,
-    docname: str,
-    field_name: str = "",        # ← add = ""
-    field_label: str = "",       # ← add = ""
-    comment_text: str = "",
-    is_external: int = 0,
-    is_vendor: int = 0,
-    status: str = "Open",
-    is_summary: int = 0,
+	docname: str,
+	field_name: str = "",  # ← add = ""
+	field_label: str = "",  # ← add = ""
+	comment_text: str = "",
+	is_external: int = 0,
+	is_vendor: int = 0,
+	status: str = "Open",
+	is_summary: int = 0,
 ):
 	try:
 		# ── Permission check ────────────────────────────────────────────────────
@@ -393,14 +393,16 @@ def save_field_comment(
 		if existing_open:
 			comment_doc = frappe.get_doc("DocType Field Comment", existing_open[0].name)
 		else:
-			comment_doc = frappe.get_doc({
-				"doctype": "DocType Field Comment",
-				"doctype_name": doctype_name,
-				"docname": docname,
-				"field_name": field_name or "",
-				"field_label": field_label or field_name or "",
-				"status": "Open",
-			})
+			comment_doc = frappe.get_doc(
+				{
+					"doctype": "DocType Field Comment",
+					"doctype_name": doctype_name,
+					"docname": docname,
+					"field_name": field_name or "",
+					"field_label": field_label or field_name or "",
+					"status": "Open",
+				}
+			)
 			comment_doc.insert(ignore_permissions=True)
 
 		# If marked as summary, clear all previous is_summary=1 on this document
