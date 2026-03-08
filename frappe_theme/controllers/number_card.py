@@ -16,10 +16,15 @@ class NumberCard:
 	}
 
 	@staticmethod
-	def check_card_permissions_and_settings(number_card_name: str) -> dict:
+	def check_card_permissions_and_settings(number_card_name: str, parent_dt_name: str | None = None) -> dict:
 		"""Check if the user has permission to view the number card."""
 		response = {"permitted": False, "number_card": None, "report": None, "message": ""}
 		try:
+			is_dashboard = False
+			if parent_dt_name:
+				meta = frappe.get_meta(parent_dt_name)
+				is_dashboard = meta and meta.get("is_dashboard", False)
+
 			if not frappe.has_permission("Number Card", "read", number_card_name):
 				response["message"] = "You do not have permission to view this Number Card"
 				return response
@@ -34,7 +39,7 @@ class NumberCard:
 					return response
 				report = frappe.get_cached_doc("Report", number_card.report_name)
 				response["report"] = report
-				response["permitted"] = True if report.is_permitted() else False
+				response["permitted"] = True if (report.is_permitted() or not is_dashboard) else False
 			elif number_card.type == "Document Type":
 				response["permitted"] = (
 					True if frappe.has_permission(number_card.document_type, "read") else False
@@ -57,7 +62,9 @@ class NumberCard:
 					card["is_permitted"] = True
 					updated_cards.append(card)
 				else:
-					result = NumberCard.check_card_permissions_and_settings(card.number_card)
+					result = NumberCard.check_card_permissions_and_settings(
+						card.number_card, parent_dt_name=card.parent
+					)
 					card["is_permitted"] = result["permitted"]
 					card["details"] = result["number_card"]
 					card["report"] = result["report"]
