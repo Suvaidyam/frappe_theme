@@ -340,9 +340,9 @@ def apply_common_permissions(doc, perms):
 def save_field_comment(
 	doctype_name: str,
 	docname: str,
-	field_name: str,
-	field_label: str,
-	comment_text: str,
+	field_name: str = "",  # ← add = ""
+	field_label: str = "",  # ← add = ""
+	comment_text: str = "",
 	is_external: int = 0,
 	is_vendor: int = 0,
 	status: str = "Open",
@@ -383,7 +383,7 @@ def save_field_comment(
 			filters={
 				"doctype_name": doctype_name,
 				"docname": docname,
-				"field_name": field_name,
+				"field_name": field_name or "",
 				"status": "Open",
 			},
 			fields=["name"],
@@ -398,8 +398,8 @@ def save_field_comment(
 					"doctype": "DocType Field Comment",
 					"doctype_name": doctype_name,
 					"docname": docname,
-					"field_name": field_name,
-					"field_label": field_label,
+					"field_name": field_name or "",
+					"field_label": field_label or field_name or "",
 					"status": "Open",
 				}
 			)
@@ -839,6 +839,7 @@ def get_all_field_comment_counts(doctype_name: str, docname: str):
 			count = frappe.db.count("DocType Field Comment Log", filters=filters)
 			field_counts[doc.field_name] = count
 
+		field_counts = {k: v for k, v in field_counts.items() if k}
 		return field_counts
 
 	except Exception as e:
@@ -880,7 +881,7 @@ def get_total_open_resolved_comment_count(doctype_name: str, docname: str):
 
 		# Internal users: just count distinct fields — no extra query needed
 		if user_type not in ("NGO", "Vendor"):
-			return len({t.field_name for t in open_threads})
+			return len({t.field_name for t in open_threads if t.field_name})
 
 		# External users: single query to find which parent threads have qualifying logs
 		flag_field = "is_external" if user_type == "NGO" else "is_vendor"
