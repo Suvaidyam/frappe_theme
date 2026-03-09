@@ -262,7 +262,6 @@ def handle_custom_approval_action(doc, action, custom_comment=""):
 	if next_state != current_state:
 		frappe.db.set_value(doc.doctype, doc.name, workflow_state_field, next_state, update_modified=False)
 		doc.reload()
-
 		# Create workflow action log if all custom approval assignments are approved
 		sva_wf_action_data = {
 			"workflow_action": action,
