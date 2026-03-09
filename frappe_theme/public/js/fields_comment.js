@@ -1086,12 +1086,18 @@ function initializeCommentControl(
 			} else if (frappe.boot.user_team === "Vendor") {
 				isVendor = 1;
 			} else {
-				isExternal = document.getElementById(`new_comment_external_${fieldName}`)?.checked ? 1 : 0;
-				isVendor = document.getElementById(`new_comment_vendor_${fieldName}`)?.checked ? 1 : 0;
+				isExternal = document.getElementById(`new_comment_external_${fieldName}`)?.checked
+					? 1
+					: 0;
+				isVendor = document.getElementById(`new_comment_vendor_${fieldName}`)?.checked
+					? 1
+					: 0;
 			}
 
 			// ─── read is_summary flag ─────────────────────────────────────────
-			const isSummary = document.getElementById(`new_comment_summary_${fieldName}`)?.checked ? 1 : 0;
+			const isSummary = document.getElementById(`new_comment_summary_${fieldName}`)?.checked
+				? 1
+				: 0;
 
 			const mentionRegex = /@([a-zA-Z0-9._-]+)/g;
 			const mentions = new Set();
@@ -1116,7 +1122,9 @@ function initializeCommentControl(
 					if (response.message) {
 						const newCommentEntry = response.message;
 						control.set_value("");
-						const _extEl = document.getElementById(`new_comment_external_${fieldName}`);
+						const _extEl = document.getElementById(
+							`new_comment_external_${fieldName}`
+						);
 						const _venEl = document.getElementById(`new_comment_vendor_${fieldName}`);
 						const _sumEl = document.getElementById(`new_comment_summary_${fieldName}`);
 						if (_extEl) _extEl.checked = false;
