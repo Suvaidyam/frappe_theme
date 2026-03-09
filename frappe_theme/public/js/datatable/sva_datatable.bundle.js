@@ -2688,11 +2688,11 @@ class SvaDataTable {
 		dropdown.style.display = "flex";
 		dropdown.style.alignItems = "center";
 		dropdown.style.justifyContent = "center";
-		dropdown.style.gap = "4px";
-		dropdown.appendChild(dropdownBtn);
+		dropdown.style.gap = "8px";
 		if (commentBtn) {
 			dropdown.appendChild(commentBtn);
 		}
+		dropdown.appendChild(dropdownBtn);
 		if (this.connection.connection_type != "Report") {
 			document.body.appendChild(dropdownMenu);
 		}
