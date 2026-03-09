@@ -4,7 +4,7 @@
 			<Skeleton v-if="loading" />
 			<div v-else class="card mb-2" style="padding: 8px 8px 8px 12px; min-height: 344px">
 				<div class="d-flex justify-content-between align-items-center">
-					{{ chart.details.chart_name }}
+					{{ chart?.label || chart?.details?.chart_name }}
 					<div class="dropdown" v-if="actions.length">
 						<span
 							title="action"
