@@ -106,70 +106,138 @@ class SVATimelineGenerator {
             transform: translateX(2px);
         }
 
+        .changes-table-wrapper {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            background: #f9fafb;
+        }
+
         .changes-table {
             width: 100%;
             border-collapse: separate;
             border-spacing: 0;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             background: #f9fafb;
             table-layout: fixed;
         }
 
         .changes-table th {
-            background: #f3f4f6;
-            padding: 8px 12px;
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            padding: 10px 14px;
             font-weight: 600;
             text-align: left;
-            color: #4b5563;
-            font-size: 0.875rem;
+            color: #334155;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 2px solid #e2e8f0;
+            position: sticky;
+            top: 0;
+            z-index: 1;
         }
 
         .changes-table th:nth-child(1) {
-            width: 40%;
+            width: 25%;
         }
 
         .changes-table th:nth-child(2),
         .changes-table th:nth-child(3) {
-            width: 30%;
+            width: 37.5%;
         }
 
         .changes-table td {
-            padding: 8px 12px;
-            border-top: 1px solid #e5e7eb;
-            font-size: 0.875rem;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
+            padding: 10px 14px;
+            border-top: 1px solid #f1f5f9;
+            font-size: 0.8125rem;
+            vertical-align: top;
         }
 
         .changes-table td:nth-child(1) {
-            width: 40%;
+            width: 25%;
+            font-weight: 500;
+            color: #475569;
         }
 
         .changes-table td:nth-child(2),
         .changes-table td:nth-child(3) {
-            width: 30%;
+            width: 37.5%;
+        }
+
+        .changes-table tbody tr:hover {
+            background: #f8fafc;
+        }
+
+        .changes-table tbody tr:nth-child(even) {
+            background: #fafbfc;
         }
 
         .old-value, .new-value {
-            border-radius: 4px;
-            padding: 2px 6px;
-            font-family: monospace;
-            font-size: 0.875rem;
-            display: inline-block;
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 0.8125rem;
+            display: block;
+            max-height: 200px;
+            overflow-y: auto;
+            overflow-x: auto;
         }
 
         .old-value {
             background-color: #fef2f2;
             color: #991b1b;
-            border: 1px solid #fee2e2;
+            border: 1px solid #fecaca;
         }
 
         .new-value {
             background-color: #f0fdf4;
             color: #166534;
-            border: 1px solid #dcfce7;
+            border: 1px solid #bbf7d0;
+        }
+
+        .old-value::-webkit-scrollbar,
+        .new-value::-webkit-scrollbar {
+            height: 4px;
+            width: 4px;
+        }
+
+        .old-value::-webkit-scrollbar-thumb,
+        .new-value::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .json-mini-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+            margin: 0;
+        }
+
+        .json-mini-table th {
+            background: rgba(0,0,0,0.04);
+            padding: 5px 8px;
+            text-align: left;
+            font-weight: 600;
+            color: #475569;
+            border: 1px solid rgba(0,0,0,0.06);
+            white-space: nowrap;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .json-mini-table td {
+            padding: 5px 8px;
+            border: 1px solid rgba(0,0,0,0.06);
+            color: #374151;
+            white-space: nowrap;
+        }
+
+        .json-mini-table tr:nth-child(even) {
+            background: rgba(0,0,0,0.015);
+        }
+
+        .json-mini-table tr:hover {
+            background: rgba(0,0,0,0.03);
         }
 
         .empty-state {
@@ -562,6 +630,85 @@ class SVATimelineGenerator {
 			}
 		}
 	}
+	// Format JSON values into readable mini-tables
+	formatCellValue(value) {
+		if (!value || typeof value !== "string") return value || "";
+
+		// Check if value looks like JSON array or object
+		const trimmed = value.trim();
+		if (
+			(trimmed.startsWith("[") && trimmed.endsWith("]")) ||
+			(trimmed.startsWith("{") && trimmed.endsWith("}"))
+		) {
+			try {
+				let parsed = JSON.parse(trimmed);
+				if (!Array.isArray(parsed)) {
+					parsed = [parsed];
+				}
+				if (parsed.length === 0) return "(empty)";
+
+				// Internal/system fields to skip
+				const skipFields = new Set([
+					"name",
+					"idx",
+					"__islocal",
+					"doctype",
+					"docstatus",
+					"owner",
+					"modified_by",
+					"creation",
+					"modified",
+					"parent",
+					"parentfield",
+					"parenttype",
+					"budget_plan_doc",
+					"planning_table",
+				]);
+
+				// Collect display keys from all rows
+				const allKeys = new Set();
+				parsed.forEach((row) => {
+					if (row && typeof row === "object") {
+						Object.keys(row).forEach((k) => {
+							if (!skipFields.has(k)) allKeys.add(k);
+						});
+					}
+				});
+
+				const keys = Array.from(allKeys);
+				if (keys.length === 0) return trimmed;
+
+				// Build mini-table
+				let html = `<table class="json-mini-table"><thead><tr>`;
+				html += `<th>#</th>`;
+				keys.forEach((k) => {
+					const label = frappe.model.unscrub(k);
+					html += `<th>${label}</th>`;
+				});
+				html += `</tr></thead><tbody>`;
+				parsed.forEach((row, i) => {
+					html += `<tr>`;
+					html += `<td>${i + 1}</td>`;
+					keys.forEach((k) => {
+						let val = row[k];
+						if (val === undefined || val === null) val = "";
+						if (typeof val === "number") {
+							val = frappe.format(val, { fieldtype: "Currency" });
+						}
+						html += `<td>${val}</td>`;
+					});
+					html += `</tr>`;
+				});
+				html += `</tbody></table>`;
+				return html;
+			} catch (e) {
+				// Not valid JSON, return as-is
+				return value;
+			}
+		}
+		return value;
+	}
+
 	fetchTimelineData(append = false) {
 		if (!append) {
 			this.showSkeletonLoader();
@@ -673,6 +820,7 @@ class SVATimelineGenerator {
 						let regularChangesHTML = "";
 						if (regularChanges.length > 0) {
 							regularChangesHTML = `
+								<div class="changes-table-wrapper">
 								<table class="changes-table">
 									<thead>
 										<tr>
@@ -687,14 +835,15 @@ class SVATimelineGenerator {
 												(change) => `
 											<tr>
 												<td>${change.fieldLabel}</td>
-												<td><span class="old-value">${change.oldValue || ""}</span></td>
-												<td><span class="new-value">${change.newValue || ""}</span></td>
+												<td><span class="old-value">${this.formatCellValue(change.oldValue)}</span></td>
+												<td><span class="new-value">${this.formatCellValue(change.newValue)}</span></td>
 											</tr>
 										`
 											)
 											.join("")}
 									</tbody>
-								</table>`;
+								</table>
+								</div>`;
 						}
 
 						// Build HTML for child table changes
@@ -722,6 +871,7 @@ class SVATimelineGenerator {
 										group.rowIdx + 1
 									})</span>
 											</div>
+											<div class="changes-table-wrapper">
 											<table class="changes-table">
 												<thead>
 													<tr>
@@ -736,14 +886,15 @@ class SVATimelineGenerator {
 															(change) => `
 														<tr>
 															<td>${change.fieldLabel}</td>
-															<td><span class="old-value">${change.oldValue || ""}</span></td>
-															<td><span class="new-value">${change.newValue || ""}</span></td>
+															<td><span class="old-value">${this.formatCellValue(change.oldValue)}</span></td>
+															<td><span class="new-value">${this.formatCellValue(change.newValue)}</span></td>
 														</tr>
 													`
 														)
 														.join("")}
 												</tbody>
 											</table>
+											</div>
 										</div>`;
 								})
 								.join("");
