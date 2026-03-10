@@ -2547,6 +2547,21 @@ class SvaDataTable {
 				);
 			});
 		}
+		//========================== Comment ============================
+		if (this.connection.connection_type !== "Report") {
+			appendDropdownOption(`${frappe.utils.icon("message", "sm")} ${__("Comments")}`, () => {
+				if (typeof window.openCommentsForDoc === "function") {
+					const rowDocname = row.name || primaryKey;
+					// Pass parent doctype+docname, and row doctype+name
+					window.openCommentsForDoc(
+						this.frm.doctype,
+						this.frm.docname,
+						this.doctype,
+						rowDocname
+					);
+				}
+			});
+		}
 
 		// Child Links
 		if (this.childLinks?.length) {
