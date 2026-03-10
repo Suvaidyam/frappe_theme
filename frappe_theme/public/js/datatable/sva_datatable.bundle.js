@@ -2377,7 +2377,10 @@ class SvaDataTable {
 		dropdown.classList.add("dropdown");
 
 		const dropdownBtn = document.createElement("span");
-		dropdownBtn.classList.add("h4");
+		dropdownBtn.style.fontSize = "16px";
+		dropdownBtn.style.lineHeight = "1";
+		dropdownBtn.style.display = "inline-flex";
+		dropdownBtn.style.alignItems = "center";
 		dropdownBtn.innerHTML = "&#8942;";
 		if (this.connection.connection_type != "Report") {
 			dropdownBtn.style.cursor = "pointer";
@@ -2606,6 +2609,89 @@ class SvaDataTable {
 		}
 		// ========================= Integration Button End ======================
 
+		// ========================= Comment Button (standalone) ======================
+		const primaryColor = frappe.boot.my_theme?.button_background_color || "#171717";
+		let commentBtn = null;
+		if (
+			this.connection.connection_type !== "Report" &&
+			!(frappe.boot.my_theme && frappe.boot.my_theme.hide_fields_comment)
+		) {
+			const rowDocname = row.name || primaryKey;
+
+			commentBtn = document.createElement("span");
+			commentBtn.style.cursor = "pointer";
+			commentBtn.style.position = "relative";
+			commentBtn.style.display = "inline-flex";
+			commentBtn.style.alignItems = "center";
+			commentBtn.style.marginLeft = "0";
+			commentBtn.title = __("Comments");
+			commentBtn.innerHTML = frappe.utils.icon("message", "sm");
+
+			const countBadge = document.createElement("span");
+			countBadge.style.cssText =
+				"position:absolute;top:-6px;right:-8px;background:#e0e0e0;color:#666;border-radius:50%;font-size:9px;min-width:14px;height:14px;display:none;align-items:center;justify-content:center;padding:0 2px;font-weight:bold;";
+			commentBtn.appendChild(countBadge);
+
+			const self = this;
+			const refreshCountBadge = function () {
+				frappe.call({
+					method: "frappe_theme.api.get_all_field_comment_counts",
+					args: { doctype_name: self.frm.doctype, docname: self.frm.docname },
+					callback: function (r) {
+						const counts = r.message || {};
+						const count = counts[rowDocname] || 0;
+						countBadge.textContent = count;
+						countBadge.style.display = "flex";
+						countBadge.style.background = count > 0 ? primaryColor : "#e0e0e0";
+						countBadge.style.color = count > 0 ? "#fff" : "#666";
+					},
+				});
+			};
+
+			// Initial count load
+			refreshCountBadge();
+
+			commentBtn.addEventListener("click", function (event) {
+				event.stopPropagation();
+				if (typeof window.openCommentsForDoc === "function") {
+					window.openCommentsForDoc(
+						self.frm.doctype,
+						self.frm.docname,
+						self.doctype,
+						rowDocname
+					);
+				}
+				// Store refresh function for this row
+				window.__dtActiveCommentRefresh = refreshCountBadge;
+				// Set up MutationObserver on sidebar once to detect close
+				if (!window.__dtCommentSidebarObserver) {
+					const sidebar = document.querySelector(".field-comments-sidebar");
+					if (sidebar) {
+						window.__dtCommentSidebarObserver = new MutationObserver(function () {
+							if (
+								sidebar.style.display === "none" &&
+								typeof window.__dtActiveCommentRefresh === "function"
+							) {
+								window.__dtActiveCommentRefresh();
+								window.__dtActiveCommentRefresh = null;
+							}
+						});
+						window.__dtCommentSidebarObserver.observe(sidebar, {
+							attributes: true,
+							attributeFilter: ["style"],
+						});
+					}
+				}
+			});
+		}
+
+		dropdown.style.display = "flex";
+		dropdown.style.alignItems = "center";
+		dropdown.style.justifyContent = "center";
+		dropdown.style.gap = "8px";
+		if (commentBtn) {
+			dropdown.appendChild(commentBtn);
+		}
 		dropdown.appendChild(dropdownBtn);
 		if (this.connection.connection_type != "Report") {
 			document.body.appendChild(dropdownMenu);
