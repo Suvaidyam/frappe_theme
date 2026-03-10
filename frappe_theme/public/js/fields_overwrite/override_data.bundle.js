@@ -8,8 +8,7 @@ frappe.ui.form.ControlData = class SVAControlData extends frappe.ui.form.Control
 				border: "1px solid #dcdcdc",
 				"border-radius": "6px",
 				"box-shadow": "none",
-				"padding-right": "28px",
-				appearance: "none", // 🔥 native arrow hide
+				appearance: "none",
 			});
 			this.$wrapper.find("div.clearfix").remove();
 			const is_xs_input = this.df.input_class && this.df.input_class.includes("input-xs");
