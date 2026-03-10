@@ -443,6 +443,12 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 				(f) => f.fieldtype == "Button" && f?.is_apply_button
 			);
 
+			setTimeout(() => {
+				if (frm?.["sva_active_filters"]?.[apply_button.fieldname]) {
+					apply_dashboard_filters(frm, tab_fields, apply_button);
+				}
+			}, 500);
+
 			if (apply_button) {
 				let apply_button_field = frm.get_field(apply_button.fieldname);
 				apply_button_field.apply_action = () => {
