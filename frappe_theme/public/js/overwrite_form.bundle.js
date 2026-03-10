@@ -338,7 +338,11 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 						return;
 					}
 				} else if (frm.doc[field.fieldname]) {
-					filters[field.fieldname] = frm.doc[field.fieldname];
+					if (["Link"].includes(field.fieldtype)) {
+						filters[field.fieldname] = frm.doc[field.fieldname];
+					} else {
+						filters[field.filter_key || field.fieldname] = frm.doc[field.fieldname];
+					}
 				}
 			});
 			if (Object.keys(filters).length) {
@@ -401,10 +405,10 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 				return;
 			}
 			fields.forEach((field) => {
-				if (field.fieldtype == "Link") {
-					frm.set_value(field.fieldname, "");
-				} else if (field.fieldtype == "Table MultiSelect") {
+				if (field.fieldtype == "Table MultiSelect") {
 					frm.set_value(field.fieldname, []);
+				} else {
+					frm.set_value(field.fieldname, "");
 				}
 				return;
 			});
@@ -772,7 +776,16 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 		if (!tab_field) {
 			return (
 				frm?.meta?.fields
-					?.filter((f) => ["Link", "Table MultiSelect", "Button"].includes(f.fieldtype))
+					?.filter((f) =>
+						[
+							"Link",
+							"Table MultiSelect",
+							"Button",
+							"Data",
+							"Autocomplete",
+							"Select",
+						].includes(f.fieldtype)
+					)
 					?.map((f) => f) || []
 			);
 		}
@@ -789,7 +802,12 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 		for (let i = tab_field_index + 1; i < frm?.meta?.fields.length; i++) {
 			const f = frm?.meta?.fields[i];
 			if (f.fieldtype === "Tab Break") break;
-			if (["Link", "Table MultiSelect", "Button"].includes(f.fieldtype)) tab_fields.push(f);
+			if (
+				["Link", "Table MultiSelect", "Button", "Data", "Autocomplete", "Select"].includes(
+					f.fieldtype
+				)
+			)
+				tab_fields.push(f);
 		}
 		return tab_fields;
 	}
