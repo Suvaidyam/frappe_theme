@@ -2,6 +2,7 @@
 const primaryColor = frappe.boot.my_theme?.button_background_color || "#171717";
 // Variable to store the context of the currently viewed field's comments
 let current_field_context = null;
+let current_comment_frm = null; // tracks which doc the sidebar is currently showing
 
 // Helper: returns true for NGO or Vendor team users (external parties)
 const isExternalUser = () => ["NGO", "Vendor"].includes(frappe.boot.user_team);
@@ -211,8 +212,9 @@ function refreshSummaryContainer(frm) {
 							<span style="color: var(--text-muted); font-size: 10px; margin-left: auto; flex-shrink: 0;">${frappe.datetime.prettyDate(
 								sc.creation_date
 							)}</span>
+							<button class="unpin-summary-btn" title="Remove Summary" style="background: none; border: none; cursor: pointer; color: #e53e3e; font-size: 11px; padding: 0 2px; flex-shrink: 0;" >📌✕</button>
 						</div>
-						<div style="color: #333; line-height: 1.5; padding-left: 26px; word-break: break-all; overflow-wrap: anywhere;">${frappe.format(
+						<div style="color: #333; line-height: 1.5; padding-left: 26px; word-break: break-all; overflow-wrap: anywhere; max-height: 80px; overflow-y: auto;">${frappe.format(
 							sc.comment,
 							"Markdown"
 						)}</div>
@@ -224,6 +226,30 @@ function refreshSummaryContainer(frm) {
 				});
 				card.on("mouseleave", function () {
 					$(this).css("box-shadow", "none");
+				});
+
+				card.find(".unpin-summary-btn").on("click", function (e) {
+					e.stopPropagation();
+					frappe.confirm(__("Remove this summary mark?"), () => {
+						frappe.call({
+							method: "frappe_theme.api.update_comment_summary_flag",
+							args: { comment_name: sc.name, is_summary: 0 },
+							callback: function (r) {
+								if (r.message) {
+									frappe.show_alert({
+										message: __("Summary removed"),
+										indicator: "green",
+									});
+									refreshSummaryContainer(frm);
+								} else {
+									frappe.show_alert({
+										message: __("Error removing summary"),
+										indicator: "red",
+									});
+								}
+							},
+						});
+					});
 				});
 
 				// Click → scroll to that field section in comments list below, or load it
@@ -393,7 +419,8 @@ function load_field_comments(fieldName, field, frm) {
 										fieldName,
 										field,
 										get_comment_html,
-										newThreadName
+										newThreadName,
+										frm
 									);
 									new_thread_section.find(".comment-input").show();
 								}
@@ -525,7 +552,9 @@ function load_field_comments(fieldName, field, frm) {
 										thread_section,
 										fieldName,
 										field,
-										get_comment_html
+										get_comment_html,
+										null,
+										frm
 									);
 									thread_section.find(".comment-input").show();
 								}
@@ -563,7 +592,9 @@ function load_field_comments(fieldName, field, frm) {
 									new_thread_section,
 									fieldName,
 									field,
-									get_comment_html
+									get_comment_html,
+									null,
+									frm
 								);
 								new_thread_section.find(".comment-input").show();
 							}
@@ -647,39 +678,55 @@ function load_all_comments(frm) {
 
 				fieldsToShow.forEach((data) => {
 					let fields = [
-						...frm.fields.map((f) => ({ ...f, variant: "field" })),
-						...frm?.layout?.tabs?.map((t) => ({ ...t, variant: "tab" })),
+						...(frm.fields || []).map((f) => ({ ...f, variant: "field" })),
+						...(frm?.layout?.tabs || []).map((t) => ({ ...t, variant: "tab" })),
 					];
 					const field = fields.find((f) => f.df.fieldname == data.field_name);
-					if (!field) return;
+					let effectiveField = field;
+					if (!field) {
+						// field_name is empty/null → row-level comment, render with generic label
+						effectiveField = {
+							df: {
+								fieldname: data.field_name || "",
+								label: data.field_label || __("Comments"),
+								fieldtype: "Data",
+								read_only: 0,
+							},
+							frm: frm,
+							variant: "field",
+							tab: null,
+						};
+					}
 
 					const field_section = $(`
-                        <div class="field-comment-section" data-fieldname="${
+						<div class="field-comment-section" data-fieldname="${
 							data.field_name
 						}" style="margin-bottom: 25px; padding: 15px; border-radius: 12px; border: none; box-shadow: none;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
-                                <h5 style="margin: 0; font-size: 15px;">
-                                  ${data.field_label || data.field_name}
-                                  ${
-										field.tab && field.tab.df && field.tab.df.label
-											? `<span style="color: #888; font-size: 12px; font-weight: 400;">(${field.tab.df.label})</span>`
-											: ""
-									}
-                                </h5>
-                                <div class="status-pill-container" style="margin-left: auto;">
-                                    ${renderStatusPill(data.status || "Open")}
-                                </div>
-                            </div>
-                            <div class="field-comments"></div>
-                            <div class="comment-input" style="margin-top: 15px; display: none;">
-                                <div style="display: flex; align-items: center;">
-                                    <div style="flex-grow: 1; display: flex; align-items: center; border: 1px solid var(--border-color); border-radius: 20px; padding: 3px 6px; background-color: var(--control-bg); box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: all 0.2s ease;">
-                                        <div class="comment-box" style="flex-grow: 1; min-height: 24px; margin-right: 8px; "></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `);
+							<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+								<h5 style="margin: 0; font-size: 15px;">
+								${data.field_label || data.field_name || __("Comments")}
+								${
+									effectiveField.tab &&
+									effectiveField.tab.df &&
+									effectiveField.tab.df.label
+										? `<span style="color: #888; font-size: 12px; font-weight: 400;">(${effectiveField.tab.df.label})</span>`
+										: ""
+								}
+								</h5>
+								<div class="status-pill-container" style="margin-left: auto;">
+									${renderStatusPill(data.status || "Open")}
+								</div>
+							</div>
+							<div class="field-comments"></div>
+							<div class="comment-input" style="margin-top: 15px; display: none;">
+								<div style="display: flex; align-items: center;">
+									<div style="flex-grow: 1; display: flex; align-items: center; border: 1px solid var(--border-color); border-radius: 20px; padding: 3px 6px; background-color: var(--control-bg); box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: all 0.2s ease;">
+										<div class="comment-box" style="flex-grow: 1; min-height: 24px; margin-right: 8px;"></div>
+									</div>
+								</div>
+							</div>
+						</div>
+					`);
 
 					let currentStatus = data.status || "Open";
 
@@ -809,8 +856,10 @@ function load_all_comments(frm) {
 								initializeCommentControl(
 									field_section,
 									data.field_name,
-									field,
-									get_comment_html
+									effectiveField,
+									get_comment_html,
+									null,
+									frm
 								);
 								field_section.find(".comment-input").show();
 							}
@@ -936,7 +985,15 @@ function load_all_comments(frm) {
 	});
 }
 
-function initializeCommentControl(field_section, fieldName, field, get_comment_html) {
+function initializeCommentControl(
+	field_section,
+	fieldName,
+	field,
+	get_comment_html,
+	threadName,
+	frm
+) {
+	frm = frm || field.frm;
 	const commentBox = field_section.find(".comment-box")[0];
 	let control;
 
@@ -1029,12 +1086,18 @@ function initializeCommentControl(field_section, fieldName, field, get_comment_h
 			} else if (frappe.boot.user_team === "Vendor") {
 				isVendor = 1;
 			} else {
-				isExternal = $(`#new_comment_external_${fieldName}`).is(":checked") ? 1 : 0;
-				isVendor = $(`#new_comment_vendor_${fieldName}`).is(":checked") ? 1 : 0;
+				isExternal = document.getElementById(`new_comment_external_${fieldName}`)?.checked
+					? 1
+					: 0;
+				isVendor = document.getElementById(`new_comment_vendor_${fieldName}`)?.checked
+					? 1
+					: 0;
 			}
 
 			// ─── read is_summary flag ─────────────────────────────────────────
-			const isSummary = $(`#new_comment_summary_${fieldName}`).is(":checked") ? 1 : 0;
+			const isSummary = document.getElementById(`new_comment_summary_${fieldName}`)?.checked
+				? 1
+				: 0;
 
 			const mentionRegex = /@([a-zA-Z0-9._-]+)/g;
 			const mentions = new Set();
@@ -1059,9 +1122,14 @@ function initializeCommentControl(field_section, fieldName, field, get_comment_h
 					if (response.message) {
 						const newCommentEntry = response.message;
 						control.set_value("");
-						$(`#new_comment_external_${fieldName}`).prop("checked", false);
-						$(`#new_comment_vendor_${fieldName}`).prop("checked", false);
-						$(`#new_comment_summary_${fieldName}`).prop("checked", false);
+						const _extEl = document.getElementById(
+							`new_comment_external_${fieldName}`
+						);
+						const _venEl = document.getElementById(`new_comment_vendor_${fieldName}`);
+						const _sumEl = document.getElementById(`new_comment_summary_${fieldName}`);
+						if (_extEl) _extEl.checked = false;
+						if (_venEl) _venEl.checked = false;
+						if (_sumEl) _sumEl.checked = false;
 
 						frappe.show_alert({
 							message: __("Comment added successfully"),
@@ -1089,21 +1157,21 @@ function initializeCommentControl(field_section, fieldName, field, get_comment_h
 						// Use current_field_context: null = global view, set = field-level view
 						const isAllCommentsView = current_field_context === null;
 						if (isAllCommentsView) {
-							load_all_comments(field.frm).then(() => {
-								updateTotalCommentCount(field.frm);
-								refreshSummaryContainer(field.frm);
+							load_all_comments(frm).then(() => {
+								updateTotalCommentCount(frm);
+								refreshSummaryContainer(frm);
 							});
 						} else {
-							load_field_comments(fieldName, field, field.frm).then(() => {
-								updateCommentCount(fieldName, field.frm);
-								updateTotalCommentCount(field.frm);
-								refreshSummaryContainer(field.frm);
+							load_field_comments(fieldName, field, frm).then(() => {
+								updateCommentCount(fieldName, frm);
+								updateTotalCommentCount(frm);
+								refreshSummaryContainer(frm);
 							});
 						}
 
 						setTimeout(() => {
-							updateTotalCommentCount(field.frm);
-							refreshSummaryContainer(field.frm);
+							updateTotalCommentCount(frm);
+							refreshSummaryContainer(frm);
 						}, 500);
 					} else {
 						console.error("Error saving comment:", response);
@@ -1263,7 +1331,11 @@ function setupFieldComments(frm) {
 				});
 
 				comment_sidebar.find(".refresh-comments").click(() => {
-					if (!cur_frm) return;
+					// Use current_comment_frm (set by openCommentsForDoc) if available,
+					// otherwise fall back to the form's frm
+					const activeFrm = current_comment_frm || frm;
+					if (!activeFrm) return;
+
 					const refreshBtn = comment_sidebar.find(".refresh-comments");
 					refreshBtn.prop("disabled", true);
 					refreshBtn.find("svg").css("animation", "spin 1s linear infinite");
@@ -1276,15 +1348,15 @@ function setupFieldComments(frm) {
 							current_field_context.frm
 						);
 					} else {
-						loadCommentsPromise = load_all_comments(frm);
+						loadCommentsPromise = load_all_comments(activeFrm);
 					}
 
 					loadCommentsPromise
 						.then(() => {
 							refreshBtn.prop("disabled", false);
 							refreshBtn.find("svg").css("animation", "");
-							updateTotalCommentCount(frm);
-							refreshSummaryContainer(frm); // ─── NEW ───
+							updateTotalCommentCount(activeFrm);
+							refreshSummaryContainer(activeFrm);
 							frappe.show_alert({
 								message: __("Comments refreshed"),
 								indicator: "green",
@@ -1468,6 +1540,150 @@ function setupFieldComments(frm) {
 	}
 }
 
+//  Open the field - comments sidebar for any document — used by SvaDataTable rows.
+
+// @param { string } doctype - e.g. "Grant Application"
+// @param { string } docname - e.g. "GRANT-0001"
+// @param { string } [title] - optional heading shown in the sidebar
+// CHANGE signature:
+window.openCommentsForDoc = function (parentDoctype, parentDocname, rowDoctype, rowDocname) {
+	// rowDocname itself is unique — no :: needed
+	const fieldKey = rowDocname; // e.g. "PA-OUTPUT-0838"
+
+	const fakeFrm = {
+		doctype: parentDoctype,
+		docname: parentDocname,
+		is_new: () => false,
+		fields: [],
+		layout: { tabs: [] },
+		commentsButton: null,
+		page: { sidebar: $("<div>") },
+	};
+
+	const fakeField = {
+		df: { fieldname: fieldKey, label: "", fieldtype: "Data", read_only: 0 },
+		frm: fakeFrm,
+		variant: "field",
+		tab: null,
+	};
+
+	if (!$(".field-comments-sidebar").length) {
+		_createCommentSidebarDOM(fakeFrm);
+	}
+
+	current_comment_frm = fakeFrm;
+	current_field_context = { fieldName: fieldKey, field: fakeField, frm: fakeFrm };
+
+	const $sidebar = $(".field-comments-sidebar");
+	$sidebar.show();
+	$sidebar[0].offsetHeight;
+	$sidebar.css("right", "0");
+
+	load_field_comments(fieldKey, fakeField, fakeFrm);
+};
+function _createCommentSidebarDOM(frm) {
+	const primaryColor = frappe.boot.my_theme?.button_background_color || "#171717";
+
+	const comment_sidebar = $(`
+        <div class="field-comments-sidebar" style="display: none; position: fixed; right: -400px; top: 48px; width: 400px; height: calc(100vh - 48px); background: var(--fg-color); box-shadow: -2px 0 8px rgba(0,0,0,0.1); z-index: 100; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);">
+            <div style="padding: 15px; border-bottom: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h5 style="margin: 0; font-size: 18px; font-weight: 600;">${__(
+						"Comments"
+					)}</h5>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-default btn-sm refresh-comments" style="padding: 4px 8px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" style="vertical-align: middle;" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                                <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                                <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                            </svg>
+                        </button>
+                        <button class="btn btn-default btn-sm close-comments" style="padding: 4px 8px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" style="vertical-align: middle;" fill="currentColor" class="bi bi-x" viewBox="0 0 16 16">
+                                <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Container -->
+            <div class="comments-summary-container" style="margin: 0 15px 10px 15px; border-radius: 10px; background: var(--bg-color); border: 1px solid var(--border-color);">
+                <div style="display: flex; align-items: center; gap: 8px; padding: 8px 14px 6px 14px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; background: #EEF2FF; border: 1px solid #c7d0f8;">
+                        <span style="width: 7px; height: 7px; border-radius: 50%; background: #3b5bdb; display: inline-block;"></span>
+                        <span style="font-size: 12px; color: #3b5bdb; font-weight: 500;">Total</span>
+                        <span class="summary-count-total" style="font-size: 12px; color: #3b5bdb; font-weight: 700;">0</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; background: #FDEAEA; border: 1px solid #f5c6c6;">
+                        <span style="width: 7px; height: 7px; border-radius: 50%; background: #D32F2F; display: inline-block;"></span>
+                        <span style="font-size: 12px; color: #D32F2F; font-weight: 500;">Open</span>
+                        <span class="summary-count-open" style="font-size: 12px; color: #D32F2F; font-weight: 700;">0</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; background: #E6F4EA; border: 1px solid #b7dfbf;">
+                        <span style="width: 7px; height: 7px; border-radius: 50%; background: #218838; display: inline-block;"></span>
+                        <span style="font-size: 12px; color: #218838; font-weight: 500;">Closed</span>
+                        <span class="summary-count-closed" style="font-size: 12px; color: #218838; font-weight: 700;">0</span>
+                    </div>
+                </div>
+                <div class="summary-body-wrap" style="display: none;">
+                    <div style="display: flex; align-items: center; gap: 6px; padding: 4px 14px 4px 14px; border-top: 1px solid var(--border-color);">
+                        <span style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">📌 Summary</span>
+                    </div>
+                    <div style="padding: 2px 14px 10px 14px;">
+                        <div class="summary-comments-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="comments-container" style="height: calc(100vh - 165px); overflow-y: auto; padding: 15px 15px 40px 15px;">
+                <div class="comments-list"></div>
+            </div>
+        </div>
+    `);
+
+	$("body").append(comment_sidebar);
+
+	comment_sidebar.find(".close-comments").click(() => {
+		comment_sidebar.css("right", "-400px");
+		setTimeout(() => comment_sidebar.hide(), 400);
+		current_comment_frm = null; // clear row context on close
+	});
+
+	comment_sidebar.find(".refresh-comments").click(() => {
+		const activeFrm = current_comment_frm || frm;
+		if (!activeFrm) return;
+
+		const refreshBtn = comment_sidebar.find(".refresh-comments");
+		refreshBtn.prop("disabled", true);
+		refreshBtn.find("svg").css("animation", "spin 1s linear infinite");
+
+		let promise;
+		if (current_field_context) {
+			promise = load_field_comments(
+				current_field_context.fieldName,
+				current_field_context.field,
+				current_field_context.frm
+			);
+		} else {
+			promise = load_all_comments(activeFrm);
+		}
+		promise
+			.then(() => {
+				refreshBtn.prop("disabled", false);
+				refreshBtn.find("svg").css("animation", "");
+				updateTotalCommentCount(activeFrm);
+				refreshSummaryContainer(activeFrm);
+				frappe.show_alert({ message: __("Comments refreshed"), indicator: "green" });
+			})
+			.catch(() => {
+				refreshBtn.prop("disabled", false);
+				refreshBtn.find("svg").css("animation", "");
+				frappe.show_alert({ message: __("Error refreshing comments"), indicator: "red" });
+			});
+	});
+}
+
 frappe.ui.form.on("*", {
 	refresh: function (frm) {
 		setupFieldComments(frm);
@@ -1605,6 +1821,7 @@ frappe.router.on("change", function () {
 	setTimeout(() => {
 		$(".field-comments-sidebar").hide();
 	}, 400);
+	current_comment_frm = null; // ← ADD THIS LINE
 });
 
 function isValidStatusTransition(currentStatus, newStatus) {
@@ -1691,15 +1908,13 @@ function updateTotalCommentCount(frm) {
 			args: { doctype_name: frm.doctype, docname: frm.docname },
 			callback: function (r) {
 				let count = r.message || 0;
+
+				// Try frm.commentsButton first, then DOM fallback
 				let commentsBtn = frm.commentsButton;
 				if (!commentsBtn || !commentsBtn.length) {
-					commentsBtn =
-						frm.page.sidebar.find(".field-comments-btn") ||
-						frm.page.sidebar.find('button:contains("Comments")') ||
-						$('button:contains("Comments")').filter(function () {
-							return $(this).closest(".form-sidebar").length > 0;
-						});
+					commentsBtn = $(".field-comments-btn");
 				}
+
 				if (commentsBtn && commentsBtn.length) {
 					let label =
 						count > 0
@@ -1710,14 +1925,11 @@ function updateTotalCommentCount(frm) {
 						background: primaryColor,
 						color: "#fff",
 						"border-radius": "10px",
-						padding: "2px 2px",
+						padding: "2px 6px",
 						"font-size": "11px",
 						"margin-left": "2px",
 					});
 				}
-			},
-			error: function (err) {
-				console.error("Error updating total comment count:", err);
 			},
 		});
 	}, 300);
