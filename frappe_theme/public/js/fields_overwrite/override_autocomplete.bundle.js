@@ -1,8 +1,10 @@
-frappe.ui.form.ControlAutocomplete = class SVAControlAutoComplete extends frappe.ui.form.ControlAutocomplete {
+frappe.ui.form.ControlAutocomplete = class SVAControlAutoComplete extends (
+	frappe.ui.form.ControlAutocomplete
+) {
 	make_input() {
 		super.make_input();
-        if (this?.frm?.meta?.issingle && this.frm?.meta?.is_dashboard){
-            this.$wrapper.find(".form-control").css({
+		if (this?.frm?.meta?.issingle && this.frm?.meta?.is_dashboard) {
+			this.$wrapper.find(".form-control").css({
 				"background-color": "white",
 				outline: "none",
 				border: "1px solid #dcdcdc",
@@ -12,6 +14,6 @@ frappe.ui.form.ControlAutocomplete = class SVAControlAutoComplete extends frappe
 				appearance: "none", // 🔥 native arrow hide
 			});
 			this.$wrapper.find("div.clearfix").remove();
-        }
+		}
 	}
-}
+};
