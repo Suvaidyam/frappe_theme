@@ -2393,6 +2393,11 @@ class SvaDataTable {
 
 		const dropdownMenu = document.createElement("div");
 		dropdownMenu.classList.add("dropdown-menu");
+		dropdownMenu.classList.add("sva-dt-action-dropdown");
+		const _dtTableKey = `${this?.doctype || this?.link_report}-${
+			this?.connection?.html_field
+		}`;
+		dropdownMenu.dataset.dtTableKey = _dtTableKey;
 		dropdownMenu.style.position = "fixed";
 		dropdownMenu.style.zIndex = "9999";
 		dropdownMenu.style.display = "none";
@@ -2718,21 +2723,102 @@ class SvaDataTable {
 			document.body.appendChild(dropdownMenu);
 		}
 
+		// Helper: detach scroll listeners stored on a menu element
+		const detachScrollHandlers = (menu) => {
+			if (typeof menu._removeScrollHandler === "function") {
+				menu._removeScrollHandler();
+				menu._removeScrollHandler = null;
+			}
+		};
+
+		// Close only dropdowns belonging to the same table instance
+		const closeAllActionDropdowns = () => {
+			document
+				.querySelectorAll(`.sva-dt-action-dropdown[data-dt-table-key="${_dtTableKey}"]`)
+				.forEach((menu) => {
+					detachScrollHandlers(menu);
+					menu.style.display = "none";
+					menu.style.visibility = "visible";
+				});
+		};
+
 		const toggleDropdown = (event) => {
 			event.stopPropagation();
-			const rect = dropdownBtn.getBoundingClientRect();
-			const dropdownWidth = dropdownMenu.offsetWidth || 150; // Default width in case offsetWidth is 0
-			dropdownMenu.style.top = `${rect.bottom}px`;
-			dropdownMenu.style.left = `${rect.left - dropdownWidth}px`; // Adjust position for left-side popup
-			dropdownMenu.style.display = dropdownMenu.style.display === "none" ? "block" : "none";
+			const isOpen = dropdownMenu.style.display !== "none";
+
+			// Always close all open action dropdowns first (also cleans up their scroll handlers)
+			closeAllActionDropdowns();
+
+			// If this one was already open, toggling means we leave it closed
+			if (isOpen) return;
+
+			// Temporarily render off-screen to measure actual dimensions
+			dropdownMenu.style.visibility = "hidden";
+			dropdownMenu.style.display = "block";
+			dropdownMenu.style.top = "-9999px";
+			dropdownMenu.style.left = "-9999px";
+
+			const dropdownHeight = dropdownMenu.offsetHeight || 120;
+			const dropdownWidth = dropdownMenu.offsetWidth || 150;
+
+			// Reposition the dropdown relative to the current button position.
+			// Called once on open and again on every scroll event.
+			// Uses only viewport coordinates — dropdown is position:fixed so no container
+			// bounds are needed, and scrollable-ancestor detection caused false positives
+			// with Frappe's overflow:hidden wrappers.
+			const positionDropdown = () => {
+				const rect = dropdownBtn.getBoundingClientRect();
+
+				// Button scrolled completely out of the viewport — close and clean up
+				if (rect.bottom < 0 || rect.top > window.innerHeight) {
+					detachScrollHandlers(dropdownMenu);
+					dropdownMenu.style.display = "none";
+					dropdownMenu.style.visibility = "visible";
+					return;
+				}
+
+				const spaceBelow = window.innerHeight - rect.bottom;
+				const spaceAbove = rect.top;
+
+				// Open upward if not enough space below AND more space above
+				const top =
+					spaceBelow < dropdownHeight && spaceAbove >= dropdownHeight
+						? rect.top - dropdownHeight
+						: rect.bottom;
+
+				dropdownMenu.style.top = `${top}px`;
+				dropdownMenu.style.left = `${rect.left - dropdownWidth}px`;
+			};
+
+			// Initial position then make visible
+			positionDropdown();
+			dropdownMenu.style.visibility = "visible";
+
+			// Capture phase catches scroll from ANY nested container (scroll doesn't bubble)
+			document.addEventListener("scroll", positionDropdown, {
+				passive: true,
+				capture: true,
+			});
+
+			// Store cleanup so closeAllActionDropdowns can detach the listener
+			dropdownMenu._removeScrollHandler = () => {
+				document.removeEventListener("scroll", positionDropdown, { capture: true });
+			};
 		};
 
 		dropdownBtn.addEventListener("click", toggleDropdown);
 
-		// Close dropdown when clicking outside
-		document.addEventListener("click", () => {
-			dropdownMenu.style.display = "none";
-		});
+		// Close all action dropdowns when clicking outside — register only once per page
+		if (!document.__svaDtOutsideClickBound) {
+			document.__svaDtOutsideClickBound = true;
+			document.addEventListener("click", () => {
+				document.querySelectorAll(".sva-dt-action-dropdown").forEach((menu) => {
+					detachScrollHandlers(menu);
+					menu.style.display = "none";
+					menu.style.visibility = "visible";
+				});
+			});
+		}
 
 		return dropdown;
 	}
