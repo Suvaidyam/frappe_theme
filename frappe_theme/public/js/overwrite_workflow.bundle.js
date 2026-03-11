@@ -1,5 +1,6 @@
 import { add_custom_approval_assignments_fields } from "./utils.bundle.js";
 frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
+	isAsync = (fn) => fn?.constructor?.name === "AsyncFunction";
 	show_actions() {
 		var added = false;
 		var me = this;
@@ -128,7 +129,7 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 
 								const popupFields = [
 									{
-										label: "Action Test",
+										label: "Action",
 										fieldname: "action_test",
 										fieldtype: "HTML",
 										options: `<p>Action:  <span style="padding: 4px 8px; border-radius: 100px; color:white;  font-size: 12px; font-weight: 400;" class="bg-${
@@ -181,6 +182,14 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 								});
 
 								dailog.show();
+								if (me.frm.events?.after_worflow_dialog_render) {
+									let change = me.frm.events?.after_worflow_dialog_render;
+									if (me.isAsync(change)) {
+										await change(me.frm, dailog, action);
+									} else {
+										change(me.frm, dailog, action);
+									}
+								}
 							} catch (error) {
 								console.error("Error in workflow action handler:", error);
 							}
