@@ -2612,7 +2612,12 @@ class SvaDataTable {
 		// ========================= Comment Button (standalone) ======================
 		const primaryColor = frappe.boot.my_theme?.button_background_color || "#171717";
 		let commentBtn = null;
+		const _commentDoctype = this?.frm?.parent_frm?.doctype || this?.frm?.doctype;
+		const _commentDocname =
+			this?.frm?.parent_frm?.docname || this?.frm?.docname || this?.frm?.doc?.name;
 		if (
+			_commentDoctype &&
+			_commentDocname &&
 			this.connection.connection_type !== "Report" &&
 			!(frappe.boot.my_theme && frappe.boot.my_theme.hide_fields_comment)
 		) {
@@ -2635,8 +2640,11 @@ class SvaDataTable {
 			const self = this;
 			const refreshCountBadge = function () {
 				frappe.call({
-					method: "frappe_theme.api.get_all_field_comment_counts",
-					args: { doctype_name: self.frm.doctype, docname: self.frm.docname },
+					method: "frappe_theme.api.get_all_field_thread_counts",
+					args: {
+						doctype_name: _commentDoctype,
+						docname: _commentDocname,
+					},
 					callback: function (r) {
 						const counts = r.message || {};
 						const count = counts[rowDocname] || 0;
@@ -2655,11 +2663,24 @@ class SvaDataTable {
 				event.stopPropagation();
 				if (typeof window.openCommentsForDoc === "function") {
 					window.openCommentsForDoc(
-						self.frm.doctype,
-						self.frm.docname,
+						_commentDoctype,
+						_commentDocname,
 						self.doctype,
-						rowDocname
+						rowDocname,
+						self?.frm?.parent_frm || self?.frm
 					);
+				}
+				// If inside a dialog, raise sidebar z-index above it
+				const sidebar = document.querySelector(".field-comments-sidebar");
+				if (sidebar) {
+					const parentModal = commentBtn.closest(".modal");
+					if (parentModal) {
+						const modalZIndex =
+							parseInt(window.getComputedStyle(parentModal).zIndex) || 1050;
+						sidebar.style.zIndex = modalZIndex + 10;
+						sidebar.style.top = "0";
+						sidebar.style.height = "100vh";
+					}
 				}
 				// Store refresh function for this row
 				window.__dtActiveCommentRefresh = refreshCountBadge;
@@ -2688,7 +2709,7 @@ class SvaDataTable {
 		dropdown.style.display = "flex";
 		dropdown.style.alignItems = "center";
 		dropdown.style.justifyContent = "center";
-		dropdown.style.gap = "8px";
+		dropdown.style.gap = "12px";
 		if (commentBtn) {
 			dropdown.appendChild(commentBtn);
 		}
@@ -3107,6 +3128,11 @@ class SvaDataTable {
 					fields: popupFields,
 					primary_action_label: "Proceed",
 					primary_action: (values) => {
+						$(me["workflow_dialog"].get_primary_btn()).prop("disabled", true);
+						$(me["workflow_dialog"].get_primary_btn()).html(
+							'<span style="width: 0.75rem !important; height: 0.75rem !important;" class="spinner-border spinner-border-sm "></span> ' +
+								(me["workflow_dialog"].primary_action_label || "Proceed")
+						);
 						if (firstAttempt) {
 							resolve(values);
 							firstAttempt = false;
@@ -3189,6 +3215,10 @@ class SvaDataTable {
 							});
 						}
 						if (dialog) {
+							$(dialog.get_primary_btn()).prop("disabled", false);
+							$(dialog.get_primary_btn()).html(
+								dialog?.primary_action_label || "Proceed"
+							);
 							dialog?.hide();
 						}
 						if (me?.frm?.["dt_events"]?.[me.doctype]?.["after_workflow_action"]) {
@@ -3209,6 +3239,10 @@ class SvaDataTable {
 						}
 					});
 			} catch (error) {
+				if (dialog) {
+					$(dialog.get_primary_btn()).prop("disabled", false);
+					$(dialog.get_primary_btn()).html(dialog?.primary_action_label || "Proceed");
+				}
 				if (error.message) {
 					frappe.throw({
 						title: "Error",
@@ -3267,6 +3301,7 @@ class SvaDataTable {
 			connection: link,
 			frm: {
 				doctype: this.doctype,
+				parent_frm: this.frm,
 				doc: { name: primaryKeyValue, docstatus: parentRow.docstatus },
 				parentRow,
 				dt_events: this.frm?.dt_events,
