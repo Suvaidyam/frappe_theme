@@ -6,7 +6,7 @@ export const add_custom_approval_assignments_fields = async (d) => {
 			label: "Comment",
 			fieldname: "wf_comment",
 			fieldtype: "Small Text",
-			reqd: is_comment_required ? 1 : 0,
+			reqd: d?.custom_comment_required ? 1 : 0,
 		});
 	}
 	if (d?.custom_allow_assignment) {
