@@ -170,12 +170,12 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 												frappe.model.sync(doc);
 												me.frm.refresh();
 												action = null;
+												dailog.hide();
 												me.frm.script_manager.trigger(
 													"after_workflow_action"
 												);
 											})
 											.finally(() => {
-												dailog.hide();
 												frappe.dom.unfreeze();
 											});
 									},
