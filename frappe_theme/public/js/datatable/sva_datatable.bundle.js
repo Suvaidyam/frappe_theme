@@ -3131,7 +3131,7 @@ class SvaDataTable {
 						$(me["workflow_dialog"].get_primary_btn()).prop("disabled", true);
 						$(me["workflow_dialog"].get_primary_btn()).html(
 							'<span style="width: 0.75rem !important; height: 0.75rem !important;" class="spinner-border spinner-border-sm "></span> ' +
-								(dialog.primary_action_label || "Proceed")
+								(me["workflow_dialog"].primary_action_label || "Proceed")
 						);
 						if (firstAttempt) {
 							resolve(values);
