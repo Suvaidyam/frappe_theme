@@ -3128,6 +3128,7 @@ class SvaDataTable {
 					fields: popupFields,
 					primary_action_label: "Proceed",
 					primary_action: (values) => {
+						frappe.dom.freeze("Processing...");
 						$(me["workflow_dialog"].get_primary_btn()).prop("disabled", true);
 						$(me["workflow_dialog"].get_primary_btn()).html(
 							'<span style="width: 0.75rem !important; height: 0.75rem !important;" class="spinner-border spinner-border-sm "></span> ' +
@@ -3214,6 +3215,7 @@ class SvaDataTable {
 								indicator: "success",
 							});
 						}
+						frappe.dom.unfreeze();
 						if (dialog) {
 							$(dialog.get_primary_btn()).prop("disabled", false);
 							$(dialog.get_primary_btn()).html(
@@ -3239,6 +3241,7 @@ class SvaDataTable {
 						}
 					});
 			} catch (error) {
+				frappe.dom.unfreeze();
 				if (dialog) {
 					$(dialog.get_primary_btn()).prop("disabled", false);
 					$(dialog.get_primary_btn()).html(dialog?.primary_action_label || "Proceed");
