@@ -2612,7 +2612,12 @@ class SvaDataTable {
 		// ========================= Comment Button (standalone) ======================
 		const primaryColor = frappe.boot.my_theme?.button_background_color || "#171717";
 		let commentBtn = null;
+		const _commentDoctype = this?.frm?.parent_frm?.doctype || this?.frm?.doctype;
+		const _commentDocname =
+			this?.frm?.parent_frm?.docname || this?.frm?.docname || this?.frm?.doc?.name;
 		if (
+			_commentDoctype &&
+			_commentDocname &&
 			this.connection.connection_type !== "Report" &&
 			!(frappe.boot.my_theme && frappe.boot.my_theme.hide_fields_comment)
 		) {
@@ -2634,15 +2639,11 @@ class SvaDataTable {
 
 			const self = this;
 			const refreshCountBadge = function () {
-				console.log("console+++++++++++++++++++++++", self);
 				frappe.call({
 					method: "frappe_theme.api.get_all_field_thread_counts",
 					args: {
-						doctype_name: self?.frm?.parent_frm?.doctype || self?.frm?.doctype,
-						docname:
-							self?.frm?.parent_frm?.docname ||
-							self?.frm?.docname ||
-							self.frm.doc.name,
+						doctype_name: _commentDoctype,
+						docname: _commentDocname,
 					},
 					callback: function (r) {
 						const counts = r.message || {};
@@ -2662,8 +2663,8 @@ class SvaDataTable {
 				event.stopPropagation();
 				if (typeof window.openCommentsForDoc === "function") {
 					window.openCommentsForDoc(
-						self.frm.doctype,
-						self.frm.docname,
+						_commentDoctype,
+						_commentDocname,
 						self.doctype,
 						rowDocname,
 						self?.frm?.parent_frm || self?.frm

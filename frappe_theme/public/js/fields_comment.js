@@ -341,7 +341,6 @@ function create_new_comment_thread(fieldName, field, frm) {
 
 function load_field_comments(fieldName, field, frm) {
 	return new Promise((resolve, reject) => {
-		console.log("changes", frm);
 		frappe.call({
 			method: "frappe_theme.api.load_field_comments",
 			args: {
