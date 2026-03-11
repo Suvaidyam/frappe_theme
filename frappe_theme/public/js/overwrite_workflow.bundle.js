@@ -150,7 +150,15 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 										dailog.hide();
 									},
 									primary_action: (values) => {
-										frappe.dom.freeze();
+										$(me.frm["workflow_dialog"].get_primary_btn()).prop(
+											"disabled",
+											true
+										);
+										$(me.frm["workflow_dialog"].get_primary_btn()).html(
+											'<span style="width: 0.75rem !important; height: 0.75rem !important;" class="spinner-border spinner-border-sm "></span> ' +
+												(me.frm["workflow_dialog"].primary_action_label ||
+													"Proceed")
+										);
 										// Apply workflow after a small delay to ensure values are set
 										frappe
 											.xcall("frappe.model.workflow.apply_workflow", {
@@ -176,12 +184,21 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 												);
 											})
 											.finally(() => {
-												frappe.dom.unfreeze();
+												$(
+													me.frm["workflow_dialog"].get_primary_btn()
+												).prop("disabled", false);
+												$(
+													me.frm["workflow_dialog"].get_primary_btn()
+												).html(
+													me.frm["workflow_dialog"]
+														?.primary_action_label || "Proceed"
+												);
 											});
 									},
 								});
 
 								dailog.show();
+								me.frm["workflow_dialog"] = dailog;
 								if (me.frm.events?.after_worflow_dialog_render) {
 									let change = me.frm.events?.after_worflow_dialog_render;
 									if (me.isAsync(change)) {
