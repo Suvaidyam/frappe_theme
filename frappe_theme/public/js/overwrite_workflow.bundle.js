@@ -182,7 +182,6 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 								});
 
 								dailog.show();
-								console.log(me.frm.events, "me.frm.events");
 								if (me.frm.events?.after_worflow_dialog_render) {
 									let change = me.frm.events?.after_worflow_dialog_render;
 									if (me.isAsync(change)) {
