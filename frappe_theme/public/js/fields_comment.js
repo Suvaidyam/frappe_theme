@@ -470,6 +470,14 @@ function load_field_comments(fieldName, field, frm) {
 							e.preventDefault();
 							const newStatus = $(e.target).data("status");
 
+							if (isExternalUser()) {
+								frappe.show_alert({
+									message: __("You do not have permission to change status"),
+									indicator: "red",
+								});
+								return;
+							}
+
 							check_comment_permissions().then((permissions) => {
 								if (!permissions.includes("write")) {
 									frappe.show_alert({
@@ -749,6 +757,14 @@ function load_all_comments(frm) {
 						e.preventDefault();
 						const newStatus = $(e.target).data("status");
 						const statusPill = field_section.find(".status-pill");
+
+						if (isExternalUser()) {
+							frappe.show_alert({
+								message: __("You do not have permission to change status"),
+								indicator: "red",
+							});
+							return;
+						}
 
 						check_comment_permissions().then((permissions) => {
 							if (!permissions.includes("write")) {
@@ -1546,19 +1562,27 @@ function setupFieldComments(frm) {
 // @param { string } docname - e.g. "GRANT-0001"
 // @param { string } [title] - optional heading shown in the sidebar
 // CHANGE signature:
-window.openCommentsForDoc = function (parentDoctype, parentDocname, rowDoctype, rowDocname) {
+window.openCommentsForDoc = function (
+	parentDoctype,
+	parentDocname,
+	rowDoctype,
+	rowDocname,
+	frm = null
+) {
 	// rowDocname itself is unique — no :: needed
 	const fieldKey = rowDocname; // e.g. "PA-OUTPUT-0838"
 
-	const fakeFrm = {
-		doctype: parentDoctype,
-		docname: parentDocname,
-		is_new: () => false,
-		fields: [],
-		layout: { tabs: [] },
-		commentsButton: null,
-		page: { sidebar: $("<div>") },
-	};
+	const fakeFrm = frm
+		? frm
+		: {
+				doctype: parentDoctype,
+				docname: parentDocname,
+				is_new: () => false,
+				fields: [],
+				layout: { tabs: [] },
+				commentsButton: null,
+				page: { sidebar: $("<div>") },
+		  };
 
 	const fakeField = {
 		df: { fieldname: fieldKey, label: "", fieldtype: "Data", read_only: 0 },
@@ -1699,6 +1723,7 @@ function getStatusPillStyle(status) {
 function renderStatusPill(status) {
 	const style = getStatusPillStyle(status);
 	const isClosed = status === "Closed";
+	const readOnly = isClosed || isExternalUser();
 
 	// Only Open ↔ Closed — no Resolved
 	const statusOptions = `
@@ -1710,7 +1735,7 @@ function renderStatusPill(status) {
         <div class="status-pill-container" style="position: relative;">
             <button class="status-pill" type="button"
                 ${
-					isClosed
+					readOnly
 						? ""
 						: 'data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"'
 				}
@@ -1719,7 +1744,7 @@ function renderStatusPill(status) {
 				} !important; color: ${
 		style.text
 	} !important; font-weight: 500 !important; font-size: 13px !important; line-height: 1.2; cursor: ${
-		isClosed ? "not-allowed" : "pointer"
+		readOnly ? "default" : "pointer"
 	}; border: none; margin: 0; opacity: ${isClosed ? "0.7" : "1"}; box-shadow: none;">
                 <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${
 					style.dot
@@ -1727,7 +1752,7 @@ function renderStatusPill(status) {
                 ${status}
             </button>
             ${
-				!isClosed
+				!readOnly
 					? `
                 <div class="dropdown-menu" style="min-width: 120px; padding: 8px 0; margin: 0; border: 1px solid #E0E0E0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                     ${statusOptions}
