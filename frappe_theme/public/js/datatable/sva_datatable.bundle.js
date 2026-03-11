@@ -3128,6 +3128,11 @@ class SvaDataTable {
 					fields: popupFields,
 					primary_action_label: "Proceed",
 					primary_action: (values) => {
+						$(me["workflow_dialog"].get_primary_btn()).prop("disabled", true);
+						$(me["workflow_dialog"].get_primary_btn()).html(
+							'<span style="width: 0.75rem !important; height: 0.75rem !important;" class="spinner-border spinner-border-sm "></span> ' +
+								(dialog.primary_action_label || "Proceed")
+						);
 						if (firstAttempt) {
 							resolve(values);
 							firstAttempt = false;
@@ -3210,6 +3215,10 @@ class SvaDataTable {
 							});
 						}
 						if (dialog) {
+							$(dialog.get_primary_btn()).prop("disabled", false);
+							$(dialog.get_primary_btn()).html(
+								dialog?.primary_action_label || "Proceed"
+							);
 							dialog?.hide();
 						}
 						if (me?.frm?.["dt_events"]?.[me.doctype]?.["after_workflow_action"]) {
@@ -3230,6 +3239,10 @@ class SvaDataTable {
 						}
 					});
 			} catch (error) {
+				if (dialog) {
+					$(dialog.get_primary_btn()).prop("disabled", false);
+					$(dialog.get_primary_btn()).html(dialog?.primary_action_label || "Proceed");
+				}
 				if (error.message) {
 					frappe.throw({
 						title: "Error",
