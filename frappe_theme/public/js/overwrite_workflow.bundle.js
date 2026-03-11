@@ -150,6 +150,7 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 										dailog.hide();
 									},
 									primary_action: (values) => {
+										frappe.dom.freeze("Processing...");
 										$(me.frm["workflow_dialog"].get_primary_btn()).prop(
 											"disabled",
 											true
@@ -184,6 +185,7 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 												);
 											})
 											.finally(() => {
+												frappe.dom.unfreeze();
 												$(
 													me.frm["workflow_dialog"].get_primary_btn()
 												).prop("disabled", false);
@@ -211,7 +213,7 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 								console.error("Error in workflow action handler:", error);
 							}
 						} else {
-							frappe.dom.freeze();
+							frappe.dom.freeze("Processing...");
 							me.frm.selected_workflow_action = d.action;
 							me.frm.script_manager.trigger("before_workflow_action").then(() => {
 								frappe
