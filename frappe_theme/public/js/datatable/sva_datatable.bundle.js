@@ -2394,8 +2394,11 @@ class SvaDataTable {
 		const dropdownMenu = document.createElement("div");
 		dropdownMenu.classList.add("dropdown-menu");
 		dropdownMenu.classList.add("sva-dt-action-dropdown");
-		const _dtTableKey = `${this?.doctype || this?.link_report}-${
-			this?.connection?.html_field
+		// Fallback to "unknown" so the key is always a valid non-empty string.
+		// Frappe doctype names can contain spaces/special chars so we never use
+		// this value inside a CSS selector — comparison is done via dataset directly.
+		const _dtTableKey = `${this?.doctype || this?.link_report || "unknown"}-${
+			this?.connection?.html_field || "unknown"
 		}`;
 		dropdownMenu.dataset.dtTableKey = _dtTableKey;
 		dropdownMenu.style.position = "fixed";
@@ -2740,98 +2743,143 @@ class SvaDataTable {
 
 		// Helper: detach scroll listeners stored on a menu element
 		const detachScrollHandlers = (menu) => {
-			if (typeof menu._removeScrollHandler === "function") {
-				menu._removeScrollHandler();
-				menu._removeScrollHandler = null;
+			try {
+				if (menu && typeof menu._removeScrollHandler === "function") {
+					menu._removeScrollHandler();
+					menu._removeScrollHandler = null;
+				}
+			} catch (e) {
+				// Silently ignore — listener may have already been removed
 			}
 		};
 
-		// Close only dropdowns belonging to the same table instance
+		// Close only dropdowns belonging to the same table instance.
+		// Uses dataset comparison instead of a CSS attribute selector to safely
+		// handle doctype names that contain spaces or other special characters.
 		const closeAllActionDropdowns = () => {
-			document
-				.querySelectorAll(`.sva-dt-action-dropdown[data-dt-table-key="${_dtTableKey}"]`)
-				.forEach((menu) => {
+			document.querySelectorAll(".sva-dt-action-dropdown").forEach((menu) => {
+				if (menu.dataset.dtTableKey === _dtTableKey) {
 					detachScrollHandlers(menu);
 					menu.style.display = "none";
 					menu.style.visibility = "visible";
-				});
+				}
+			});
 		};
 
 		const toggleDropdown = (event) => {
-			event.stopPropagation();
-			const isOpen = dropdownMenu.style.display !== "none";
+			try {
+				event.stopPropagation();
 
-			// Always close all open action dropdowns first (also cleans up their scroll handlers)
-			closeAllActionDropdowns();
+				// Report-type buttons render as disabled visually but <span> elements still
+				// receive click events — bail out early so no menu is ever shown.
+				if (this?.connection?.connection_type === "Report") return;
 
-			// If this one was already open, toggling means we leave it closed
-			if (isOpen) return;
+				// Bail out if the menu was never mounted (defensive, shouldn't happen)
+				if (!dropdownMenu.isConnected) return;
 
-			// Temporarily render off-screen to measure actual dimensions
-			dropdownMenu.style.visibility = "hidden";
-			dropdownMenu.style.display = "block";
-			dropdownMenu.style.top = "-9999px";
-			dropdownMenu.style.left = "-9999px";
+				const isOpen = dropdownMenu.style.display !== "none";
 
-			const dropdownHeight = dropdownMenu.offsetHeight || 120;
-			const dropdownWidth = dropdownMenu.offsetWidth || 150;
+				// Always close all open action dropdowns first (also cleans up scroll handlers)
+				closeAllActionDropdowns();
 
-			// Reposition the dropdown relative to the current button position.
-			// Called once on open and again on every scroll event.
-			// Uses only viewport coordinates — dropdown is position:fixed so no container
-			// bounds are needed, and scrollable-ancestor detection caused false positives
-			// with Frappe's overflow:hidden wrappers.
-			const positionDropdown = () => {
-				const rect = dropdownBtn.getBoundingClientRect();
+				// If this one was already open, toggling means we leave it closed
+				if (isOpen) return;
 
-				// Button scrolled completely out of the viewport — close and clean up
-				if (rect.bottom < 0 || rect.top > window.innerHeight) {
-					detachScrollHandlers(dropdownMenu);
-					dropdownMenu.style.display = "none";
+				// Temporarily render off-screen to measure actual dimensions
+				dropdownMenu.style.visibility = "hidden";
+				dropdownMenu.style.display = "block";
+				dropdownMenu.style.top = "-9999px";
+				dropdownMenu.style.left = "-9999px";
+
+				const dropdownHeight = dropdownMenu.offsetHeight || 120;
+				const dropdownWidth = dropdownMenu.offsetWidth || 150;
+
+				// Reposition the dropdown relative to the current button position.
+				// Called once on open and again on every scroll event.
+				// Uses only viewport coordinates — dropdown is position:fixed so no
+				// container bounds are needed, and scrollable-ancestor detection caused
+				// false positives with Frappe's overflow:hidden wrappers.
+				const positionDropdown = () => {
+					// Guard: dropdown already closed (e.g. by a concurrent closeAll call)
+					if (!dropdownMenu || dropdownMenu.style.display === "none") return;
+
+					// Guard: button removed from DOM (table row refreshed/destroyed)
+					if (!dropdownBtn.isConnected) {
+						detachScrollHandlers(dropdownMenu);
+						dropdownMenu.style.display = "none";
+						dropdownMenu.style.visibility = "visible";
+						return;
+					}
+
+					try {
+						const rect = dropdownBtn.getBoundingClientRect();
+
+						// Button scrolled completely out of the viewport — close and clean up
+						if (rect.bottom < 0 || rect.top > window.innerHeight) {
+							detachScrollHandlers(dropdownMenu);
+							dropdownMenu.style.display = "none";
+							dropdownMenu.style.visibility = "visible";
+							return;
+						}
+
+						const spaceBelow = window.innerHeight - rect.bottom;
+						const spaceAbove = rect.top;
+
+						// Open upward if not enough space below AND more space above
+						const top =
+							spaceBelow < dropdownHeight && spaceAbove >= dropdownHeight
+								? rect.top - dropdownHeight
+								: rect.bottom;
+
+						dropdownMenu.style.top = `${top}px`;
+						dropdownMenu.style.left = `${rect.left - dropdownWidth}px`;
+					} catch (e) {
+						// Positioning failed — hide gracefully rather than show in wrong place
+						detachScrollHandlers(dropdownMenu);
+						dropdownMenu.style.display = "none";
+						dropdownMenu.style.visibility = "visible";
+					}
+				};
+
+				// Initial position then make visible
+				positionDropdown();
+				// Only reveal if positionDropdown didn't close it (e.g. button out of viewport)
+				if (dropdownMenu.style.display !== "none") {
 					dropdownMenu.style.visibility = "visible";
-					return;
 				}
 
-				const spaceBelow = window.innerHeight - rect.bottom;
-				const spaceAbove = rect.top;
+				// Capture phase catches scroll from ANY nested container (scroll doesn't bubble)
+				document.addEventListener("scroll", positionDropdown, {
+					passive: true,
+					capture: true,
+				});
 
-				// Open upward if not enough space below AND more space above
-				const top =
-					spaceBelow < dropdownHeight && spaceAbove >= dropdownHeight
-						? rect.top - dropdownHeight
-						: rect.bottom;
-
-				dropdownMenu.style.top = `${top}px`;
-				dropdownMenu.style.left = `${rect.left - dropdownWidth}px`;
-			};
-
-			// Initial position then make visible
-			positionDropdown();
-			dropdownMenu.style.visibility = "visible";
-
-			// Capture phase catches scroll from ANY nested container (scroll doesn't bubble)
-			document.addEventListener("scroll", positionDropdown, {
-				passive: true,
-				capture: true,
-			});
-
-			// Store cleanup so closeAllActionDropdowns can detach the listener
-			dropdownMenu._removeScrollHandler = () => {
-				document.removeEventListener("scroll", positionDropdown, { capture: true });
-			};
+				// Store cleanup so closeAllActionDropdowns can detach the listener
+				dropdownMenu._removeScrollHandler = () => {
+					document.removeEventListener("scroll", positionDropdown, { capture: true });
+				};
+			} catch (e) {
+				// Last-resort catch — prevent any error from surfacing to the user
+				console.error("[sva-datatable] toggleDropdown error:", e);
+			}
 		};
 
 		dropdownBtn.addEventListener("click", toggleDropdown);
 
-		// Close all action dropdowns when clicking outside — register only once per page
+		// Close all action dropdowns when clicking outside — register only once per page.
+		// Uses a flag on document so multiple table instances don't stack listeners.
 		if (!document.__svaDtOutsideClickBound) {
 			document.__svaDtOutsideClickBound = true;
 			document.addEventListener("click", () => {
-				document.querySelectorAll(".sva-dt-action-dropdown").forEach((menu) => {
-					detachScrollHandlers(menu);
-					menu.style.display = "none";
-					menu.style.visibility = "visible";
-				});
+				try {
+					document.querySelectorAll(".sva-dt-action-dropdown").forEach((menu) => {
+						detachScrollHandlers(menu);
+						menu.style.display = "none";
+						menu.style.visibility = "visible";
+					});
+				} catch (e) {
+					// Ignore
+				}
 			});
 		}
 
