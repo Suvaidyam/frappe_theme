@@ -201,28 +201,186 @@ This makes the entire table visible or hidden based on the parent document's sta
 
 Each user can personalize their column visibility using the **SVADT User Listview Settings** DocType. This is managed automatically through the table's column settings UI — users don't need to create these records manually.
 
-## JavaScript Events
+## JavaScript Events (dt_events)
 
-SvaDatatable fires events that you can listen to from your DocType's client script:
+SvaDatatable provides a comprehensive event system for customizing behavior at every lifecycle stage. Events are defined per-DocType or globally in your client script.
 
-| Event | Description |
-|-------|-------------|
-| `before_load` | Fired before the table loads data |
-| `after_load` | Fired after data is loaded |
-| `before_table_load` | Fired before the table DOM is rendered |
-| `after_table_load` | Fired after the table DOM is fully rendered |
-| `after_row_update` | Fired after a row is updated |
+### Defining Events
 
-### Using Events in Client Scripts
+**DocType-specific events:**
 
 ```javascript
 frappe.ui.form.on('Project', {
     refresh(frm) {
-        // Access the SvaDatatable instance via the HTML field wrapper
-        // Events are handled through the connection configuration callbacks
+        frm.dt_events = {
+            'Task': {
+                before_load: async function(dt) {
+                    dt.total_tasks = 0;
+                },
+                after_load: async function(dt) {
+                    frm.set_value('task_count', dt.rows.length);
+                },
+                after_insert: async function(dt, response) {
+                    frappe.show_alert({ message: 'Task added', indicator: 'success' });
+                }
+            }
+        };
     }
 });
 ```
+
+**Global events (all tables on the form):**
+
+```javascript
+frm.dt_global_events = {
+    before_load: function(dt) {
+        console.log('Loading: ' + dt.doctype);
+    }
+};
+```
+
+### Event Lifecycle
+
+Events are called in this order:
+
+**1. Initialization Phase:**
+
+| Event | Async | Parameters | Description |
+|-------|-------|-----------|-------------|
+| `before_load` | Yes | `(dt)` | Setup before any data fetch. Rows not available yet |
+| `before_table_load` | Yes | `(dt)` | After metadata fetched, before rendering. Can modify columns |
+| `after_load` | Yes | `(dt)` | After table is fully rendered. All rows available in `dt.rows` |
+
+**2. Row & Form Phase:**
+
+| Event | Async | Parameters | Description |
+|-------|-------|-----------|-------------|
+| `after_row_update` | Yes | `(dt, updated_doc, rowIndex)` | Single row updated |
+| `add_row_handler` | Yes | `()` | "Add Row" button clicked (replaces default behavior) |
+| `customize_form_fields` | Yes | `(dt, fields, mode, has_action, name)` | Form dialog preparation. **Must return fields array** |
+| `after_insert` | Yes | `(dt, response)` | New record created |
+| `after_update` | Yes | `(dt, response)` | Existing record updated |
+| `after_save` | Yes | `(dt, mode, values)` | Any save (insert or update). `mode` is `'create'` or `'write'` |
+| `after_delete` | Yes | `(dt, name)` | Record deleted |
+| `after_render` | Yes | `(dt, mode, has_action, name)` | Form dialog fully rendered |
+
+**3. Workflow Phase:**
+
+| Event | Async | Parameters | Description |
+|-------|-------|-----------|-------------|
+| `before_workflow_action` | Yes | `(dt, state_info, docname, prevState, doc)` | Before transition. Can throw to block |
+| `after_workflow_dialog_render` | No | `(dt, state_info, docname, prevState)` | Dialog displayed |
+| `after_workflow_action` | Yes | `(dt, state_info, docname, prevState, doc)` | Transition complete |
+
+**4. Display Phase:**
+
+| Event | Async | Parameters | Returns |
+|-------|-------|-----------|---------|
+| `formatter['fieldname']` | No | `(value, column, row, dt)` | HTML string |
+| `formatter['#']` | No | `(serial, row, dt)` | HTML string |
+| `columnEvents['fieldname']` | No | `(element, value, column, row, dt)` | — |
+| `additional_row_actions` | Yes | `(dt, row, primaryKey)` | — |
+
+### Display Events Examples
+
+**Cell formatting:**
+
+```javascript
+frm.dt_events['Invoice'] = {
+    formatter: {
+        'amount': function(value, column, row, dt) {
+            const color = value > 10000 ? '#d32f2f' : '#333';
+            return `<span style="color: ${color}">$${Number(value).toFixed(2)}</span>`;
+        },
+        'status': function(value, column, row, dt) {
+            const colors = { 'Paid': '#4caf50', 'Unpaid': '#f44336', 'Pending': '#ff9800' };
+            return `<span style="background: ${colors[value] || '#999'}; color: white;
+                     padding: 4px 12px; border-radius: 3px;">${value}</span>`;
+        }
+    }
+};
+```
+
+**Column click handlers:**
+
+```javascript
+frm.dt_events['Customer'] = {
+    columnEvents: {
+        'customer_name': {
+            'click': function(element, value, column, row, dt) {
+                frappe.set_route('Form', 'Customer', row.name);
+            }
+        }
+    }
+};
+```
+
+**Custom row actions (dropdown menu):**
+
+```javascript
+frm.dt_events['Sales Order'] = {
+    additional_row_actions: {
+        'send_email': {
+            label: 'Send Email',
+            condition: function(dt, row, pk) {
+                return row.status === 'Confirmed';
+            },
+            action: async function(dt, row, pk) {
+                await frappe.call({ method: 'send_order_email', args: { order_id: pk } });
+                frappe.show_alert({ message: 'Email sent', indicator: 'success' });
+            }
+        }
+    }
+};
+```
+
+### Complete Example
+
+```javascript
+frm.dt_events['Invoice Line'] = {
+    before_load: async function(dt) { dt.total = 0; },
+    after_load: async function(dt) { console.log('Loaded ' + dt.rows.length + ' items'); },
+
+    customize_form_fields: function(dt, fields, mode) {
+        if (mode === 'create') {
+            fields.forEach(f => { if (f.fieldname === 'item_code') f.reqd = 1; });
+        }
+        return fields;  // Must return!
+    },
+
+    after_insert: async function(dt, response) {
+        frappe.show_alert({ message: 'Item added', indicator: 'success' });
+    },
+
+    after_save: function(dt, mode, values) { dt.reloadTable(); },
+
+    formatter: {
+        'amount': (val) => '$' + Number(val).toFixed(2)
+    },
+
+    columnEvents: {
+        'item_code': {
+            'click': (el, val, col, row) => frappe.set_route('Form', 'Item', val)
+        }
+    },
+
+    additional_row_actions: {
+        'duplicate': {
+            label: 'Duplicate',
+            action: async (dt, row, pk) => {
+                const doc = await frappe.call({
+                    method: 'frappe.client.get',
+                    args: { doctype: dt.doctype, name: pk }
+                });
+                delete doc.message.name;
+                frappe.new_doc(dt.doctype, doc.message);
+            }
+        }
+    }
+};
+```
+
+> For the full events reference with all examples and best practices, see the source file: `public/js/datatable/DT_EVENTS_DOCUMENTATION.md`
 
 ## JavaScript API (Advanced)
 
