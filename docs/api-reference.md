@@ -24,6 +24,102 @@
 | `get_number_card_count()` | Get aggregated number card values |
 | `link_report_list()` | Get linked reports for a DocType |
 
+### DTConf — Data Fetching Engine (`controllers/dt_conf.py`)
+
+`DTConf` is the core class behind `get_dt_list()`. It handles both **DocType list queries** and **Report execution** with user-permission enforcement, filter processing, and pagination.
+
+#### get_dt_list()
+
+The central dispatcher that routes to `report_list()` or `doc_type_list()` based on connection type.
+
+```python
+frappe.call(
+    "frappe_theme.dt_api.get_dt_list",
+    dt_conf={
+        "connection_type": "Direct",     # or "Report", "Indirect", etc.
+        "link_doctype": "Task",
+        "link_fieldname": "project",
+        "listview_settings": '[...]',
+        "crud_permissions": '["read"]',
+        "extended_condition": "[]",
+        "unfiltered": 0,
+        # For Report type:
+        "link_report": "My Report",
+        "report_type": "Script Report",
+        "report_ref_dt": "Task"
+    },
+    parent="PROJ-001",           # Parent document name
+    page_length=20,              # Records per page
+    start=0,                     # Offset
+    search_term="",              # Search across fields
+    filters=[],                  # Additional filters
+    order_by="creation desc"     # Sort order
+)
+```
+
+**Returns**:
+```json
+{
+    "data": [...],           // Array of records
+    "columns": [...],        // Column definitions
+    "total_count": 150       // Total matching records
+}
+```
+
+#### report_list() — Report Execution
+
+Handles both **Query Reports** and **Script Reports**:
+
+| Report Type | Execution Method |
+|-------------|-----------------|
+| Query Report | Executes raw SQL via `frappe.db.sql` with parameterized filters |
+| Script Report | Calls `frappe.desk.query_report.run()` with processed filters |
+
+Filter processing flow:
+```
+1. Parse dt_conf filters (extended_condition, list_filters)
+2. Build connection-specific filters (e.g., project = parent_name)
+3. Merge user-provided filters from the frontend
+4. Apply search_term across relevant columns
+5. Skip parent-context filters if unfiltered = 1
+```
+
+#### doc_type_list() — DocType List Query
+
+Builds a `frappe.get_list` call with proper filters based on connection type:
+
+| Connection Type | Filter Logic |
+|-----------------|-------------|
+| **Direct** | `{link_fieldname: parent_name}` |
+| **Indirect** | `{foreign_field: parent_doc[local_field]}` |
+| **Referenced** | Lookup through reference DocType to find matching names |
+| **Unfiltered** | No parent-context filter applied |
+
+Features:
+- **Filter validation**: `DTFilters.validate_filters()` validates all filter operators and values to prevent injection
+- **User permissions**: Automatically enforced via `frappe.get_list`
+- **Search**: Distributes search_term across all `Data`, `Link`, `Select` fields using OR conditions
+- **Pagination**: `page_length` + `start` offset with separate `get_dt_count()` for total
+
+#### DTFilters — Filter Builder
+
+Internal helper class that merges multiple filter sources:
+
+```
+Extended conditions (from config)
+    + Connection-type filters (from parent context)
+    + User filters (from frontend)
+    + Search term (across allowed fields)
+    = Final filter set passed to frappe.get_list or SQL
+```
+
+#### Security
+
+- All filter values are validated against allowed operators (`=`, `!=`, `like`, `in`, `between`, `>`, `<`, etc.)
+- Reports run within the current user's permission context
+- SQL injection is prevented via parameterized queries (`frappe.db.sql` with `%s` placeholders)
+- `frappe.get_list` automatically applies user permissions and DocType-level access control
+
 ### Workspace APIs (`wp_api.py`)
 
 | Method | Description |

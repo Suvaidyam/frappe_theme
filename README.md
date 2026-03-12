@@ -1,8 +1,18 @@
-# Frappe Theme
+<p align="center">
+  <a href="https://sfrm.in">
+    <img src="https://sfrm.in/files/Suvaidyam%20-%20Logo.png" alt="Suvaidyam" width="200">
+  </a>
+</p>
 
-A powerful utility app for [Frappe Framework](https://frappeframework.com/) that extends desk and web interfaces with advanced UI components, data visualization, theme customization, and security features — all configurable without writing code.
+<h1 align="center">Frappe Theme</h1>
 
-Built and maintained by [Suvaidyam](https://github.com/Suvaidyam).
+<p align="center">
+A powerful utility app for <a href="https://frappeframework.com/">Frappe Framework</a> that extends desk and web interfaces with advanced UI components, data visualization, theme customization, and security features — all configurable without writing code.
+</p>
+
+<p align="center">
+Built and maintained by <a href="https://sfrm.in">Suvaidyam</a> · <a href="https://github.com/Suvaidyam">GitHub</a>
+</p>
 
 ## Key Features
 
@@ -17,6 +27,9 @@ Built and maintained by [Suvaidyam](https://github.com/Suvaidyam).
 | **Cloud Storage** | Auto-upload files to AWS S3 or Azure Blob Storage | [docs/cloud-storage.md](docs/cloud-storage.md) |
 | **Gallery & Carousel** | File gallery (Card/List/Directory views), image carousel, drag-drop reordering | [docs/gallery-and-carousel.md](docs/gallery-and-carousel.md) |
 | **Workspace Widgets** | Embed heatmaps and data tables directly in Frappe workspaces | [docs/workspace-configuration.md](docs/workspace-configuration.md) |
+| **Dashboard Mode** | Turn any Single DocType into a dashboard with cards, charts, maps | [docs/dashboard-mode.md](docs/dashboard-mode.md) |
+| **Custom Property Setter** | Field-level component configuration via props (replaces central config) | [docs/custom-property-setter.md](docs/custom-property-setter.md) |
+| **Change Log** | Unified version history across parent and connected child documents | [docs/changelog-component.md](docs/changelog-component.md) |
 | **Additional Components** | Timeline, Notes, Tasks, Approval Tracker, Field Comments, SDG Wheel | [docs/additional-components.md](docs/additional-components.md) |
 
 ## Screenshots
@@ -75,8 +88,11 @@ For detailed setup instructions, see the [Getting Started Guide](docs/getting-st
 - [Workflow Customization](docs/workflow-customization.md) — Approval workflows and audit trail
 - [Cloud Storage](docs/cloud-storage.md) — AWS S3 and Azure Blob integration
 - [Gallery & Carousel](docs/gallery-and-carousel.md) — File gallery and image carousel
+- [Dashboard Mode](docs/dashboard-mode.md) — Single DocType dashboards with cards, charts, maps
+- [Custom Property Setter](docs/custom-property-setter.md) — Field-level component configuration
+- [Change Log](docs/changelog-component.md) — Unified version history component
 - [Additional Components](docs/additional-components.md) — Timeline, Notes, Tasks, and more
-- [API Reference](docs/api-reference.md) — Python APIs and JavaScript classes
+- [API Reference](docs/api-reference.md) — Python APIs, JavaScript classes, DTConf engine
 
 ## Contributing
 
