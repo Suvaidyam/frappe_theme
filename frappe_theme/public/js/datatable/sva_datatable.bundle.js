@@ -3373,6 +3373,15 @@ class SvaDataTable {
 								change(me, selected_state_info, docname, prevState, doc);
 							}
 						}
+					})
+					.finally(() => {
+						frappe.dom.unfreeze();
+						if (dialog) {
+							$(dialog.get_primary_btn()).prop("disabled", false);
+							$(dialog.get_primary_btn()).html(
+								dialog?.primary_action_label || "Proceed"
+							);
+						}
 					});
 			} catch (error) {
 				frappe.dom.unfreeze();
