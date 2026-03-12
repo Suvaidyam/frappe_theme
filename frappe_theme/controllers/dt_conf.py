@@ -128,20 +128,20 @@ class DTConf:
 					return report.columns
 		else:
 			meta_fields = frappe.get_meta(doctype, True).fields
-			property_setters = frappe.get_all(
-				"Property Setter",
-				filters={"doc_type": doctype},
-				fields=["field_name", "property", "value"],
-				ignore_permissions=True,
-			)
-			# Convert meta_fields into mutable dictionaries if necessary
+			# property_setters = frappe.get_all(
+			# 	"Property Setter",
+			# 	filters={"doc_type": doctype},
+			# 	fields=["field_name", "property", "value"],
+			# 	ignore_permissions=True,
+			# )
+			# # Convert meta_fields into mutable dictionaries if necessary
 			fields_dict = [f.as_dict() for f in meta_fields if f.fieldtype not in ["Tab Break"]]
-			# Apply property setter values to the meta fields
-			for field in fields_dict:
-				for ps in property_setters:
-					if field.get("fieldname") == ps.field_name:
-						# Dynamically set the field property
-						field[ps.property] = ps.value
+			# # Apply property setter values to the meta fields
+			# for field in fields_dict:
+			# 	for ps in property_setters:
+			# 		if field.get("fieldname") == ps.field_name:
+			# 			# Dynamically set the field property
+			# 			field[ps.property] = ps.value
 			if meta_attached:
 				return {"fields": fields_dict, "meta": frappe.get_meta(doctype, True).as_dict()}
 			else:
