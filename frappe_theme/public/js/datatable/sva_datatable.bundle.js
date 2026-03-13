@@ -2393,6 +2393,14 @@ class SvaDataTable {
 
 		const dropdownMenu = document.createElement("div");
 		dropdownMenu.classList.add("dropdown-menu");
+		dropdownMenu.classList.add("sva-dt-action-dropdown");
+		// Fallback to "unknown" so the key is always a valid non-empty string.
+		// Frappe doctype names can contain spaces/special chars so we never use
+		// this value inside a CSS selector — comparison is done via dataset directly.
+		const _dtTableKey = `${this?.doctype || this?.link_report || "unknown"}-${
+			this?.connection?.html_field || "unknown"
+		}`;
+		dropdownMenu.dataset.dtTableKey = _dtTableKey;
 		dropdownMenu.style.position = "fixed";
 		dropdownMenu.style.zIndex = "9999";
 		dropdownMenu.style.display = "none";
@@ -2629,29 +2637,55 @@ class SvaDataTable {
 			commentBtn.style.display = "inline-flex";
 			commentBtn.style.alignItems = "center";
 			commentBtn.style.marginLeft = "0";
+			commentBtn.style.marginRight = "6px";
 			commentBtn.title = __("Comments");
 			commentBtn.innerHTML = frappe.utils.icon("message", "sm");
 
 			const countBadge = document.createElement("span");
 			countBadge.style.cssText =
-				"position:absolute;top:-6px;right:-8px;background:#e0e0e0;color:#666;border-radius:50%;font-size:9px;min-width:14px;height:14px;display:none;align-items:center;justify-content:center;padding:0 2px;font-weight:bold;";
+				"position:absolute;top:-9px;right:-20px;transition:opacity 0.2s ease;";
 			commentBtn.appendChild(countBadge);
+
+			// Hover-reveal: badge hidden by default unless theme setting is checked
+			const alwaysShowBadge = !!frappe.boot.my_theme?.show_comment_count_default;
+			if (!alwaysShowBadge) {
+				countBadge.style.opacity = "0";
+				commentBtn.addEventListener("mouseenter", function () {
+					countBadge.style.opacity = "1";
+				});
+				commentBtn.addEventListener("mouseleave", function () {
+					countBadge.style.opacity = "0";
+				});
+			}
 
 			const self = this;
 			const refreshCountBadge = function () {
 				frappe.call({
-					method: "frappe_theme.api.get_all_field_thread_counts",
+					method: "frappe_theme.api.get_all_field_thread_counts_detailed",
 					args: {
 						doctype_name: _commentDoctype,
 						docname: _commentDocname,
 					},
 					callback: function (r) {
 						const counts = r.message || {};
-						const count = counts[rowDocname] || 0;
-						countBadge.textContent = count;
+						const detail = counts[rowDocname] || {};
+						const openCount = detail.open || 0;
+						const closedCount = detail.closed || 0;
+						if (typeof window.renderThreadCountBadge === "function") {
+							countBadge.innerHTML = window.renderThreadCountBadge(
+								openCount,
+								closedCount
+							);
+						} else {
+							countBadge.textContent = openCount;
+						}
 						countBadge.style.display = "flex";
-						countBadge.style.background = count > 0 ? primaryColor : "#e0e0e0";
-						countBadge.style.color = count > 0 ? "#fff" : "#666";
+
+						// Store counts for tooltip
+						countBadge.dataset.openCount = openCount;
+						countBadge.dataset.closedCount = closedCount;
+
+						// Tooltip is handled by renderThreadCountBadge via event delegation on document.body
 					},
 				});
 			};
@@ -2718,21 +2752,147 @@ class SvaDataTable {
 			document.body.appendChild(dropdownMenu);
 		}
 
+		// Helper: detach scroll listeners stored on a menu element
+		const detachScrollHandlers = (menu) => {
+			try {
+				if (menu && typeof menu._removeScrollHandler === "function") {
+					menu._removeScrollHandler();
+					menu._removeScrollHandler = null;
+				}
+			} catch (e) {
+				// Silently ignore — listener may have already been removed
+			}
+		};
+
+		// Close only dropdowns belonging to the same table instance.
+		// Uses dataset comparison instead of a CSS attribute selector to safely
+		// handle doctype names that contain spaces or other special characters.
+		const closeAllActionDropdowns = () => {
+			document.querySelectorAll(".sva-dt-action-dropdown").forEach((menu) => {
+				if (menu.dataset.dtTableKey === _dtTableKey) {
+					detachScrollHandlers(menu);
+					menu.style.display = "none";
+					menu.style.visibility = "visible";
+				}
+			});
+		};
+
 		const toggleDropdown = (event) => {
-			event.stopPropagation();
-			const rect = dropdownBtn.getBoundingClientRect();
-			const dropdownWidth = dropdownMenu.offsetWidth || 150; // Default width in case offsetWidth is 0
-			dropdownMenu.style.top = `${rect.bottom}px`;
-			dropdownMenu.style.left = `${rect.left - dropdownWidth}px`; // Adjust position for left-side popup
-			dropdownMenu.style.display = dropdownMenu.style.display === "none" ? "block" : "none";
+			try {
+				event.stopPropagation();
+
+				// Report-type buttons render as disabled visually but <span> elements still
+				// receive click events — bail out early so no menu is ever shown.
+				if (this?.connection?.connection_type === "Report") return;
+
+				// Bail out if the menu was never mounted (defensive, shouldn't happen)
+				if (!dropdownMenu.isConnected) return;
+
+				const isOpen = dropdownMenu.style.display !== "none";
+
+				// Always close all open action dropdowns first (also cleans up scroll handlers)
+				closeAllActionDropdowns();
+
+				// If this one was already open, toggling means we leave it closed
+				if (isOpen) return;
+
+				// Temporarily render off-screen to measure actual dimensions
+				dropdownMenu.style.visibility = "hidden";
+				dropdownMenu.style.display = "block";
+				dropdownMenu.style.top = "-9999px";
+				dropdownMenu.style.left = "-9999px";
+
+				const dropdownHeight = dropdownMenu.offsetHeight || 120;
+				const dropdownWidth = dropdownMenu.offsetWidth || 150;
+
+				// Reposition the dropdown relative to the current button position.
+				// Called once on open and again on every scroll event.
+				// Uses only viewport coordinates — dropdown is position:fixed so no
+				// container bounds are needed, and scrollable-ancestor detection caused
+				// false positives with Frappe's overflow:hidden wrappers.
+				const positionDropdown = () => {
+					// Guard: dropdown already closed (e.g. by a concurrent closeAll call)
+					if (!dropdownMenu || dropdownMenu.style.display === "none") return;
+
+					// Guard: button removed from DOM (table row refreshed/destroyed)
+					if (!dropdownBtn.isConnected) {
+						detachScrollHandlers(dropdownMenu);
+						dropdownMenu.style.display = "none";
+						dropdownMenu.style.visibility = "visible";
+						return;
+					}
+
+					try {
+						const rect = dropdownBtn.getBoundingClientRect();
+
+						// Button scrolled completely out of the viewport — close and clean up
+						if (rect.bottom < 0 || rect.top > window.innerHeight) {
+							detachScrollHandlers(dropdownMenu);
+							dropdownMenu.style.display = "none";
+							dropdownMenu.style.visibility = "visible";
+							return;
+						}
+
+						const spaceBelow = window.innerHeight - rect.bottom;
+						const spaceAbove = rect.top;
+
+						// Open upward if not enough space below AND more space above
+						const top =
+							spaceBelow < dropdownHeight && spaceAbove >= dropdownHeight
+								? rect.top - dropdownHeight
+								: rect.bottom;
+
+						dropdownMenu.style.top = `${top}px`;
+						dropdownMenu.style.left = `${rect.left - dropdownWidth}px`;
+					} catch (e) {
+						// Positioning failed — hide gracefully rather than show in wrong place
+						detachScrollHandlers(dropdownMenu);
+						dropdownMenu.style.display = "none";
+						dropdownMenu.style.visibility = "visible";
+					}
+				};
+
+				// Initial position then make visible
+				positionDropdown();
+				// Only reveal if positionDropdown didn't close it (e.g. button out of viewport)
+				if (dropdownMenu.style.display !== "none") {
+					dropdownMenu.style.visibility = "visible";
+				}
+
+				// Capture phase catches scroll from ANY nested container (scroll doesn't bubble)
+				document.addEventListener("scroll", positionDropdown, {
+					passive: true,
+					capture: true,
+				});
+
+				// Store cleanup so closeAllActionDropdowns can detach the listener
+				dropdownMenu._removeScrollHandler = () => {
+					document.removeEventListener("scroll", positionDropdown, { capture: true });
+				};
+			} catch (e) {
+				// Last-resort catch — prevent any error from surfacing to the user
+				console.error("[sva-datatable] toggleDropdown error:", e);
+			}
 		};
 
 		dropdownBtn.addEventListener("click", toggleDropdown);
 
-		// Close dropdown when clicking outside
-		document.addEventListener("click", () => {
-			dropdownMenu.style.display = "none";
-		});
+		// Close all action dropdowns when clicking outside — register only once per page.
+		// Uses a flag on document so multiple table instances don't stack listeners.
+		if (!document.__svaDtOutsideClickBound) {
+			document.__svaDtOutsideClickBound = true;
+			document.addEventListener("click", () => {
+				try {
+					document.querySelectorAll(".sva-dt-action-dropdown").forEach((menu) => {
+						detachScrollHandlers(menu);
+						menu.style.display = "none";
+						menu.style.visibility = "visible";
+					});
+				} catch (e) {
+					// Ignore
+				}
+			});
+		}
 
 		return dropdown;
 	}
@@ -3128,6 +3288,12 @@ class SvaDataTable {
 					fields: popupFields,
 					primary_action_label: "Proceed",
 					primary_action: (values) => {
+						frappe.dom.freeze("Processing...");
+						$(me["workflow_dialog"].get_primary_btn()).prop("disabled", true);
+						$(me["workflow_dialog"].get_primary_btn()).html(
+							'<span style="width: 0.75rem !important; height: 0.75rem !important;" class="spinner-border spinner-border-sm "></span> ' +
+								(me["workflow_dialog"].primary_action_label || "Proceed")
+						);
 						if (firstAttempt) {
 							resolve(values);
 							firstAttempt = false;
@@ -3209,7 +3375,12 @@ class SvaDataTable {
 								indicator: "success",
 							});
 						}
+						frappe.dom.unfreeze();
 						if (dialog) {
+							$(dialog.get_primary_btn()).prop("disabled", false);
+							$(dialog.get_primary_btn()).html(
+								dialog?.primary_action_label || "Proceed"
+							);
 							dialog?.hide();
 						}
 						if (me?.frm?.["dt_events"]?.[me.doctype]?.["after_workflow_action"]) {
@@ -3228,8 +3399,22 @@ class SvaDataTable {
 								change(me, selected_state_info, docname, prevState, doc);
 							}
 						}
+					})
+					.finally(() => {
+						frappe.dom.unfreeze();
+						if (dialog) {
+							$(dialog.get_primary_btn()).prop("disabled", false);
+							$(dialog.get_primary_btn()).html(
+								dialog?.primary_action_label || "Proceed"
+							);
+						}
 					});
 			} catch (error) {
+				frappe.dom.unfreeze();
+				if (dialog) {
+					$(dialog.get_primary_btn()).prop("disabled", false);
+					$(dialog.get_primary_btn()).html(dialog?.primary_action_label || "Proceed");
+				}
 				if (error.message) {
 					frappe.throw({
 						title: "Error",
