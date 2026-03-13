@@ -274,6 +274,7 @@ def check_if_datatable_is_configured_as_child_table(doctype):
 
 	return {
 		"freeze": False,
+		"parents": [],
 		"message": f"'{_(doctype)}' is not configured as a child datatable.",
 	}
 
