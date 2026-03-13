@@ -875,6 +875,38 @@ def get_all_field_thread_counts(doctype_name: str, docname: str):
 
 
 @frappe.whitelist()
+def get_all_field_thread_counts_detailed(doctype_name: str, docname: str):
+	"""Get both open and closed thread counts per field/row."""
+	try:
+		comment_docs = frappe.get_all(
+			"DocType Field Comment",
+			filters={
+				"doctype_name": doctype_name,
+				"docname": docname,
+			},
+			fields=["field_name", "status"],
+			ignore_permissions=True,
+		)
+
+		thread_counts = {}
+		for doc in comment_docs:
+			if doc.field_name:
+				if doc.field_name not in thread_counts:
+					thread_counts[doc.field_name] = {"open": 0, "closed": 0}
+				status = (doc.status or "Open").lower()
+				if status == "open":
+					thread_counts[doc.field_name]["open"] += 1
+				else:
+					thread_counts[doc.field_name]["closed"] += 1
+
+		return thread_counts
+
+	except Exception as e:
+		frappe.log_error(f"Error in get_all_field_thread_counts_detailed: {str(e)}")
+		return {}
+
+
+@frappe.whitelist()
 def update_comment_external_flag(comment_name: str, is_external: int):
 	"""Update the is_external flag for a comment."""
 	try:
