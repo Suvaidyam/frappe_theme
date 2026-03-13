@@ -196,11 +196,11 @@ def get_possible_link_filters(doctype, parent_doctype):
 
 @frappe.whitelist()
 def check_if_datatable_is_configured_as_child_table(doctype):
-	parents = frappe.get_all("SVADatatable Configuration", pluck="parent_doctype")
+	as_parent_exists = frappe.db.exists("SVADatatable Configuration", {"parent_doctype": doctype})
 	is_dashboard = frappe.db.exists(
 		"Property Setter", {"property": "is_dashboard", "value": ["!=", "0"], "doc_type": doctype}
 	)
-	if (len(parents) and doctype in parents) or is_dashboard:
+	if as_parent_exists or is_dashboard:
 		return {
 			"freeze": False,
 			"parents": [],
