@@ -196,7 +196,7 @@ def get_possible_link_filters(doctype, parent_doctype):
 
 @frappe.whitelist()
 def check_if_datatable_is_configured_as_child_table(doctype):
-	parents = frappe.get_all("SVADatatable Configuration Child", pluck="parent")
+	parents = frappe.get_all("SVADatatable Configuration", pluck="parent_doctype")
 	is_dashboard = frappe.db.exists(
 		"Property Setter", {"property": "is_dashboard", "value": ["!=", "0"], "doc_type": doctype}
 	)
@@ -280,12 +280,11 @@ def check_if_datatable_is_configured_as_child_table(doctype):
 
 
 def process_doc(doc):
-	make_read_only = False
 	if doc:
 		if not doc.get("redirect_to_main_form", 0):
-			make_read_only = True
+			return True
 
-	return make_read_only
+	return False
 
 
 def process_json(prop):
