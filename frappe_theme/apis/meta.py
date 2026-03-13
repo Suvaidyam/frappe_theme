@@ -1,4 +1,7 @@
+import json
+
 import frappe
+from frappe import _
 
 
 @frappe.whitelist()
@@ -189,3 +192,106 @@ def get_possible_link_filters(doctype, parent_doctype):
 											}
 										)
 	return link_fields
+
+
+@frappe.whitelist()
+def check_if_datatable_is_configured_as_child_table(doctype):
+	parents = frappe.get_all("SVADatatable Configuration Child", pluck="parent")
+	is_dashboard = frappe.db.exists(
+		"Property Setter", {"property": "is_dashboard", "value": ["!=", "0"], "doc_type": doctype}
+	)
+	if (len(parents) and doctype in parents) or is_dashboard:
+		return {
+			"freeze": False,
+			"parents": [],
+			"message": f"'{_(doctype)}' is configured as a child datatable via SVADatatable Configuration.",
+		}
+
+	direct_matches = frappe.get_all(
+		"SVADatatable Configuration Child",
+		filters={"link_doctype": doctype},
+		fields=["name", "parent", "redirect_to_main_form"],
+	)
+	if direct_matches:
+		parents = list({doc.parent for doc in direct_matches})
+		return {
+			"freeze": any(process_doc(doc) for doc in direct_matches),
+			"parents": parents,
+			"message": f"'{_(doctype)}' is configured as a child datatable via SVADatatable Configuration in {', '.join(_(p) for p in parents)}.",
+		}
+
+	ref_matches = frappe.get_all(
+		"SVADatatable Configuration Child",
+		filters={"referenced_link_doctype": doctype},
+		fields=["name", "parent", "redirect_to_main_form"],
+	)
+	if ref_matches:
+		parents = list({doc.parent for doc in ref_matches})
+		return {
+			"freeze": any(process_doc(doc) for doc in ref_matches),
+			"parents": parents,
+			"message": f"'{_(doctype)}' is configured as a child datatable via referenced_link_doctype in SVADatatable Configuration in {', '.join(_(p) for p in parents)}.",
+		}
+
+	child_conf_matches = frappe.get_all(
+		"SVADatatable Child Conf",
+		filters={"link_doctype": doctype},
+		fields=["name", "parent", "redirect_to_main_form"],
+	)
+	if child_conf_matches:
+		parents = list({doc.parent for doc in child_conf_matches})
+		return {
+			"freeze": any(process_doc(doc) for doc in child_conf_matches),
+			"parents": parents,
+			"message": f"'{_(doctype)}' is configured as a child datatable via SVADatatable Child Conf in {', '.join(_(p) for p in parents)}.",
+		}
+
+	direct_prop_matches = frappe.get_all(
+		"Property Setter",
+		filters={"property": "sva_ft", "value": ["like", f'%"link_doctype":"{doctype}"%']},
+		fields=["name", "doc_type", "value"],
+	)
+	if direct_prop_matches:
+		doc_types = list({doc.doc_type for doc in direct_prop_matches})
+		return {
+			"freeze": any(process_json(doc.value) for doc in direct_prop_matches),
+			"parents": doc_types,
+			"message": f"'{_(doctype)}' is configured as a child datatable via sva_ft property setter in {', '.join(_(dt) for dt in doc_types)}.",
+		}
+
+	ref_prop_matches = frappe.get_all(
+		"Property Setter",
+		filters={"property": "sva_ft", "value": ["like", f'%"referenced_link_doctype":"{doctype}"%']},
+		fields=["name", "doc_type", "value"],
+	)
+	if ref_prop_matches:
+		doc_types = list({doc.doc_type for doc in ref_prop_matches})
+		return {
+			"freeze": any(process_json(doc.value) for doc in ref_prop_matches),
+			"parents": doc_types,
+			"message": f"'{_(doctype)}' is configured as a child datatable via referenced_link_doctype in sva_ft property setter in {', '.join(_(dt) for dt in doc_types)}.",
+		}
+
+	return {
+		"freeze": False,
+		"message": f"'{_(doctype)}' is not configured as a child datatable.",
+	}
+
+
+def process_doc(doc):
+	make_read_only = False
+	if doc:
+		if not doc.get("redirect_to_main_form", 0):
+			make_read_only = True
+
+	return make_read_only
+
+
+def process_json(prop):
+	if isinstance(prop, str):
+		prop = json.loads(prop)
+
+	if not prop.get("redirect_to_main_form", 0):
+		return True
+
+	return False
