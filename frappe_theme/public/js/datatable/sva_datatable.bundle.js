@@ -2647,7 +2647,7 @@ class SvaDataTable {
 			commentBtn.appendChild(countBadge);
 
 			// Hover-reveal: badge hidden by default unless theme setting is checked
-			const alwaysShowBadge = !!(frappe.boot.my_theme?.show_comment_count_default);
+			const alwaysShowBadge = !!frappe.boot.my_theme?.show_comment_count_default;
 			if (!alwaysShowBadge) {
 				countBadge.style.opacity = "0";
 				commentBtn.addEventListener("mouseenter", function () {
@@ -2672,7 +2672,10 @@ class SvaDataTable {
 						const openCount = detail.open || 0;
 						const closedCount = detail.closed || 0;
 						if (typeof window.renderThreadCountBadge === "function") {
-							countBadge.innerHTML = window.renderThreadCountBadge(openCount, closedCount);
+							countBadge.innerHTML = window.renderThreadCountBadge(
+								openCount,
+								closedCount
+							);
 						} else {
 							countBadge.textContent = openCount;
 						}
