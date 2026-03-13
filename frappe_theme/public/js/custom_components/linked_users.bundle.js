@@ -48,11 +48,21 @@ class SVALinkedUser {
                            <!-- <input type="checkbox" id="selectAllCheckBox"> -->
                            #
                         </th>
-                        <th class="static-area ellipsis" style="color:#525252; font-size: 13px;">Full Name</th>
-                        <th class="static-area ellipsis" style="color:#525252; font-size: 13px;">Role Profile</th>
-                        <th class="static-area ellipsis" style="color:#525252; font-size: 13px;">Email</th>
-                        <th class="static-area ellipsis" style="color:#525252; font-size: 13px;">Phone Number</th>
-                        <th class="static-area ellipsis" style="color:#525252; font-size: 13px;">Status</th>
+                        <th class="static-area ellipsis" style="color:#525252; font-size: 13px;">${__(
+							"Full Name"
+						)}</th>
+                        <th class="static-area ellipsis" style="color:#525252; font-size: 13px;">${__(
+							"Role Profile"
+						)}</th>
+                        <th class="static-area ellipsis" style="color:#525252; font-size: 13px;">${__(
+							"Email"
+						)}</th>
+                        <th class="static-area ellipsis" style="color:#525252; font-size: 13px;">${__(
+							"Phone Number"
+						)}</th>
+                        <th class="static-area ellipsis" style="color:#525252; font-size: 13px;">${__(
+							"Status"
+						)}</th>
                         ${
 							canWrite || canDelete
 								? '<th class="static-area ellipsis" style="color:#525252; font-size: 13px;">Actions</th>'
@@ -85,7 +95,7 @@ class SVALinkedUser {
 									)}">${index + 1}</a>
                                 </td>
                                 <td class="col grid-static-col col-xs-3 ">${user.full_name}</td>
-                                <td style="white-space: nowrap;"> ${user.role_profile}</td>
+                                <td style="white-space: nowrap;"> ${__(user.role_profile)}</td>
                                 <td style="white-space: nowrap;">${user.email}</td>
                                 <td style="white-space: nowrap;">${user.mobile_number || ""}</td>
                                 <td style="padding: 5px 8px !important;">
