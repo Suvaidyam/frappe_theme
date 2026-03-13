@@ -204,7 +204,7 @@ def check_if_datatable_is_configured_as_child_table(doctype):
 		return {
 			"freeze": False,
 			"parents": [],
-			"message": f"'{_(doctype)}' is configured as a child datatable via SVADatatable Configuration.",
+			"message": f"'{_(doctype)}' is configured as a parent datatable or dashboard DocType; child datatable checks are not applicable.",
 		}
 
 	direct_matches = frappe.get_all(
