@@ -2637,29 +2637,55 @@ class SvaDataTable {
 			commentBtn.style.display = "inline-flex";
 			commentBtn.style.alignItems = "center";
 			commentBtn.style.marginLeft = "0";
+			commentBtn.style.marginRight = "6px";
 			commentBtn.title = __("Comments");
 			commentBtn.innerHTML = frappe.utils.icon("message", "sm");
 
 			const countBadge = document.createElement("span");
 			countBadge.style.cssText =
-				"position:absolute;top:-6px;right:-8px;background:#e0e0e0;color:#666;border-radius:50%;font-size:9px;min-width:14px;height:14px;display:none;align-items:center;justify-content:center;padding:0 2px;font-weight:bold;";
+				"position:absolute;top:-9px;right:-20px;transition:opacity 0.2s ease;";
 			commentBtn.appendChild(countBadge);
+
+			// Hover-reveal: badge hidden by default unless theme setting is checked
+			const alwaysShowBadge = !!frappe.boot.my_theme?.show_comment_count_default;
+			if (!alwaysShowBadge) {
+				countBadge.style.opacity = "0";
+				commentBtn.addEventListener("mouseenter", function () {
+					countBadge.style.opacity = "1";
+				});
+				commentBtn.addEventListener("mouseleave", function () {
+					countBadge.style.opacity = "0";
+				});
+			}
 
 			const self = this;
 			const refreshCountBadge = function () {
 				frappe.call({
-					method: "frappe_theme.api.get_all_field_thread_counts",
+					method: "frappe_theme.api.get_all_field_thread_counts_detailed",
 					args: {
 						doctype_name: _commentDoctype,
 						docname: _commentDocname,
 					},
 					callback: function (r) {
 						const counts = r.message || {};
-						const count = counts[rowDocname] || 0;
-						countBadge.textContent = count;
+						const detail = counts[rowDocname] || {};
+						const openCount = detail.open || 0;
+						const closedCount = detail.closed || 0;
+						if (typeof window.renderThreadCountBadge === "function") {
+							countBadge.innerHTML = window.renderThreadCountBadge(
+								openCount,
+								closedCount
+							);
+						} else {
+							countBadge.textContent = openCount;
+						}
 						countBadge.style.display = "flex";
-						countBadge.style.background = count > 0 ? primaryColor : "#e0e0e0";
-						countBadge.style.color = count > 0 ? "#fff" : "#666";
+
+						// Store counts for tooltip
+						countBadge.dataset.openCount = openCount;
+						countBadge.dataset.closedCount = closedCount;
+
+						// Tooltip is handled by renderThreadCountBadge via event delegation on document.body
 					},
 				});
 			};
