@@ -1,0 +1,112 @@
+# Frappe Theme — Cursor Rules
+
+You are working on **frappe_theme**, a Frappe Framework utility app that extends desk/web interfaces with UI components, data visualization, theme customization, and security features.
+
+## Tech Stack
+- Python 3.10+, Frappe Framework v14+ (v15 recommended), MariaDB/MySQL
+- Frontend: Vanilla JS + Vue.js, bundled via Frappe's asset pipeline
+- Linting: ruff (Python), eslint + prettier (JS)
+
+## Project Structure
+
+```
+frappe_theme/
+├── hooks.py                    # App hooks (JS/CSS includes, doc_events, overrides)
+├── api.py                      # Main whitelisted APIs
+├── dt_api.py                   # DataTable/Report APIs (core data layer)
+├── controllers/
+│   ├── dt_conf.py              # DTConf — data fetching engine (Direct/Indirect/Referenced/Unfiltered/Report)
+│   ├── filters.py              # DTFilters — filter validation
+│   ├── chart.py                # Chart data
+│   └── number_card.py          # Number card aggregation
+├── utils/
+│   ├── version_utils.py        # Change log with field-level permissions
+│   ├── data_protection.py      # Fernet encryption + field masking
+│   └── sql_builder.py          # Parameterized SQL builder
+├── overrides/                  # Frappe class/method overrides
+├── apis/                       # Specialized API modules
+├── frappe_theme/doctype/       # DocType definitions (JSON + Python)
+└── public/js/
+    ├── overwrite_form.bundle.js       # Form customization + dashboard mode (critical, 1434 lines)
+    ├── sva_dashboard_manager.bundle.js # Dashboard component lifecycle
+    ├── datatable/                      # SvaDataTable component
+    ├── doctype/property_setter.js      # Custom Property Setter dialog (1064 lines)
+    ├── custom_components/              # Heatmap, Gallery, Timeline, etc.
+    ├── vue/                            # Vue components
+    └── svadb.js                        # SVAHTTP — HTTP client with AbortController
+```
+
+## Key Patterns — ALWAYS Follow These
+
+### Python APIs
+- Always use `@frappe.whitelist()` for exposed methods
+- Use `frappe.get_list()` for permission-safe data access, never raw SQL for user-facing queries
+- Use parameterized queries (`%s` placeholders) with `frappe.db.sql()` — never string-interpolate user input
+- Check permissions explicitly with `frappe.has_permission()` or `DTConf.check_list_permissions()`
+
+### Frontend JavaScript
+- Bundle files as `*.bundle.js` in `public/js/` — registered in `hooks.py` → `app_include_js`
+- DocType-specific JS registered in `hooks.py` → `doctype_js`
+- Always use AbortSignal/AbortController for async operations (prevents stale requests on navigation)
+- Use `SVAHTTP` class (`svadb.js`) for API calls — it wraps `frappe.call` with abort support
+- Use `frm.dt_events` for SvaDataTable lifecycle hooks (see docs/sva-datatable.md)
+
+### Configuration Storage
+- Component configs stored as Property Setter with `property = "sva_ft"` and JSON value
+- Dashboard mode: `is_dashboard = 1` Property Setter on Single DocType
+- Filter buttons: `is_apply_button` Property Setter on Button fields
+- Virtual DocTypes (`is_virtual: 1`) have no DB table — used as schema definitions only
+
+### DocType Conventions
+- DocType definitions in `frappe_theme/frappe_theme/doctype/<name>/`
+- Each DocType has: `<name>.json` (schema), `<name>.py` (controller), optionally `<name>.js` (client)
+- Key DocTypes: `My Theme` (singleton), `SVADatatable Configuration`, `Custom Property Setter` (virtual), `SVAProperty Setter`
+
+## Critical Data Flows
+
+### DataTable data fetching
+```
+SvaDataTable → frappe.call("frappe_theme.dt_api.get_dt_list")
+  → DTConf.check_list_permissions()
+  → DTConf.get_dt_list() → report_list() OR doc_type_list()
+  → DTFilters validates filters
+  → Returns {data, columns, total_count}
+```
+
+### Custom Property Setter
+```
+DocType Editor → HTML field → "Set Property" button
+  → Dialog with Custom Property Setter fields
+  → Saves Property Setter: {property: "sva_ft", value: JSON}
+  → Form load: overwrite_form.bundle.js reads sva_ft → renders component
+```
+
+### Dashboard Mode
+```
+Single DocType (is_dashboard=1)
+  → overwrite_form.bundle.js detects → hides form chrome
+  → Renders: Number Cards, Charts, Heatmaps, SDG Wheels
+  → SVADashboardManager handles lifecycle
+```
+
+### Change Log
+```
+Doc change → Version validate hook → redirects child versions to parent
+  → VersionUtils.get_versions() → SQL with JSON_TABLE
+  → Field-level permission filtering
+```
+
+## Documentation
+Detailed feature docs in `docs/` directory. Key references:
+- `docs/sva-datatable.md` — DataTable config + dt_events API
+- `docs/api-reference.md` — All Python APIs and JS classes
+- `docs/custom-property-setter.md` — Field-level component config
+- `docs/dashboard-mode.md` — Single DocType dashboards
+- `docs/changelog-component.md` — Version tracking system
+
+## Code Style
+- Python: Follow ruff defaults (PEP 8 compatible)
+- JS: Follow eslint/prettier config in `.eslintrc`
+- Use tabs for Python indentation (Frappe convention)
+- Prefer `frappe.call()` over raw `fetch()` for API calls
+- Always handle errors with `frappe.throw()` or `frappe.msgprint()`
