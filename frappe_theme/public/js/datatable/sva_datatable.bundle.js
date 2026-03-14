@@ -2630,6 +2630,9 @@ class SvaDataTable {
 			!(frappe.boot.my_theme && frappe.boot.my_theme.hide_fields_comment)
 		) {
 			const rowDocname = row.name || primaryKey;
+			const rowDocType = this.doctype;
+			const rowTitle =
+				this.title_field && row[this.title_field] ? row[this.title_field] : row.name;
 
 			commentBtn = document.createElement("span");
 			commentBtn.style.cursor = "pointer";
@@ -2696,12 +2699,15 @@ class SvaDataTable {
 			commentBtn.addEventListener("click", function (event) {
 				event.stopPropagation();
 				if (typeof window.openCommentsForDoc === "function") {
+					let frm = Object.assign(self?.frm?.parent_frm || self?.frm, {
+						child_row: Object.assign(row, { doctype: rowDocType, __title: rowTitle }),
+					});
 					window.openCommentsForDoc(
 						_commentDoctype,
 						_commentDocname,
 						self.doctype,
 						rowDocname,
-						self?.frm?.parent_frm || self?.frm
+						frm
 					);
 				}
 				// If inside a dialog, raise sidebar z-index above it

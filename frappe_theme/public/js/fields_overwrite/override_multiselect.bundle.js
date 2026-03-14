@@ -77,6 +77,54 @@ class FrappeMultiselect {
 		this.fetchOptionsDebounced();
 	}
 
+	// Apply get_query / set_query filters to args — mirrors Frappe's set_custom_query
+	applyCustomQuery(args) {
+		const get_query = this.field.get_query || this.df.get_query;
+		if (!get_query) return;
+
+		let q;
+
+		try {
+			if (typeof get_query === "function") {
+				q = get_query(
+					(this.frm && this.frm.doc) || {},
+					this.frm && this.frm.doctype,
+					this.frm && this.frm.docname
+				);
+			} else if (typeof get_query === "string") {
+				args.query = get_query;
+				return;
+			} else if ($.isPlainObject(get_query)) {
+				q = get_query;
+			}
+		} catch (e) {
+			console.error(`[FrappeMultiselect] get_query error on "${this.fieldname}":`, e);
+			return; // fetch without filters rather than blocking the dropdown
+		}
+
+		if (!q) return;
+
+		try {
+			if (typeof q === "string") {
+				args.query = q;
+			} else if ($.isPlainObject(q)) {
+				if (q.filters) {
+					args.filters = Object.assign(args.filters || {}, q.filters);
+				}
+				if (q.query) {
+					args.query = q.query;
+				}
+				// Merge any extra custom params
+				Object.assign(args, q);
+			}
+		} catch (e) {
+			console.error(
+				`[FrappeMultiselect] Error applying query result on "${this.fieldname}":`,
+				e
+			);
+		}
+	}
+
 	// Fetch options from Frappe
 	async fetchOptions() {
 		let link_field = this.getLinkField();
@@ -88,15 +136,22 @@ class FrappeMultiselect {
 		this.setLoading(true);
 
 		try {
+			const args = {
+				txt: this.searchTerm,
+				doctype: link_field.options,
+				reference_doctype: this.frm?.doctype,
+				page_length: 10,
+				ignore_user_permissions: 0,
+			};
+
+			this.applyCustomQuery(args);
+			// Store resolved filters so renderOptions can display a hint
+			this._activeFilters = args.filters || null;
+			this._activeQuery = args.query || null;
+
 			const response = await frappe.call({
 				method: "frappe.desk.search.search_link",
-				args: {
-					txt: this.searchTerm,
-					doctype: link_field.options,
-					reference_doctype: this.frm?.doctype,
-					page_length: 10,
-					ignore_user_permissions: 0,
-				},
+				args,
 				async: true,
 			});
 			if (response && response.message) {
@@ -239,13 +294,60 @@ class FrappeMultiselect {
 				? __("No matching options")
 				: __("No options available");
 			this.optionsList.appendChild(noResults);
-			return;
+		} else {
+			sortedOptions.forEach((option, index) => {
+				const optionEl = this.createOptionElement(option, index);
+				this.optionsList.appendChild(optionEl);
+			});
 		}
 
-		sortedOptions.forEach((option, index) => {
-			const optionEl = this.createOptionElement(option, index);
-			this.optionsList.appendChild(optionEl);
-		});
+		// Show filter description at bottom — mirrors Frappe link field behaviour
+		const filterDesc = this.getFilterDescription();
+		if (filterDesc) {
+			const hintEl = document.createElement("div");
+			hintEl.className = "frappe-multiselect-filter-hint";
+			hintEl.innerHTML = filterDesc;
+			this.optionsList.appendChild(hintEl);
+		}
+	}
+
+	// Build a human-readable description of the currently active filters,
+	// mirroring Frappe's get_filter_description() in link.js.
+	getFilterDescription() {
+		if (!this._activeFilters && !this._activeQuery) return null;
+
+		if (this._activeQuery && !this._activeFilters) {
+			return __("Custom filter applied");
+		}
+
+		const filters = this._activeFilters;
+		if (!filters || typeof filters !== "object") return null;
+
+		const parts = [];
+		for (const [field, value] of Object.entries(filters)) {
+			let part;
+			if (Array.isArray(value) && value.length === 2) {
+				const [op, val] = value;
+				let valStr;
+				if (Array.isArray(val)) {
+					if (!val.length) continue; // skip empty array filters
+					const shown = val.slice(0, 5);
+					valStr = shown.map((v) => `<b>${v}</b>`).join(", ");
+					if (val.length > 5) valStr += "…";
+				} else {
+					valStr = val != null ? `<b>${val}</b>` : null;
+					if (!valStr) continue;
+				}
+				part = `<b>${field}</b> ${op} ${valStr}`;
+			} else {
+				if (value == null || value === "") continue;
+				part = `<b>${field}</b> = <b>${value}</b>`;
+			}
+			parts.push(part);
+		}
+
+		if (!parts.length) return null;
+		return __("Filters: {0}", [parts.join(", ")]);
 	}
 
 	createOptionElement(option, index) {
@@ -392,7 +494,13 @@ class FrappeMultiselect {
 				this.deselectValue(value);
 				return;
 			}
-			if (!this.options?.length) {
+			const hasQuery = this.field.get_query || this.df.get_query;
+			if (hasQuery) {
+				// Dependent field: clear stale options immediately so the loading
+				// state shows at once, then fetch fresh filtered results.
+				this.options = [];
+				this.fetchOptions();
+			} else if (!this.options?.length) {
 				this.fetchOptionsDebounced();
 			}
 			this.toggle();
@@ -487,18 +595,42 @@ class FrappeMultiselect {
 
 		if (this.frm) {
 			this.frm.doc[this.fieldname] = childTableValue;
+			// Fire the field's form event (e.g. state(frm), district(frm))
+			try {
+				this.frm.script_manager.trigger(
+					this.fieldname,
+					this.frm.doctype,
+					this.frm.docname
+				);
+			} catch (e) {
+				console.error(
+					`[FrappeMultiselect] script_manager.trigger error on "${this.fieldname}":`,
+					e
+				);
+			}
 		}
 
 		// Trigger field's change event if defined
 		if (this.df.change) {
-			this.df.change(childTableValue);
+			try {
+				this.df.change(childTableValue);
+			} catch (e) {
+				console.error(`[FrappeMultiselect] df.change error on "${this.fieldname}":`, e);
+			}
 		}
 
 		// Dispatch custom event
-		const event = new CustomEvent("change", {
-			detail: { value: childTableValue, fieldname: this.fieldname },
-		});
-		this.wrapper.dispatchEvent(event);
+		try {
+			const event = new CustomEvent("change", {
+				detail: { value: childTableValue, fieldname: this.fieldname },
+			});
+			this.wrapper.dispatchEvent(event);
+		} catch (e) {
+			console.error(
+				`[FrappeMultiselect] CustomEvent dispatch error on "${this.fieldname}":`,
+				e
+			);
+		}
 	}
 
 	getValue() {
@@ -512,7 +644,12 @@ class FrappeMultiselect {
 	}
 
 	refresh() {
+		this.options = [];
 		this.fetchOptions();
+	}
+
+	clearOptionsCache() {
+		this.options = [];
 	}
 
 	injectStyles() {
@@ -605,7 +742,7 @@ class FrappeMultiselect {
                 border: 1px solid var(--border-color, #d1d8dd);
                 border-radius: var(--border-radius, 6px);
                 box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.1));
-                z-index: 1000;
+                z-index: 1;
                 opacity: 0;
                 visibility: hidden;
                 transform: translateY(-8px);
@@ -697,6 +834,17 @@ class FrappeMultiselect {
                 padding: 16px;
                 text-align: center;
                 color: var(--text-muted, #8d99a6);
+            }
+            .frappe-multiselect-filter-hint {
+                padding: 6px 12px;
+                font-size: var(--text-xs, 11px);
+                color: var(--text-muted, #8d99a6);
+                border-top: 1px solid var(--border-color, #d1d8dd);
+                line-height: 1.5;
+            }
+            .frappe-multiselect-filter-hint b {
+                font-weight: 600;
+                color: var(--text-color, #333);
             }
             .frappe-multiselect-actions {
                 display: flex;
