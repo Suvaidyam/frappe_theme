@@ -517,8 +517,8 @@ const getCount = async () => {
 				type: type,
 				details: details,
 				report: report,
-				doctype: cur_frm.doc.doctype,
-				docname: cur_frm.doc.name,
+				doctype: cur_frm?.doc?.doctype,
+				docname: cur_frm?.doc?.name,
 				filters: { ...(props.filters || {}), ...pre_filters },
 			},
 		});
