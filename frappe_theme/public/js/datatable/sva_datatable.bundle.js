@@ -4280,9 +4280,9 @@ class SvaDataTable {
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
 					td.innerHTML = `<span title="${
-						row[column.fieldname] ? formaDatetime(row[column.fieldname]) : "-"
+						row[column.fieldname] ? formatDatetime(row[column.fieldname]) : "-"
 					}">${
-						row[column.fieldname] ? formaDatetime(row[column.fieldname]) : "-"
+						row[column.fieldname] ? formatDatetime(row[column.fieldname]) : "-"
 					}</span>`;
 					if (col?.width) {
 						$(td).css({

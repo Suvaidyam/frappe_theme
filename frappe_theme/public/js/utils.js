@@ -29,7 +29,7 @@ const formaDate = (date) => {
 	return formatted_date;
 };
 
-const formaDatetime = (datetime) => {
+const formatDatetime = (datetime) => {
 	if (!datetime) return "-";
 	let d = new Date(datetime);
 	let date_part = formaDate(datetime);
