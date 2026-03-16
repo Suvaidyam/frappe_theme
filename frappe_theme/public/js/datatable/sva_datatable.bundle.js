@@ -440,22 +440,34 @@ class SvaDataTable {
 			} else {
 				serialTd.innerHTML = `<p style="cursor: pointer; text-decoration:underline;" data-docname="${row.name}">${serialNumber}</p>`;
 			}
-			serialTd.addEventListener("click", () => {
-				let route = frappe.get_route();
-				frappe
-					.set_route(
-						"Form",
-						this.connection.connection_type == "Report"
-							? this.connection.report_ref_dt
-							: this.doctype,
-						row.name
-					)
-					.then(() => {
-						cur_frm.add_custom_button("Back", () => {
-							frappe.set_route(route);
+			if (
+				this.frm?.dt_events?.[this.doctype || this.link_report]?.columnEvents?.["#"]?.click
+			) {
+				console.warn(
+					"Column event click for serial number column is not supported to avoid navigation conflicts."
+				);
+				this.bindColumnEvents(serialTd, serialNumber, { fieldname: "#" }, row);
+			} else {
+				console.warn(
+					"No column event click handler found for serial number column, applying default navigation."
+				);
+				serialTd.addEventListener("click", () => {
+					let route = frappe.get_route();
+					frappe
+						.set_route(
+							"Form",
+							this.connection.connection_type == "Report"
+								? this.connection.report_ref_dt
+								: this.doctype,
+							row.name
+						)
+						.then(() => {
+							cur_frm.add_custom_button("Back", () => {
+								frappe.set_route(route);
+							});
 						});
-					});
-			});
+				});
+			}
 
 			tr.appendChild(serialTd);
 		}
@@ -2957,22 +2969,37 @@ class SvaDataTable {
 					} else {
 						serialTd.innerHTML = `<p style="cursor: pointer; text-decoration:underline;" data-docname="${row.name}">${serialNumber}</p>`;
 					}
-					serialTd.addEventListener("click", () => {
-						let route = frappe.get_route();
-						frappe
-							.set_route(
-								"Form",
-								this.connection.connection_type == "Report"
-									? this.connection.report_ref_dt
-									: this.doctype,
-								row.name
-							)
-							.then(() => {
-								cur_frm.add_custom_button("Back", () => {
-									frappe.set_route(route);
+
+					if (
+						this.frm?.dt_events?.[this.doctype || this.link_report]?.columnEvents?.[
+							"#"
+						]?.click
+					) {
+						console.warn(
+							"Column event click for serial number column is not supported to avoid navigation conflicts."
+						);
+						this.bindColumnEvents(serialTd, serialNumber, { fieldname: "#" }, row);
+					} else {
+						console.warn(
+							"No column event click handler found for serial number column, applying default navigation."
+						);
+						serialTd.addEventListener("click", () => {
+							let route = frappe.get_route();
+							frappe
+								.set_route(
+									"Form",
+									this.connection.connection_type == "Report"
+										? this.connection.report_ref_dt
+										: this.doctype,
+									row.name
+								)
+								.then(() => {
+									cur_frm.add_custom_button("Back", () => {
+										frappe.set_route(route);
+									});
 								});
-							});
-					});
+						});
+					}
 
 					tr.appendChild(serialTd);
 				}
