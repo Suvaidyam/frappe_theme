@@ -50,7 +50,12 @@ frappe.background_file = {
 					fieldtype: "HTML",
 					options: `
 						<div class="text-medium" style="line-height: 1.6;">
-							<p>${__("A <b>{0}</b> was already generated for <b>{1}: {2}</b> on <b>{3}</b>.", [title, __(ref_doctype), ref_docname, created_on])}</p>
+							<p>${__("A <b>{0}</b> was already generated for <b>{1}: {2}</b> on <b>{3}</b>.", [
+								title,
+								__(ref_doctype),
+								ref_docname,
+								created_on,
+							])}</p>
 							<p>${__("Would you like to download the existing file or generate a new one?")}</p>
 						</div>
 					`,
@@ -84,13 +89,16 @@ frappe.background_file = {
 				ref_docname: opts.ref_docname || null,
 			},
 			callback: () => {
-				frappe.show_alert({
-					message: __(
-						"{0} is being processed in the background. Check notifications for the download link.",
-						[title]
-					),
-					indicator: "blue",
-				}, 7);
+				frappe.show_alert(
+					{
+						message: __(
+							"{0} is being processed in the background. Check notifications for the download link.",
+							[title]
+						),
+						indicator: "blue",
+					},
+					7
+				);
 			},
 		});
 	},

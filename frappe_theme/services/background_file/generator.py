@@ -1,6 +1,7 @@
 import frappe
 from frappe import _
 
+
 def enqueue_in_background(
 	fn,
 	fn_args=None,
@@ -29,7 +30,13 @@ def enqueue_in_background(
 	"""
 	user = user or frappe.session.user
 
-	_notify(user, f"{title} - Generation started in the background", ref_doctype=ref_doctype, ref_docname=ref_docname, status="Started")
+	_notify(
+		user,
+		f"{title} - Generation started in the background",
+		ref_doctype=ref_doctype,
+		ref_docname=ref_docname,
+		status="Started",
+	)
 
 	frappe.enqueue(
 		"frappe_theme.services.background_file.generator._run",
@@ -58,14 +65,34 @@ def _run(fn, fn_args, fn_kwargs, title, ref_doctype, ref_docname, user):
 		file_url = _save_response_file(ref_doctype, ref_docname, title)
 
 		if file_url:
-			_notify(user, f'🔗 <span class="bg-file-download-link">{title} - Ready for Download</span>', link=file_url, ref_doctype=ref_doctype, ref_docname=ref_docname, status="Completed")
+			_notify(
+				user,
+				f'🔗 <span class="bg-file-download-link">{title} - Ready for Download</span>',
+				link=file_url,
+				ref_doctype=ref_doctype,
+				ref_docname=ref_docname,
+				status="Completed",
+			)
 		else:
-			_notify(user, f"{title} - Completed", ref_doctype=ref_doctype, ref_docname=ref_docname, status="Completed")
+			_notify(
+				user,
+				f"{title} - Completed",
+				ref_doctype=ref_doctype,
+				ref_docname=ref_docname,
+				status="Completed",
+			)
 
 	except Exception as e:
 		frappe.db.rollback()
 		frappe.log_error(title=f"{title} Failed", message=str(e))
-		_notify(user, f"{title} - Generation Failed. Please Retry.", email_content=f"<b>Error:</b> {str(e)}", ref_doctype=ref_doctype, ref_docname=ref_docname, status="Failed")
+		_notify(
+			user,
+			f"{title} - Generation Failed. Please Retry.",
+			email_content=f"<b>Error:</b> {str(e)}",
+			ref_doctype=ref_doctype,
+			ref_docname=ref_docname,
+			status="Failed",
+		)
 		frappe.db.commit()
 
 
@@ -92,7 +119,11 @@ def _save_response_file(ref_doctype=None, ref_docname=None, title=None):
 		file_doc["attached_to_field"] = title
 	exists = False
 	if ref_doctype and ref_docname and title:
-		exists = frappe.db.exists("File", {"attached_to_doctype": ref_doctype, "attached_to_name": ref_docname, "attached_to_field": title}, True)
+		exists = frappe.db.exists(
+			"File",
+			{"attached_to_doctype": ref_doctype, "attached_to_name": ref_docname, "attached_to_field": title},
+			True,
+		)
 
 	if exists:
 		_file = frappe.get_doc("File", exists)
@@ -107,14 +138,18 @@ def _save_response_file(ref_doctype=None, ref_docname=None, title=None):
 	return _file.file_url
 
 
-def _notify(user, subject, link=None, email_content=None, ref_doctype=None, ref_docname=None, status="Failed"):
+def _notify(
+	user, subject, link=None, email_content=None, ref_doctype=None, ref_docname=None, status="Failed"
+):
 	# Add ref info as a small muted line in the subject (visible in bell dropdown)
 	if ref_doctype and ref_docname:
-		subject += f'<br><span class="text-small" style="color: #2490EF;">{_(ref_doctype)}: {ref_docname}</span>'
+		subject += (
+			f'<br><span class="text-small" style="color: #2490EF;">{_(ref_doctype)}: {ref_docname}</span>'
+		)
 
 	if status == "Failed":
-		subject = f'❌ {subject}'
-		subject += f'<br><span class="text-small">If this issue persists, please contact support.</span>'
+		subject = f"❌ {subject}"
+		subject += '<br><span class="text-small">If this issue persists, please contact support.</span>'
 
 	doc = {
 		"doctype": "Notification Log",
