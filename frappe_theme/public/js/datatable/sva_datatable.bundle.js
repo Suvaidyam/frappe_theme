@@ -3733,8 +3733,13 @@ class SvaDataTable {
 						frappe.utils
 							.fetch_link_title(column.options, row[column.fieldname])
 							.then((res) => {
-								td.innerHTML = formatter(res || "", column, row, this);
-								td.title = res || "";
+								td.innerHTML = formatter(
+									res || row[column.fieldname] || "",
+									column,
+									row,
+									this
+								);
+								td.title = res || row[column.fieldname] || "";
 							});
 					} catch (error) {
 						td.innerHTML = formatter(row[column.fieldname] || "", column, row, this);
@@ -3758,8 +3763,8 @@ class SvaDataTable {
 						frappe.utils
 							.fetch_link_title(column.options, row[column.fieldname])
 							.then((res) => {
-								spanElement.textContent = res || "-";
-								td.title = res || "-";
+								spanElement.textContent = res || row[column.fieldname] || "-";
+								td.title = res || row[column.fieldname] || "-";
 							});
 					} catch (error) {
 						spanElement.textContent = row[column.fieldname] || "-";
