@@ -29,6 +29,25 @@ const formaDate = (date) => {
 	return formatted_date;
 };
 
+const formaDatetime = (datetime) => {
+	if (!datetime) return "-";
+	let d = new Date(datetime);
+	let date_part = formaDate(datetime);
+	const padZero = (num) => (num < 10 ? "0" : "") + num;
+	let hours = d.getHours();
+	let minutes = padZero(d.getMinutes());
+	let seconds = padZero(d.getSeconds());
+
+	let my_time_format = frappe.sys_defaults?.time_format || "HH:mm:ss";
+	let time_part;
+	if (my_time_format === "HH:mm") {
+		time_part = `${padZero(hours)}:${minutes}`;
+	} else {
+		time_part = `${padZero(hours)}:${minutes}:${seconds}`;
+	}
+	return `${date_part} ${time_part}`;
+};
+
 function formatCurrency(amount, currencyCode) {
 	let country_code =
 		locals?.["Country"]?.[frappe.sys_defaults?.country]?.code?.toUpperCase() || "US";

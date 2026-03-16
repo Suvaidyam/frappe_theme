@@ -4267,6 +4267,50 @@ class SvaDataTable {
 				this.bindColumnEvents(td.firstElementChild, row[column.fieldname], column, row);
 				return;
 			}
+			if (["Datetime"].includes(columnField.fieldtype)) {
+				if (
+					this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
+						column.fieldname
+					]
+				) {
+					let formatter =
+						this.frm.dt_events[this.doctype || this.link_report].formatter[
+							column.fieldname
+						];
+					td.innerHTML = formatter(row[column.fieldname], column, row, this);
+				} else {
+					td.innerHTML = `<span title="${
+						row[column.fieldname] ? formaDatetime(row[column.fieldname]) : "-"
+					}">${
+						row[column.fieldname] ? formaDatetime(row[column.fieldname]) : "-"
+					}</span>`;
+					if (col?.width) {
+						$(td).css({
+							width: `${Number(col?.width) * 50}px`,
+							minWidth: `${Number(col?.width) * 50}px`,
+							maxWidth: `${Number(col?.width) * 50}px`,
+							height: "32px",
+							whiteSpace: "nowrap",
+							overflow: "hidden",
+							textOverflow: "ellipsis",
+							padding: "0px 5px",
+						});
+					} else {
+						$(td).css({
+							width: `200px`,
+							minWidth: `200px`,
+							maxWidth: `200px`,
+							height: "32px",
+							whiteSpace: "nowrap",
+							overflow: "hidden",
+							textOverflow: "ellipsis",
+							padding: "0px 5px",
+						});
+					}
+				}
+				this.bindColumnEvents(td.firstElementChild, row[column.fieldname], column, row);
+				return;
+			}
 			if (["name", this.meta?.title_field].includes(columnField.fieldname)) {
 				if (
 					row[column.fieldname] &&
