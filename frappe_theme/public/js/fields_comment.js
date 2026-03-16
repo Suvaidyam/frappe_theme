@@ -1,5 +1,98 @@
 // Place these function definitions near the top of the file, outside any other function scopes.
 const primaryColor = frappe.boot.my_theme?.button_background_color || "#171717";
+
+/**
+ * Reusable thread count badge showing open & closed counts side by side.
+ * Returns HTML string. Usage: renderThreadCountBadge(openCount, closedCount, options)
+ * options.size: "sm" (default) for inline badges, "md" for sidebar buttons
+ */
+window.renderThreadCountBadge = function (openCount, closedCount, options = {}) {
+	const open = parseInt(openCount) || 0;
+	const closed = parseInt(closedCount) || 0;
+	if (open === 0 && closed === 0) return "";
+
+	// Bind hover tooltip via event delegation (once)
+	if (!window.__svaBadgeTooltipBound) {
+		window.__svaBadgeTooltipBound = true;
+		let tipEl = null;
+		let arrowEl = null;
+		let activeBadge = null;
+
+		document.addEventListener("mouseover", function (e) {
+			const badge = e.target.closest(".thread-count-badge-wrap");
+
+			// Same badge — do nothing
+			if (badge && badge === activeBadge) return;
+
+			// Clean up old tooltip
+			if (tipEl) {
+				tipEl.remove();
+				tipEl = null;
+			}
+			if (arrowEl) {
+				arrowEl.remove();
+				arrowEl = null;
+			}
+			activeBadge = null;
+
+			if (!badge || !badge.dataset.tipOpen) return;
+			activeBadge = badge;
+
+			// Create tooltip with colored Open/Closed
+			tipEl = document.createElement("div");
+			tipEl.style.cssText =
+				"position:fixed;z-index:99999;pointer-events:none;white-space:nowrap;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;box-shadow:0 2px 6px rgba(0,0,0,0.08);";
+			tipEl.innerHTML =
+				'<span style="color:#dc2626;">Open: ' +
+				badge.dataset.tipOpen +
+				"</span>" +
+				'<span style="color:#d1d5db;margin:0 4px;">|</span>' +
+				'<span style="color:#16a34a;">Closed: ' +
+				badge.dataset.tipClosed +
+				"</span>";
+			document.body.appendChild(tipEl);
+
+			// Create arrow
+			arrowEl = document.createElement("div");
+			arrowEl.style.cssText =
+				"position:fixed;z-index:99999;pointer-events:none;width:0;height:0;border-top:5px solid transparent;border-bottom:5px solid transparent;border-left:5px solid #e5e7eb;";
+			document.body.appendChild(arrowEl);
+
+			// Position to the left of the badge
+			const rect = badge.getBoundingClientRect();
+			const tipW = tipEl.offsetWidth;
+			const tipH = tipEl.offsetHeight;
+			tipEl.style.left = rect.left - tipW - 8 + "px";
+			tipEl.style.top = rect.top + rect.height / 2 - tipH / 2 + "px";
+			arrowEl.style.left = rect.left - 8 + "px";
+			arrowEl.style.top = rect.top + rect.height / 2 - 5 + "px";
+		});
+
+		document.addEventListener("mouseover", function (e) {
+			// If mouse moved outside any badge, clean up
+			if (!e.target.closest(".thread-count-badge-wrap") && activeBadge) {
+				if (tipEl) {
+					tipEl.remove();
+					tipEl = null;
+				}
+				if (arrowEl) {
+					arrowEl.remove();
+					arrowEl = null;
+				}
+				activeBadge = null;
+			}
+		});
+	}
+
+	return (
+		`<span class="thread-count-badge-wrap" data-tip-open="${open}" data-tip-closed="${closed}" style="display:inline-flex;align-items:center;border-radius:10px;overflow:hidden;font-size:10px;font-weight:700;line-height:1;vertical-align:middle;white-space:nowrap;border:1px solid rgba(0,0,0,0.08);box-shadow:0 1px 3px rgba(0,0,0,0.08);letter-spacing:0.3px;">` +
+		`<span style="padding:2px 7px;min-width:18px;text-align:center;background:linear-gradient(135deg,#fff5f5,#fee2e2);color:#dc2626;">${open}</span>` +
+		`<span style="width:1px;align-self:stretch;background:rgba(0,0,0,0.06);"></span>` +
+		`<span style="padding:2px 7px;min-width:18px;text-align:center;background:linear-gradient(135deg,#f0fdf4,#d1fae5);color:#16a34a;">${closed}</span>` +
+		`</span>`
+	);
+};
+
 // Variable to store the context of the currently viewed field's comments
 let current_field_context = null;
 let current_comment_frm = null; // tracks which doc the sidebar is currently showing
@@ -308,7 +401,9 @@ function create_new_comment_thread(fieldName, field, frm) {
 				doctype_name: frm.doctype,
 				docname: frm.docname,
 				field_name: fieldName,
-				field_label: field.df.label || fieldName,
+				field_label: field.frm?.child_row?.doctype
+					? field.frm?.child_row?.doctype
+					: field?.df?.label || fieldName,
 			},
 			callback: function (response) {
 				if (response.message) {
@@ -360,8 +455,11 @@ function load_field_comments(fieldName, field, frm) {
                     <div class="field-comment-section" style="margin-bottom: 25px; padding: 15px; border-radius: 12px; border: none; box-shadow: none;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
                             <h5 style="margin: 0; font-size: 15px;">${
-								field.df.label || fieldName
-							}</h5>
+								!field.df.label && frm?.child_row?.doctype
+									? `${frm?.child_row?.doctype} - `
+									: ""
+							}${field.df.label || frm?.child_row?.__title}
+					</h5>
                             <div style="display: flex; gap: 8px;">
                                 <button class="btn btn-default btn-sm new-thread-btn" style="padding: 4px 8px; display: none;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-plus" viewBox="0 0 16 16">
@@ -383,7 +481,9 @@ function load_field_comments(fieldName, field, frm) {
 							doctype_name: frm.doctype,
 							docname: frm.docname,
 							field_name: fieldName,
-							field_label: field.df.label || fieldName,
+							field_label: field.frm?.child_row?.doctype
+								? field.frm?.child_row?.doctype
+								: field?.df?.label || fieldName,
 						},
 						callback: function (response) {
 							if (!response.message) return;
@@ -469,6 +569,14 @@ function load_field_comments(fieldName, field, frm) {
 						thread_section.on("click", ".status-option", (e) => {
 							e.preventDefault();
 							const newStatus = $(e.target).data("status");
+
+							if (isExternalUser()) {
+								frappe.show_alert({
+									message: __("You do not have permission to change status"),
+									indicator: "red",
+								});
+								return;
+							}
 
 							check_comment_permissions().then((permissions) => {
 								if (!permissions.includes("write")) {
@@ -750,6 +858,14 @@ function load_all_comments(frm) {
 						const newStatus = $(e.target).data("status");
 						const statusPill = field_section.find(".status-pill");
 
+						if (isExternalUser()) {
+							frappe.show_alert({
+								message: __("You do not have permission to change status"),
+								indicator: "red",
+							});
+							return;
+						}
+
 						check_comment_permissions().then((permissions) => {
 							if (!permissions.includes("write")) {
 								frappe.show_alert({
@@ -885,26 +1001,19 @@ function load_all_comments(frm) {
 							return;
 
 						if (selector && !$(selector).find(".field-comment-icon").length) {
-							const count = commentCountCache[fieldname] || 0;
+							const detail = threadDetailedCache[fieldname] || {};
+							const openCount = detail.open || 0;
+							const closedCount = detail.closed || 0;
 							const comment_icon = $(`
                                 <div class="field-comment-icon" style="display: none; position: absolute; right: -30px; top: -2px; z-index: 10;">
                                     <button class="btn" style="padding: 2px 8px; position: relative;" tabindex="-1" type="button">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-chat" viewBox="0 0 16 16">
                                             <path d="M2.678 11.894a1 1 0 0 1 .287.801 10.97 10.97 0 0 1-.398 2c1.395-.323 2.247-.697 2.634-.893a1 1 0 0 1 .71-.074A8.06 8.06 0 0 0 8 14c3.996 0 7-2.807 7-6 0-3.192-3.004-6-7-6S1 4.808 1 8c0 1.468.617 2.83 1.678 3.894zm-.493 3.905a21.682 21.682 0 0 1-.713.129c-.2.032-.352-.176-.273-.362a9.68 9.68 0 0 0 .244-.637l.003-.01c.248-.72.45-1.548.524-2.319C.743 11.37 0 9.76 0 8c0-3.866 3.582-7 8-7s8 3.134 8 7-3.582 7-8 7a9.06 9.06 0 0 1-2.347-.306c-.52.263-1.639.742-3.468 1.105z"/>
                                         </svg>
-                                        <span class="comment-count-badge" style="position: absolute; top: -4px; right: -8px; background: ${
-											count > 0 ? primaryColor : "#e0e0e0"
-										}; color: ${
-								count > 0 ? "#fff" : "#666"
-							}; border-radius: 50%; min-width: 16px; height: 16px; font-size: 10px; font-weight: 600; display: flex !important; align-items: center; justify-content: center; padding: 0 4px; box-shadow: ${
-								count > 0
-									? "0 2px 6px rgba(0,0,0,0.2)"
-									: "0 1px 3px rgba(0,0,0,0.1)"
-							}; border: 1.5px solid #fff; z-index: 9999; opacity: ${
-								count > 0 ? 1 : 0.9
-							}; transition: all 0.2s ease; transform-origin: center; transform: ${
-								count > 0 ? "scale(1)" : "scale(0.9)"
-							};">${count}</span>
+                                        <span class="thread-count-badge-container" style="position: absolute; top: -9px; right: -20px; z-index: 9999;">${window.renderThreadCountBadge(
+											openCount,
+											closedCount
+										)}</span>
                                     </button>
                                 </div>
                             `);
@@ -939,20 +1048,17 @@ function load_all_comments(frm) {
 								return false;
 							});
 						} else {
-							const commentCountBadge = $(selector).find(".comment-count-badge");
-							if (commentCountBadge.length) {
-								const count = commentCountCache[fieldname] || 0;
-								commentCountBadge.text(count);
-								commentCountBadge.css({
-									background: count > 0 ? primaryColor : "#e0e0e0",
-									color: count > 0 ? "#fff" : "#666",
-									"box-shadow":
-										count > 0
-											? "0 2px 6px rgba(0,0,0,0.2)"
-											: "0 1px 3px rgba(0,0,0,0.1)",
-									opacity: count > 0 ? 1 : 0.9,
-									transform: count > 0 ? "scale(1)" : "scale(0.9)",
-								});
+							const badgeContainer = $(selector).find(
+								".thread-count-badge-container"
+							);
+							if (badgeContainer.length) {
+								const detail = threadDetailedCache[fieldname] || {};
+								badgeContainer.html(
+									window.renderThreadCountBadge(
+										detail.open || 0,
+										detail.closed || 0
+									)
+								);
 							}
 						}
 					});
@@ -1112,7 +1218,9 @@ function initializeCommentControl(
 					doctype_name: field.frm.doctype,
 					docname: field.frm.docname,
 					field_name: fieldName,
-					field_label: field.df.label || fieldName,
+					field_label: field.frm?.child_row?.doctype
+						? field.frm?.child_row?.doctype
+						: field?.df?.label || fieldName,
 					comment_text: comment,
 					is_external: isExternal,
 					is_vendor: isVendor,
@@ -1188,6 +1296,7 @@ function initializeCommentControl(
 }
 
 let commentCountCache = {};
+let threadDetailedCache = {}; // {field: {open: N, closed: N}}
 
 function updateCommentCount(fieldName, frm) {
 	const field = [
@@ -1195,42 +1304,25 @@ function updateCommentCount(fieldName, frm) {
 		...frm?.layout?.tabs?.map((t) => ({ ...t, variant: "tab" })),
 	].find((f) => f.df.fieldname == fieldName);
 	let selector = field?.label_area || field?.tab_link || field?.head;
-	const commentCountBadge = $(selector).find(".comment-count-badge");
-	if (!commentCountBadge.length) return;
+	const badgeContainer = $(selector).find(".thread-count-badge-container");
+	if (!badgeContainer.length) return;
 
-	if (commentCountCache[fieldName] !== undefined) {
-		const count = commentCountCache[fieldName];
-		commentCountBadge.text(count);
-		commentCountBadge.css({
-			display: "flex !important",
-			visibility: "visible",
-			opacity: count > 0 ? 1 : 0.9,
-			transform: count > 0 ? "scale(1)" : "scale(0.9)",
-			background: count > 0 ? primaryColor : "#e0e0e0",
-			color: count > 0 ? "#fff" : "#666",
-			boxShadow: count > 0 ? "0 2px 6px rgba(0,0,0,0.2)" : "0 1px 3px rgba(0,0,0,0.1)",
-		});
+	if (threadDetailedCache[fieldName] !== undefined) {
+		const detail = threadDetailedCache[fieldName];
+		badgeContainer.html(window.renderThreadCountBadge(detail.open || 0, detail.closed || 0));
 		return;
 	}
 
 	frappe.call({
-		method: "frappe_theme.api.get_all_field_comment_counts",
+		method: "frappe_theme.api.get_all_field_thread_counts_detailed",
 		args: { doctype_name: frm.doctype, docname: frm.docname },
 		callback: function (r) {
 			if (r.message) {
-				commentCountCache = r.message;
-				const count = r.message[fieldName] || 0;
-				commentCountBadge.text(count);
-				commentCountBadge.css({
-					display: "flex !important",
-					visibility: "visible",
-					opacity: count > 0 ? 1 : 0.9,
-					transform: count > 0 ? "scale(1)" : "scale(0.9)",
-					background: count > 0 ? primaryColor : "#e0e0e0",
-					color: count > 0 ? "#fff" : "#666",
-					boxShadow:
-						count > 0 ? "0 2px 6px rgba(0,0,0,0.2)" : "0 1px 3px rgba(0,0,0,0.1)",
-				});
+				threadDetailedCache = r.message;
+				const detail = r.message[fieldName] || {};
+				badgeContainer.html(
+					window.renderThreadCountBadge(detail.open || 0, detail.closed || 0)
+				);
 				updateTotalCommentCount(frm);
 			}
 		},
@@ -1378,15 +1470,22 @@ function setupFieldComments(frm) {
 				!frm.page.sidebar.find(".field-comments-btn").length
 			) {
 				frappe.call({
-					method: "frappe_theme.api.get_total_open_resolved_comment_count",
+					method: "frappe_theme.api.get_all_field_thread_counts_detailed",
 					args: { doctype_name: frm.doctype, docname: frm.docname },
 					callback: function (r) {
-						let count = r.message || 0;
-						let label =
-							count > 0
-								? __("Comments") + ` <span class="comments-badge">${count}</span>`
-								: __("Comments");
-						let btn = frm.add_custom_button(label, function () {
+						const counts = r.message || {};
+						threadDetailedCache = counts;
+						let totalOpen = 0,
+							totalClosed = 0;
+						Object.values(counts).forEach((c) => {
+							totalOpen += c.open || 0;
+							totalClosed += c.closed || 0;
+						});
+						let badge =
+							totalOpen > 0 || totalClosed > 0
+								? " " + window.renderThreadCountBadge(totalOpen, totalClosed)
+								: "";
+						let btn = frm.add_custom_button(__("Comments") + badge, function () {
 							$(".field-comments-sidebar").show();
 							$(".field-comments-sidebar")[0].offsetHeight;
 							$(".field-comments-sidebar").css("right", "0");
@@ -1395,14 +1494,6 @@ function setupFieldComments(frm) {
 								refreshSummaryContainer(frm);
 							});
 						});
-						$(btn).find(".comments-badge").css({
-							background: primaryColor,
-							color: "#fff",
-							"border-radius": "10px",
-							padding: "3px 6px",
-							"font-size": "10px",
-							"margin-left": "2px",
-						});
 						btn.addClass("field-comments-btn");
 						frm.commentsButton = btn;
 					},
@@ -1410,11 +1501,16 @@ function setupFieldComments(frm) {
 			}
 
 			frappe.call({
-				method: "frappe_theme.api.get_all_field_comment_counts",
+				method: "frappe_theme.api.get_all_field_thread_counts_detailed",
 				args: { doctype_name: frm.doctype, docname: frm.docname },
 				callback: function (r) {
 					if (r.message) {
-						commentCountCache = r.message;
+						threadDetailedCache = r.message;
+						// Build backward-compat commentCountCache (open counts only)
+						commentCountCache = {};
+						Object.entries(r.message).forEach(([k, v]) => {
+							commentCountCache[k] = v.open || 0;
+						});
 
 						if (!isExternalUser()) {
 							[
@@ -1434,7 +1530,9 @@ function setupFieldComments(frm) {
 									return;
 
 								if (selector && !$(selector).find(".field-comment-icon").length) {
-									const count = commentCountCache[fieldname] || 0;
+									const detail = threadDetailedCache[fieldname] || {};
+									const openCount = detail.open || 0;
+									const closedCount = detail.closed || 0;
 									const comment_icon = $(`
                                         <div class="field-comment-icon" style="display: none;position: absolute; right: ${
 											field.variant == "field" ? "-20px" : "-10px"
@@ -1445,19 +1543,10 @@ function setupFieldComments(frm) {
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-chat" viewBox="0 0 16 16">
                                                     <path d="M2.678 11.894a1 1 0 0 1 .287.801 10.97 10.97 0 0 1-.398 2c1.395-.323 2.247-.697 2.634-.893a1 1 0 0 1 .71-.074A8.06 8.06 0 0 0 8 14c3.996 0 7-2.807 7-6 0-3.192-3.004-6-7-6S1 4.808 1 8c0 1.468.617 2.83 1.678 3.894zm-.493 3.905a21.682 21.682 0 0 1-.713.129c-.2.032-.352-.176-.273-.362a9.68 9.68 0 0 0 .244-.637l.003-.01c.248-.72.45-1.548.524-2.319C.743 11.37 0 9.76 0 8c0-3.866 3.582-7 8-7s8 3.134 8 7-3.582 7-8 7a9.06 9.06 0 0 1-2.347-.306c-.52.263-1.639.742-3.468 1.105z"/>
                                                 </svg>
-                                                <span class="comment-count-badge" style="position: absolute; top: -4px; right: -8px; background: ${
-													count > 0 ? primaryColor : "#e0e0e0"
-												}; color: ${
-										count > 0 ? "#fff" : "#666"
-									}; border-radius: 50%; min-width: 16px; height: 16px; font-size: 10px; font-weight: 600; display: flex !important; align-items: center; justify-content: center; padding: 0 4px; box-shadow: ${
-										count > 0
-											? "0 2px 6px rgba(0,0,0,0.2)"
-											: "0 1px 3px rgba(0,0,0,0.1)"
-									}; border: 1.5px solid #fff; z-index: 9999; opacity: ${
-										count > 0 ? 1 : 0.9
-									}; transition: all 0.2s ease; transform-origin: center; transform: ${
-										count > 0 ? "scale(1)" : "scale(0.9)"
-									};">${count}</span>
+                                                <span class="thread-count-badge-container" style="position: absolute; top: -9px; right: -20px; z-index: 9999;">${window.renderThreadCountBadge(
+													openCount,
+													closedCount
+												)}</span>
                                             </button>
                                         </div>
                                     `);
@@ -1499,21 +1588,17 @@ function setupFieldComments(frm) {
 											return false;
 										});
 								} else {
-									const commentCountBadge =
-										$(selector).find(".comment-count-badge");
-									if (commentCountBadge.length) {
-										const count = commentCountCache[fieldname] || 0;
-										commentCountBadge.text(count);
-										commentCountBadge.css({
-											background: count > 0 ? primaryColor : "#e0e0e0",
-											color: count > 0 ? "#fff" : "#666",
-											"box-shadow":
-												count > 0
-													? "0 2px 6px rgba(0,0,0,0.2)"
-													: "0 1px 3px rgba(0,0,0,0.1)",
-											opacity: count > 0 ? 1 : 0.9,
-											transform: count > 0 ? "scale(1)" : "scale(0.9)",
-										});
+									const badgeContainer = $(selector).find(
+										".thread-count-badge-container"
+									);
+									if (badgeContainer.length) {
+										const detail = threadDetailedCache[fieldname] || {};
+										badgeContainer.html(
+											window.renderThreadCountBadge(
+												detail.open || 0,
+												detail.closed || 0
+											)
+										);
 									}
 								}
 							});
@@ -1546,19 +1631,27 @@ function setupFieldComments(frm) {
 // @param { string } docname - e.g. "GRANT-0001"
 // @param { string } [title] - optional heading shown in the sidebar
 // CHANGE signature:
-window.openCommentsForDoc = function (parentDoctype, parentDocname, rowDoctype, rowDocname) {
+window.openCommentsForDoc = function (
+	parentDoctype,
+	parentDocname,
+	rowDoctype,
+	rowDocname,
+	frm = null
+) {
 	// rowDocname itself is unique — no :: needed
 	const fieldKey = rowDocname; // e.g. "PA-OUTPUT-0838"
 
-	const fakeFrm = {
-		doctype: parentDoctype,
-		docname: parentDocname,
-		is_new: () => false,
-		fields: [],
-		layout: { tabs: [] },
-		commentsButton: null,
-		page: { sidebar: $("<div>") },
-	};
+	const fakeFrm = frm
+		? frm
+		: {
+				doctype: parentDoctype,
+				docname: parentDocname,
+				is_new: () => false,
+				fields: [],
+				layout: { tabs: [] },
+				commentsButton: null,
+				page: { sidebar: $("<div>") },
+		  };
 
 	const fakeField = {
 		df: { fieldname: fieldKey, label: "", fieldtype: "Data", read_only: 0 },
@@ -1699,6 +1792,7 @@ function getStatusPillStyle(status) {
 function renderStatusPill(status) {
 	const style = getStatusPillStyle(status);
 	const isClosed = status === "Closed";
+	const readOnly = isClosed || isExternalUser();
 
 	// Only Open ↔ Closed — no Resolved
 	const statusOptions = `
@@ -1710,7 +1804,7 @@ function renderStatusPill(status) {
         <div class="status-pill-container" style="position: relative;">
             <button class="status-pill" type="button"
                 ${
-					isClosed
+					readOnly
 						? ""
 						: 'data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"'
 				}
@@ -1719,7 +1813,7 @@ function renderStatusPill(status) {
 				} !important; color: ${
 		style.text
 	} !important; font-weight: 500 !important; font-size: 13px !important; line-height: 1.2; cursor: ${
-		isClosed ? "not-allowed" : "pointer"
+		readOnly ? "default" : "pointer"
 	}; border: none; margin: 0; opacity: ${isClosed ? "0.7" : "1"}; box-shadow: none;">
                 <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${
 					style.dot
@@ -1727,7 +1821,7 @@ function renderStatusPill(status) {
                 ${status}
             </button>
             ${
-				!isClosed
+				!readOnly
 					? `
                 <div class="dropdown-menu" style="min-width: 120px; padding: 8px 0; margin: 0; border: 1px solid #E0E0E0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                     ${statusOptions}
@@ -1904,10 +1998,17 @@ function updateTotalCommentCount(frm) {
 	if (totalCommentCountUpdateTimeout) clearTimeout(totalCommentCountUpdateTimeout);
 	totalCommentCountUpdateTimeout = setTimeout(() => {
 		frappe.call({
-			method: "frappe_theme.api.get_total_open_resolved_comment_count",
+			method: "frappe_theme.api.get_all_field_thread_counts_detailed",
 			args: { doctype_name: frm.doctype, docname: frm.docname },
 			callback: function (r) {
-				let count = r.message || 0;
+				const counts = r.message || {};
+				threadDetailedCache = counts;
+				let totalOpen = 0,
+					totalClosed = 0;
+				Object.values(counts).forEach((c) => {
+					totalOpen += c.open || 0;
+					totalClosed += c.closed || 0;
+				});
 
 				// Try frm.commentsButton first, then DOM fallback
 				let commentsBtn = frm.commentsButton;
@@ -1916,19 +2017,11 @@ function updateTotalCommentCount(frm) {
 				}
 
 				if (commentsBtn && commentsBtn.length) {
-					let label =
-						count > 0
-							? __("Comments") + ` <span class="comments-badge">${count}</span>`
-							: __("Comments");
-					commentsBtn.html(label);
-					commentsBtn.find(".comments-badge").css({
-						background: primaryColor,
-						color: "#fff",
-						"border-radius": "10px",
-						padding: "2px 6px",
-						"font-size": "11px",
-						"margin-left": "2px",
-					});
+					let badge =
+						totalOpen > 0 || totalClosed > 0
+							? " " + window.renderThreadCountBadge(totalOpen, totalClosed)
+							: "";
+					commentsBtn.html(__("Comments") + badge);
 				}
 			},
 		});
