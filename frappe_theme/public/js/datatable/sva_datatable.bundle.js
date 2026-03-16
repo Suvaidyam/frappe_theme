@@ -440,22 +440,34 @@ class SvaDataTable {
 			} else {
 				serialTd.innerHTML = `<p style="cursor: pointer; text-decoration:underline;" data-docname="${row.name}">${serialNumber}</p>`;
 			}
-			serialTd.addEventListener("click", () => {
-				let route = frappe.get_route();
-				frappe
-					.set_route(
-						"Form",
-						this.connection.connection_type == "Report"
-							? this.connection.report_ref_dt
-							: this.doctype,
-						row.name
-					)
-					.then(() => {
-						cur_frm.add_custom_button("Back", () => {
-							frappe.set_route(route);
+			if (
+				this.frm?.dt_events?.[this.doctype || this.link_report]?.columnEvents?.["#"]?.click
+			) {
+				console.warn(
+					"Column event click for serial number column is not supported to avoid navigation conflicts."
+				);
+				this.bindColumnEvents(serialTd, serialNumber, { fieldname: "#" }, row);
+			} else {
+				console.warn(
+					"No column event click handler found for serial number column, applying default navigation."
+				);
+				serialTd.addEventListener("click", () => {
+					let route = frappe.get_route();
+					frappe
+						.set_route(
+							"Form",
+							this.connection.connection_type == "Report"
+								? this.connection.report_ref_dt
+								: this.doctype,
+							row.name
+						)
+						.then(() => {
+							cur_frm.add_custom_button("Back", () => {
+								frappe.set_route(route);
+							});
 						});
-					});
-			});
+				});
+			}
 
 			tr.appendChild(serialTd);
 		}
@@ -2957,22 +2969,37 @@ class SvaDataTable {
 					} else {
 						serialTd.innerHTML = `<p style="cursor: pointer; text-decoration:underline;" data-docname="${row.name}">${serialNumber}</p>`;
 					}
-					serialTd.addEventListener("click", () => {
-						let route = frappe.get_route();
-						frappe
-							.set_route(
-								"Form",
-								this.connection.connection_type == "Report"
-									? this.connection.report_ref_dt
-									: this.doctype,
-								row.name
-							)
-							.then(() => {
-								cur_frm.add_custom_button("Back", () => {
-									frappe.set_route(route);
+
+					if (
+						this.frm?.dt_events?.[this.doctype || this.link_report]?.columnEvents?.[
+							"#"
+						]?.click
+					) {
+						console.warn(
+							"Column event click for serial number column is not supported to avoid navigation conflicts."
+						);
+						this.bindColumnEvents(serialTd, serialNumber, { fieldname: "#" }, row);
+					} else {
+						console.warn(
+							"No column event click handler found for serial number column, applying default navigation."
+						);
+						serialTd.addEventListener("click", () => {
+							let route = frappe.get_route();
+							frappe
+								.set_route(
+									"Form",
+									this.connection.connection_type == "Report"
+										? this.connection.report_ref_dt
+										: this.doctype,
+									row.name
+								)
+								.then(() => {
+									cur_frm.add_custom_button("Back", () => {
+										frappe.set_route(route);
+									});
 								});
-							});
-					});
+						});
+					}
 
 					tr.appendChild(serialTd);
 				}
@@ -4229,6 +4256,50 @@ class SvaDataTable {
 							width: `150px`,
 							minWidth: `150px`,
 							maxWidth: `150px`,
+							height: "32px",
+							whiteSpace: "nowrap",
+							overflow: "hidden",
+							textOverflow: "ellipsis",
+							padding: "0px 5px",
+						});
+					}
+				}
+				this.bindColumnEvents(td.firstElementChild, row[column.fieldname], column, row);
+				return;
+			}
+			if (["Datetime"].includes(columnField.fieldtype)) {
+				if (
+					this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
+						column.fieldname
+					]
+				) {
+					let formatter =
+						this.frm.dt_events[this.doctype || this.link_report].formatter[
+							column.fieldname
+						];
+					td.innerHTML = formatter(row[column.fieldname], column, row, this);
+				} else {
+					td.innerHTML = `<span title="${
+						row[column.fieldname] ? formatDatetime(row[column.fieldname]) : "-"
+					}">${
+						row[column.fieldname] ? formatDatetime(row[column.fieldname]) : "-"
+					}</span>`;
+					if (col?.width) {
+						$(td).css({
+							width: `${Number(col?.width) * 50}px`,
+							minWidth: `${Number(col?.width) * 50}px`,
+							maxWidth: `${Number(col?.width) * 50}px`,
+							height: "32px",
+							whiteSpace: "nowrap",
+							overflow: "hidden",
+							textOverflow: "ellipsis",
+							padding: "0px 5px",
+						});
+					} else {
+						$(td).css({
+							width: `200px`,
+							minWidth: `200px`,
+							maxWidth: `200px`,
 							height: "32px",
 							whiteSpace: "nowrap",
 							overflow: "hidden",
