@@ -479,7 +479,8 @@ function load_field_comments(fieldName, field, frm) {
 							doctype_name: frm.doctype,
 							docname: frm.docname,
 							field_name: fieldName,
-							field_label: field?.df?.label || field.frm?.child_row?.doctype || fieldName,
+							field_label:
+								field?.df?.label || field.frm?.child_row?.doctype || fieldName,
 						},
 						callback: function (response) {
 							if (!response.message) return;
