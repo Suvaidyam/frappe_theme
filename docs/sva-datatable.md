@@ -382,6 +382,54 @@ frm.dt_events['Invoice Line'] = {
 
 > For the full events reference with all examples and best practices, see the source file: `public/js/datatable/DT_EVENTS_DOCUMENTATION.md`
 
+## Source File Structure
+
+The SvaDataTable class is split into a slim orchestrator and 10 focused mixin modules, composed via `Object.assign` onto the prototype. Frappe's esbuild bundles everything into a single output file (`sva_datatable.bundle.js`), so consumers are unaffected.
+
+```
+public/js/datatable/
+├── sva_datatable.bundle.js       ← Orchestrator (class, constructor, reloadTable, reloadRow)
+├── mixins/
+│   ├── rendering.js              ← Table DOM creation (createTable, createTableHead, createTableBody, createTableRow)
+│   ├── fields.js                 ← Cell rendering (editable and non-editable fields, cell styles)
+│   ├── action_column.js          ← Row action dropdown and comment button
+│   ├── form_dialog.js            ← Create/Edit/View dialogs, delete, child table dialogs
+│   ├── workflow.js               ← Workflow state transitions (wf_action)
+│   ├── pagination.js             ← Pagination UI and state management
+│   ├── ui_setup.js               ← Header, footer, wrapper, settings, sort selector, filter area
+│   ├── data.js                   ← Data fetching (getDocList), permissions, sorting
+│   ├── helpers.js                ← Utilities (skeleton loader, title, field helpers, no-permission page)
+│   └── transpose.js              ← Report transpose layout
+├── sva_sort_selector.bundle.js   ← Sort selector component
+├── list_settings.bundle.js       ← Column visibility settings dialog
+└── filters/                      ← Filter area components
+```
+
+Each mixin exports a plain object of methods that are attached to the class prototype:
+
+```javascript
+// Example: mixins/pagination.js
+const PaginationMixin = {
+    setupPagination() { /* this = SvaDataTable instance */ },
+    updatePageButtons() { /* ... */ },
+};
+export default PaginationMixin;
+```
+
+```javascript
+// sva_datatable.bundle.js (orchestrator)
+import PaginationMixin from "./mixins/pagination.js";
+// ... other mixin imports ...
+
+class SvaDataTable {
+    constructor({ wrapper, columns, rows, ... }) { /* ... */ }
+    async reloadTable(reset = false) { /* ... */ }
+    async reloadRow(docname_or_updated_doc, fetch_from_server = false) { /* ... */ }
+}
+
+Object.assign(SvaDataTable.prototype, PaginationMixin, /* ... other mixins */);
+```
+
 ## JavaScript API (Advanced)
 
 For advanced use cases, you can instantiate `SvaDataTable` programmatically:
@@ -417,11 +465,15 @@ const table = new SvaDataTable({
 
 ### Key Methods
 
-| Method | Description |
-|--------|-------------|
-| `reloadTable(reset)` | Reload the entire table. Pass `true` to reset pagination |
-| `reloadRow(docname, fetch_from_server)` | Update a single row without full reload |
-| `getDocList()` | Fetch documents based on current filters and permissions |
+| Method | Mixin | Description |
+|--------|-------|-------------|
+| `reloadTable(reset)` | orchestrator | Reload the entire table. Pass `true` to reset pagination |
+| `reloadRow(docname, fetch_from_server)` | orchestrator | Update a single row without full reload |
+| `getDocList()` | data.js | Fetch documents based on current filters and permissions |
+| `sortByColumn(column, direction, updateTable)` | data.js | Sort table by a specific column |
+| `add_custom_button(label, click, style)` | ui_setup.js | Add a custom button to the table header |
+| `createFormDialog(doctype, name, mode)` | form_dialog.js | Open create/edit/view dialog for a record |
+| `transposeTable()` | transpose.js | Toggle transposed layout for report tables |
 
 ## Tips
 
@@ -429,3 +481,4 @@ const table = new SvaDataTable({
 - Tables automatically respect Frappe's permission system — users only see records they have permission to access
 - The table uses the **SVAHTTP** class for API calls, which supports request cancellation via AbortController
 - Number cards and charts for the same DocType are configured in separate tabs of the same SVADatatable Configuration (see [Number Cards & Charts](number-cards-and-charts.md))
+- The source code is organized into modular mixin files under `public/js/datatable/mixins/` — see the [Source File Structure](#source-file-structure) section for details
