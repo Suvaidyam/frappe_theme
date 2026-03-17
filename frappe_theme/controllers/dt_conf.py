@@ -212,6 +212,8 @@ class DTConf:
 		ref_doctype = options["ref_doctype"]
 		doctype = options["doctype"]
 
+		if isinstance(filters, str):
+			filters = json.loads(filters)
 		if filters is not None and not isinstance(filters, (dict | list)):
 			filters = {}
 
@@ -232,6 +234,8 @@ class DTConf:
 
 	def get_dt_count(options):
 		filters = options["filters"]
+		if isinstance(filters, str):
+			filters = json.loads(filters)
 		doctype = options["doctype"]
 		if options["_type"] == "Report":
 			report = frappe.get_doc("Report", options["doctype"])
@@ -256,7 +260,17 @@ class DTConf:
 				)
 				return len(result)
 		else:
-			cleaned_filters = [item[:-1] if item and item[-1] is False else item for item in filters]
+			cleaned_filters = []
+			for item in filters:
+				if item and item[-1] is False:
+					item = item[:-1]
+				# Normalize operator to lowercase (e.g. 'IN' -> 'in') for query builder compatibility
+				if isinstance(item, list):
+					if len(item) == 4 and isinstance(item[2], str):
+						item = [item[0], item[1], item[2].lower(), item[3]]
+					elif len(item) == 3 and isinstance(item[1], str):
+						item = [item[0], item[1].lower(), item[2]]
+				cleaned_filters.append(item)
 			return frappe.db.count(doctype, filters=cleaned_filters)
 
 	# listview settings
