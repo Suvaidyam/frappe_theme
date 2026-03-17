@@ -266,11 +266,34 @@ class SVAHeatmap {
 		let loader = new Loader(wrapper);
 		loader.show();
 
+		let pre_filters = {};
+		if (this.frm) {
+			if (this.frm?.["dt_events"]?.[this?.html_field]?.get_filters) {
+				let get_filters = this.frm?.["dt_events"]?.[this?.html_field]?.get_filters;
+				pre_filters = (await get_filters(this.reportName, this.html_field)) || {};
+			}
+		}
+
 		let table_options = {
 			label: "",
 			wrapper,
 			doctype: "",
-			frm: this.frm || cur_frm,
+			frm: Object.assign(
+				{
+					dt_events: {
+						[this.reportName]: {
+							get_filters: () => {
+								return {
+									...this.standard_filters,
+									...this.filters,
+									...pre_filters,
+								};
+							},
+						},
+					},
+				},
+				this.frm || cur_frm
+			),
 			connection: {
 				crud_permissions: JSON.stringify(["read"]),
 				link_report: this.reportName,

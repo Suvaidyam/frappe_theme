@@ -99,6 +99,11 @@
     transition: all 0.3s ease !important;
 }
 
+/* Background file download link in notifications */
+.notification-item:hover .bg-file-download-link {
+    text-decoration: underline;
+}
+
 .modal-header {
     flex-wrap: wrap !important;
 }

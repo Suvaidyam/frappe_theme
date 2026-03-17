@@ -99,13 +99,14 @@ class DTFilters:
 		Returns:
 		        tuple: (outer_filters, inner_filters, not_applied_filters)
 		"""
-		if not dt:
-			return client_filters, {}, []
 
 		if isinstance(client_filters, str):
 			client_filters = json.loads(client_filters)
 		if client_filters is None:
 			client_filters = {}
+
+		if not dt:
+			return {}, client_filters, []
 
 		meta = frappe.get_meta(dt, True)
 		if meta.get("is_dashboard") != 1:

@@ -1,0 +1,909 @@
+const FieldsMixin = {
+	getCellStyle(column, freezeColumnsAtLeft, left) {
+		return this.options.freezeColumnsAtLeft >= freezeColumnsAtLeft
+			? `position: sticky; left:${left} px; z-index: 2; background-color: white; min-width:${column.width} px; max-width:${column.width} px; padding: 0px`
+			: `min-width:${column.width || 150} px; max-width:${
+					column.width || 200
+			  } px; padding: 0px !important;`;
+	},
+
+	createEditableField(td, column, row) {
+		const frm = this.frm;
+		const childTableFieldName = this.childTableFieldName;
+		td.textContent = "";
+		let columnField = {
+			...column,
+			onchange: function () {
+				let changedValue = control.get_input_value();
+				if (column.fieldtype === "Percent") {
+					changedValue = parseFloat(changedValue);
+				}
+				if (row[column.fieldname] !== changedValue) {
+					let rowIndex = frm.doc[childTableFieldName].findIndex(
+						(r) => r.name === row.name
+					);
+					frm.doc[childTableFieldName][rowIndex][column.fieldname] =
+						control.get_input_value();
+					frm.dirty();
+				}
+			},
+		};
+
+		columnField.get_query = () => {
+			const filters = [];
+			if (column.additional_filters) {
+				filters.push(...column.additional_filters);
+			}
+			if (column.link_filter) {
+				const [parentfield, filter_key] = column.link_filter.split("->");
+				let rowIndex = frm.doc[childTableFieldName].findIndex((r) => r.name === row.name);
+				filters.push([
+					column.options,
+					filter_key,
+					"=",
+					frm.doc[childTableFieldName][rowIndex][parentfield],
+				]);
+			}
+			if (column.doc_link_filters) {
+				filters.push(...JSON.parse(column.doc_link_filters));
+			}
+			let keys = this.uniqueness?.row?.find((r) => r.includes(column.fieldname));
+			if (keys) {
+				let rowIndex = frm.doc[childTableFieldName].findIndex((r) => r.name === row.name);
+				let _row = frm.doc[childTableFieldName][rowIndex];
+				filters.push([
+					column.options,
+					"name",
+					"not in",
+					keys.map((k) => _row[k]).filter((k) => k && k != columnField.fieldname),
+				]);
+			}
+			return { filters };
+		};
+
+		const control = frappe.ui.form.make_control({
+			parent: td,
+			df: columnField,
+			render_input: true,
+			only_input: true,
+		});
+
+		$(control.input).css({
+			width: "100%",
+			height: "32px",
+			backgroundColor: "white",
+			margin: "0px",
+			boxShadow: "none",
+		});
+		if (row[column.fieldname]) {
+			control.set_value(row[column.fieldname]);
+		}
+		control.refresh();
+	},
+
+	createNonEditableField(td, column, row) {
+		let col = this.header.find((h) => h.fieldname === column.fieldname);
+		td.textContent = "";
+		let columnField = {
+			...column,
+			read_only: 1,
+			description: "",
+		};
+		let highlight = this.highlighted_columns?.includes(column.fieldname);
+		if (highlight) {
+			td.style.backgroundColor = frappe.utils.get_lighter_shade_of_hex_color(
+				frappe.boot?.my_theme?.button_background_color || "#2196F3",
+				85
+			);
+		}
+		if (column.fieldname === this?.workflow?.workflow_state_field) {
+			if (
+				this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
+					column.fieldname
+				]
+			) {
+				let formatter =
+					this.frm.dt_events[this.doctype || this.link_report].formatter[
+						column.fieldname
+					];
+				td.innerHTML = formatter(
+					this.workflow_state_map[row[column.fieldname]] || row[column.fieldname],
+					column,
+					row,
+					this
+				);
+				td.title =
+					this.workflow_state_map[row[column.fieldname]] || row[column.fieldname] || "";
+			} else {
+				td.innerHTML = `<span>${
+					this.workflow_state_map[row[column.fieldname]] || row[column.fieldname]
+				}</span>`;
+				td.title =
+					this.workflow_state_map[row[column.fieldname]] || row[column.fieldname] || "";
+				if (col?.width) {
+					$(td).css({
+						width: `${Number(col?.width) * 50}px`,
+						minWidth: `${Number(col?.width) * 50}px`,
+						maxWidth: `${Number(col?.width) * 50}px`,
+						height: "32px",
+						whiteSpace: "nowrap",
+						overflow: "hidden",
+						textOverflow: "ellipsis",
+						padding: "0px 5px",
+					});
+				} else {
+					$(td).css({
+						height: "32px",
+						whiteSpace: "nowrap",
+						overflow: "hidden",
+						textOverflow: "ellipsis",
+						padding: "0px 5px",
+					});
+				}
+				this.bindColumnEvents(td.firstElementChild, row[column.fieldname], column, row);
+			}
+			return;
+		}
+		if (column.fieldtype === "Link") {
+			let spanElement;
+			if (
+				this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
+					column.fieldname
+				]
+			) {
+				let formatter =
+					this.frm.dt_events[this.doctype || this.link_report].formatter[
+						column.fieldname
+					];
+				if (frappe.utils.get_link_title(column.options, row[column.fieldname])) {
+					td.innerHTML = formatter(
+						frappe.utils.get_link_title(column.options, row[column.fieldname]),
+						column,
+						row,
+						this
+					);
+					td.title =
+						frappe.utils.get_link_title(column.options, row[column.fieldname]) || "";
+				} else {
+					try {
+						frappe.utils
+							.fetch_link_title(column.options, row[column.fieldname])
+							.then((res) => {
+								td.innerHTML = formatter(
+									res || row[column.fieldname] || "",
+									column,
+									row,
+									this
+								);
+								td.title = res || row[column.fieldname] || "";
+							});
+					} catch (error) {
+						td.innerHTML = formatter(row[column.fieldname] || "", column, row, this);
+						td.title = row[column.fieldname] || "";
+					}
+				}
+			} else {
+				if (frappe.utils.get_link_title(column.options, row[column.fieldname])) {
+					spanElement = document.createElement("span");
+					spanElement.textContent = frappe.utils.get_link_title(
+						column.options,
+						row[column.fieldname]
+					);
+					td.appendChild(spanElement);
+					td.title =
+						frappe.utils.get_link_title(column.options, row[column.fieldname]) || "-";
+				} else {
+					spanElement = document.createElement("span");
+					td.appendChild(spanElement);
+					try {
+						frappe.utils
+							.fetch_link_title(column.options, row[column.fieldname])
+							.then((res) => {
+								spanElement.textContent = res || row[column.fieldname] || "-";
+								td.title = res || row[column.fieldname] || "-";
+							});
+					} catch (error) {
+						spanElement.textContent = row[column.fieldname] || "-";
+						td.title = row[column.fieldname] || "-";
+					}
+				}
+
+				// Apply CSS styles
+				if (col?.width) {
+					$(td).css({
+						width: `${Number(col?.width) * 50}px`,
+						minWidth: `${Number(col?.width) * 50}px`,
+						maxWidth: `${Number(col?.width) * 50}px`,
+						height: "32px",
+						whiteSpace: "nowrap",
+						overflow: "hidden",
+						textOverflow: "ellipsis",
+						padding: "0px 5px",
+					});
+				} else {
+					$(td).css({
+						height: "32px",
+						whiteSpace: "nowrap",
+						overflow: "hidden",
+						textOverflow: "ellipsis",
+						padding: "0px 5px",
+					});
+				}
+			}
+			this.bindColumnEvents(
+				td.firstElementChild || spanElement,
+				row[column.fieldname],
+				column,
+				row
+			);
+			return;
+		}
+		if (column.fieldtype == "Select") {
+			let edit_level1 =
+				["1", "2"].includes(row.docstatus) &&
+				(this.frm ? this.frm?.doc?.docstatus == 0 : true);
+			let wf_editable_roles = this?.workflow?.states
+				?.filter((s) => s.state == row[this?.workflow?.workflow_state_field])
+				?.map((s) => s.allow_edit);
+			let wf_editable = this.workflow
+				? wf_editable_roles?.some((role) => frappe.user_roles.includes(role))
+				: true;
+			let is_editable = this.connection?.disable_edit_depends_on
+				? !frappe.utils.custom_eval(this.connection?.disable_edit_depends_on, row)
+				: true;
+			let editable =
+				!edit_level1 &&
+				this.crud.write &&
+				wf_editable &&
+				this.permissions.includes("write") &&
+				this.conf_perms.includes("write") &&
+				is_editable;
+			if (col?.inline_edit && editable) {
+				let me = this;
+				const control = frappe.ui.form.make_control({
+					parent: td,
+					df: {
+						...column,
+						read_only:
+							column?.read_only ||
+							(column?.read_only_depends_on
+								? frappe.utils.custom_eval(column.read_only_depends_on, row)
+								: false),
+						onchange: async function () {
+							let changedValue = control.get_input_value();
+							if (row[column.fieldname] && row[column.fieldname] != changedValue) {
+								try {
+									let response = await me.sva_db.set_value(
+										me.doctype,
+										row.name,
+										column.fieldname,
+										changedValue
+									);
+									if (response) {
+										me.reloadRow(response);
+										frappe.show_alert({
+											message: `${
+												column?.label || column.fieldname
+											} updated successfully`,
+											indicator: "success",
+										});
+									}
+								} catch (error) {
+									frappe.show_alert({
+										message: `Error updating ${
+											column?.label || column.fieldname
+										}`,
+										indicator: "danger",
+									});
+								}
+							} else {
+								try {
+									let response = await me.sva_db.set_value(
+										me.doctype,
+										row.name,
+										column.fieldname,
+										row[column.fieldname]
+									);
+									if (response) {
+										me.reloadRow(response);
+										frappe.show_alert({
+											message: `${
+												column?.label || column.fieldname
+											} updated successfully`,
+											indicator: "success",
+										});
+									}
+								} catch (error) {
+									frappe.show_alert({
+										message: `Error updating ${
+											column?.label || column.fieldname
+										}`,
+										indicator: "danger",
+									});
+								}
+							}
+						},
+					},
+					value: row[column.fieldname] || "-",
+					render_input: true,
+					only_input: true,
+				});
+				$(control.input).css({
+					width: "100%",
+					height: "25px",
+					marginTop: "5px",
+					fontSize: "12px",
+					color: "black",
+				});
+				$(td).css({ height: "25px !important", padding: "0px 5px" });
+				control.refresh();
+			} else {
+				if (
+					this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
+						column.fieldname
+					]
+				) {
+					let formatter =
+						this.frm.dt_events[this.doctype || this.link_report].formatter[
+							column.fieldname
+						];
+					td.innerHTML = formatter(row[column.fieldname], column, row, this);
+				} else {
+					td.innerHTML = `<span title="${row[column.fieldname] || "-"}">${
+						row[column.fieldname] || "-"
+					}</span>`;
+					if (col?.width) {
+						$(td).css({
+							width: `${Number(col?.width) * 50}px`,
+							minWidth: `${Number(col?.width) * 50}px`,
+							maxWidth: `${Number(col?.width) * 50}px`,
+							height: "32px",
+							whiteSpace: "nowrap",
+							overflow: "hidden",
+							textOverflow: "ellipsis",
+							padding: "0px 5px",
+						});
+					} else {
+						$(td).css({
+							width: `150px`,
+							minWidth: `150px`,
+							maxWidth: `150px`,
+							height: "32px",
+							whiteSpace: "nowrap",
+							overflow: "hidden",
+							textOverflow: "ellipsis",
+							padding: "0px 5px",
+						});
+					}
+				}
+			}
+			return;
+		}
+		if (["HTML"].includes(columnField.fieldtype)) {
+			const control = frappe.ui.form.make_control({
+				parent: td,
+				df: columnField,
+				render_input: true,
+				only_input: true,
+			});
+			$(control.input).css({
+				width: "100%",
+				height: "32px",
+				backgroundColor: "white",
+				margin: "0px",
+				fontSize: "12px",
+				color: "black",
+				boxShadow: "none",
+				padding: "0px 5px",
+				cursor: "normal",
+			});
+			$(td).css({ height: "32px !important" });
+			if (row[column.fieldname]) {
+				control.set_value(row[column.fieldname]);
+			}
+			control.refresh();
+			return;
+		} else {
+			if (columnField?.has_link) {
+				let [doctype, link_field] = columnField.has_link.split("->");
+				td.addEventListener("click", async () => {
+					await this.childTableDialog(doctype, link_field, row?.name, row);
+				});
+				if (col?.width) {
+					$(td).css({
+						width: `${Number(col?.width) * 50}px`,
+						minWidth: `${Number(col?.width) * 50}px`,
+						maxWidth: `${Number(col?.width) * 50}px`,
+						height: "32px",
+						whiteSpace: "nowrap",
+						overflow: "hidden",
+						textOverflow: "ellipsis",
+						padding: "0px 5px",
+					});
+				} else {
+					$(td).css({
+						width: `150px`,
+						minWidth: `150px`,
+						maxWidth: `150px`,
+						height: "32px",
+						whiteSpace: "nowrap",
+						overflow: "hidden",
+						textOverflow: "ellipsis",
+						padding: "0px 5px",
+						cursor: "pointer",
+						color: "blue",
+					});
+				}
+			} else {
+				if (col?.width) {
+					$(td).css({
+						width: `${Number(col?.width) * 50}px`,
+						minWidth: `${Number(col?.width) * 50}px`,
+						maxWidth: `${Number(col?.width) * 50}px`,
+						height: "32px",
+						whiteSpace: "nowrap",
+						overflow: "hidden",
+						textOverflow: "ellipsis",
+						padding: "0px 5px",
+					});
+				} else {
+					$(td).css({
+						width: `150px`,
+						minWidth: `150px`,
+						maxWidth: `150px`,
+						height: "32px",
+						whiteSpace: "nowrap",
+						overflow: "hidden",
+						textOverflow: "ellipsis",
+						padding: "0px 5px",
+					});
+				}
+			}
+			if (columnField.fieldtype === "Currency") {
+				if (
+					this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
+						column.fieldname
+					]
+				) {
+					let formatter =
+						this.frm.dt_events[this.doctype || this.link_report].formatter[
+							column.fieldname
+						];
+					td.innerHTML = formatter(row[column.fieldname], column, row, this);
+				} else {
+					let value = formatCurrency(
+						row[column.fieldname],
+						frappe.sys_defaults.currency
+					);
+					td.innerHTML = `<span title="${value}">${value}</span>`;
+					if (col?.width) {
+						$(td).css({
+							width: `${Number(col?.width) * 50}px`,
+							minWidth: `${Number(col?.width) * 50}px`,
+							maxWidth: `${Number(col?.width) * 50}px`,
+							height: "32px",
+							whiteSpace: "nowrap",
+							overflow: "hidden",
+							textOverflow: "ellipsis",
+							padding: "0px 5px",
+							textAlign: "right",
+						});
+					} else {
+						$(td).css({
+							width: `150px`,
+							minWidth: `150px`,
+							maxWidth: `150px`,
+							height: "32px",
+							whiteSpace: "nowrap",
+							overflow: "hidden",
+							textOverflow: "ellipsis",
+							padding: "0px 5px",
+							textAlign: "right",
+						});
+					}
+				}
+				this.bindColumnEvents(
+					td.firstElementChild || td.querySelector("span") || td.querySelector("span"),
+					row[column.fieldname],
+					column,
+					row
+				);
+				return;
+			}
+			if (columnField.fieldtype === "Attach") {
+				if (
+					row[column.fieldname] &&
+					!["null", "undefined", null, undefined].includes(row[column.fieldname])
+				) {
+					td.innerHTML = `<a title="${row[column.fieldname]}" href="${
+						row[column.fieldname]
+					}" target = "_blank" >${row[column.fieldname] || "-"}</a> `;
+				} else {
+					td.innerHTML = "-";
+				}
+				if (col?.width) {
+					$(td).css({
+						width: `${Number(col?.width) * 50}px`,
+						minWidth: `${Number(col?.width) * 50}px`,
+						maxWidth: `${Number(col?.width) * 50}px`,
+						height: "32px",
+						whiteSpace: "nowrap",
+						overflow: "hidden",
+						textOverflow: "ellipsis",
+						padding: "0px 5px",
+					});
+				} else {
+					$(td).css({
+						width: `150px`,
+						minWidth: `150px`,
+						maxWidth: `150px`,
+						height: "32px",
+						whiteSpace: "nowrap",
+						overflow: "hidden",
+						textOverflow: "ellipsis",
+						padding: "0px 5px",
+					});
+				}
+				return;
+			}
+			if (columnField.fieldtype === "Attach Image") {
+				if (
+					row[column.fieldname] &&
+					!["null", "undefined", null, undefined].includes(row[column.fieldname])
+				) {
+					td.innerHTML = `<img title="${row[column.fieldname]}" alt="${
+						row[column.fieldname]
+					}" src="${
+						row[column.fieldname]
+					}" style = "width:30px;border-radius:50%;height:30px;object-fit:cover;" /> `;
+					return;
+				} else {
+					td.innerHTML = "-";
+					return;
+				}
+			}
+			if (["Int", "Float"].includes(columnField.fieldtype)) {
+				if (
+					this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
+						column.fieldname
+					]
+				) {
+					let formatter =
+						this.frm.dt_events[this.doctype || this.link_report].formatter[
+							column.fieldname
+						];
+					td.innerHTML = formatter(row[column.fieldname], column, row, this);
+				} else {
+					let value =
+						row[column.fieldname]?.toLocaleString("en-US", {
+							minimumFractionDigits: 0,
+							maximumFractionDigits: 2,
+						}) || 0;
+					td.innerHTML = `<span title="${value}">${value}</span>`;
+					if (col?.width) {
+						$(td).css({
+							width: `${Number(col?.width) * 50}px`,
+							minWidth: `${Number(col?.width) * 50}px`,
+							maxWidth: `${Number(col?.width) * 50}px`,
+							height: "32px",
+							whiteSpace: "nowrap",
+							overflow: "hidden",
+							textOverflow: "ellipsis",
+							padding: "0px 5px",
+							textAlign: "right",
+						});
+					} else {
+						$(td).css({
+							width: `150px`,
+							minWidth: `150px`,
+							maxWidth: `150px`,
+							height: "32px",
+							whiteSpace: "nowrap",
+							overflow: "hidden",
+							textOverflow: "ellipsis",
+							padding: "0px 5px",
+							textAlign: "right",
+						});
+					}
+				}
+				this.bindColumnEvents(
+					td.firstElementChild || td.querySelector("span") || td.querySelector("span"),
+					row[column.fieldname],
+					column,
+					row
+				);
+				return;
+			}
+			if (["Percent"].includes(columnField.fieldtype)) {
+				if (
+					this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
+						column.fieldname
+					]
+				) {
+					let formatter =
+						this.frm.dt_events[this.doctype || this.link_report].formatter[
+							column.fieldname
+						];
+					td.innerHTML = formatter(row[column.fieldname], column, row, this);
+				} else {
+					let value =
+						row[column.fieldname]?.toLocaleString("en-US", {
+							minimumFractionDigits: 0,
+							maximumFractionDigits: 2,
+						}) || 0;
+					td.innerHTML = `<span title="${value}%">${value}%</span>`;
+					if (col?.width) {
+						$(td).css({
+							width: `${Number(col?.width) * 50}px`,
+							minWidth: `${Number(col?.width) * 50}px`,
+							maxWidth: `${Number(col?.width) * 50}px`,
+							height: "32px",
+							whiteSpace: "nowrap",
+							overflow: "hidden",
+							textOverflow: "ellipsis",
+							padding: "0px 5px",
+							textAlign: "right",
+						});
+					} else {
+						$(td).css({
+							width: `150px`,
+							minWidth: `150px`,
+							maxWidth: `150px`,
+							height: "32px",
+							whiteSpace: "nowrap",
+							overflow: "hidden",
+							textOverflow: "ellipsis",
+							padding: "0px 5px",
+							textAlign: "right",
+						});
+					}
+				}
+				this.bindColumnEvents(
+					td.firstElementChild || td.querySelector("span"),
+					row[column.fieldname],
+					column,
+					row
+				);
+				return;
+			}
+			if (["Date"].includes(columnField.fieldtype)) {
+				if (
+					this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
+						column.fieldname
+					]
+				) {
+					let formatter =
+						this.frm.dt_events[this.doctype || this.link_report].formatter[
+							column.fieldname
+						];
+					td.innerHTML = formatter(row[column.fieldname], column, row, this);
+				} else {
+					td.innerHTML = `<span title="${
+						row[column.fieldname] ? formaDate(row[column.fieldname]) : "-"
+					}">${row[column.fieldname] ? formaDate(row[column.fieldname]) : "-"}</span>`;
+					if (col?.width) {
+						$(td).css({
+							width: `${Number(col?.width) * 50}px`,
+							minWidth: `${Number(col?.width) * 50}px`,
+							maxWidth: `${Number(col?.width) * 50}px`,
+							height: "32px",
+							whiteSpace: "nowrap",
+							overflow: "hidden",
+							textOverflow: "ellipsis",
+							padding: "0px 5px",
+						});
+					} else {
+						$(td).css({
+							width: `150px`,
+							minWidth: `150px`,
+							maxWidth: `150px`,
+							height: "32px",
+							whiteSpace: "nowrap",
+							overflow: "hidden",
+							textOverflow: "ellipsis",
+							padding: "0px 5px",
+						});
+					}
+				}
+				this.bindColumnEvents(td.firstElementChild, row[column.fieldname], column, row);
+				return;
+			}
+			if (["Datetime"].includes(columnField.fieldtype)) {
+				if (
+					this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
+						column.fieldname
+					]
+				) {
+					let formatter =
+						this.frm.dt_events[this.doctype || this.link_report].formatter[
+							column.fieldname
+						];
+					td.innerHTML = formatter(row[column.fieldname], column, row, this);
+				} else {
+					td.innerHTML = `<span title="${
+						row[column.fieldname] ? formatDatetime(row[column.fieldname]) : "-"
+					}">${
+						row[column.fieldname] ? formatDatetime(row[column.fieldname]) : "-"
+					}</span>`;
+					if (col?.width) {
+						$(td).css({
+							width: `${Number(col?.width) * 50}px`,
+							minWidth: `${Number(col?.width) * 50}px`,
+							maxWidth: `${Number(col?.width) * 50}px`,
+							height: "32px",
+							whiteSpace: "nowrap",
+							overflow: "hidden",
+							textOverflow: "ellipsis",
+							padding: "0px 5px",
+						});
+					} else {
+						$(td).css({
+							width: `200px`,
+							minWidth: `200px`,
+							maxWidth: `200px`,
+							height: "32px",
+							whiteSpace: "nowrap",
+							overflow: "hidden",
+							textOverflow: "ellipsis",
+							padding: "0px 5px",
+						});
+					}
+				}
+				this.bindColumnEvents(td.firstElementChild, row[column.fieldname], column, row);
+				return;
+			}
+			if (["name", this.meta?.title_field].includes(columnField.fieldname)) {
+				if (
+					row[column.fieldname] &&
+					!["null", "undefined", null, undefined].includes(row[column.fieldname])
+				) {
+					td.innerHTML = `<p title="${
+						row[column.fieldname]
+					}" style="cursor: pointer; text-decoration:underline;">${
+						row[column.fieldname]
+					}</p>`;
+				} else {
+					td.innerHTML = `<p title="-">-</p>`;
+				}
+				td.querySelector("p").addEventListener("click", () => {
+					let route = frappe.get_route();
+					frappe.set_route("Form", this.doctype, row["name"]).then(() => {
+						cur_frm.add_custom_button("Back", () => {
+							frappe.set_route(route);
+						});
+					});
+				});
+				if (col?.width) {
+					$(td).css({
+						width: `${Number(col?.width) * 50}px`,
+						minWidth: `${Number(col?.width) * 50}px`,
+						maxWidth: `${Number(col?.width) * 50}px`,
+						height: "32px",
+						whiteSpace: "nowrap",
+						overflow: "hidden",
+						textOverflow: "ellipsis",
+						padding: "0px 5px",
+					});
+				} else {
+					$(td).css({
+						width: `150px`,
+						minWidth: `150px`,
+						maxWidth: `150px`,
+						height: "32px",
+						whiteSpace: "nowrap",
+						overflow: "hidden",
+						textOverflow: "ellipsis",
+						padding: "0px 5px",
+					});
+				}
+				return;
+			}
+			if (columnField.fieldtype == "Button") {
+				let btn = document.createElement("button");
+				btn.classList.add("btn", "btn-secondary", "btn-sm");
+				btn.setAttribute("data-dt", this.doctype);
+				btn.setAttribute("data-dn", row.name);
+				btn.setAttribute("data-fieldname", columnField.fieldname);
+				btn.onclick = this.onFieldClick;
+				btn.textContent = columnField.label;
+				if (
+					this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
+						columnField.fieldname
+					]
+				) {
+					let formatter =
+						this.frm.dt_events[this.doctype || this.link_report].formatter[
+							columnField.fieldname
+						];
+					btn = formatter(btn, column, row, this);
+				}
+				td.appendChild(btn);
+				if (col?.width) {
+					$(td).css({
+						width: `${Number(col?.width) * 50}px`,
+						minWidth: `${Number(col?.width) * 50}px`,
+						maxWidth: `${Number(col?.width) * 50}px`,
+						height: "32px",
+						padding: "0px 5px",
+					});
+				} else {
+					$(td).css({
+						width: `150px`,
+						minWidth: `150px`,
+						maxWidth: `150px`,
+						height: "32px",
+						padding: "0px 5px",
+					});
+				}
+				this.bindColumnEvents(td.firstElementChild, row[column.fieldname], column, row);
+				return;
+			}
+			if (
+				this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
+					column.fieldname
+				]
+			) {
+				let formatter =
+					this.frm.dt_events[this.doctype || this.link_report].formatter[
+						column.fieldname
+					];
+				td.innerHTML = formatter(row[column.fieldname], column, row, this);
+			} else {
+				if (
+					row[column.fieldname] &&
+					!["null", "undefined", null, undefined].includes(row[column.fieldname])
+				) {
+					td.innerHTML = `<span title="${row[column.fieldname] || ""}">${
+						row[column.fieldname] || ""
+					}</span>`;
+				} else {
+					td.innerHTML = `<span title="-">-</span>`;
+				}
+				if (col?.width) {
+					$(td).css({
+						width: `${Number(col?.width) * 50}px`,
+						minWidth: `${Number(col?.width) * 50}px`,
+						maxWidth: `${Number(col?.width) * 50}px`,
+						height: "32px",
+						whiteSpace: "nowrap",
+						overflow: "hidden",
+						textOverflow: "ellipsis",
+						padding: "0px 5px",
+					});
+				} else {
+					$(td).css({
+						width: `150px`,
+						minWidth: `150px`,
+						maxWidth: `150px`,
+						height: "32px",
+						whiteSpace: "nowrap",
+						overflow: "hidden",
+						textOverflow: "ellipsis",
+						padding: "0px 5px",
+					});
+				}
+			}
+			this.bindColumnEvents(td.firstElementChild, row[column.fieldname], column, row);
+			td.title = row[column.fieldname] || "";
+		}
+	},
+	bindColumnEvents(element, value, column, row) {
+		if (
+			this.frm?.dt_events?.[this.doctype || this.link_report]?.columnEvents?.[
+				column.fieldname
+			]
+		) {
+			let events =
+				this.frm.dt_events[this.doctype || this.link_report].columnEvents[
+					column.fieldname
+				];
+			for (let event in events) {
+				element.addEventListener(event, () =>
+					events[event](element, value, column, row, this)
+				);
+			}
+		}
+	},
+};
+
+export default FieldsMixin;

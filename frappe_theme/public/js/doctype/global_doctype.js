@@ -116,5 +116,30 @@ frappe.ui.form.on("*", {
 				);
 			});
 		}
+
+		const is_configured_as_dt = await frappe.xcall(
+			"frappe_theme.apis.meta.check_if_datatable_is_configured_as_child_table",
+			{ doctype: frm.doctype }
+		);
+		if (is_configured_as_dt?.freeze) {
+			frm.disable_form();
+			if (is_configured_as_dt?.parents && is_configured_as_dt?.parents.length) {
+				const parentLinks = is_configured_as_dt.parents
+					.map(
+						(parent) =>
+							`<a href="/app/${frappe.router.slug(parent)}">${__(parent)}</a>`
+					)
+					.join(", ");
+				const parentLabel =
+					is_configured_as_dt.parents.length > 1 ? "parent records" : "parent record";
+				frm.set_intro(
+					__(
+						"This form is read-only because it is managed as a child table. To make any changes, please open it from the {0}: {1}.",
+						[parentLabel, parentLinks]
+					),
+					"yellow"
+				);
+			}
+		}
 	},
 });

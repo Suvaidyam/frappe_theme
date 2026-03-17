@@ -30,6 +30,8 @@ app_include_js = [
 	"override_table_multiselect.bundle.js",
 	"override_button.bundle.js",
 	"override_multiselect.bundle.js",
+	"override_autocomplete.bundle.js",
+	"override_data.bundle.js",
 	f"/assets/frappe_theme/js/svadb.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/fields_comment.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/extended_chart.js?ver={time.time()}",
@@ -42,6 +44,7 @@ app_include_js = [
 	f"/assets/frappe_theme/js/breadcrumb_override.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/sidebar_override.js?ver={time.time()}",
 	"/assets/frappe_theme/js/multi_image_gallery.js",
+	"/assets/frappe_theme/js/background_file.js",
 ]
 extend_bootinfo = "frappe_theme.boot.boot_theme"
 # include js, css files in header of web template

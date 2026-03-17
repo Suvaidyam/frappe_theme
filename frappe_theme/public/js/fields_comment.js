@@ -1,7 +1,101 @@
 // Place these function definitions near the top of the file, outside any other function scopes.
 const primaryColor = frappe.boot.my_theme?.button_background_color || "#171717";
+
+/**
+ * Reusable thread count badge showing open & closed counts side by side.
+ * Returns HTML string. Usage: renderThreadCountBadge(openCount, closedCount, options)
+ * options.size: "sm" (default) for inline badges, "md" for sidebar buttons
+ */
+window.renderThreadCountBadge = function (openCount, closedCount, options = {}) {
+	const open = parseInt(openCount) || 0;
+	const closed = parseInt(closedCount) || 0;
+	if (open === 0 && closed === 0) return "";
+
+	// Bind hover tooltip via event delegation (once)
+	if (!window.__svaBadgeTooltipBound) {
+		window.__svaBadgeTooltipBound = true;
+		let tipEl = null;
+		let arrowEl = null;
+		let activeBadge = null;
+
+		document.addEventListener("mouseover", function (e) {
+			const badge = e.target.closest(".thread-count-badge-wrap");
+
+			// Same badge — do nothing
+			if (badge && badge === activeBadge) return;
+
+			// Clean up old tooltip
+			if (tipEl) {
+				tipEl.remove();
+				tipEl = null;
+			}
+			if (arrowEl) {
+				arrowEl.remove();
+				arrowEl = null;
+			}
+			activeBadge = null;
+
+			if (!badge || !badge.dataset.tipOpen) return;
+			activeBadge = badge;
+
+			// Create tooltip with colored Open/Closed
+			tipEl = document.createElement("div");
+			tipEl.style.cssText =
+				"position:fixed;z-index:99999;pointer-events:none;white-space:nowrap;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;box-shadow:0 2px 6px rgba(0,0,0,0.08);";
+			tipEl.innerHTML =
+				'<span style="color:#dc2626;">Open: ' +
+				badge.dataset.tipOpen +
+				"</span>" +
+				'<span style="color:#d1d5db;margin:0 4px;">|</span>' +
+				'<span style="color:#16a34a;">Closed: ' +
+				badge.dataset.tipClosed +
+				"</span>";
+			document.body.appendChild(tipEl);
+
+			// Create arrow
+			arrowEl = document.createElement("div");
+			arrowEl.style.cssText =
+				"position:fixed;z-index:99999;pointer-events:none;width:0;height:0;border-top:5px solid transparent;border-bottom:5px solid transparent;border-left:5px solid #e5e7eb;";
+			document.body.appendChild(arrowEl);
+
+			// Position to the left of the badge
+			const rect = badge.getBoundingClientRect();
+			const tipW = tipEl.offsetWidth;
+			const tipH = tipEl.offsetHeight;
+			tipEl.style.left = rect.left - tipW - 8 + "px";
+			tipEl.style.top = rect.top + rect.height / 2 - tipH / 2 + "px";
+			arrowEl.style.left = rect.left - 8 + "px";
+			arrowEl.style.top = rect.top + rect.height / 2 - 5 + "px";
+		});
+
+		document.addEventListener("mouseover", function (e) {
+			// If mouse moved outside any badge, clean up
+			if (!e.target.closest(".thread-count-badge-wrap") && activeBadge) {
+				if (tipEl) {
+					tipEl.remove();
+					tipEl = null;
+				}
+				if (arrowEl) {
+					arrowEl.remove();
+					arrowEl = null;
+				}
+				activeBadge = null;
+			}
+		});
+	}
+
+	return (
+		`<span class="thread-count-badge-wrap" data-tip-open="${open}" data-tip-closed="${closed}" style="display:inline-flex;align-items:center;border-radius:10px;overflow:hidden;font-size:10px;font-weight:700;line-height:1;vertical-align:middle;white-space:nowrap;border:1px solid rgba(0,0,0,0.08);box-shadow:0 1px 3px rgba(0,0,0,0.08);letter-spacing:0.3px;">` +
+		`<span style="padding:2px 7px;min-width:18px;text-align:center;background:linear-gradient(135deg,#fff5f5,#fee2e2);color:#dc2626;">${open}</span>` +
+		`<span style="width:1px;align-self:stretch;background:rgba(0,0,0,0.06);"></span>` +
+		`<span style="padding:2px 7px;min-width:18px;text-align:center;background:linear-gradient(135deg,#f0fdf4,#d1fae5);color:#16a34a;">${closed}</span>` +
+		`</span>`
+	);
+};
+
 // Variable to store the context of the currently viewed field's comments
 let current_field_context = null;
+let current_comment_frm = null; // tracks which doc the sidebar is currently showing
 
 // Helper: returns true for NGO or Vendor team users (external parties)
 const isExternalUser = () => ["NGO", "Vendor"].includes(frappe.boot.user_team);
@@ -211,8 +305,9 @@ function refreshSummaryContainer(frm) {
 							<span style="color: var(--text-muted); font-size: 10px; margin-left: auto; flex-shrink: 0;">${frappe.datetime.prettyDate(
 								sc.creation_date
 							)}</span>
+							<button class="unpin-summary-btn" title="Remove Summary" style="background: none; border: none; cursor: pointer; color: #e53e3e; font-size: 11px; padding: 0 2px; flex-shrink: 0;" >📌✕</button>
 						</div>
-						<div style="color: #333; line-height: 1.5; padding-left: 26px; word-break: break-all; overflow-wrap: anywhere;">${frappe.format(
+						<div style="color: #333; line-height: 1.5; padding-left: 26px; word-break: break-all; overflow-wrap: anywhere; max-height: 80px; overflow-y: auto;">${frappe.format(
 							sc.comment,
 							"Markdown"
 						)}</div>
@@ -224,6 +319,30 @@ function refreshSummaryContainer(frm) {
 				});
 				card.on("mouseleave", function () {
 					$(this).css("box-shadow", "none");
+				});
+
+				card.find(".unpin-summary-btn").on("click", function (e) {
+					e.stopPropagation();
+					frappe.confirm(__("Remove this summary mark?"), () => {
+						frappe.call({
+							method: "frappe_theme.api.update_comment_summary_flag",
+							args: { comment_name: sc.name, is_summary: 0 },
+							callback: function (r) {
+								if (r.message) {
+									frappe.show_alert({
+										message: __("Summary removed"),
+										indicator: "green",
+									});
+									refreshSummaryContainer(frm);
+								} else {
+									frappe.show_alert({
+										message: __("Error removing summary"),
+										indicator: "red",
+									});
+								}
+							},
+						});
+					});
 				});
 
 				// Click → scroll to that field section in comments list below, or load it
@@ -282,7 +401,9 @@ function create_new_comment_thread(fieldName, field, frm) {
 				doctype_name: frm.doctype,
 				docname: frm.docname,
 				field_name: fieldName,
-				field_label: field.df.label || fieldName,
+				field_label: field.frm?.child_row?.doctype
+					? field.frm?.child_row?.doctype
+					: field?.df?.label || fieldName,
 			},
 			callback: function (response) {
 				if (response.message) {
@@ -334,8 +455,11 @@ function load_field_comments(fieldName, field, frm) {
                     <div class="field-comment-section" style="margin-bottom: 25px; padding: 15px; border-radius: 12px; border: none; box-shadow: none;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
                             <h5 style="margin: 0; font-size: 15px;">${
-								field.df.label || fieldName
-							}</h5>
+								!field.df.label && frm?.child_row?.doctype
+									? `${frm?.child_row?.doctype} - `
+									: ""
+							}${field.df.label || frm?.child_row?.__title}
+					</h5>
                             <div style="display: flex; gap: 8px;">
                                 <button class="btn btn-default btn-sm new-thread-btn" style="padding: 4px 8px; display: none;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-plus" viewBox="0 0 16 16">
@@ -357,7 +481,9 @@ function load_field_comments(fieldName, field, frm) {
 							doctype_name: frm.doctype,
 							docname: frm.docname,
 							field_name: fieldName,
-							field_label: field.df.label || fieldName,
+							field_label: field.frm?.child_row?.doctype
+								? field.frm?.child_row?.doctype
+								: field?.df?.label || fieldName,
 						},
 						callback: function (response) {
 							if (!response.message) return;
@@ -393,7 +519,8 @@ function load_field_comments(fieldName, field, frm) {
 										fieldName,
 										field,
 										get_comment_html,
-										newThreadName
+										newThreadName,
+										frm
 									);
 									new_thread_section.find(".comment-input").show();
 								}
@@ -442,6 +569,14 @@ function load_field_comments(fieldName, field, frm) {
 						thread_section.on("click", ".status-option", (e) => {
 							e.preventDefault();
 							const newStatus = $(e.target).data("status");
+
+							if (isExternalUser()) {
+								frappe.show_alert({
+									message: __("You do not have permission to change status"),
+									indicator: "red",
+								});
+								return;
+							}
 
 							check_comment_permissions().then((permissions) => {
 								if (!permissions.includes("write")) {
@@ -525,7 +660,9 @@ function load_field_comments(fieldName, field, frm) {
 										thread_section,
 										fieldName,
 										field,
-										get_comment_html
+										get_comment_html,
+										null,
+										frm
 									);
 									thread_section.find(".comment-input").show();
 								}
@@ -563,7 +700,9 @@ function load_field_comments(fieldName, field, frm) {
 									new_thread_section,
 									fieldName,
 									field,
-									get_comment_html
+									get_comment_html,
+									null,
+									frm
 								);
 								new_thread_section.find(".comment-input").show();
 							}
@@ -647,39 +786,55 @@ function load_all_comments(frm) {
 
 				fieldsToShow.forEach((data) => {
 					let fields = [
-						...frm.fields.map((f) => ({ ...f, variant: "field" })),
-						...frm?.layout?.tabs?.map((t) => ({ ...t, variant: "tab" })),
+						...(frm.fields || []).map((f) => ({ ...f, variant: "field" })),
+						...(frm?.layout?.tabs || []).map((t) => ({ ...t, variant: "tab" })),
 					];
 					const field = fields.find((f) => f.df.fieldname == data.field_name);
-					if (!field) return;
+					let effectiveField = field;
+					if (!field) {
+						// field_name is empty/null → row-level comment, render with generic label
+						effectiveField = {
+							df: {
+								fieldname: data.field_name || "",
+								label: data.field_label || __("Comments"),
+								fieldtype: "Data",
+								read_only: 0,
+							},
+							frm: frm,
+							variant: "field",
+							tab: null,
+						};
+					}
 
 					const field_section = $(`
-                        <div class="field-comment-section" data-fieldname="${
+						<div class="field-comment-section" data-fieldname="${
 							data.field_name
 						}" style="margin-bottom: 25px; padding: 15px; border-radius: 12px; border: none; box-shadow: none;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
-                                <h5 style="margin: 0; font-size: 15px;">
-                                  ${data.field_label || data.field_name}
-                                  ${
-										field.tab && field.tab.df && field.tab.df.label
-											? `<span style="color: #888; font-size: 12px; font-weight: 400;">(${field.tab.df.label})</span>`
-											: ""
-									}
-                                </h5>
-                                <div class="status-pill-container" style="margin-left: auto;">
-                                    ${renderStatusPill(data.status || "Open")}
-                                </div>
-                            </div>
-                            <div class="field-comments"></div>
-                            <div class="comment-input" style="margin-top: 15px; display: none;">
-                                <div style="display: flex; align-items: center;">
-                                    <div style="flex-grow: 1; display: flex; align-items: center; border: 1px solid var(--border-color); border-radius: 20px; padding: 3px 6px; background-color: var(--control-bg); box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: all 0.2s ease;">
-                                        <div class="comment-box" style="flex-grow: 1; min-height: 24px; margin-right: 8px; "></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `);
+							<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+								<h5 style="margin: 0; font-size: 15px;">
+								${data.field_label || data.field_name || __("Comments")}
+								${
+									effectiveField.tab &&
+									effectiveField.tab.df &&
+									effectiveField.tab.df.label
+										? `<span style="color: #888; font-size: 12px; font-weight: 400;">(${effectiveField.tab.df.label})</span>`
+										: ""
+								}
+								</h5>
+								<div class="status-pill-container" style="margin-left: auto;">
+									${renderStatusPill(data.status || "Open")}
+								</div>
+							</div>
+							<div class="field-comments"></div>
+							<div class="comment-input" style="margin-top: 15px; display: none;">
+								<div style="display: flex; align-items: center;">
+									<div style="flex-grow: 1; display: flex; align-items: center; border: 1px solid var(--border-color); border-radius: 20px; padding: 3px 6px; background-color: var(--control-bg); box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: all 0.2s ease;">
+										<div class="comment-box" style="flex-grow: 1; min-height: 24px; margin-right: 8px;"></div>
+									</div>
+								</div>
+							</div>
+						</div>
+					`);
 
 					let currentStatus = data.status || "Open";
 
@@ -702,6 +857,14 @@ function load_all_comments(frm) {
 						e.preventDefault();
 						const newStatus = $(e.target).data("status");
 						const statusPill = field_section.find(".status-pill");
+
+						if (isExternalUser()) {
+							frappe.show_alert({
+								message: __("You do not have permission to change status"),
+								indicator: "red",
+							});
+							return;
+						}
 
 						check_comment_permissions().then((permissions) => {
 							if (!permissions.includes("write")) {
@@ -809,8 +972,10 @@ function load_all_comments(frm) {
 								initializeCommentControl(
 									field_section,
 									data.field_name,
-									field,
-									get_comment_html
+									effectiveField,
+									get_comment_html,
+									null,
+									frm
 								);
 								field_section.find(".comment-input").show();
 							}
@@ -836,26 +1001,19 @@ function load_all_comments(frm) {
 							return;
 
 						if (selector && !$(selector).find(".field-comment-icon").length) {
-							const count = commentCountCache[fieldname] || 0;
+							const detail = threadDetailedCache[fieldname] || {};
+							const openCount = detail.open || 0;
+							const closedCount = detail.closed || 0;
 							const comment_icon = $(`
                                 <div class="field-comment-icon" style="display: none; position: absolute; right: -30px; top: -2px; z-index: 10;">
                                     <button class="btn" style="padding: 2px 8px; position: relative;" tabindex="-1" type="button">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-chat" viewBox="0 0 16 16">
                                             <path d="M2.678 11.894a1 1 0 0 1 .287.801 10.97 10.97 0 0 1-.398 2c1.395-.323 2.247-.697 2.634-.893a1 1 0 0 1 .71-.074A8.06 8.06 0 0 0 8 14c3.996 0 7-2.807 7-6 0-3.192-3.004-6-7-6S1 4.808 1 8c0 1.468.617 2.83 1.678 3.894zm-.493 3.905a21.682 21.682 0 0 1-.713.129c-.2.032-.352-.176-.273-.362a9.68 9.68 0 0 0 .244-.637l.003-.01c.248-.72.45-1.548.524-2.319C.743 11.37 0 9.76 0 8c0-3.866 3.582-7 8-7s8 3.134 8 7-3.582 7-8 7a9.06 9.06 0 0 1-2.347-.306c-.52.263-1.639.742-3.468 1.105z"/>
                                         </svg>
-                                        <span class="comment-count-badge" style="position: absolute; top: -4px; right: -8px; background: ${
-											count > 0 ? primaryColor : "#e0e0e0"
-										}; color: ${
-								count > 0 ? "#fff" : "#666"
-							}; border-radius: 50%; min-width: 16px; height: 16px; font-size: 10px; font-weight: 600; display: flex !important; align-items: center; justify-content: center; padding: 0 4px; box-shadow: ${
-								count > 0
-									? "0 2px 6px rgba(0,0,0,0.2)"
-									: "0 1px 3px rgba(0,0,0,0.1)"
-							}; border: 1.5px solid #fff; z-index: 9999; opacity: ${
-								count > 0 ? 1 : 0.9
-							}; transition: all 0.2s ease; transform-origin: center; transform: ${
-								count > 0 ? "scale(1)" : "scale(0.9)"
-							};">${count}</span>
+                                        <span class="thread-count-badge-container" style="position: absolute; top: -9px; right: -20px; z-index: 9999;">${window.renderThreadCountBadge(
+											openCount,
+											closedCount
+										)}</span>
                                     </button>
                                 </div>
                             `);
@@ -890,20 +1048,17 @@ function load_all_comments(frm) {
 								return false;
 							});
 						} else {
-							const commentCountBadge = $(selector).find(".comment-count-badge");
-							if (commentCountBadge.length) {
-								const count = commentCountCache[fieldname] || 0;
-								commentCountBadge.text(count);
-								commentCountBadge.css({
-									background: count > 0 ? primaryColor : "#e0e0e0",
-									color: count > 0 ? "#fff" : "#666",
-									"box-shadow":
-										count > 0
-											? "0 2px 6px rgba(0,0,0,0.2)"
-											: "0 1px 3px rgba(0,0,0,0.1)",
-									opacity: count > 0 ? 1 : 0.9,
-									transform: count > 0 ? "scale(1)" : "scale(0.9)",
-								});
+							const badgeContainer = $(selector).find(
+								".thread-count-badge-container"
+							);
+							if (badgeContainer.length) {
+								const detail = threadDetailedCache[fieldname] || {};
+								badgeContainer.html(
+									window.renderThreadCountBadge(
+										detail.open || 0,
+										detail.closed || 0
+									)
+								);
 							}
 						}
 					});
@@ -936,7 +1091,15 @@ function load_all_comments(frm) {
 	});
 }
 
-function initializeCommentControl(field_section, fieldName, field, get_comment_html) {
+function initializeCommentControl(
+	field_section,
+	fieldName,
+	field,
+	get_comment_html,
+	threadName,
+	frm
+) {
+	frm = frm || field.frm;
 	const commentBox = field_section.find(".comment-box")[0];
 	let control;
 
@@ -1029,12 +1192,18 @@ function initializeCommentControl(field_section, fieldName, field, get_comment_h
 			} else if (frappe.boot.user_team === "Vendor") {
 				isVendor = 1;
 			} else {
-				isExternal = $(`#new_comment_external_${fieldName}`).is(":checked") ? 1 : 0;
-				isVendor = $(`#new_comment_vendor_${fieldName}`).is(":checked") ? 1 : 0;
+				isExternal = document.getElementById(`new_comment_external_${fieldName}`)?.checked
+					? 1
+					: 0;
+				isVendor = document.getElementById(`new_comment_vendor_${fieldName}`)?.checked
+					? 1
+					: 0;
 			}
 
 			// ─── read is_summary flag ─────────────────────────────────────────
-			const isSummary = $(`#new_comment_summary_${fieldName}`).is(":checked") ? 1 : 0;
+			const isSummary = document.getElementById(`new_comment_summary_${fieldName}`)?.checked
+				? 1
+				: 0;
 
 			const mentionRegex = /@([a-zA-Z0-9._-]+)/g;
 			const mentions = new Set();
@@ -1049,7 +1218,9 @@ function initializeCommentControl(field_section, fieldName, field, get_comment_h
 					doctype_name: field.frm.doctype,
 					docname: field.frm.docname,
 					field_name: fieldName,
-					field_label: field.df.label || fieldName,
+					field_label: field.frm?.child_row?.doctype
+						? field.frm?.child_row?.doctype
+						: field?.df?.label || fieldName,
 					comment_text: comment,
 					is_external: isExternal,
 					is_vendor: isVendor,
@@ -1059,9 +1230,14 @@ function initializeCommentControl(field_section, fieldName, field, get_comment_h
 					if (response.message) {
 						const newCommentEntry = response.message;
 						control.set_value("");
-						$(`#new_comment_external_${fieldName}`).prop("checked", false);
-						$(`#new_comment_vendor_${fieldName}`).prop("checked", false);
-						$(`#new_comment_summary_${fieldName}`).prop("checked", false);
+						const _extEl = document.getElementById(
+							`new_comment_external_${fieldName}`
+						);
+						const _venEl = document.getElementById(`new_comment_vendor_${fieldName}`);
+						const _sumEl = document.getElementById(`new_comment_summary_${fieldName}`);
+						if (_extEl) _extEl.checked = false;
+						if (_venEl) _venEl.checked = false;
+						if (_sumEl) _sumEl.checked = false;
 
 						frappe.show_alert({
 							message: __("Comment added successfully"),
@@ -1089,21 +1265,21 @@ function initializeCommentControl(field_section, fieldName, field, get_comment_h
 						// Use current_field_context: null = global view, set = field-level view
 						const isAllCommentsView = current_field_context === null;
 						if (isAllCommentsView) {
-							load_all_comments(field.frm).then(() => {
-								updateTotalCommentCount(field.frm);
-								refreshSummaryContainer(field.frm);
+							load_all_comments(frm).then(() => {
+								updateTotalCommentCount(frm);
+								refreshSummaryContainer(frm);
 							});
 						} else {
-							load_field_comments(fieldName, field, field.frm).then(() => {
-								updateCommentCount(fieldName, field.frm);
-								updateTotalCommentCount(field.frm);
-								refreshSummaryContainer(field.frm);
+							load_field_comments(fieldName, field, frm).then(() => {
+								updateCommentCount(fieldName, frm);
+								updateTotalCommentCount(frm);
+								refreshSummaryContainer(frm);
 							});
 						}
 
 						setTimeout(() => {
-							updateTotalCommentCount(field.frm);
-							refreshSummaryContainer(field.frm);
+							updateTotalCommentCount(frm);
+							refreshSummaryContainer(frm);
 						}, 500);
 					} else {
 						console.error("Error saving comment:", response);
@@ -1120,6 +1296,7 @@ function initializeCommentControl(field_section, fieldName, field, get_comment_h
 }
 
 let commentCountCache = {};
+let threadDetailedCache = {}; // {field: {open: N, closed: N}}
 
 function updateCommentCount(fieldName, frm) {
 	const field = [
@@ -1127,42 +1304,25 @@ function updateCommentCount(fieldName, frm) {
 		...frm?.layout?.tabs?.map((t) => ({ ...t, variant: "tab" })),
 	].find((f) => f.df.fieldname == fieldName);
 	let selector = field?.label_area || field?.tab_link || field?.head;
-	const commentCountBadge = $(selector).find(".comment-count-badge");
-	if (!commentCountBadge.length) return;
+	const badgeContainer = $(selector).find(".thread-count-badge-container");
+	if (!badgeContainer.length) return;
 
-	if (commentCountCache[fieldName] !== undefined) {
-		const count = commentCountCache[fieldName];
-		commentCountBadge.text(count);
-		commentCountBadge.css({
-			display: "flex !important",
-			visibility: "visible",
-			opacity: count > 0 ? 1 : 0.9,
-			transform: count > 0 ? "scale(1)" : "scale(0.9)",
-			background: count > 0 ? primaryColor : "#e0e0e0",
-			color: count > 0 ? "#fff" : "#666",
-			boxShadow: count > 0 ? "0 2px 6px rgba(0,0,0,0.2)" : "0 1px 3px rgba(0,0,0,0.1)",
-		});
+	if (threadDetailedCache[fieldName] !== undefined) {
+		const detail = threadDetailedCache[fieldName];
+		badgeContainer.html(window.renderThreadCountBadge(detail.open || 0, detail.closed || 0));
 		return;
 	}
 
 	frappe.call({
-		method: "frappe_theme.api.get_all_field_comment_counts",
+		method: "frappe_theme.api.get_all_field_thread_counts_detailed",
 		args: { doctype_name: frm.doctype, docname: frm.docname },
 		callback: function (r) {
 			if (r.message) {
-				commentCountCache = r.message;
-				const count = r.message[fieldName] || 0;
-				commentCountBadge.text(count);
-				commentCountBadge.css({
-					display: "flex !important",
-					visibility: "visible",
-					opacity: count > 0 ? 1 : 0.9,
-					transform: count > 0 ? "scale(1)" : "scale(0.9)",
-					background: count > 0 ? primaryColor : "#e0e0e0",
-					color: count > 0 ? "#fff" : "#666",
-					boxShadow:
-						count > 0 ? "0 2px 6px rgba(0,0,0,0.2)" : "0 1px 3px rgba(0,0,0,0.1)",
-				});
+				threadDetailedCache = r.message;
+				const detail = r.message[fieldName] || {};
+				badgeContainer.html(
+					window.renderThreadCountBadge(detail.open || 0, detail.closed || 0)
+				);
 				updateTotalCommentCount(frm);
 			}
 		},
@@ -1263,7 +1423,11 @@ function setupFieldComments(frm) {
 				});
 
 				comment_sidebar.find(".refresh-comments").click(() => {
-					if (!cur_frm) return;
+					// Use current_comment_frm (set by openCommentsForDoc) if available,
+					// otherwise fall back to the form's frm
+					const activeFrm = current_comment_frm || frm;
+					if (!activeFrm) return;
+
 					const refreshBtn = comment_sidebar.find(".refresh-comments");
 					refreshBtn.prop("disabled", true);
 					refreshBtn.find("svg").css("animation", "spin 1s linear infinite");
@@ -1276,15 +1440,15 @@ function setupFieldComments(frm) {
 							current_field_context.frm
 						);
 					} else {
-						loadCommentsPromise = load_all_comments(frm);
+						loadCommentsPromise = load_all_comments(activeFrm);
 					}
 
 					loadCommentsPromise
 						.then(() => {
 							refreshBtn.prop("disabled", false);
 							refreshBtn.find("svg").css("animation", "");
-							updateTotalCommentCount(frm);
-							refreshSummaryContainer(frm); // ─── NEW ───
+							updateTotalCommentCount(activeFrm);
+							refreshSummaryContainer(activeFrm);
 							frappe.show_alert({
 								message: __("Comments refreshed"),
 								indicator: "green",
@@ -1306,15 +1470,22 @@ function setupFieldComments(frm) {
 				!frm.page.sidebar.find(".field-comments-btn").length
 			) {
 				frappe.call({
-					method: "frappe_theme.api.get_total_open_resolved_comment_count",
+					method: "frappe_theme.api.get_all_field_thread_counts_detailed",
 					args: { doctype_name: frm.doctype, docname: frm.docname },
 					callback: function (r) {
-						let count = r.message || 0;
-						let label =
-							count > 0
-								? __("Comments") + ` <span class="comments-badge">${count}</span>`
-								: __("Comments");
-						let btn = frm.add_custom_button(label, function () {
+						const counts = r.message || {};
+						threadDetailedCache = counts;
+						let totalOpen = 0,
+							totalClosed = 0;
+						Object.values(counts).forEach((c) => {
+							totalOpen += c.open || 0;
+							totalClosed += c.closed || 0;
+						});
+						let badge =
+							totalOpen > 0 || totalClosed > 0
+								? " " + window.renderThreadCountBadge(totalOpen, totalClosed)
+								: "";
+						let btn = frm.add_custom_button(__("Comments") + badge, function () {
 							$(".field-comments-sidebar").show();
 							$(".field-comments-sidebar")[0].offsetHeight;
 							$(".field-comments-sidebar").css("right", "0");
@@ -1323,14 +1494,6 @@ function setupFieldComments(frm) {
 								refreshSummaryContainer(frm);
 							});
 						});
-						$(btn).find(".comments-badge").css({
-							background: primaryColor,
-							color: "#fff",
-							"border-radius": "10px",
-							padding: "3px 6px",
-							"font-size": "10px",
-							"margin-left": "2px",
-						});
 						btn.addClass("field-comments-btn");
 						frm.commentsButton = btn;
 					},
@@ -1338,11 +1501,16 @@ function setupFieldComments(frm) {
 			}
 
 			frappe.call({
-				method: "frappe_theme.api.get_all_field_comment_counts",
+				method: "frappe_theme.api.get_all_field_thread_counts_detailed",
 				args: { doctype_name: frm.doctype, docname: frm.docname },
 				callback: function (r) {
 					if (r.message) {
-						commentCountCache = r.message;
+						threadDetailedCache = r.message;
+						// Build backward-compat commentCountCache (open counts only)
+						commentCountCache = {};
+						Object.entries(r.message).forEach(([k, v]) => {
+							commentCountCache[k] = v.open || 0;
+						});
 
 						if (!isExternalUser()) {
 							[
@@ -1362,7 +1530,9 @@ function setupFieldComments(frm) {
 									return;
 
 								if (selector && !$(selector).find(".field-comment-icon").length) {
-									const count = commentCountCache[fieldname] || 0;
+									const detail = threadDetailedCache[fieldname] || {};
+									const openCount = detail.open || 0;
+									const closedCount = detail.closed || 0;
 									const comment_icon = $(`
                                         <div class="field-comment-icon" style="display: none;position: absolute; right: ${
 											field.variant == "field" ? "-20px" : "-10px"
@@ -1373,19 +1543,10 @@ function setupFieldComments(frm) {
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-chat" viewBox="0 0 16 16">
                                                     <path d="M2.678 11.894a1 1 0 0 1 .287.801 10.97 10.97 0 0 1-.398 2c1.395-.323 2.247-.697 2.634-.893a1 1 0 0 1 .71-.074A8.06 8.06 0 0 0 8 14c3.996 0 7-2.807 7-6 0-3.192-3.004-6-7-6S1 4.808 1 8c0 1.468.617 2.83 1.678 3.894zm-.493 3.905a21.682 21.682 0 0 1-.713.129c-.2.032-.352-.176-.273-.362a9.68 9.68 0 0 0 .244-.637l.003-.01c.248-.72.45-1.548.524-2.319C.743 11.37 0 9.76 0 8c0-3.866 3.582-7 8-7s8 3.134 8 7-3.582 7-8 7a9.06 9.06 0 0 1-2.347-.306c-.52.263-1.639.742-3.468 1.105z"/>
                                                 </svg>
-                                                <span class="comment-count-badge" style="position: absolute; top: -4px; right: -8px; background: ${
-													count > 0 ? primaryColor : "#e0e0e0"
-												}; color: ${
-										count > 0 ? "#fff" : "#666"
-									}; border-radius: 50%; min-width: 16px; height: 16px; font-size: 10px; font-weight: 600; display: flex !important; align-items: center; justify-content: center; padding: 0 4px; box-shadow: ${
-										count > 0
-											? "0 2px 6px rgba(0,0,0,0.2)"
-											: "0 1px 3px rgba(0,0,0,0.1)"
-									}; border: 1.5px solid #fff; z-index: 9999; opacity: ${
-										count > 0 ? 1 : 0.9
-									}; transition: all 0.2s ease; transform-origin: center; transform: ${
-										count > 0 ? "scale(1)" : "scale(0.9)"
-									};">${count}</span>
+                                                <span class="thread-count-badge-container" style="position: absolute; top: -9px; right: -20px; z-index: 9999;">${window.renderThreadCountBadge(
+													openCount,
+													closedCount
+												)}</span>
                                             </button>
                                         </div>
                                     `);
@@ -1427,21 +1588,17 @@ function setupFieldComments(frm) {
 											return false;
 										});
 								} else {
-									const commentCountBadge =
-										$(selector).find(".comment-count-badge");
-									if (commentCountBadge.length) {
-										const count = commentCountCache[fieldname] || 0;
-										commentCountBadge.text(count);
-										commentCountBadge.css({
-											background: count > 0 ? primaryColor : "#e0e0e0",
-											color: count > 0 ? "#fff" : "#666",
-											"box-shadow":
-												count > 0
-													? "0 2px 6px rgba(0,0,0,0.2)"
-													: "0 1px 3px rgba(0,0,0,0.1)",
-											opacity: count > 0 ? 1 : 0.9,
-											transform: count > 0 ? "scale(1)" : "scale(0.9)",
-										});
+									const badgeContainer = $(selector).find(
+										".thread-count-badge-container"
+									);
+									if (badgeContainer.length) {
+										const detail = threadDetailedCache[fieldname] || {};
+										badgeContainer.html(
+											window.renderThreadCountBadge(
+												detail.open || 0,
+												detail.closed || 0
+											)
+										);
 									}
 								}
 							});
@@ -1468,6 +1625,158 @@ function setupFieldComments(frm) {
 	}
 }
 
+//  Open the field - comments sidebar for any document — used by SvaDataTable rows.
+
+// @param { string } doctype - e.g. "Grant Application"
+// @param { string } docname - e.g. "GRANT-0001"
+// @param { string } [title] - optional heading shown in the sidebar
+// CHANGE signature:
+window.openCommentsForDoc = function (
+	parentDoctype,
+	parentDocname,
+	rowDoctype,
+	rowDocname,
+	frm = null
+) {
+	// rowDocname itself is unique — no :: needed
+	const fieldKey = rowDocname; // e.g. "PA-OUTPUT-0838"
+
+	const fakeFrm = frm
+		? frm
+		: {
+				doctype: parentDoctype,
+				docname: parentDocname,
+				is_new: () => false,
+				fields: [],
+				layout: { tabs: [] },
+				commentsButton: null,
+				page: { sidebar: $("<div>") },
+		  };
+
+	const fakeField = {
+		df: { fieldname: fieldKey, label: "", fieldtype: "Data", read_only: 0 },
+		frm: fakeFrm,
+		variant: "field",
+		tab: null,
+	};
+
+	if (!$(".field-comments-sidebar").length) {
+		_createCommentSidebarDOM(fakeFrm);
+	}
+
+	current_comment_frm = fakeFrm;
+	current_field_context = { fieldName: fieldKey, field: fakeField, frm: fakeFrm };
+
+	const $sidebar = $(".field-comments-sidebar");
+	$sidebar.show();
+	$sidebar[0].offsetHeight;
+	$sidebar.css("right", "0");
+
+	load_field_comments(fieldKey, fakeField, fakeFrm);
+};
+function _createCommentSidebarDOM(frm) {
+	const primaryColor = frappe.boot.my_theme?.button_background_color || "#171717";
+
+	const comment_sidebar = $(`
+        <div class="field-comments-sidebar" style="display: none; position: fixed; right: -400px; top: 48px; width: 400px; height: calc(100vh - 48px); background: var(--fg-color); box-shadow: -2px 0 8px rgba(0,0,0,0.1); z-index: 100; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);">
+            <div style="padding: 15px; border-bottom: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h5 style="margin: 0; font-size: 18px; font-weight: 600;">${__(
+						"Comments"
+					)}</h5>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-default btn-sm refresh-comments" style="padding: 4px 8px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" style="vertical-align: middle;" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                                <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                                <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                            </svg>
+                        </button>
+                        <button class="btn btn-default btn-sm close-comments" style="padding: 4px 8px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" style="vertical-align: middle;" fill="currentColor" class="bi bi-x" viewBox="0 0 16 16">
+                                <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Container -->
+            <div class="comments-summary-container" style="margin: 0 15px 10px 15px; border-radius: 10px; background: var(--bg-color); border: 1px solid var(--border-color);">
+                <div style="display: flex; align-items: center; gap: 8px; padding: 8px 14px 6px 14px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; background: #EEF2FF; border: 1px solid #c7d0f8;">
+                        <span style="width: 7px; height: 7px; border-radius: 50%; background: #3b5bdb; display: inline-block;"></span>
+                        <span style="font-size: 12px; color: #3b5bdb; font-weight: 500;">Total</span>
+                        <span class="summary-count-total" style="font-size: 12px; color: #3b5bdb; font-weight: 700;">0</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; background: #FDEAEA; border: 1px solid #f5c6c6;">
+                        <span style="width: 7px; height: 7px; border-radius: 50%; background: #D32F2F; display: inline-block;"></span>
+                        <span style="font-size: 12px; color: #D32F2F; font-weight: 500;">Open</span>
+                        <span class="summary-count-open" style="font-size: 12px; color: #D32F2F; font-weight: 700;">0</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; background: #E6F4EA; border: 1px solid #b7dfbf;">
+                        <span style="width: 7px; height: 7px; border-radius: 50%; background: #218838; display: inline-block;"></span>
+                        <span style="font-size: 12px; color: #218838; font-weight: 500;">Closed</span>
+                        <span class="summary-count-closed" style="font-size: 12px; color: #218838; font-weight: 700;">0</span>
+                    </div>
+                </div>
+                <div class="summary-body-wrap" style="display: none;">
+                    <div style="display: flex; align-items: center; gap: 6px; padding: 4px 14px 4px 14px; border-top: 1px solid var(--border-color);">
+                        <span style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">📌 Summary</span>
+                    </div>
+                    <div style="padding: 2px 14px 10px 14px;">
+                        <div class="summary-comments-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="comments-container" style="height: calc(100vh - 165px); overflow-y: auto; padding: 15px 15px 40px 15px;">
+                <div class="comments-list"></div>
+            </div>
+        </div>
+    `);
+
+	$("body").append(comment_sidebar);
+
+	comment_sidebar.find(".close-comments").click(() => {
+		comment_sidebar.css("right", "-400px");
+		setTimeout(() => comment_sidebar.hide(), 400);
+		current_comment_frm = null; // clear row context on close
+	});
+
+	comment_sidebar.find(".refresh-comments").click(() => {
+		const activeFrm = current_comment_frm || frm;
+		if (!activeFrm) return;
+
+		const refreshBtn = comment_sidebar.find(".refresh-comments");
+		refreshBtn.prop("disabled", true);
+		refreshBtn.find("svg").css("animation", "spin 1s linear infinite");
+
+		let promise;
+		if (current_field_context) {
+			promise = load_field_comments(
+				current_field_context.fieldName,
+				current_field_context.field,
+				current_field_context.frm
+			);
+		} else {
+			promise = load_all_comments(activeFrm);
+		}
+		promise
+			.then(() => {
+				refreshBtn.prop("disabled", false);
+				refreshBtn.find("svg").css("animation", "");
+				updateTotalCommentCount(activeFrm);
+				refreshSummaryContainer(activeFrm);
+				frappe.show_alert({ message: __("Comments refreshed"), indicator: "green" });
+			})
+			.catch(() => {
+				refreshBtn.prop("disabled", false);
+				refreshBtn.find("svg").css("animation", "");
+				frappe.show_alert({ message: __("Error refreshing comments"), indicator: "red" });
+			});
+	});
+}
+
 frappe.ui.form.on("*", {
 	refresh: function (frm) {
 		setupFieldComments(frm);
@@ -1483,6 +1792,7 @@ function getStatusPillStyle(status) {
 function renderStatusPill(status) {
 	const style = getStatusPillStyle(status);
 	const isClosed = status === "Closed";
+	const readOnly = isClosed || isExternalUser();
 
 	// Only Open ↔ Closed — no Resolved
 	const statusOptions = `
@@ -1494,7 +1804,7 @@ function renderStatusPill(status) {
         <div class="status-pill-container" style="position: relative;">
             <button class="status-pill" type="button"
                 ${
-					isClosed
+					readOnly
 						? ""
 						: 'data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"'
 				}
@@ -1503,7 +1813,7 @@ function renderStatusPill(status) {
 				} !important; color: ${
 		style.text
 	} !important; font-weight: 500 !important; font-size: 13px !important; line-height: 1.2; cursor: ${
-		isClosed ? "not-allowed" : "pointer"
+		readOnly ? "default" : "pointer"
 	}; border: none; margin: 0; opacity: ${isClosed ? "0.7" : "1"}; box-shadow: none;">
                 <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${
 					style.dot
@@ -1511,7 +1821,7 @@ function renderStatusPill(status) {
                 ${status}
             </button>
             ${
-				!isClosed
+				!readOnly
 					? `
                 <div class="dropdown-menu" style="min-width: 120px; padding: 8px 0; margin: 0; border: 1px solid #E0E0E0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                     ${statusOptions}
@@ -1605,6 +1915,7 @@ frappe.router.on("change", function () {
 	setTimeout(() => {
 		$(".field-comments-sidebar").hide();
 	}, 400);
+	current_comment_frm = null; // ← ADD THIS LINE
 });
 
 function isValidStatusTransition(currentStatus, newStatus) {
@@ -1687,37 +1998,31 @@ function updateTotalCommentCount(frm) {
 	if (totalCommentCountUpdateTimeout) clearTimeout(totalCommentCountUpdateTimeout);
 	totalCommentCountUpdateTimeout = setTimeout(() => {
 		frappe.call({
-			method: "frappe_theme.api.get_total_open_resolved_comment_count",
+			method: "frappe_theme.api.get_all_field_thread_counts_detailed",
 			args: { doctype_name: frm.doctype, docname: frm.docname },
 			callback: function (r) {
-				let count = r.message || 0;
+				const counts = r.message || {};
+				threadDetailedCache = counts;
+				let totalOpen = 0,
+					totalClosed = 0;
+				Object.values(counts).forEach((c) => {
+					totalOpen += c.open || 0;
+					totalClosed += c.closed || 0;
+				});
+
+				// Try frm.commentsButton first, then DOM fallback
 				let commentsBtn = frm.commentsButton;
 				if (!commentsBtn || !commentsBtn.length) {
-					commentsBtn =
-						frm.page.sidebar.find(".field-comments-btn") ||
-						frm.page.sidebar.find('button:contains("Comments")') ||
-						$('button:contains("Comments")').filter(function () {
-							return $(this).closest(".form-sidebar").length > 0;
-						});
+					commentsBtn = $(".field-comments-btn");
 				}
+
 				if (commentsBtn && commentsBtn.length) {
-					let label =
-						count > 0
-							? __("Comments") + ` <span class="comments-badge">${count}</span>`
-							: __("Comments");
-					commentsBtn.html(label);
-					commentsBtn.find(".comments-badge").css({
-						background: primaryColor,
-						color: "#fff",
-						"border-radius": "10px",
-						padding: "2px 2px",
-						"font-size": "11px",
-						"margin-left": "2px",
-					});
+					let badge =
+						totalOpen > 0 || totalClosed > 0
+							? " " + window.renderThreadCountBadge(totalOpen, totalClosed)
+							: "";
+					commentsBtn.html(__("Comments") + badge);
 				}
-			},
-			error: function (err) {
-				console.error("Error updating total comment count:", err);
 			},
 		});
 	}, 300);

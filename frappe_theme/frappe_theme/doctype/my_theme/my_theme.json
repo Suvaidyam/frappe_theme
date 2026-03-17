@@ -106,6 +106,7 @@
   "hide_fields_comment",
   "hide_side_bar",
   "hide_form_comment",
+  "show_comment_count_default",
   "import_file",
   "cloud_assets",
   "section_break_cxrk",
@@ -500,6 +501,12 @@
    "fieldname": "hide_form_comment",
    "fieldtype": "Check",
    "label": "Hide Form Comment"
+  },
+  {
+   "default": "0",
+   "fieldname": "show_comment_count_default",
+   "fieldtype": "Check",
+   "label": "Show Comment Count Always"
   },
   {
    "fieldname": "change_logs_tab",
