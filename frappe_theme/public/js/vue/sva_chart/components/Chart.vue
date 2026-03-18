@@ -564,7 +564,7 @@ h4 {
 }
 
 .frappe-theme-no-data {
-	height: 297px;
+	height: 398px;
 	color: #6c757d;
 	background-color: #f8f9fa;
 	margin-top: 10px;
