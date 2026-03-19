@@ -19,6 +19,7 @@
   "is_report",
   "column_break_vafi",
   "label",
+  "show_full_number",
   "info",
   "column_break_fwyn",
   "section_break_ylfd",
@@ -823,13 +824,20 @@
    "fieldname": "state_name_column",
    "fieldtype": "Data",
    "label": "State Name Column"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:[\"SDG Wheel\", \"Number Card\", \"Dashboard Chart\", \"Heatmap (India Map)\"].includes(doc.property_type)",
+   "fieldname": "show_full_number",
+   "fieldtype": "Check",
+   "label": "Show Full Number"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_virtual": 1,
  "links": [],
- "modified": "2026-02-05 14:24:48.038586",
+ "modified": "2026-03-19 13:18:47.731352",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Custom Property Setter",
