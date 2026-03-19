@@ -61,9 +61,13 @@ function formatCurrency(amount, currencyCode) {
 	return formatter.format(amount);
 }
 
-function formatCurrencyWithSuffix(amount, currencyCode) {
+function formatCurrencyWithSuffix(amount, currencyCode, shorten = true) {
 	if (!currencyCode) {
 		currencyCode = frappe.sys_defaults?.currency;
+	}
+
+	if (!shorten) {
+		return formatCurrency(amount || 0, currencyCode);
 	}
 	const suffixMaps = {
 		INR: [

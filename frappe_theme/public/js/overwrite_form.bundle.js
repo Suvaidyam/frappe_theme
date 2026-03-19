@@ -900,6 +900,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 							card_settings_data?.number_card?.label ||
 							"Untitled",
 						details: card_settings_data?.number_card,
+						show_full_number: field.sva_ft?.show_full_number,
 						listview_settings: field.sva_ft.listview_settings || null,
 						report: card_settings_data?.report || null,
 						icon_value: field.sva_ft.icon || null,

@@ -401,9 +401,7 @@ function create_new_comment_thread(fieldName, field, frm) {
 				doctype_name: frm.doctype,
 				docname: frm.docname,
 				field_name: fieldName,
-				field_label: field.frm?.child_row?.doctype
-					? field.frm?.child_row?.doctype
-					: field?.df?.label || fieldName,
+				field_label: field?.df?.label || field.frm?.child_row?.doctype || fieldName,
 			},
 			callback: function (response) {
 				if (response.message) {
@@ -481,9 +479,8 @@ function load_field_comments(fieldName, field, frm) {
 							doctype_name: frm.doctype,
 							docname: frm.docname,
 							field_name: fieldName,
-							field_label: field.frm?.child_row?.doctype
-								? field.frm?.child_row?.doctype
-								: field?.df?.label || fieldName,
+							field_label:
+								field?.df?.label || field.frm?.child_row?.doctype || fieldName,
 						},
 						callback: function (response) {
 							if (!response.message) return;
@@ -1218,9 +1215,7 @@ function initializeCommentControl(
 					doctype_name: field.frm.doctype,
 					docname: field.frm.docname,
 					field_name: fieldName,
-					field_label: field.frm?.child_row?.doctype
-						? field.frm?.child_row?.doctype
-						: field?.df?.label || fieldName,
+					field_label: field?.df?.label || field.frm?.child_row?.doctype || fieldName,
 					comment_text: comment,
 					is_external: isExternal,
 					is_vendor: isVendor,
