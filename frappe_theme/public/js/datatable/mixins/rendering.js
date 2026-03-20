@@ -24,36 +24,20 @@ const RenderingMixin = {
 				let formatter =
 					this.frm.dt_events[this.doctype ?? this.link_report].formatter["#"];
 				serialTd.innerHTML = formatter(serialNumber, row, this);
+			} else if (!this.hasNavigableColumn && this.connection?.connection_type !== "Report") {
+				const doctype = this.doctype;
+				const href = `/app/${encodeURIComponent(
+					frappe.router.slug(doctype)
+				)}/${encodeURIComponent(row.name)}`;
+				const linkColor = frappe.boot?.my_theme?.navbar_color || "var(--primary-color)";
+				serialTd.innerHTML = `<a href="${href}" data-doctype="${doctype}" data-name="${row.name}" style="cursor:pointer; text-decoration:underline; color:${linkColor};">${serialNumber}</a>`;
 			} else {
-				serialTd.innerHTML = `<p style="cursor: pointer; text-decoration:underline;" data-docname="${row.name}">${serialNumber}</p>`;
+				serialTd.innerHTML = `<p data-docname="${row.name}">${serialNumber}</p>`;
 			}
 			if (
 				this.frm?.dt_events?.[this.doctype || this.link_report]?.columnEvents?.["#"]?.click
 			) {
-				console.warn(
-					"Column event click for serial number column is not supported to avoid navigation conflicts."
-				);
 				this.bindColumnEvents(serialTd, serialNumber, { fieldname: "#" }, row);
-			} else {
-				console.warn(
-					"No column event click handler found for serial number column, applying default navigation."
-				);
-				serialTd.addEventListener("click", () => {
-					let route = frappe.get_route();
-					frappe
-						.set_route(
-							"Form",
-							this.connection.connection_type == "Report"
-								? this.connection.report_ref_dt
-								: this.doctype,
-							row.name
-						)
-						.then(() => {
-							cur_frm.add_custom_button("Back", () => {
-								frappe.set_route(route);
-							});
-						});
-				});
 			}
 
 			tr.appendChild(serialTd);
@@ -62,7 +46,7 @@ const RenderingMixin = {
 		// Data Columns
 		let left = 0;
 		let freezeColumnsAtLeft = this.options.serialNumberColumn ? 1 : 0; // Adjust for serial column
-		this.columns.forEach((column) => {
+		this.columns.forEach((column, columnIndex) => {
 			const td = document.createElement("td");
 			td.style = this.getCellStyle(column, freezeColumnsAtLeft, left);
 			if (this.options.freezeColumnsAtLeft >= freezeColumnsAtLeft) {
@@ -74,7 +58,7 @@ const RenderingMixin = {
 			if (this.options.editable) {
 				this.createEditableField(td, column, row);
 			} else {
-				this.createNonEditableField(td, column, row);
+				this.createNonEditableField(td, column, row, columnIndex);
 			}
 			tr.appendChild(td);
 		});
@@ -263,7 +247,7 @@ const RenderingMixin = {
 
 		if (this.options.serialNumberColumn) {
 			const serialTh = document.createElement("th");
-			serialTh.textContent = __("#");
+			serialTh.textContent = __("S.No.");
 			serialTh.title = __("Serial Number");
 			serialTh.style =
 				"width:40px;text-align:center;position:sticky;left:0px;background-color:#F3F3F3;";
@@ -420,8 +404,19 @@ const RenderingMixin = {
 						let formatter =
 							this.frm.dt_events[this.doctype ?? this.link_report].formatter["#"];
 						serialTd.innerHTML = formatter(serialNumber, row, this);
+					} else if (
+						!this.hasNavigableColumn &&
+						this.connection?.connection_type !== "Report"
+					) {
+						const doctype = this.doctype;
+						const href = `/app/${encodeURIComponent(
+							frappe.router.slug(doctype)
+						)}/${encodeURIComponent(row.name)}`;
+						const linkColor =
+							frappe.boot?.my_theme?.navbar_color || "var(--primary-color)";
+						serialTd.innerHTML = `<a href="${href}" data-doctype="${doctype}" data-name="${row.name}" style="cursor:pointer; text-decoration:underline; color:${linkColor};">${serialNumber}</a>`;
 					} else {
-						serialTd.innerHTML = `<p style="cursor: pointer; text-decoration:underline;" data-docname="${row.name}">${serialNumber}</p>`;
+						serialTd.innerHTML = `<p data-docname="${row.name}">${serialNumber}</p>`;
 					}
 
 					if (
@@ -429,30 +424,7 @@ const RenderingMixin = {
 							"#"
 						]?.click
 					) {
-						console.warn(
-							"Column event click for serial number column is not supported to avoid navigation conflicts."
-						);
 						this.bindColumnEvents(serialTd, serialNumber, { fieldname: "#" }, row);
-					} else {
-						console.warn(
-							"No column event click handler found for serial number column, applying default navigation."
-						);
-						serialTd.addEventListener("click", () => {
-							let route = frappe.get_route();
-							frappe
-								.set_route(
-									"Form",
-									this.connection.connection_type == "Report"
-										? this.connection.report_ref_dt
-										: this.doctype,
-									row.name
-								)
-								.then(() => {
-									cur_frm.add_custom_button("Back", () => {
-										frappe.set_route(route);
-									});
-								});
-						});
 					}
 
 					tr.appendChild(serialTd);
@@ -460,7 +432,7 @@ const RenderingMixin = {
 
 				let left = 0;
 				let freezeColumnsAtLeft = 1;
-				this.columns.forEach((column) => {
+				this.columns.forEach((column, columnIndex) => {
 					const td = document.createElement("td");
 					td.style = this.getCellStyle(column, freezeColumnsAtLeft, left);
 					if (this.options.freezeColumnsAtLeft >= freezeColumnsAtLeft) {
@@ -472,7 +444,7 @@ const RenderingMixin = {
 					if (this.options.editable) {
 						this.createEditableField(td, column, row);
 					} else {
-						this.createNonEditableField(td, column, row);
+						this.createNonEditableField(td, column, row, columnIndex);
 					}
 					tr.appendChild(td);
 				});
