@@ -30,14 +30,8 @@ const RenderingMixin = {
 			if (
 				this.frm?.dt_events?.[this.doctype || this.link_report]?.columnEvents?.["#"]?.click
 			) {
-				console.warn(
-					"Column event click for serial number column is not supported to avoid navigation conflicts."
-				);
 				this.bindColumnEvents(serialTd, serialNumber, { fieldname: "#" }, row);
 			} else {
-				console.warn(
-					"No column event click handler found for serial number column, applying default navigation."
-				);
 				serialTd.addEventListener("click", () => {
 					let route = frappe.get_route();
 					frappe
@@ -429,14 +423,8 @@ const RenderingMixin = {
 							"#"
 						]?.click
 					) {
-						console.warn(
-							"Column event click for serial number column is not supported to avoid navigation conflicts."
-						);
 						this.bindColumnEvents(serialTd, serialNumber, { fieldname: "#" }, row);
 					} else {
-						console.warn(
-							"No column event click handler found for serial number column, applying default navigation."
-						);
 						serialTd.addEventListener("click", () => {
 							let route = frappe.get_route();
 							frappe

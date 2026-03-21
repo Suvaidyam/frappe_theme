@@ -136,8 +136,6 @@ const shorten_number = computed(() => {
 	return props?.chart?.show_full_number ? false : true;
 });
 
-console.log(shorten_number.value, "shorten_number");
-
 function getBWColor(hex) {
 	if (!hex) return "#000";
 
