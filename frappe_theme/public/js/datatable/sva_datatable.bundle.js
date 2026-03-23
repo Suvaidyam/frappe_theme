@@ -247,6 +247,12 @@ class SvaDataTable {
 							this.columns = [...columns.filter((f) => f.in_list_view)];
 						}
 					}
+					if (this.connection?.connection_type !== "Report") {
+						const subjectFieldname = this.meta?.title_field || "name";
+						this.hasNavigableColumn = this.columns.some(
+							(c) => c.fieldname === "name" || c.fieldname === subjectFieldname
+						);
+					}
 					if (this.frm?.["dt_events"]?.[this.doctype]?.["before_table_load"]) {
 						let change = this.frm["dt_events"][this.doctype]["before_table_load"];
 						if (this.isAsync(change)) {
