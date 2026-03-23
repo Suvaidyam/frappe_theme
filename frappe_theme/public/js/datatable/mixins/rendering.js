@@ -44,14 +44,20 @@ const RenderingMixin = {
 		}
 
 		// Data Columns
-		let left = 0;
-		let freezeColumnsAtLeft = this.options.serialNumberColumn ? 1 : 0; // Adjust for serial column
+		let left = this.options.serialNumberColumn ? 40 : 0;
+		const lastStickyIdx = this.columns.reduce((last, col, idx) => {
+			let h = this.header?.find((hh) => hh.fieldname === col.fieldname);
+			return h?.sticky ? idx : last;
+		}, -1);
 		this.columns.forEach((column, columnIndex) => {
 			const td = document.createElement("td");
-			td.style = this.getCellStyle(column, freezeColumnsAtLeft, left);
-			if (this.options.freezeColumnsAtLeft >= freezeColumnsAtLeft) {
-				left += column.width;
-				freezeColumnsAtLeft++;
+			let col = this.header?.find((h) => h.fieldname === column.fieldname);
+			const isSticky = !!col?.sticky;
+			const isLastSticky = columnIndex === lastStickyIdx;
+			td.style = this.getCellStyle(column, isSticky, left, isLastSticky);
+			if (isSticky) {
+				td.classList.add("sva-dt-sticky-column");
+				left += (Number(col?.width) || 2) * 50;
 			}
 
 			td.textContent = row[column.fieldname] || "";
@@ -159,7 +165,15 @@ const RenderingMixin = {
 			tr.appendChild(wfActionTd);
 		}
 
-		// Action Column
+		// Action Column (always visible to match settings header)
+		const actionTd = document.createElement("td");
+		actionTd.classList.add("sva-dt-action-column");
+		actionTd.style.minWidth = "50px";
+		actionTd.style.textAlign = "center";
+		actionTd.style.position = "sticky";
+		actionTd.style.right = "0px";
+		actionTd.style.zIndex = "3";
+		actionTd.style.backgroundColor = "#fff";
 		if (
 			(this.conf_perms.length &&
 				(this.conf_perms.includes("read") ||
@@ -167,33 +181,24 @@ const RenderingMixin = {
 					this.conf_perms.includes("write"))) ||
 			this.childLinks?.length
 		) {
-			const actionTd = document.createElement("td");
-			actionTd.style.minWidth = "50px";
-			actionTd.style.textAlign = "center";
-			actionTd.style.position = "sticky";
-			actionTd.style.right = "0px";
-			actionTd.style.backgroundColor = "#fff";
 			actionTd.appendChild(this.createActionColumn(row, primaryKey));
-
-			tr.appendChild(actionTd);
 		}
+		tr.appendChild(actionTd);
 
 		// Add hover effect
 		tr.addEventListener("mouseover", () => {
 			tr.style.backgroundColor = "#f5f5f5";
-			tr.querySelectorAll(".sva-dt-serial-number-column").forEach((td) => {
-				td.style.backgroundColor = "#f5f5f5";
-			});
-			tr.querySelectorAll(".sva-dt-action-column").forEach((td) => {
+			tr.querySelectorAll(
+				".sva-dt-serial-number-column, .sva-dt-action-column, .sva-dt-sticky-column"
+			).forEach((td) => {
 				td.style.backgroundColor = "#f5f5f5";
 			});
 		});
 		tr.addEventListener("mouseleave", () => {
 			tr.style.backgroundColor = "#fff";
-			tr.querySelectorAll(".sva-dt-serial-number-column").forEach((td) => {
-				td.style.backgroundColor = "#fff";
-			});
-			tr.querySelectorAll(".sva-dt-action-column").forEach((td) => {
+			tr.querySelectorAll(
+				".sva-dt-serial-number-column, .sva-dt-action-column, .sva-dt-sticky-column"
+			).forEach((td) => {
 				td.style.backgroundColor = "#fff";
 			});
 		});
@@ -254,53 +259,37 @@ const RenderingMixin = {
 			tr.appendChild(serialTh);
 		}
 
-		let left = 0;
-		let freezeColumnsAtLeft = 1;
-		this.columns.forEach((column) => {
+		let left = this.options.serialNumberColumn ? 40 : 0;
+		const lastStickyHeadIdx = this.columns.reduce((last, col, idx) => {
+			let h = this.header?.find((hh) => hh.fieldname === col.fieldname);
+			return h?.sticky ? idx : last;
+		}, -1);
+		this.columns.forEach((column, columnIndex) => {
 			const th = document.createElement("th");
 			let col = this.header.find((h) => h.fieldname === column.fieldname);
-			if (col?.width) {
-				th.style = `min-width:${Number(col?.width) * 50}px !important;max-width:${
-					Number(col?.width) * 50
-				}px !important;width:${
-					Number(col?.width) * 50
-				}px !important; white-space: nowrap;overflow: hidden;text-overflow:ellipsis;`;
+			const colWidth = (Number(col?.width) || 2) * 50;
+			const isLastSticky = columnIndex === lastStickyHeadIdx;
+
+			if (col?.sticky) {
+				th.style = `position:sticky; left:${left}px; z-index:2; background-color:#F3F3F3;cursor:${
+					column.sortable ? "pointer" : "default"
+				};min-width:${colWidth}px !important;max-width:${colWidth}px !important;width:${colWidth}px !important; white-space: nowrap;overflow: hidden;text-overflow:ellipsis;${
+					isLastSticky ? "border-right: 2px solid #d1d8dd;" : ""
+				}`;
+				left += colWidth;
+			} else if (col?.width) {
+				th.style = `min-width:${colWidth}px !important;max-width:${colWidth}px !important;width:${colWidth}px !important; white-space: nowrap;overflow: hidden;text-overflow:ellipsis;${
+					column.sortable ? "cursor:pointer;" : ""
+				}`;
+			} else if (column.sortable) {
+				th.style = `cursor:pointer;`;
 			}
+
 			th.textContent = __(strip_html(column.label) || column.fieldname);
 			th.title = __(strip_html(column.label) || column.fieldname);
 
 			if (column.sortable) {
-				this.createSortingIcon(th, column); // Create the sorting dropdown
-				if (col?.width) {
-					th.style = `min-width:${Number(col?.width) * 50}px !important;max-width:${
-						Number(col?.width) * 50
-					}px !important;width:${
-						Number(col?.width) * 50
-					}px !important; white-space: nowrap;overflow: hidden;text-overflow:ellipsis;cursor:pointer;`;
-				} else {
-					th.style = `cursor:pointer;`;
-				}
-			}
-
-			if (
-				this.options.freezeColumnsAtLeft &&
-				this.options.freezeColumnsAtLeft >= freezeColumnsAtLeft
-			) {
-				if (col?.width) {
-					th.style = `position:sticky; left:${left}px; z-index:2; background-color:#F3F3F3;cursor:${
-						column.sortable ? "pointer" : "default"
-					};min-width:${Number(col?.width) * 50}px !important;max-width:${
-						Number(col?.width) * 50
-					}px !important;width:${
-						Number(col?.width) * 50
-					}px !important; white-space: nowrap;overflow: hidden;text-overflow:ellipsis;`;
-				} else {
-					th.style = `position:sticky; left:${left}px; z-index:2; background-color:#F3F3F3;cursor:${
-						column.sortable ? "pointer" : "default"
-					}`;
-				}
-				left += column.width;
-				freezeColumnsAtLeft++;
+				this.createSortingIcon(th, column);
 			}
 
 			tr.appendChild(th);
@@ -325,7 +314,7 @@ const RenderingMixin = {
 		// ========================= Action Column ======================
 		const action_th = document.createElement("th");
 		action_th.style =
-			"width:5px; text-align:center;position:sticky;right:0px;background-color:#F3F3F3;";
+			"width:5px; text-align:center;position:sticky;right:0px;z-index:3;background-color:#F3F3F3;";
 		action_th.appendChild(this.createSettingsButton());
 		action_th.title = __("Settings");
 		tr.appendChild(action_th);
@@ -430,14 +419,20 @@ const RenderingMixin = {
 					tr.appendChild(serialTd);
 				}
 
-				let left = 0;
-				let freezeColumnsAtLeft = 1;
+				let left = this.options.serialNumberColumn ? 40 : 0;
+				const lastStickyIdx = this.columns.reduce((last, col, idx) => {
+					let h = this.header?.find((hh) => hh.fieldname === col.fieldname);
+					return h?.sticky ? idx : last;
+				}, -1);
 				this.columns.forEach((column, columnIndex) => {
 					const td = document.createElement("td");
-					td.style = this.getCellStyle(column, freezeColumnsAtLeft, left);
-					if (this.options.freezeColumnsAtLeft >= freezeColumnsAtLeft) {
-						left += column.width;
-						freezeColumnsAtLeft++;
+					let col = this.header?.find((h) => h.fieldname === column.fieldname);
+					const isSticky = !!col?.sticky;
+					const isLastSticky = columnIndex === lastStickyIdx;
+					td.style = this.getCellStyle(column, isSticky, left, isLastSticky);
+					if (isSticky) {
+						td.classList.add("sva-dt-sticky-column");
+						left += (Number(col?.width) || 2) * 50;
 					}
 
 					td.textContent = row[column.fieldname] || "";
@@ -589,6 +584,14 @@ const RenderingMixin = {
 					}
 				}
 				// ========================= Workflow End ===================
+				const actionTd = document.createElement("td");
+				actionTd.classList.add("sva-dt-action-column");
+				actionTd.style.minWidth = "50px";
+				actionTd.style.textAlign = "center";
+				actionTd.style.position = "sticky";
+				actionTd.style.right = "0px";
+				actionTd.style.zIndex = "3";
+				actionTd.style.backgroundColor = "#fff";
 				if (
 					(this.conf_perms.length &&
 						(this.conf_perms.includes("read") ||
@@ -596,34 +599,24 @@ const RenderingMixin = {
 							this.conf_perms.includes("write"))) ||
 					this.childLinks?.length
 				) {
-					const actionTd = document.createElement("td");
-					actionTd.classList.add("sva-dt-action-column");
-					actionTd.style.minWidth = "50px";
-					actionTd.style.textAlign = "center";
-					actionTd.style.position = "sticky";
-					actionTd.style.right = "0px";
-					actionTd.style.backgroundColor = "#fff";
 					actionTd.appendChild(this.createActionColumn(row, primaryKey));
-
-					tr.appendChild(actionTd);
 				}
+				tr.appendChild(actionTd);
 
 				// Add hover effect
 				tr.addEventListener("mouseover", () => {
 					tr.style.backgroundColor = "#f5f5f5";
-					tr.querySelectorAll(".sva-dt-serial-number-column").forEach((td) => {
-						td.style.backgroundColor = "#f5f5f5";
-					});
-					tr.querySelectorAll(".sva-dt-action-column").forEach((td) => {
+					tr.querySelectorAll(
+						".sva-dt-serial-number-column, .sva-dt-action-column, .sva-dt-sticky-column"
+					).forEach((td) => {
 						td.style.backgroundColor = "#f5f5f5";
 					});
 				});
 				tr.addEventListener("mouseleave", () => {
 					tr.style.backgroundColor = "#fff";
-					tr.querySelectorAll(".sva-dt-serial-number-column").forEach((td) => {
-						td.style.backgroundColor = "#fff";
-					});
-					tr.querySelectorAll(".sva-dt-action-column").forEach((td) => {
+					tr.querySelectorAll(
+						".sva-dt-serial-number-column, .sva-dt-action-column, .sva-dt-sticky-column"
+					).forEach((td) => {
 						td.style.backgroundColor = "#fff";
 					});
 				});

@@ -1,10 +1,15 @@
 const FieldsMixin = {
-	getCellStyle(column, freezeColumnsAtLeft, left) {
-		return this.options.freezeColumnsAtLeft >= freezeColumnsAtLeft
-			? `position: sticky; left:${left} px; z-index: 2; background-color: white; min-width:${column.width} px; max-width:${column.width} px; padding: 0px`
-			: `min-width:${column.width || 150} px; max-width:${
-					column.width || 200
-			  } px; padding: 0px !important;`;
+	getCellStyle(column, isSticky, left, isLastSticky) {
+		if (isSticky) {
+			return `position: sticky; left:${left}px; z-index: 2; background-color: white; min-width:${
+				column.width || 150
+			}px; max-width:${column.width || 200}px; padding: 0px${
+				isLastSticky ? "; border-right: 2px solid #d1d8dd" : ""
+			}`;
+		}
+		return `min-width:${column.width || 150}px; max-width:${
+			column.width || 200
+		}px; padding: 0px !important;`;
 	},
 
 	createEditableField(td, column, row) {
