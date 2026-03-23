@@ -92,6 +92,7 @@ class ListSettings {
 					fieldtype: "HTML",
 				},
 			],
+			size: "large",
 		});
 		me.dialog.set_values(me.settings);
 		me.dialog.set_primary_action(__("Save"), () => {
@@ -134,45 +135,45 @@ class ListSettings {
 		let wrapper = fields_html.$wrapper[0];
 		let fields = ``;
 		for (let idx in me.listview_settings) {
-			// let is_sortable = idx == 0 ? `` : `sortable`;
-			// let show_sortable_handle = idx == 0 ? `hide` : ``;
 			fields += `
 				<div class="control-input flex align-center form-control fields_order sortable"
 					style="display: block; margin-bottom: 5px;" data-fieldname="${me.listview_settings[idx].fieldname}"
 					data-label="${me.listview_settings[idx].label}" data-fieldtype="${
 				me.listview_settings[idx].fieldtype
 			}">
-
-					<div class="row">
-						<div class="col-1">
+					<div class="row align-items-center no-gutters">
+						<div class="col-1 text-center">
 							${frappe.utils.icon("drag", "xs", "", "", "sortable-handle ")}
 						</div>
-						<div class="col-10" style="padding-left:0px;">
-							<div class="row align-items-center no-gutters">
-								<div class="col-8">
-									${__(me.listview_settings[idx].label, null, me.doctype)}
-								</div>
-								<div class="col-4 d-flex align-items-center" style="gap:5px;height:100%;">
-									<input type="number" class="form-control control-input bg-white column-width-input" style="margin-top:-5px;height:25px; visibility:${
-										!me.only_list_settings ? "visible" : "hidden"
-									}"  data-fieldname="${
-				me.listview_settings[idx].fieldname
-			}" value="${me.listview_settings[idx]?.width || 2}" />
-									<input style="visibility:${
-										!me.only_list_settings &&
-										["Select"].includes(me.listview_settings[idx].fieldtype) &&
-										frappe.session.user == "Administrator"
-											? "visible"
-											: "hidden"
-									};height:18px;min-width:18px; margin-top:-2px;" type="checkbox" class="form-control bg-white inline-edit-checkbox" data-fieldname="${
-				me.listview_settings[idx].fieldname
-			}" value="${me.listview_settings[idx]?.inline_edit || 0}" ${
-				me.listview_settings[idx]?.inline_edit ? "checked" : ""
-			} />
-								</div>
-							</div>
+						<div class="col-5" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+							${__(me.listview_settings[idx].label, null, me.doctype)}
 						</div>
-						<div class="col-1">
+						<div class="col-2 d-flex justify-content-center" style="visibility:${
+							!me.only_list_settings ? "visible" : "hidden"
+						}">
+							<input type="number" class="form-control bg-white column-width-input" style="height:25px;width:85px;padding:2px 7px;" data-fieldname="${
+								me.listview_settings[idx].fieldname
+							}" value="${me.listview_settings[idx]?.width || 2}" />
+						</div>
+						<div class="col-1 d-flex justify-content-center" style="visibility:${
+							!me.only_list_settings &&
+							["Select"].includes(me.listview_settings[idx].fieldtype) &&
+							frappe.session.user == "Administrator"
+								? "visible"
+								: "hidden"
+						}">
+							<input style="height:16px;width:16px!important;cursor:pointer;accent-color:var(--primary);" type="checkbox" class="inline-edit-checkbox" data-fieldname="${
+								me.listview_settings[idx].fieldname
+							}" ${me.listview_settings[idx]?.inline_edit ? "checked" : ""} />
+						</div>
+						<div class="col-2 d-flex justify-content-center" style="visibility:${
+							!me.only_list_settings ? "visible" : "hidden"
+						}">
+							<input style="height:16px;width:16px!important;cursor:pointer;accent-color:var(--primary);" type="checkbox" class="sticky-checkbox" data-fieldname="${
+								me.listview_settings[idx].fieldname
+							}" ${me.listview_settings[idx]?.sticky ? "checked" : ""} />
+						</div>
+						<div class="col-1 text-center">
 							<a class="text-muted remove-field" data-fieldname="${me.listview_settings[idx].fieldname}">
 								${frappe.utils.icon("delete", "xs")}
 							</a>
@@ -182,10 +183,20 @@ class ListSettings {
 		}
 
 		fields_html.html(`
-			<div class="form-group">
-				<div class="clearfix">
-					<label class="control-label" style="padding-right: 0px;">${__("Fields")}</label>
-				</div>
+			<div class="form-group pt-2">
+
+				${
+					!me.only_list_settings
+						? `<div class="row no-gutters" style="margin-bottom:8px;padding:0 12px;font-weight:600;font-size:11px;color:var(--text-muted);">
+					<div class="col-1"></div>
+					<div class="col-5">${__("Fieldname")}</div>
+					<div class="col-2 text-center">${__("Column Width")}</div>
+					<div class="col-1 text-center">${__("Inline	Edit")}</div>
+					<div class="col-2 text-center">${__("Sticky")}</div>
+					<div class="col-1"></div>
+				</div>`
+						: ""
+				}
 				<div class="control-input-wrapper">
 				${fields}
 				</div>
@@ -200,6 +211,9 @@ class ListSettings {
 			me.update_fields();
 		});
 		$(fields_html.$wrapper).on("change", ".inline-edit-checkbox", function () {
+			me.update_fields();
+		});
+		$(fields_html.$wrapper).on("change", ".sticky-checkbox", function () {
 			me.update_fields();
 		});
 		new Sortable(wrapper.getElementsByClassName("control-input-wrapper")[0], {
@@ -267,6 +281,9 @@ class ListSettings {
 						?.checked
 						? 1
 						: 0 || 0,
+					sticky: fields_order.item(idx).querySelector(".sticky-checkbox")?.checked
+						? 1
+						: 0 || 0,
 				});
 			}
 		}
@@ -323,6 +340,7 @@ class ListSettings {
 								fieldtype: field.fieldtype,
 								width: 2,
 								inline_edit: 0,
+								sticky: 0,
 							});
 						} else if (
 							["creation", "owner", "modified", "modified_by"].includes(value)
@@ -335,6 +353,7 @@ class ListSettings {
 									fieldtype: ad_field.fieldtype,
 									width: 2,
 									inline_edit: 0,
+									sticky: 0,
 								});
 							}
 						}
@@ -389,6 +408,7 @@ class ListSettings {
 					fieldtype: field.fieldtype,
 					width: 2,
 					inline_edit: field.inline_edit ? 1 : 0,
+					sticky: 0,
 				});
 			}
 		});
