@@ -1,10 +1,15 @@
 const FieldsMixin = {
-	getCellStyle(column, freezeColumnsAtLeft, left) {
-		return this.options.freezeColumnsAtLeft >= freezeColumnsAtLeft
-			? `position: sticky; left:${left} px; z-index: 2; background-color: white; min-width:${column.width} px; max-width:${column.width} px; padding: 0px`
-			: `min-width:${column.width || 150} px; max-width:${
-					column.width || 200
-			  } px; padding: 0px !important;`;
+	getCellStyle(column, isSticky, left, isLastSticky) {
+		if (isSticky) {
+			return `position: sticky; left:${left}px; z-index: 2; background-color: white; min-width:${
+				column.width || 150
+			}px; max-width:${column.width || 200}px; padding: 0px${
+				isLastSticky ? "; border-right: 2px solid #d1d8dd" : ""
+			}`;
+		}
+		return `min-width:${column.width || 150}px; max-width:${
+			column.width || 200
+		}px; padding: 0px !important;`;
 	},
 
 	createEditableField(td, column, row) {
@@ -81,7 +86,7 @@ const FieldsMixin = {
 		control.refresh();
 	},
 
-	createNonEditableField(td, column, row) {
+	createNonEditableField(td, column, row, columnIndex) {
 		let col = this.header.find((h) => h.fieldname === column.fieldname);
 		td.textContent = "";
 		let columnField = {
@@ -753,26 +758,20 @@ const FieldsMixin = {
 				return;
 			}
 			if (["name", this.meta?.title_field].includes(columnField.fieldname)) {
-				if (
-					row[column.fieldname] &&
-					!["null", "undefined", null, undefined].includes(row[column.fieldname])
-				) {
-					td.innerHTML = `<p title="${
-						row[column.fieldname]
-					}" style="cursor: pointer; text-decoration:underline;">${
-						row[column.fieldname]
-					}</p>`;
+				const doctype =
+					this.connection?.connection_type === "Report"
+						? this.connection.report_ref_dt
+						: this.doctype;
+				const href = `/app/${encodeURIComponent(
+					frappe.router.slug(doctype)
+				)}/${encodeURIComponent(row.name)}`;
+				const value = row[column.fieldname];
+				const linkColor = frappe.boot?.my_theme?.navbar_color || "var(--primary-color)";
+				if (value && !["null", "undefined", null, undefined].includes(value)) {
+					td.innerHTML = `<a class="ellipsis" href="${href}" title="${value}" data-doctype="${doctype}" data-name="${row.name}" style="cursor:pointer; text-decoration:underline; color:${linkColor};">${value}</a>`;
 				} else {
-					td.innerHTML = `<p title="-">-</p>`;
+					td.innerHTML = `<span title="-">-</span>`;
 				}
-				td.querySelector("p").addEventListener("click", () => {
-					let route = frappe.get_route();
-					frappe.set_route("Form", this.doctype, row["name"]).then(() => {
-						cur_frm.add_custom_button("Back", () => {
-							frappe.set_route(route);
-						});
-					});
-				});
 				if (col?.width) {
 					$(td).css({
 						width: `${Number(col?.width) * 50}px`,
