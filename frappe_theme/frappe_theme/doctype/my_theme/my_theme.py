@@ -37,7 +37,7 @@ class MyTheme(Document):
 			return 0
 
 	@frappe.whitelist()
-	def get_sva_workflow_action(self, doc, next_state=None, action=None):
+	def validate_workflow_action(self, doc, next_state=None, action=None):
 		if not doc.doctype or not doc.name:
 			return False
 
