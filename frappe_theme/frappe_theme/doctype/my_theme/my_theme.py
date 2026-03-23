@@ -36,6 +36,34 @@ class MyTheme(Document):
 		else:
 			return 0
 
+	@frappe.whitelist()
+	def get_sva_workflow_action(self, doc, next_state=None, action=None):
+		if not doc.doctype or not doc.name:
+			return False
+
+		result = frappe.db.sql(
+			"""
+			SELECT workflow_action, workflow_state_current
+			FROM `tabSVA Workflow Action`
+			WHERE reference_doctype = %s
+			AND reference_name = %s
+			ORDER BY creation DESC
+			LIMIT 1
+		""",
+			(doc.doctype, doc.name),
+			as_dict=True,
+		)
+
+		if result:
+			workflow_action = result[0].get("workflow_action")
+			workflow_state_current = result[0].get("workflow_state_current")
+			if workflow_state_current == next_state and workflow_action == action:
+				return True
+			else:
+				return False
+		else:
+			return False
+
 	def get_request_post(self, url, data=None, headers=None, json=None, params=None, timeout=None):
 		return requests.post(url, data=data, headers=headers, json=json, params=params, timeout=timeout)
 
