@@ -19,7 +19,6 @@
   "is_report",
   "column_break_vafi",
   "label",
-  "show_full_number",
   "info",
   "column_break_fwyn",
   "section_break_ylfd",
@@ -89,6 +88,7 @@
   "full_screen_dialog",
   "disable_workflow",
   "enable_auto_transpose",
+  "add_total_row",
   "section_break_okbe",
   "child_confs",
   "heat_map_section",
@@ -827,17 +827,16 @@
   },
   {
    "default": "0",
-   "depends_on": "eval:[\"SDG Wheel\", \"Number Card\", \"Dashboard Chart\", \"Heatmap (India Map)\"].includes(doc.property_type)",
-   "fieldname": "show_full_number",
+   "fieldname": "add_total_row",
    "fieldtype": "Check",
-   "label": "Show Full Number"
+   "label": "Add Total Row"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_virtual": 1,
  "links": [],
- "modified": "2026-03-19 13:18:47.731352",
+ "modified": "2026-03-23 16:36:27.167306",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Custom Property Setter",
