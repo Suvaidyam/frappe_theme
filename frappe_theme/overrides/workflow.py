@@ -10,12 +10,6 @@ from frappe.utils import getdate
 from frappe.workflow.doctype.workflow.workflow import Workflow
 
 
-def workflow_before_save(doc, method=None):
-	"""Default custom_approval_stage to state name if left empty."""
-	for row in doc.states:
-		if not row.get("custom_approval_stage"):
-			row.custom_approval_stage = row.state
-
 
 @frappe.whitelist()
 def get_custom_transitions(
