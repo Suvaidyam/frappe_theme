@@ -119,7 +119,11 @@
 			<div
 				v-for="(item, index) in timelineItems"
 				:key="item.name"
-				:class="['timeline-item', { pending: index === 0 && !item.completed }, getTimelineLineClass(item, index)]"
+				:class="[
+					'timeline-item',
+					{ pending: index === 0 && !item.completed },
+					getTimelineLineClass(item, index),
+				]"
 			>
 				<!-- Left Panel -->
 				<div class="timeline-left">
@@ -467,17 +471,19 @@ const progressSteps = computed(() => {
 	const visitedStages = new Set();
 	[...actions].reverse().forEach((action) => {
 		if (action.workflow_state_previous) {
-			visitedStages.add(stateToStage[action.workflow_state_previous] || action.workflow_state_previous);
+			visitedStages.add(
+				stateToStage[action.workflow_state_previous] || action.workflow_state_previous
+			);
 		}
 		if (action.workflow_state_current) {
-			visitedStages.add(stateToStage[action.workflow_state_current] || action.workflow_state_current);
+			visitedStages.add(
+				stateToStage[action.workflow_state_current] || action.workflow_state_current
+			);
 		}
 	});
 
 	// Current stage from current doc state
-	const currentStage = currentDocState
-		? stateToStage[currentDocState] || currentDocState
-		: null;
+	const currentStage = currentDocState ? stateToStage[currentDocState] || currentDocState : null;
 	const currentStateInfo = currentDocState ? getStateInfo(currentDocState) : null;
 	const isCurrentApproved = currentStateInfo?.closure === "Positive";
 	const isCurrentRejected = currentStateInfo?.closure === "Negative";
@@ -579,31 +585,67 @@ const getStateConfig = (state) => {
 	// Check closure from workflow data first
 	const info = getStateInfo(state);
 	if (info?.closure === "Positive") {
-		return { statusClass: "status-success", stateClass: "state-success", nodeClass: "node-success" };
+		return {
+			statusClass: "status-success",
+			stateClass: "state-success",
+			nodeClass: "node-success",
+		};
 	}
 	if (info?.closure === "Negative") {
-		return { statusClass: "status-danger", stateClass: "state-danger", nodeClass: "node-danger" };
+		return {
+			statusClass: "status-danger",
+			stateClass: "state-danger",
+			nodeClass: "node-danger",
+		};
 	}
 	if (info?.closure === "Neutral") {
-		return { statusClass: "status-default", stateClass: "state-default", nodeClass: "node-default" };
+		return {
+			statusClass: "status-default",
+			stateClass: "state-default",
+			nodeClass: "node-default",
+		};
 	}
 
 	// Fallback: static map for workflows without closure configured
 	const normalizedState = state?.trim().toLowerCase() || "";
 	const stateMap = {
-		approved: { statusClass: "status-success", stateClass: "state-success", nodeClass: "node-success" },
-		accepted: { statusClass: "status-success", stateClass: "state-success", nodeClass: "node-success" },
-		"receipt confirmed": { statusClass: "status-success", stateClass: "state-success", nodeClass: "node-success" },
-		rejected: { statusClass: "status-danger", stateClass: "state-danger", nodeClass: "node-danger" },
+		approved: {
+			statusClass: "status-success",
+			stateClass: "state-success",
+			nodeClass: "node-success",
+		},
+		accepted: {
+			statusClass: "status-success",
+			stateClass: "state-success",
+			nodeClass: "node-success",
+		},
+		"receipt confirmed": {
+			statusClass: "status-success",
+			stateClass: "state-success",
+			nodeClass: "node-success",
+		},
+		rejected: {
+			statusClass: "status-danger",
+			stateClass: "state-danger",
+			nodeClass: "node-danger",
+		},
 		draft: { statusClass: "status-info", stateClass: "state-info", nodeClass: "node-info" },
-		disbursed: { statusClass: "status-info", stateClass: "state-info", nodeClass: "node-info" },
+		disbursed: {
+			statusClass: "status-info",
+			stateClass: "state-info",
+			nodeClass: "node-info",
+		},
 	};
 
 	if (stateMap[normalizedState]) {
 		return stateMap[normalizedState];
 	}
 
-	return { statusClass: "status-default", stateClass: "state-default", nodeClass: "node-default" };
+	return {
+		statusClass: "status-default",
+		stateClass: "state-default",
+		nodeClass: "node-default",
+	};
 };
 
 const getNodeClass = (item) => {
