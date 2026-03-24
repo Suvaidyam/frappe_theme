@@ -10,7 +10,6 @@ from frappe.utils import getdate
 from frappe.workflow.doctype.workflow.workflow import Workflow
 
 
-
 @frappe.whitelist()
 def get_custom_transitions(
 	doc: Union["Document", str, dict], workflow: "Workflow" = None, raise_exception: bool = False
