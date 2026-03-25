@@ -4,7 +4,7 @@
 			<Skeleton v-if="loading" />
 			<div v-else class="card mb-2" style="padding: 8px 8px 8px 12px; min-height: 344px">
 				<div class="d-flex justify-content-between align-items-center">
-					{{ chart.details.chart_name }}
+					{{ chart?.label || chart?.details?.chart_name }}
 					<div class="dropdown" v-if="actions.length">
 						<span
 							title="action"
@@ -61,16 +61,17 @@
 				<div class="frappe-theme-no-data" v-else>No data</div>
 			</div>
 		</div>
+		<Placeholder v-else />
 	</transition>
 </template>
 <!-- Used as Button & Heading Control -->
 <script setup>
 import Skeleton from "./Skeleton.vue";
-
+import Placeholder from "./Placeholder.vue";
 import Loader from "../../../loader-element.js";
 import SvaDataTable from "../../../datatable/sva_datatable.bundle.js";
 
-import { ref, onMounted, inject } from "vue";
+import { ref, onMounted, inject, computed } from "vue";
 import {
 	Chart as ChartJS,
 	Title,
@@ -125,10 +126,14 @@ const props = defineProps({
 });
 
 const loading = ref(true);
-const showChart = ref(false);
+const showChart = ref(true);
 const data = ref({
 	labels: [],
 	datasets: [{ data: [] }],
+});
+
+const shorten_number = computed(() => {
+	return props?.chart?.show_full_number ? false : true;
 });
 
 function getBWColor(hex) {
@@ -201,10 +206,12 @@ const options = ref({
 								: false,
 						ticks: {
 							callback: function (value) {
-								return frappe.utils.shorten_number(
-									value,
-									frappe.sys_defaults.country
-								);
+								return shorten_number.value
+									? frappe.utils.shorten_number(
+											value,
+											frappe.sys_defaults.country
+									  )
+									: format_number(value || 0, null, 0);
 							},
 						},
 				  }),
@@ -222,10 +229,12 @@ const options = ref({
 								: false,
 						ticks: {
 							callback: function (value) {
-								return frappe.utils.shorten_number(
-									value,
-									frappe.sys_defaults.country
-								);
+								return shorten_number.value
+									? frappe.utils.shorten_number(
+											value,
+											frappe.sys_defaults.country
+									  )
+									: format_number(value || 0, null, 0);
 							},
 						},
 				  }
@@ -310,23 +319,50 @@ const options = ref({
 		tooltip: {
 			callbacks: {
 				label: (ctx) => {
-					let meta = ctx.raw.meta || {};
-					let value = ctx?.raw?.y || 0;
-					if (meta) {
+					const isPieOrDonut = ["Pie", "Donut"].includes(props.chart?.details?.type);
+
+					// For pie/donut charts, extract value and meta differently
+					let value, meta;
+					if (isPieOrDonut) {
+						// Pie charts have value directly on ctx.raw
+						const rawData = ctx.raw;
+						meta = typeof rawData === "object" && rawData.meta ? rawData.meta : {};
+						value =
+							typeof rawData === "object" && rawData.y !== undefined
+								? rawData.y
+								: rawData;
+					} else {
+						// Bar/Line charts have structured data with y and meta
+						meta = ctx.raw.meta || {};
+						value = ctx?.raw?.y || 0;
+					}
+
+					if (meta && meta.fieldtype) {
 						if (meta.fieldtype === "Currency") {
 							return `${meta.label}: ${frappe.utils.format_currency(
 								value,
-								props.chart?.details?.currency
+								props.chart?.details?.currency,
+								shorten_number.value
 							)}`;
 						} else if (meta.fieldtype === "Int" || meta.fieldtype === "Float") {
-							return `${meta.label}: ${frappe.utils.shorten_number(
-								value,
-								frappe.sys_defaults.country
-							)}`;
+							return `${meta.label}: ${
+								shorten_number.value
+									? frappe.utils.shorten_number(
+											value,
+											frappe.sys_defaults.country
+									  )
+									: format_number(value || 0, null, 0)
+							}`;
 						}
-					} else {
-						return value;
 					}
+					return shorten_number.value
+						? frappe.utils.shorten_number(
+								value || 0,
+								frappe.sys_defaults.country,
+								null,
+								0
+						  )
+						: format_number(value || 0, null, 0);
 				},
 			},
 		},
@@ -335,23 +371,38 @@ const options = ref({
 			anchor: "center",
 			align: "center",
 			formatter: (v) => {
-				let meta = v.meta || {};
-				let value = v?.y || 0;
-				if (meta) {
+				const isPieOrDonut = ["Pie", "Donut"].includes(props.chart?.details?.type);
+
+				// For pie/donut charts, extract value and meta differently
+				let value, meta;
+				if (isPieOrDonut) {
+					// Pie charts have value directly
+					meta = typeof v === "object" && v.meta ? v.meta : {};
+					value = typeof v === "object" && v.y !== undefined ? v.y : v;
+				} else {
+					// Bar/Line charts have structured data with y and meta
+					meta = v.meta || {};
+					value = v?.y || 0;
+				}
+
+				if (meta && meta.fieldtype) {
 					if (meta.fieldtype === "Currency") {
 						return `${frappe.utils.format_currency(
 							value,
-							props.chart?.details?.currency
+							props.chart?.details?.currency,
+							shorten_number.value
 						)}`;
 					} else if (meta.fieldtype === "Int" || meta.fieldtype === "Float") {
-						return `${frappe.utils.shorten_number(
-							value,
-							frappe.sys_defaults.country
-						)}`;
+						return `${
+							shorten_number.value
+								? frappe.utils.shorten_number(value, frappe.sys_defaults.country)
+								: format_number(value || 0, null, 0)
+						}`;
 					}
-				} else {
-					return value;
 				}
+				return shorten_number.value
+					? frappe.utils.shorten_number(value || 0, frappe.sys_defaults.country, null, 0)
+					: format_number(value || 0, null, 0);
 			},
 			color: (ctx) => {
 				const dataset = ctx.chart.data.datasets[ctx.datasetIndex];
@@ -376,11 +427,34 @@ const handleAction = async (action) => {
 		let loader = new Loader(wrapper);
 		loader.show();
 
+		let pre_filters = {};
+		if (props.frm) {
+			if (
+				props.frm?.["dt_events"]?.[props.chart?.details?.name]?.get_filters ||
+				props.frm?.["dt_events"]?.[props?.chart?.html_field]?.get_filters
+			) {
+				let get_filters =
+					props.frm?.["dt_events"]?.[props.chart?.details?.name]?.get_filters ||
+					props.frm?.["dt_events"]?.[props?.chart?.html_field]?.get_filters;
+				pre_filters =
+					(await get_filters(
+						props.chart?.details,
+						props.frm || {},
+						props?.chart?.html_field
+					)) || {};
+			}
+		}
+
 		let table_options = {
 			label: "",
 			wrapper,
 			doctype: "",
-			frm: props.frm || cur_frm,
+			frm: Object.assign(
+				{
+					dt_events: {},
+				},
+				props.frm || cur_frm
+			),
 			connection: {
 				crud_permissions: JSON.stringify(["read"]),
 			},
@@ -404,6 +478,13 @@ const handleAction = async (action) => {
 		if (props.chart?.details?.chart_type == "Report") {
 			table_options.connection["link_report"] = props.chart.details?.report_name;
 			table_options.connection["connection_type"] = "Report";
+			table_options.frm.dt_events = {
+				[props.chart.details?.report_name]: {
+					get_filters: () => {
+						return { ...(props.filters || {}), ...pre_filters };
+					},
+				},
+			};
 		} else {
 			table_options.doctype = props.chart.details?.document_type;
 			if (cur_frm.doctype) {
@@ -419,6 +500,13 @@ const handleAction = async (action) => {
 			} else {
 				table_options.connection["connection_type"] = "Unfiltered";
 			}
+			table_options.frm.dt_events = {
+				[props.chart.details?.document_type]: {
+					get_filters: () => {
+						return { ...(props.filters || {}) };
+					},
+				},
+			};
 		}
 
 		let dialog = new frappe.ui.Dialog({
@@ -461,7 +549,7 @@ const getCount = async () => {
 	let pre_filters = {};
 	if (props.frm) {
 		if (
-			props.frm?.["dt_events"]?.[details.name]?.get_filters ||
+			props.frm?.["dt_events"]?.[details?.name]?.get_filters ||
 			props.frm?.["dt_events"]?.[props?.chart?.html_field]?.get_filters
 		) {
 			let get_filters =
@@ -479,8 +567,8 @@ const getCount = async () => {
 				type: type,
 				details: details,
 				report: report,
-				doctype: cur_frm.doc.doctype,
-				docname: cur_frm.doc.name,
+				doctype: cur_frm?.doc?.doctype,
+				docname: cur_frm?.doc?.name,
 				filters: { ...(props.filters || {}), ...pre_filters },
 			},
 		});
@@ -499,8 +587,10 @@ const getCount = async () => {
 onMounted(async () => {
 	// Initial delay based on card position
 	setTimeout(async () => {
-		showChart.value = true;
-		await getCount();
+		showChart.value = props?.chart?.is_permitted ? true : false;
+		if (showChart.value) {
+			await getCount();
+		}
 	}, props.delay);
 });
 </script>
@@ -524,7 +614,7 @@ h4 {
 }
 
 .frappe-theme-no-data {
-	height: 297px;
+	height: 398px;
 	color: #6c757d;
 	background-color: #f8f9fa;
 	margin-top: 10px;

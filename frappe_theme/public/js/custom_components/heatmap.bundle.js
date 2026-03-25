@@ -16,6 +16,7 @@ class SVAHeatmap {
 		this.frm = opts.frm || null;
 		this.stateLayer = null;
 		this.districtLayer = null;
+		this.shorten_number = this?.conf?.show_full_number ? false : true;
 		this.mapId = "map-" + frappe.utils.get_random(8);
 		this.isLoading = true;
 		this.primaryTargetField = opts.primary_target;
@@ -44,6 +45,9 @@ class SVAHeatmap {
                 background-color:#F2F2F3;
                 display: none;
             }
+			.leaflet-pane, .leaflet-tile, .leaflet-marker-icon, .leaflet-marker-shadow, .leaflet-tile-container, .leaflet-pane > svg, .leaflet-pane > canvas, .leaflet-zoom-box, .leaflet-image-layer, .leaflet-layer {
+				position: static !important;
+			}
             .legend-container {
                 position: absolute;
                 bottom: 18px;
@@ -263,11 +267,34 @@ class SVAHeatmap {
 		let loader = new Loader(wrapper);
 		loader.show();
 
+		let pre_filters = {};
+		if (this.frm) {
+			if (this.frm?.["dt_events"]?.[this?.html_field]?.get_filters) {
+				let get_filters = this.frm?.["dt_events"]?.[this?.html_field]?.get_filters;
+				pre_filters = (await get_filters(this.reportName, this.html_field)) || {};
+			}
+		}
+
 		let table_options = {
 			label: "",
 			wrapper,
 			doctype: "",
-			frm: this.frm || cur_frm,
+			frm: Object.assign(
+				{
+					dt_events: {
+						[this.reportName]: {
+							get_filters: () => {
+								return {
+									...this.standard_filters,
+									...this.filters,
+									...pre_filters,
+								};
+							},
+						},
+					},
+				},
+				this.frm || cur_frm
+			),
 			connection: {
 				crud_permissions: JSON.stringify(["read"]),
 				link_report: this.reportName,
@@ -440,11 +467,53 @@ class SVAHeatmap {
 
 	// Add new method to calculate range and steps
 	calculateDataRange(data) {
+		if (Object.entries(data).length === 0) {
+			return { min: 0, max: 0 };
+		}
 		let values = Object.values(data).map((item) => item.count || 0);
 		return {
 			min: isNaN(Math.min(...values)) ? 0 : Math.min(...values),
 			max: isNaN(Math.max(...values)) ? 0 : Math.max(...values),
 		};
+	}
+
+	get_formatted_value(data) {
+		if ([undefined, null, "null", "undefined", "", NaN].includes(data.value)) {
+			data.value = 0;
+		}
+		switch (data?.fieldtype) {
+			case "Currency":
+				return frappe.utils.format_currency(data.value || 0, null, this.shorten_number);
+			case "Float":
+				return this.shorten_number
+					? frappe.utils.shorten_number(
+							data.value || 0,
+							frappe.sys_defaults.country,
+							null,
+							data?.column?.precision || 2
+					  )
+					: format_number(data.value || 0, null, data?.column?.precision || 2);
+			case "Int":
+				return this.shorten_number
+					? frappe.utils.shorten_number(
+							data.value || 0,
+							frappe.sys_defaults.country,
+							null,
+							0
+					  )
+					: format_number(data.value || 0, null, 0);
+			case "Percent":
+				return `${format_number(data.value || 0, null, data?.column?.precision || 2)}%`;
+			default:
+				return this.shorten_number
+					? frappe.utils.shorten_number(
+							data.value || 0,
+							frappe.sys_defaults.country,
+							null,
+							0
+					  )
+					: format_number(data.value || 0, null, 0);
+		}
 	}
 
 	// Add new method to create legend
@@ -491,26 +560,8 @@ class SVAHeatmap {
 				// Format the numbers based on fieldtype
 				let formattedBreak = break_;
 				let formattedNextBreak = nextBreak;
-
-				if (column?.fieldtype === "Currency") {
-					formattedBreak = frappe.utils.format_currency(
-						break_ || 0,
-						frappe.boot?.sysdefaults?.currency || "INR"
-					);
-					formattedNextBreak = frappe.utils.format_currency(
-						nextBreak || 0,
-						frappe.boot?.sysdefaults?.currency || "INR"
-					);
-				} else {
-					formattedBreak = frappe.utils.shorten_number(
-						break_ || 0,
-						frappe.sys_defaults.country
-					);
-					formattedNextBreak = frappe.utils.shorten_number(
-						nextBreak || 0,
-						frappe.sys_defaults.country
-					);
-				}
+				formattedBreak = this.get_formatted_value({ value: break_, ...column });
+				formattedNextBreak = this.get_formatted_value({ value: nextBreak, ...column });
 
 				const rangeText =
 					index === breaks.length - 2
@@ -861,17 +912,7 @@ class SVAHeatmap {
 				.map((field) => {
 					let value = data.data[field.fieldname];
 					if (value) {
-						if (field?.fieldtype === "Currency") {
-							value = frappe.utils.format_currency(
-								value,
-								frappe.boot?.sysdefaults?.currency || "INR"
-							);
-						} else {
-							value = frappe.utils.shorten_number(
-								value,
-								frappe.sys_defaults.country
-							);
-						}
+						value = this.get_formatted_value({ value, ...field });
 					}
 					return value ? `<br/>${field?.label}: ${value}` : "";
 				})
@@ -882,12 +923,7 @@ class SVAHeatmap {
             <div>
                 <strong>${name}</strong><br/>
                 ${column?.label || "Count"}: ${
-			column?.fieldtype == "Currency"
-				? frappe.utils.format_currency(
-						data?.count || 0,
-						frappe.boot?.sysdefaults?.currency || "INR"
-				  )
-				: frappe.utils.shorten_number(data?.count || 0, frappe.sys_defaults.country)
+			this.get_formatted_value({ value: data.count, ...column }) || 0
 		}
                 ${additionalFields}
             </div>

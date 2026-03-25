@@ -9,6 +9,24 @@ from frappe_theme.controllers.number_card import NumberCard
 
 
 class DTConf:
+	@staticmethod
+	def check_list_permissions(doctype, _type="List"):
+		response = {"permitted": False, "message": ""}
+		if _type == "Report":
+			if not frappe.has_permission("Report", "read"):
+				response["message"] = "No permission to read Report doctype"
+				return response
+			report = frappe.get_cached_doc("Report", doctype)
+			response["permitted"] = True if report.is_permitted() else False
+			if not response["permitted"]:
+				response["message"] = f"No permission to access report {doctype}"
+			return response
+		else:
+			response["permitted"] = True if frappe.has_permission(doctype, "read") else False
+			if not response["permitted"]:
+				response["message"] = f"No permission to access doctype {doctype}"
+			return response
+
 	# datatable settings
 	def get_direct_connection_dts(dt):
 		standard_dts = frappe.get_list(
@@ -110,20 +128,20 @@ class DTConf:
 					return report.columns
 		else:
 			meta_fields = frappe.get_meta(doctype, True).fields
-			property_setters = frappe.get_all(
-				"Property Setter",
-				filters={"doc_type": doctype},
-				fields=["field_name", "property", "value"],
-				ignore_permissions=True,
-			)
-			# Convert meta_fields into mutable dictionaries if necessary
+			# property_setters = frappe.get_all(
+			# 	"Property Setter",
+			# 	filters={"doc_type": doctype},
+			# 	fields=["field_name", "property", "value"],
+			# 	ignore_permissions=True,
+			# )
+			# # Convert meta_fields into mutable dictionaries if necessary
 			fields_dict = [f.as_dict() for f in meta_fields if f.fieldtype not in ["Tab Break"]]
-			# Apply property setter values to the meta fields
-			for field in fields_dict:
-				for ps in property_setters:
-					if field.get("fieldname") == ps.field_name:
-						# Dynamically set the field property
-						field[ps.property] = ps.value
+			# # Apply property setter values to the meta fields
+			# for field in fields_dict:
+			# 	for ps in property_setters:
+			# 		if field.get("fieldname") == ps.field_name:
+			# 			# Dynamically set the field property
+			# 			field[ps.property] = ps.value
 			if meta_attached:
 				return {"fields": fields_dict, "meta": frappe.get_meta(doctype, True).as_dict()}
 			else:
@@ -194,6 +212,8 @@ class DTConf:
 		ref_doctype = options["ref_doctype"]
 		doctype = options["doctype"]
 
+		if isinstance(filters, str):
+			filters = json.loads(filters)
 		if filters is not None and not isinstance(filters, (dict | list)):
 			filters = {}
 
@@ -214,6 +234,8 @@ class DTConf:
 
 	def get_dt_count(options):
 		filters = options["filters"]
+		if isinstance(filters, str):
+			filters = json.loads(filters)
 		doctype = options["doctype"]
 		if options["_type"] == "Report":
 			report = frappe.get_doc("Report", options["doctype"])
@@ -238,7 +260,17 @@ class DTConf:
 				)
 				return len(result)
 		else:
-			cleaned_filters = [item[:-1] if item and item[-1] is False else item for item in filters]
+			cleaned_filters = []
+			for item in filters:
+				if item and item[-1] is False:
+					item = item[:-1]
+				# Normalize operator to lowercase (e.g. 'IN' -> 'in') for query builder compatibility
+				if isinstance(item, list):
+					if len(item) == 4 and isinstance(item[2], str):
+						item = [item[0], item[1], item[2].lower(), item[3]]
+					elif len(item) == 3 and isinstance(item[1], str):
+						item = [item[0], item[1].lower(), item[2]]
+				cleaned_filters.append(item)
 			return frappe.db.count(doctype, filters=cleaned_filters)
 
 	# listview settings

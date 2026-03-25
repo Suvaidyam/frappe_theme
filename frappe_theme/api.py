@@ -247,201 +247,6 @@ def get_timeline_dt(dt, dn):
 	return [row["doctype"] for row in result]
 
 
-# @frappe.whitelist()
-# def copy_role_perms(doc):
-#     # Parse the doc parameter if it's a string
-#     if isinstance(doc, str):
-#         doc = frappe.parse_json(doc)
-
-#     # Get all existing Custom DocPerm records for the source role
-#     existing_perms = frappe.get_all('Custom DocPerm',
-#                     filters={
-#                         'role': doc.get('role_from'),
-#                         'permlevel': 0,
-#                     },
-#                     fields=['name', 'parent'],
-#                     ignore_permissions=True
-#                 )
-
-#     # Check if records with role_to already exist
-#     existing_role_to_perms = frappe.get_all('Custom DocPerm',
-#                     filters={
-#                         'role': doc.get('role_to'),
-#                         'permlevel': 0,
-#                     },
-#                     fields=['name', 'parent'],
-#                     ignore_permissions=True
-#                 )
-
-#     records_updated = 0
-#     records_created = 0
-
-#     # Create a dictionary of existing doctypes for role_to for faster lookup
-#     existing_doctypes = {perm.parent: perm.name for perm in existing_role_to_perms}
-
-#     # Process each permission from the source role
-#     for perm in existing_perms:
-#         # Get the full document for the permission
-#         source_perm = frappe.get_doc('Custom DocPerm', perm.name)
-
-#         # Get common permissions between source_perm and doc
-#         common_permissions = get_common_permissions(source_perm, doc)
-
-#         # Check if this doctype already has a permission for role_to
-#         if perm.parent in existing_doctypes:
-#             # Get the existing permission for role_to with the same parent
-#             target_perm_name = existing_doctypes[perm.parent]
-#             target_perm_doc = frappe.get_doc('Custom DocPerm', target_perm_name)
-
-#             # Update the permission values based on common permissions
-#             apply_common_permissions(target_perm_doc, common_permissions)
-
-#             # Only save if there are common permissions to apply
-#             if common_permissions:
-#                 target_perm_doc.save()
-#                 records_updated += 1
-#         else:
-#             # Create a new permission with role_to
-#             new_perm = frappe.get_doc('Custom DocPerm', perm.name)
-#             new_perm.role = doc.get('role_to')
-
-#             # Copy parent from the original permission
-#             new_perm.parent = perm.parent
-
-#             # Apply common permissions
-#             apply_common_permissions(new_perm, common_permissions)
-
-#             # Only insert if there are common permissions to apply
-#             if common_permissions:
-#                 new_perm.insert()
-#                 records_created += 1
-
-#     # Create redirect link
-#     redirect_link = f'<a href="/app/custom-docperm" class="">View Permissions</a>'
-
-#     # Show appropriate message with redirect link
-#     if records_updated > 0 and records_created > 0:
-#         frappe.msgprint(f"{records_updated} permissions updated and {records_created} permissions created successfully {redirect_link}")
-#     elif records_updated > 0:
-#         frappe.msgprint(f"{records_updated} permissions updated successfully {redirect_link}")
-#     elif records_created > 0:
-#         frappe.msgprint(f"{records_created} permissions created successfully {redirect_link}")
-#     else:
-#         frappe.msgprint(f"No permissions were updated or created")
-
-#     return True
-
-# def get_common_permissions(source_perm, doc):
-#     """Get common permissions between source_perm and doc"""
-#     common_permissions = {}
-
-#     # Check each permission field
-#     if 'select' in doc and int(doc.get('select', 0)) == int(source_perm.select):
-#         common_permissions['select'] = int(doc.get('select', 0))
-#     if 'read' in doc and int(doc.get('read', 0)) == int(source_perm.read):
-#         common_permissions['read'] = int(doc.get('read', 0))
-#     if 'write' in doc and int(doc.get('write', 0)) == int(source_perm.write):
-#         common_permissions['write'] = int(doc.get('write', 0))
-#     if 'create' in doc and int(doc.get('create', 0)) == int(source_perm.create):
-#         common_permissions['create'] = int(doc.get('create', 0))
-#     if 'delete_to' in doc and int(doc.get('delete_to', 0)) == int(source_perm.delete):
-#         common_permissions['delete'] = int(doc.get('delete_to', 0))
-#     if 'submit_to' in doc and int(doc.get('submit_to', 0)) == int(source_perm.submit):
-#         common_permissions['submit'] = int(doc.get('submit_to', 0))
-#     if 'cancel_to' in doc and int(doc.get('cancel_to', 0)) == int(source_perm.cancel):
-#         common_permissions['cancel'] = int(doc.get('cancel_to', 0))
-#     if 'amend' in doc and int(doc.get('amend', 0)) == int(source_perm.amend):
-#         common_permissions['amend'] = int(doc.get('amend', 0))
-#     if 'report' in doc and int(doc.get('report', 0)) == int(source_perm.report):
-#         common_permissions['report'] = int(doc.get('report', 0))
-#     if 'export' in doc and int(doc.get('export', 0)) == int(source_perm.export):
-#         common_permissions['export'] = int(doc.get('export', 0))
-#     if 'import_to' in doc and int(doc.get('import_to', 0)) == int(getattr(source_perm, 'import', 0)):
-#         common_permissions['import'] = int(doc.get('import_to', 0))
-#     if 'share' in doc and int(doc.get('share', 0)) == int(source_perm.share):
-#         common_permissions['share'] = int(doc.get('share', 0))
-#     if 'print' in doc and int(doc.get('print', 0)) == int(source_perm.print):
-#         common_permissions['print'] = int(doc.get('print', 0))
-#     if 'email' in doc and int(doc.get('email', 0)) == int(source_perm.email):
-#         common_permissions['email'] = int(doc.get('email', 0))
-
-#     return common_permissions
-
-# def apply_common_permissions(target_perm, common_permissions):
-#     """Apply common permissions to a permission document"""
-#     # For each permission, check if it's in common_permissions
-#     # If it is, use that value, otherwise set it to 0
-#     if 'select' in common_permissions:
-#         target_perm.select = common_permissions['select']
-#     else:
-#         target_perm.select = 0
-
-#     if 'read' in common_permissions:
-#         target_perm.read = common_permissions['read']
-#     else:
-#         target_perm.read = 0
-
-#     if 'write' in common_permissions:
-#         target_perm.write = common_permissions['write']
-#     else:
-#         target_perm.write = 0
-
-#     if 'create' in common_permissions:
-#         target_perm.create = common_permissions['create']
-#     else:
-#         target_perm.create = 0
-
-#     if 'delete' in common_permissions:
-#         target_perm.delete = common_permissions['delete']
-#     else:
-#         target_perm.delete = 0
-
-#     if 'submit' in common_permissions:
-#         target_perm.submit = common_permissions['submit']
-#     else:
-#         target_perm.submit = 0
-
-#     if 'cancel' in common_permissions:
-#         target_perm.cancel = common_permissions['cancel']
-#     else:
-#         target_perm.cancel = 0
-
-#     if 'amend' in common_permissions:
-#         target_perm.amend = common_permissions['amend']
-#     else:
-#         target_perm.amend = 0
-
-#     if 'report' in common_permissions:
-#         target_perm.report = common_permissions['report']
-#     else:
-#         target_perm.report = 0
-
-#     if 'export' in common_permissions:
-#         target_perm.export = common_permissions['export']
-#     else:
-#         target_perm.export = 0
-
-#     if 'import' in common_permissions:
-#         setattr(target_perm, 'import', common_permissions['import'])
-#     else:
-#         setattr(target_perm, 'import', 0)
-
-#     if 'share' in common_permissions:
-#         target_perm.share = common_permissions['share']
-#     else:
-#         target_perm.share = 0
-
-#     if 'print' in common_permissions:
-#         target_perm.print = common_permissions['print']
-#     else:
-#         target_perm.print = 0
-
-#     if 'email' in common_permissions:
-#         target_perm.email = common_permissions['email']
-#     else:
-#         target_perm.email = 0
-
-
 @frappe.whitelist()
 def copy_role_perms(doc):
 	doc = frappe.parse_json(doc) if isinstance(doc, str) else doc
@@ -533,33 +338,90 @@ def apply_common_permissions(doc, perms):
 
 @frappe.whitelist()
 def save_field_comment(
-	doctype_name, docname, field_name, field_label, comment_text, is_external=0, status="Open"
+	doctype_name: str,
+	docname: str,
+	field_name: str = "",  # ← add = ""
+	field_label: str = "",  # ← add = ""
+	comment_text: str = "",
+	is_external: int = 0,
+	is_vendor: int = 0,
+	status: str = "Open",
+	is_summary: int = 0,
 ):
 	try:
-		# Find or create the parent DocType Field Comment document
-		existing_comments = frappe.get_all(
-			"DocType Field Comment",
-			filters={"doctype_name": doctype_name, "docname": docname, "field_name": field_name},
-			fields=["name"],
-		)
+		# ── Permission check ────────────────────────────────────────────────────
+		# User must have read access on the parent document to comment on it
+		if not frappe.has_permission(doctype_name, "read", docname):
+			frappe.throw(_("Not permitted to comment on this document"), frappe.PermissionError)
 
-		if existing_comments and len(existing_comments) > 0:
-			comment_doc = frappe.get_doc("DocType Field Comment", existing_comments[0].name)
+		# ── Derive flags server-side — never trust client ────────────────────────
+		user_type = get_usr_type_roll()
+
+		# NGO users can only create external comments, never internal/vendor/summary
+		if user_type == "NGO":
+			is_external = 1
+			is_vendor = 0
+			is_summary = 0  # external users cannot mark summaries
+
+		# Vendor users can only create vendor comments, never internal/external/summary
+		elif user_type == "Vendor":
+			is_vendor = 1
+			is_external = 0
+			is_summary = 0  # external users cannot mark summaries
+
+		# Internal users — validate flags are boolean 0/1, no spoofing
 		else:
-			# Create new parent document
+			is_external = 1 if cint(is_external) else 0
+			is_vendor = 1 if cint(is_vendor) else 0
+			is_summary = 1 if cint(is_summary) else 0
+			# Internal users cannot set both is_external and is_vendor simultaneously
+			if is_external and is_vendor:
+				frappe.throw(_("A comment cannot be marked for both NGO and Vendor simultaneously"))
+
+		existing_open = frappe.get_all(
+			"DocType Field Comment",
+			filters={
+				"doctype_name": doctype_name,
+				"docname": docname,
+				"field_name": field_name or "",
+				"status": "Open",
+			},
+			fields=["name"],
+			order_by="creation desc",
+			limit=1,
+		)
+		if existing_open:
+			comment_doc = frappe.get_doc("DocType Field Comment", existing_open[0].name)
+		else:
 			comment_doc = frappe.get_doc(
 				{
 					"doctype": "DocType Field Comment",
 					"doctype_name": doctype_name,
 					"docname": docname,
-					"field_name": field_name,
-					"field_label": field_label,
-					"status": status,  # Set initial status
+					"field_name": field_name or "",
+					"field_label": field_label or field_name or "",
+					"status": "Open",
 				}
 			)
 			comment_doc.insert(ignore_permissions=True)
 
-		# Create the child DocType Field Comment Log entry
+		# If marked as summary, clear all previous is_summary=1 on this document
+		# Only reachable by internal users since is_summary forced to 0 above for externals
+		if is_summary:
+			all_parent_docs = frappe.get_all(
+				"DocType Field Comment",
+				filters={"doctype_name": doctype_name, "docname": docname},
+				pluck="name",
+				ignore_permissions=True,
+			)
+			if all_parent_docs:
+				frappe.db.set_value(
+					"DocType Field Comment Log",
+					{"parent": ["in", all_parent_docs], "is_summary": 1},
+					"is_summary",
+					0,
+				)
+
 		comment_log_entry = frappe.get_doc(
 			{
 				"doctype": "DocType Field Comment Log",
@@ -569,17 +431,13 @@ def save_field_comment(
 				"comment": comment_text,
 				"user": frappe.session.user,
 				"creation_date": frappe.utils.now_datetime(),
-				"is_external": int(is_external),  # Convert to integer and use the passed value
+				"is_external": is_external,
+				"is_vendor": is_vendor,
+				"is_summary": is_summary,
 			}
 		)
-
-		# Insert the child document, ignoring permissions
 		comment_log_entry.insert(ignore_permissions=True)
 
-		# Verify the comment was saved
-		# saved_log = frappe.get_doc('DocType Field Comment Log', comment_log_entry.name)
-
-		# Return the newly created comment log entry for UI update
 		return {
 			"name": comment_log_entry.name,
 			"parent": comment_doc.name,
@@ -587,8 +445,12 @@ def save_field_comment(
 			"user": frappe.session.user,
 			"creation_date": comment_log_entry.creation_date,
 			"is_external": comment_log_entry.is_external,
+			"is_vendor": comment_log_entry.is_vendor,
+			"is_summary": comment_log_entry.is_summary,
 		}
 
+	except frappe.PermissionError:
+		raise
 	except Exception as e:
 		frappe.log_error(
 			f"Error in save_field_comment: {str(e)}\nTraceback: {frappe.get_traceback()}",
@@ -724,10 +586,9 @@ def send_mention_notification(
 
 
 @frappe.whitelist()
-def create_new_comment_thread(doctype_name, docname, field_name, field_label):
-	"""Create a new comment thread for a field"""
+def create_new_comment_thread(doctype_name: str, docname: str, field_name: str, field_label: str):
+	"""Create a new comment thread for a field."""
 	try:
-		# Create new parent document
 		comment_doc = frappe.get_doc(
 			{
 				"doctype": "DocType Field Comment",
@@ -735,11 +596,10 @@ def create_new_comment_thread(doctype_name, docname, field_name, field_label):
 				"docname": docname,
 				"field_name": field_name,
 				"field_label": field_label,
-				"status": "Open",  # Set initial status
+				"status": "Open",
 			}
 		)
 		comment_doc.insert(ignore_permissions=True)
-
 		return comment_doc.name
 	except Exception as e:
 		frappe.log_error(f"Error creating new comment thread: {str(e)}")
@@ -747,10 +607,10 @@ def create_new_comment_thread(doctype_name, docname, field_name, field_label):
 
 
 def get_usr_type_roll():
+	"""Returns the team type (e.g. 'NGO', 'Vendor') for the current user."""
 	user_roll = ""
 	user_type = ""
 	try:
-		# Get all parent comment documents for the field
 		sva_usr_exists = frappe.db.exists("SVA User", {"email": frappe.session.user})
 		if sva_usr_exists:
 			user_roll = frappe.db.get_value("SVA User", {"email": frappe.session.user}, "role_profile")
@@ -764,7 +624,7 @@ def get_usr_type_roll():
 			else:
 				user_type = ""
 		except Exception as e:
-			frappe.log_error(f"Error in load_field_comments: {str(e)}")
+			frappe.log_error(f"Error in get_usr_type_roll inner: {str(e)}")
 		return user_type
 	except Exception as e:
 		frappe.log_error(f"Error in get_usr_type_roll: {str(e)}")
@@ -772,54 +632,100 @@ def get_usr_type_roll():
 
 
 @frappe.whitelist()
-def load_field_comments(doctype_name, docname, field_name):
-	"""Load all comment threads for a specific field"""
+def load_field_comments(doctype_name: str, docname: str, field_name: str):
+	"""Load all comment threads for a specific field."""
 	try:
+		if not frappe.has_permission(doctype_name, "read", docname):
+			frappe.throw(_("Not permitted"), frappe.PermissionError)
+
 		user_type = get_usr_type_roll()
+
 		comment_docs = frappe.get_all(
 			"DocType Field Comment",
 			filters={"doctype_name": doctype_name, "docname": docname, "field_name": field_name},
 			fields=["name", "status"],
-			order_by="creation desc",  # Most recent first
+			order_by="creation desc",
 			ignore_permissions=True,
 		)
 
 		if not comment_docs:
 			return {"threads": []}
 
-		# Get all comment logs for these parent documents
+		parent_names = [d.name for d in comment_docs]
+
+		# Fetch all logs for all threads in ONE query
+		log_filters = {
+			"parent": ["in", parent_names],
+			"parenttype": "DocType Field Comment",
+			"parentfield": "comment_log",
+		}
+		if user_type == "NGO":
+			log_filters["is_external"] = 1
+		elif user_type == "Vendor":
+			log_filters["is_vendor"] = 1
+
+		all_logs = frappe.get_all(
+			"DocType Field Comment Log",
+			filters=log_filters,
+			fields=[
+				"name",
+				"comment",
+				"user",
+				"creation_date",
+				"is_external",
+				"is_vendor",
+				"is_summary",
+				"parent",
+			],
+			order_by="creation_date asc",
+			ignore_permissions=True,
+		)
+
+		# Batch-fetch full_name for all unique users in ONE query
+		unique_users = {log["user"] for log in all_logs}
+		user_names = {}
+		if unique_users:
+			rows = frappe.get_all(
+				"User",
+				filters={"name": ["in", list(unique_users)]},
+				fields=["name", "full_name"],
+			)
+			user_names = {r["name"]: r["full_name"] for r in rows}
+
+		for log in all_logs:
+			log["full_name"] = user_names.get(log["user"]) or log["user"]
+
+		# Group logs by parent thread
+		logs_by_parent = {}
+		for log in all_logs:
+			logs_by_parent.setdefault(log["parent"], []).append(log)
+
 		threads = []
 		for doc in comment_docs:
-			filters = {
-				"parent": doc.name,
-				"parenttype": "DocType Field Comment",
-				"parentfield": "comment_log",
-			}
-
-			if user_type == "NGO":
-				filters["is_external"] = 1
-
-			comment_logs = frappe.get_all(
-				"DocType Field Comment Log",
-				filters=filters,
-				fields=["name", "comment", "user", "creation_date", "is_external"],
-				order_by="creation_date asc",
-				ignore_permissions=True,
+			threads.append(
+				{
+					"name": doc.name,
+					"status": doc.status,
+					"comments": logs_by_parent.get(doc.name, []),
+				}
 			)
-			threads.append({"name": doc.name, "status": doc.status, "comments": comment_logs})
 
 		return {"threads": threads}
 
+	except frappe.PermissionError:
+		raise
 	except Exception as e:
 		frappe.log_error(f"Error in load_field_comments: {str(e)}")
 		return {"threads": []}
 
 
 @frappe.whitelist()
-def load_all_comments(doctype_name, docname):
-	"""Load all comments for a document"""
+def load_all_comments(doctype_name: str, docname: str):
+	"""Load all comments for a document (global sidebar view)."""
 	try:
-		# Get all parent comment documents for the document
+		if not frappe.has_permission(doctype_name, "read", docname):
+			frappe.throw(_("Not permitted"), frappe.PermissionError)
+
 		user_type = get_usr_type_roll()
 
 		comment_docs = frappe.get_all(
@@ -832,79 +738,108 @@ def load_all_comments(doctype_name, docname):
 		if not comment_docs:
 			return []
 
-		# Get all comment logs for these parent documents
-		all_comments = []
-		for doc in comment_docs:
-			filters = {
-				"parent": doc.name,
-				"parenttype": "DocType Field Comment",
-				"parentfield": "comment_log",
+		parent_names = [d.name for d in comment_docs]
+
+		# Fetch all logs in ONE query
+		log_filters = {
+			"parent": ["in", parent_names],
+			"parenttype": "DocType Field Comment",
+			"parentfield": "comment_log",
+		}
+		if user_type == "NGO":
+			log_filters["is_external"] = 1
+		elif user_type == "Vendor":
+			log_filters["is_vendor"] = 1
+
+		all_logs = frappe.get_all(
+			"DocType Field Comment Log",
+			filters=log_filters,
+			fields=[
+				"name",
+				"comment",
+				"user",
+				"creation_date",
+				"is_external",
+				"is_vendor",
+				"is_summary",
+				"parent",
+			],
+			order_by="creation_date asc",
+			ignore_permissions=True,
+		)
+
+		# Batch-fetch full_name for all unique users in ONE query
+		unique_users = {log["user"] for log in all_logs}
+		user_names = {}
+		if unique_users:
+			rows = frappe.get_all(
+				"User",
+				filters={"name": ["in", list(unique_users)]},
+				fields=["name", "full_name"],
+			)
+			user_names = {r["name"]: r["full_name"] for r in rows}
+
+		for log in all_logs:
+			log["full_name"] = user_names.get(log["user"]) or log["user"]
+
+		# Group logs by parent
+		logs_by_parent = {}
+		for log in all_logs:
+			logs_by_parent.setdefault(log["parent"], []).append(log)
+
+		return [
+			{
+				"field_name": doc.field_name,
+				"field_label": doc.field_label,
+				"status": doc.status,
+				"comments": logs_by_parent.get(doc.name, []),
 			}
-			if user_type == "NGO":
-				filters["is_external"] = 1
+			for doc in comment_docs
+		]
 
-			comment_logs = frappe.get_all(
-				"DocType Field Comment Log",
-				filters=filters,
-				fields=["name", "comment", "user", "creation_date", "is_external"],
-				order_by="creation_date asc",
-				ignore_permissions=True,
-			)
-
-			all_comments.append(
-				{
-					"field_name": doc.field_name,
-					"field_label": doc.field_label,
-					"status": doc.status,
-					"comments": comment_logs,
-				}
-			)
-		return all_comments
-
+	except frappe.PermissionError:
+		raise
 	except Exception as e:
 		frappe.log_error(f"Error in load_all_comments: {str(e)}")
 		return []
 
 
 @frappe.whitelist()
-def get_all_field_comment_counts(doctype_name, docname):
-	"""Get comment counts for all fields in a document in a single call"""
+def get_all_field_comment_counts(doctype_name: str, docname: str):
+	"""Get comment counts for all fields — respects team visibility."""
 	try:
-		# Get user type for filtering
 		user_type = get_usr_type_roll()
 
-		# Get all parent comment documents for the document
 		comment_docs = frappe.get_all(
 			"DocType Field Comment",
 			filters={
 				"doctype_name": doctype_name,
 				"docname": docname,
-				"status": ["IN", ["Open", "Resolved"]],
+				"status": "Open",
 			},
 			fields=["name", "field_name"],
 			ignore_permissions=True,
 		)
+
 		if not comment_docs:
 			return {}
 
-		# Create a dictionary to store counts
 		field_counts = {}
-
-		# Get all comment logs for these parent documents
 		for doc in comment_docs:
 			filters = {
 				"parent": doc.name,
 				"parenttype": "DocType Field Comment",
 				"parentfield": "comment_log",
 			}
-
-			# For NGO users, only count external comments
 			if user_type == "NGO":
 				filters["is_external"] = 1
+			elif user_type == "Vendor":
+				filters["is_vendor"] = 1
 
 			count = frappe.db.count("DocType Field Comment Log", filters=filters)
 			field_counts[doc.field_name] = count
 
+		field_counts = {k: v for k, v in field_counts.items() if k}
 		return field_counts
 
 	except Exception as e:
@@ -913,15 +848,71 @@ def get_all_field_comment_counts(doctype_name, docname):
 
 
 @frappe.whitelist()
-def update_comment_external_flag(comment_name, is_external):
-	"""Update the external flag for a comment"""
+def get_all_field_thread_counts(doctype_name: str, docname: str):
+	"""Get open thread counts (number of DocType Field Comment records) per field/row."""
 	try:
-		# Check if the comment exists
+		comment_docs = frappe.get_all(
+			"DocType Field Comment",
+			filters={
+				"doctype_name": doctype_name,
+				"docname": docname,
+				"status": "Open",
+			},
+			fields=["field_name"],
+			ignore_permissions=True,
+		)
+
+		thread_counts = {}
+		for doc in comment_docs:
+			if doc.field_name:
+				thread_counts[doc.field_name] = thread_counts.get(doc.field_name, 0) + 1
+
+		return thread_counts
+
+	except Exception as e:
+		frappe.log_error(f"Error in get_all_field_thread_counts: {str(e)}")
+		return {}
+
+
+@frappe.whitelist()
+def get_all_field_thread_counts_detailed(doctype_name: str, docname: str):
+	"""Get both open and closed thread counts per field/row."""
+	try:
+		comment_docs = frappe.get_all(
+			"DocType Field Comment",
+			filters={
+				"doctype_name": doctype_name,
+				"docname": docname,
+			},
+			fields=["field_name", "status"],
+			ignore_permissions=True,
+		)
+
+		thread_counts = {}
+		for doc in comment_docs:
+			if doc.field_name:
+				if doc.field_name not in thread_counts:
+					thread_counts[doc.field_name] = {"open": 0, "closed": 0}
+				status = (doc.status or "Open").lower()
+				if status == "open":
+					thread_counts[doc.field_name]["open"] += 1
+				else:
+					thread_counts[doc.field_name]["closed"] += 1
+
+		return thread_counts
+
+	except Exception as e:
+		frappe.log_error(f"Error in get_all_field_thread_counts_detailed: {str(e)}")
+		return {}
+
+
+@frappe.whitelist()
+def update_comment_external_flag(comment_name: str, is_external: int):
+	"""Update the is_external flag for a comment."""
+	try:
 		if not frappe.db.exists("DocType Field Comment Log", comment_name):
 			frappe.throw(f"Comment {comment_name} does not exist")
-		# Update the external flag
-		frappe.db.set_value("DocType Field Comment Log", comment_name, "is_external", is_external)
-
+		frappe.db.set_value("DocType Field Comment Log", comment_name, "is_external", cint(is_external))
 		return True
 	except Exception as e:
 		frappe.log_error(f"Error updating external flag for comment {comment_name}: {str(e)}")
@@ -929,15 +920,151 @@ def update_comment_external_flag(comment_name, is_external):
 
 
 @frappe.whitelist()
-def get_total_open_resolved_comment_count(doctype_name, docname):
-	"""Return the total count of open and resolved comments for a document"""
+def get_total_open_resolved_comment_count(doctype_name: str, docname: str):
+	"""
+	Counts distinct fields with open threads — badge number.
+	Uses at most 2 queries total (no N+1).
+	"""
 	try:
-		field_counts = get_all_field_comment_counts(doctype_name, docname)
-		total = sum(field_counts.values()) if field_counts else 0
-		return total
+		user_type = get_usr_type_roll()
+
+		open_threads = frappe.get_all(
+			"DocType Field Comment",
+			filters={"doctype_name": doctype_name, "docname": docname, "status": "Open"},
+			fields=["name", "field_name"],
+			ignore_permissions=True,
+		)
+
+		if not open_threads:
+			return 0
+
+		# Internal users: just count distinct fields — no extra query needed
+		if user_type not in ("NGO", "Vendor"):
+			return len({t.field_name for t in open_threads if t.field_name})
+
+		# External users: single query to find which parent threads have qualifying logs
+		flag_field = "is_external" if user_type == "NGO" else "is_vendor"
+		parent_names = [t.name for t in open_threads]
+		thread_field_map = {t.name: t.field_name for t in open_threads}
+
+		qualifying_logs = frappe.get_all(
+			"DocType Field Comment Log",
+			filters={
+				"parent": ["in", parent_names],
+				"parenttype": "DocType Field Comment",
+				"parentfield": "comment_log",
+				flag_field: 1,
+			},
+			fields=["parent"],
+			ignore_permissions=True,
+		)
+
+		# Count distinct field_names from qualifying threads
+		counted_fields = {thread_field_map[log["parent"]] for log in qualifying_logs}
+		return len(counted_fields)
+
 	except Exception as e:
 		frappe.log_error(f"Error in get_total_open_resolved_comment_count: {str(e)}")
 		return 0
+
+
+@frappe.whitelist()
+def get_comments_summary(doctype_name: str, docname: str):
+	"""
+	Returns Open/Closed counts + single most-recent is_summary=1 comment.
+	Internal users only — NGO/Vendor are denied.
+	"""
+	try:
+		# Deny external users entirely
+		user_type = get_usr_type_roll()
+		if user_type in ("NGO", "Vendor"):
+			frappe.throw(_("Not permitted"), frappe.PermissionError)
+
+		if not frappe.has_permission(doctype_name, "read", docname):
+			frappe.throw(_("Not permitted"), frappe.PermissionError)
+
+		comment_docs = frappe.get_all(
+			"DocType Field Comment",
+			filters={"doctype_name": doctype_name, "docname": docname},
+			fields=["name", "status", "field_name", "field_label"],
+			ignore_permissions=True,
+		)
+
+		if not comment_docs:
+			return {"open": 0, "closed": 0, "summary_comments": []}
+
+		# Count statuses + build lookup maps in one pass
+		counts = {"Open": 0, "Closed": 0}
+		parent_names = []
+		field_map = {}
+		for doc in comment_docs:
+			counts[doc.status or "Open"] = counts.get(doc.status or "Open", 0) + 1
+			parent_names.append(doc.name)
+			field_map[doc.name] = {"field_name": doc.field_name, "field_label": doc.field_label}
+
+		# Fetch ALL is_summary logs in ONE query
+		summary_logs = frappe.get_all(
+			"DocType Field Comment Log",
+			filters={
+				"parent": ["in", parent_names],
+				"parenttype": "DocType Field Comment",
+				"parentfield": "comment_log",
+				"is_summary": 1,
+			},
+			fields=[
+				"name",
+				"comment",
+				"user",
+				"creation_date",
+				"is_external",
+				"is_vendor",
+				"is_summary",
+				"parent",
+			],
+			order_by="creation_date asc",
+			ignore_permissions=True,
+		)
+
+		# Batch-fetch full_name in ONE query
+		unique_users = {log["user"] for log in summary_logs}
+		user_names = {}
+		if unique_users:
+			rows = frappe.get_all(
+				"User",
+				filters={"name": ["in", list(unique_users)]},
+				fields=["name", "full_name"],
+			)
+			user_names = {r["name"]: r["full_name"] for r in rows}
+
+		for log in summary_logs:
+			log["full_name"] = user_names.get(log["user"]) or log["user"]
+			log["field_name"] = field_map[log["parent"]]["field_name"]
+			log["field_label"] = field_map[log["parent"]]["field_label"]
+
+		return {
+			"open": counts.get("Open", 0),
+			"closed": counts.get("Closed", 0),
+			"summary_comments": summary_logs,
+		}
+
+	except frappe.PermissionError:
+		raise
+	except Exception as e:
+		frappe.log_error(f"Error in get_comments_summary: {str(e)}")
+		return {"open": 0, "closed": 0, "summary_comments": []}
+
+
+@frappe.whitelist()
+def update_comment_summary_flag(comment_name: str, is_summary: int):
+	"""Toggle is_summary on a DocType Field Comment Log row."""
+	try:
+		if not frappe.db.exists("DocType Field Comment Log", comment_name):
+			frappe.throw(f"Comment {comment_name} does not exist")
+		frappe.db.set_value("DocType Field Comment Log", comment_name, "is_summary", cint(is_summary))
+		return True
+	except Exception as e:
+		frappe.log_error(f"Error updating summary flag for comment {comment_name}: {str(e)}")
+		return False
 
 
 @frappe.whitelist()
@@ -1066,16 +1193,21 @@ def get_files(doctype, docname):
 	except Exception as e:
 		frappe.log_error(title="Error fetching SVADatatable Configuration", message=str(e))
 		return []
-
 	try:
 		for child in get_config.child_doctypes:
 			if child.connection_type == "Direct" and child.link_doctype:
 				if frappe.has_permission(child.link_doctype, "read"):
 					all_doctype.append(child.link_doctype)
-					docname_list = frappe.get_all(
-						child.link_doctype, filters={child.link_fieldname: docname}, fields=["name"]
-					)
-					all_docname.extend([doc.name for doc in docname_list])
+					try:
+						docname_list = frappe.get_all(
+							child.link_doctype, filters={child.link_fieldname: docname}, fields=["name"]
+						)
+						all_docname.extend([doc.name for doc in docname_list])
+					except Exception as e:
+						frappe.log_error(
+							title="Error fetching direct child documents",
+							message=f"Error fetching documents for {child.link_doctype} with filter {child.link_fieldname}={docname}: {str(e)}",
+						)
 			elif (
 				child.connection_type == "Referenced"
 				and child.referenced_link_doctype
@@ -1083,12 +1215,18 @@ def get_files(doctype, docname):
 			):
 				if frappe.has_permission(child.referenced_link_doctype, "read"):
 					all_doctype.append(child.referenced_link_doctype)
-					docname_list = frappe.get_all(
-						child.referenced_link_doctype,
-						filters={child.dt_reference_field: docname},
-						fields=["name"],
-					)
-					all_docname.extend([doc.name for doc in docname_list])
+					try:
+						docname_list = frappe.get_all(
+							child.referenced_link_doctype,
+							filters={child.dt_reference_field: docname},
+							fields=["name"],
+						)
+						all_docname.extend([doc.name for doc in docname_list])
+					except Exception as e:
+						frappe.log_error(
+							title="Error fetching referenced documents",
+							message=f"Error fetching documents for {child.referenced_link_doctype} with filter {child.dt_reference_field}={docname}: {str(e)}",
+						)
 			elif child.connection_type == "Indirect" and child.link_doctype:
 				pass
 				# skipping this part for future enhancement
@@ -1144,7 +1282,6 @@ def get_files(doctype, docname):
 		frappe.log_error(
 			title="Error in get_files child_confs from svadatatable configuration", message=str(e)
 		)
-
 	try:
 		file_list = frappe.get_all(
 			"File",

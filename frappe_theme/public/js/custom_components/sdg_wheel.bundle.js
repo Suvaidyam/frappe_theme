@@ -12,6 +12,7 @@ class SVASDGWheel {
 		this.block_height = conf.sdg_block_height;
 		this.target_fields = JSON.parse(conf.sdg_target_fields || "[]");
 		this.sdg_column_name = conf.sdg_name_column || "";
+		this.shorten_number = conf.show_full_number ? false : true;
 		this.sdg_data = this.get_sdg_data();
 		this.frm = frm;
 		this.selected_goals = [];
@@ -325,11 +326,35 @@ class SVASDGWheel {
 		const wrapper = document.createElement("div");
 		let loader = new Loader(wrapper);
 		loader.show();
+
+		let pre_filters = {};
+		if (this.frm) {
+			if (this.frm?.["dt_events"]?.[this?.html_field]?.get_filters) {
+				let get_filters = this.frm?.["dt_events"]?.[this?.html_field]?.get_filters;
+				pre_filters = (await get_filters(this.report_name, this.html_field)) || {};
+			}
+		}
+
 		let table_options = {
 			label: "",
 			wrapper,
 			doctype: "",
-			frm: this.frm || cur_frm,
+			frm: Object.assign(
+				{
+					dt_events: {
+						[this?.report_name]: {
+							get_filters: () => {
+								return {
+									...this.standard_filters,
+									...this.filters,
+									...pre_filters,
+								};
+							},
+						},
+					},
+				},
+				this.frm || cur_frm
+			),
 			connection: {
 				crud_permissions: JSON.stringify(["read"]),
 				link_report: this.report_name,
@@ -756,30 +781,36 @@ class SVASDGWheel {
 	get_formatted_value(data) {
 		switch (data?.fieldtype) {
 			case "Currency":
-				return frappe.utils.format_currency(data.value || 0);
+				return frappe.utils.format_currency(data.value || 0, null, this.shorten_number);
 			case "Float":
-				return frappe.utils.shorten_number(
-					data.value || 0,
-					frappe.sys_defaults.country,
-					null,
-					data?.column?.precision || 2
-				);
+				return this.shorten_number
+					? frappe.utils.shorten_number(
+							data.value || 0,
+							frappe.sys_defaults.country,
+							null,
+							data?.column?.precision || 2
+					  )
+					: format_number(data.value || 0, null, 0);
 			case "Int":
-				return frappe.utils.shorten_number(
-					data.value || 0,
-					frappe.sys_defaults.country,
-					null,
-					0
-				);
+				return this.shorten_number
+					? frappe.utils.shorten_number(
+							data.value || 0,
+							frappe.sys_defaults.country,
+							null,
+							0
+					  )
+					: format_number(data.value || 0, null, 0);
 			case "Percent":
 				return `${format_number(data.value || 0, null, data?.column?.precision || 2)}%`;
 			default:
-				return frappe.utils.shorten_number(
-					data.value || 0,
-					frappe.sys_defaults.country,
-					null,
-					0
-				);
+				return this.shorten_number
+					? frappe.utils.shorten_number(
+							data.value || 0,
+							frappe.sys_defaults.country,
+							null,
+							0
+					  )
+					: format_number(data.value || 0, null, 0);
 		}
 	}
 

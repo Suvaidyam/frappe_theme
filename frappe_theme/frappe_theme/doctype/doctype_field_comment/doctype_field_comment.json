@@ -35,8 +35,7 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Field Name",
-   "read_only": 1,
-   "reqd": 1
+   "read_only": 1
   },
   {
    "fieldname": "field_label",
@@ -50,7 +49,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Status",
-   "options": "Open\nResolved\nClosed"
+   "options": "Open\nClosed"
   },
   {
    "fieldname": "comment_log",
@@ -60,7 +59,7 @@
   }
  ],
  "links": [],
- "modified": "2025-06-05 17:35:28.430981",
+ "modified": "2026-03-08 12:08:32.833665",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "DocType Field Comment",
@@ -80,6 +79,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
