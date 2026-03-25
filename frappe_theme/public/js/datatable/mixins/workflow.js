@@ -50,6 +50,13 @@ const WorkflowMixin = {
 						reqd: field_obj?.read_only ? 0 : field_obj?.reqd,
 						read_only: field_obj?.read_only,
 						options: field.options,
+						...(["Table MultiSelect", "Table"].includes(field.fieldtype)
+							? {
+									data: field_data,
+									cannot_add_rows: field_obj?.read_only,
+									cannot_delete_rows: field_obj?.read_only,
+							  }
+							: {}),
 					};
 				});
 		} else {
