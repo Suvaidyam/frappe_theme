@@ -147,20 +147,17 @@ audit_trail = frappe.get_all(
 )
 ```
 
-## Approval Timeline API
+## Approval Timeline
 
-The `get_workflow_audit` API returns a structured workflow audit trail for visualization:
+See [approval-timeline.md](approval-timeline.md) for the complete Approval Timeline documentation.
 
-```python
-frappe.call(
-    "frappe_theme.apis.approval_timeline.get_workflow_audit",
-    doctype="Leave Application",
-    reference_name="LA-001",
-    limit=50
-)
-```
+### Custom Fields on Workflow Document State
 
-This returns the workflow state sequence and all actions taken, which the **Approval Timeline** Vue component renders as a visual timeline.
+| Field | Type | Purpose |
+|-------|------|---------|
+| **Closure** (`custom_closure`) | Select | Terminal state classification. Options: `Positive`, `Negative`, `Neutral`, `Sign-Off Prerequisite`, `Completed`, `Cancelled` |
+| **Approval Stage** (`custom_approval_stage`) | Data | Optional stage label for grouping states in the timeline progress bar. If empty, the state name is used. Multiple states can share the same approval stage. |
+| **NGO State** (`custom_ngo_state`) | Data | Optional label shown to NGO users instead of the internal state name |
 
 ## Approval Tracker
 

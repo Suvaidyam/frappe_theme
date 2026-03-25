@@ -184,10 +184,33 @@ def get_workflow_audit(doctype=None, reference_name=None, limit=100):
 		if actions and frappe.session.user != "Administrator":
 			actions = _apply_field_level_permissions_to_workflow_audit(actions, doctype)
 
+		# Build unique approval stages from workflow doc states (idx order)
+		# Terminal closures (Positive, Negative, Neutral) go to the end
+		workflow_doc = frappe.get_doc("Workflow", workflow_name)
+		approval_stages = []
+		terminal_stages = []
+		seen_stages = set()
+		state_stage_map = []
+		terminal_closures = ("Positive", "Negative", "Neutral")
+		for state in workflow_doc.states:
+			stage = state.custom_approval_stage or state.state
+			closure = state.custom_closure or None
+			state_stage_map.append({"state": state.state, "stage": stage, "closure": closure})
+			if stage not in seen_stages:
+				seen_stages.add(stage)
+				entry = {"stage": stage, "closure": closure}
+				if closure in terminal_closures:
+					terminal_stages.append(entry)
+				else:
+					approval_stages.append(entry)
+		approval_stages.extend(terminal_stages)
+
 		return {
 			"success": True,
 			"workflow": workflow_name,
 			"workflow_states": workflow_states,
+			"approval_stages": approval_stages,
+			"state_stage_map": state_stage_map,
 			"current_doc_state": current_doc_state,
 			"doctype": doctype,
 			"reference_name": reference_name,
@@ -339,6 +362,8 @@ def get_workflow_state_sequence(workflow_name):
 				"state": state.state,
 				"doc_status": state.doc_status,
 				"is_optional": state.is_optional_state or 0,
+				"approval_stage": state.custom_approval_stage or state.state,
+				"closure": state.custom_closure or None,
 			}
 			all_states.append(state_info)
 			state_dict[state.state] = state_info
@@ -385,6 +410,8 @@ def get_workflow_state_sequence(workflow_name):
 					"state": state,
 					"doc_status": state_dict[state]["doc_status"],
 					"is_optional": state_dict[state]["is_optional"],
+					"approval_stage": state_dict[state]["approval_stage"],
+					"closure": state_dict[state]["closure"],
 				}
 			)
 

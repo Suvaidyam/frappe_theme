@@ -119,7 +119,11 @@
 			<div
 				v-for="(item, index) in timelineItems"
 				:key="item.name"
-				:class="['timeline-item', { pending: index === 0 && !item.completed }]"
+				:class="[
+					'timeline-item',
+					{ pending: index === 0 && !item.completed },
+					getTimelineLineClass(item, index),
+				]"
 			>
 				<!-- Left Panel -->
 				<div class="timeline-left">
@@ -375,22 +379,34 @@ const toggleShowAllFields = (itemName) => {
 	showAllFields.value[itemName] = !showAllFields.value[itemName];
 };
 
-// Helper function to check if state is approved/accepted/receipt confirmed
-const isApprovedState = (state) => {
-	if (!state) return false;
-	const normalizedState = state.trim().toLowerCase();
-	return (
-		normalizedState === "approved" ||
-		normalizedState === "accepted" ||
-		normalizedState === "receipt confirmed"
-	);
+// Look up state info (stage, closure) from state_stage_map (idx-based, all states)
+const getStateInfo = (state) => {
+	return (workflowData.value.state_stage_map || []).find((s) => s.state === state);
 };
 
-// Helper function to check if state is rejected
+// Helper function to check if state has neutral closure
+const isNeutralState = (state) => {
+	if (!state) return false;
+	const info = getStateInfo(state);
+	return info?.closure === "Neutral";
+};
+
+// Helper function to check if state is approved/positive closure
+const isApprovedState = (state) => {
+	if (!state) return false;
+	const info = getStateInfo(state);
+	if (info?.closure) return info.closure === "Positive";
+	// Fallback for workflows without closure configured
+	const n = state.trim().toLowerCase();
+	return n === "approved" || n === "accepted" || n === "receipt confirmed";
+};
+
+// Helper function to check if state is rejected/negative closure
 const isRejectedState = (state) => {
 	if (!state) return false;
-	const normalizedState = state.trim().toLowerCase();
-	return normalizedState === "rejected";
+	const info = getStateInfo(state);
+	if (info?.closure) return info.closure === "Negative";
+	return state.trim().toLowerCase() === "rejected";
 };
 
 // Get count of hidden fields based on whether comment is present
@@ -408,16 +424,14 @@ const getHiddenFieldsCount = (item) => {
 	}
 };
 
-// Helper function to check if state is final
+// Helper function to check if state is final (has terminal closure)
 const isFinalState = (state) => {
 	if (!state) return false;
-	const normalizedState = state.trim().toLowerCase();
-	return (
-		normalizedState === "approved" ||
-		normalizedState === "accepted" ||
-		normalizedState === "receipt confirmed" ||
-		normalizedState === "rejected"
-	);
+	const info = getStateInfo(state);
+	if (info?.closure) return ["Positive", "Negative", "Neutral"].includes(info.closure);
+	// Fallback for workflows without closure configured
+	const n = state.trim().toLowerCase();
+	return ["approved", "accepted", "receipt confirmed", "rejected"].includes(n);
 };
 
 // Timeline Items - Show minimal placeholder if no actions
@@ -438,103 +452,95 @@ const timelineItems = computed(() => {
 	return actions;
 });
 
-// Progress Steps - Show only executed states from actions
+// Progress Steps - Show unique approval stages from workflow config (idx order)
 const progressSteps = computed(() => {
-	const actions = timelineItems.value || [];
+	const stages = workflowData.value.approval_stages || [];
+	const stateStageMap = workflowData.value.state_stage_map || [];
+	const actions = workflowData.value.actions || [];
 	const currentDocState = props.workflowState || workflowData.value.current_doc_state;
 
-	if (actions.length === 0) {
-		// No actions yet, show only current state if we have it
-		if (currentDocState) {
-			const normalizedState = currentDocState.trim().toLowerCase();
-			return [
-				{
-					label: currentDocState,
-					completed: false,
-					active: true,
-					timestamp: new Date().toISOString(),
-					index: 0,
-					isSuccess:
-						normalizedState === "approved" ||
-						normalizedState === "accepted" ||
-						normalizedState === "receipt confirmed",
-					isRejected: normalizedState === "rejected",
-					isFinalState:
-						normalizedState === "approved" ||
-						normalizedState === "accepted" ||
-						normalizedState === "receipt confirmed" ||
-						normalizedState === "rejected",
-				},
-			];
-		}
-		return [];
+	if (!stages.length) return [];
+
+	// Build state → stage lookup from state_stage_map (covers all states)
+	const stateToStage = {};
+	for (const s of stateStageMap) {
+		stateToStage[s.state] = s.stage;
 	}
 
-	const steps = [];
-	const stateMap = new Map();
-
-	// Process actions in chronological order (oldest first)
-	[...actions].reverse().forEach((item, index) => {
-		const previousState = item.workflow_state_previous;
-		const currentState = item.workflow_state_current;
-
-		// Add previous state if this is the first action
-		if (index === 0 && previousState && !stateMap.has(previousState)) {
-			const normalizedPrevState = previousState.trim().toLowerCase();
-			stateMap.set(previousState, {
-				label: previousState,
-				completed: true,
-				timestamp: item.creation,
-				index: steps.length,
-				isSuccess:
-					normalizedPrevState === "approved" ||
-					normalizedPrevState === "accepted" ||
-					normalizedPrevState === "receipt confirmed",
-				isRejected: normalizedPrevState === "rejected",
-				isFinalState:
-					normalizedPrevState === "approved" ||
-					normalizedPrevState === "accepted" ||
-					normalizedPrevState === "receipt confirmed" ||
-					normalizedPrevState === "rejected",
-			});
-			steps.push(stateMap.get(previousState));
+	// Collect visited stages from actions
+	const visitedStages = new Set();
+	[...actions].reverse().forEach((action) => {
+		if (action.workflow_state_previous) {
+			visitedStages.add(
+				stateToStage[action.workflow_state_previous] || action.workflow_state_previous
+			);
 		}
-
-		// Add current state (allow duplicates for loops like: submitted -> under review -> submitted)
-		if (currentState) {
-			const normalizedState = currentState.trim().toLowerCase();
-			const stateKey = `${currentState}_${index}`; // Allow same state multiple times
-
-			stateMap.set(stateKey, {
-				label: currentState,
-				completed: true,
-				timestamp: item.creation,
-				index: steps.length,
-				isSuccess:
-					normalizedState === "approved" ||
-					normalizedState === "accepted" ||
-					normalizedState === "receipt confirmed",
-				isRejected: normalizedState === "rejected",
-				isFinalState:
-					normalizedState === "approved" ||
-					normalizedState === "accepted" ||
-					normalizedState === "receipt confirmed" ||
-					normalizedState === "rejected",
-			});
-			steps.push(stateMap.get(stateKey));
+		if (action.workflow_state_current) {
+			visitedStages.add(
+				stateToStage[action.workflow_state_current] || action.workflow_state_current
+			);
 		}
 	});
 
-	// Mark the last step as active (not completed) if it's not a final state
-	if (steps.length > 0) {
-		const lastStep = steps[steps.length - 1];
-		if (!lastStep.isFinalState) {
-			lastStep.completed = false;
-			lastStep.active = true;
-		}
+	// Current stage from current doc state
+	const currentStage = currentDocState ? stateToStage[currentDocState] || currentDocState : null;
+	const currentStateInfo = currentDocState ? getStateInfo(currentDocState) : null;
+	const isCurrentApproved = currentStateInfo?.closure === "Positive";
+	const isCurrentRejected = currentStateInfo?.closure === "Negative";
+	const isCurrentNeutral = currentStateInfo?.closure === "Neutral";
+	const isTerminal = isCurrentApproved || isCurrentRejected || isCurrentNeutral;
+
+	// Filter: hide terminal closure stages unless currently in that closure
+	// When Negative/Neutral is reached, also hide Positive
+	const displayStages = stages.filter((s) => {
+		if (s.closure === "Negative") return isCurrentRejected;
+		if (s.closure === "Neutral") return isCurrentNeutral;
+		if (s.closure === "Positive") return !(isCurrentRejected || isCurrentNeutral);
+		return true;
+	});
+
+	// Find index of current stage in display list
+	const currentStageIndex = displayStages.findIndex((s) => s.stage === currentStage);
+
+	// For Negative/Neutral: find highest visited non-closure stage index
+	let highestVisitedIndex = -1;
+	if (isCurrentRejected || isCurrentNeutral) {
+		displayStages.forEach((ds, i) => {
+			if (visitedStages.has(ds.stage) && !ds.closure) {
+				highestVisitedIndex = Math.max(highestVisitedIndex, i);
+			}
+		});
 	}
 
-	return steps;
+	return displayStages.map((s, index) => {
+		const isCurrent = s.stage === currentStage;
+
+		let isCompleted = false;
+		if (isCurrentApproved) {
+			// Positive: ALL stages green (including the positive stage itself)
+			isCompleted = true;
+		} else if ((isCurrentRejected || isCurrentNeutral) && isCurrent) {
+			// The terminal closure stage itself is completed
+			isCompleted = true;
+		} else if ((isCurrentRejected || isCurrentNeutral) && !isCurrent) {
+			// Green for all stages up to the highest visited index
+			isCompleted = index <= highestVisitedIndex;
+		} else if (!isTerminal && currentStageIndex >= 0 && index < currentStageIndex) {
+			// Normal flow: stages before current are completed
+			isCompleted = true;
+		}
+
+		return {
+			label: s.stage,
+			completed: isCompleted,
+			active: isCurrent && !isTerminal,
+			isSuccess: isCurrent && isCurrentApproved,
+			isRejected: isCurrent && isCurrentRejected,
+			isNeutral: isCurrent && isCurrentNeutral,
+			isFinalState: ["Positive", "Negative", "Neutral"].includes(s.closure),
+			timestamp: new Date().toISOString(),
+		};
+	});
 });
 
 // Load Data from API
@@ -576,12 +582,33 @@ const loadWorkflowData = async () => {
 
 // Helper Functions
 const getStateConfig = (state) => {
-	// Normalize state for matching
-	const normalizedState = state?.trim().toLowerCase() || "";
+	// Check closure from workflow data first
+	const info = getStateInfo(state);
+	if (info?.closure === "Positive") {
+		return {
+			statusClass: "status-success",
+			stateClass: "state-success",
+			nodeClass: "node-success",
+		};
+	}
+	if (info?.closure === "Negative") {
+		return {
+			statusClass: "status-danger",
+			stateClass: "state-danger",
+			nodeClass: "node-danger",
+		};
+	}
+	if (info?.closure === "Neutral") {
+		return {
+			statusClass: "status-default",
+			stateClass: "state-default",
+			nodeClass: "node-default",
+		};
+	}
 
-	// Bootstrap-style color mapping
+	// Fallback: static map for workflows without closure configured
+	const normalizedState = state?.trim().toLowerCase() || "";
 	const stateMap = {
-		// Success states (Green)
 		approved: {
 			statusClass: "status-success",
 			stateClass: "state-success",
@@ -597,20 +624,12 @@ const getStateConfig = (state) => {
 			stateClass: "state-success",
 			nodeClass: "node-success",
 		},
-
-		// Danger state (Red)
 		rejected: {
 			statusClass: "status-danger",
 			stateClass: "state-danger",
 			nodeClass: "node-danger",
 		},
-
-		// Info states (Blue)
-		draft: {
-			statusClass: "status-info",
-			stateClass: "state-info",
-			nodeClass: "node-info",
-		},
+		draft: { statusClass: "status-info", stateClass: "state-info", nodeClass: "node-info" },
 		disbursed: {
 			statusClass: "status-info",
 			stateClass: "state-info",
@@ -618,12 +637,10 @@ const getStateConfig = (state) => {
 		},
 	};
 
-	// Exact match (case-insensitive)
 	if (stateMap[normalizedState]) {
 		return stateMap[normalizedState];
 	}
 
-	// Default gray for all other states
 	return {
 		statusClass: "status-default",
 		stateClass: "state-default",
@@ -640,6 +657,14 @@ const getProgressStepClass = (step, index) => {
 	if (step.active) return "active";
 	if (step.completed) return "completed";
 	return "";
+};
+
+// Timeline line color: green for performed actions, red for negative closure
+const getTimelineLineClass = (item, index) => {
+	const items = timelineItems.value;
+	if (index >= items.length - 1) return "";
+	if (isRejectedState(item.workflow_state_current)) return "line-danger";
+	return "line-success";
 };
 
 const getRoleAvatar = (role) => {
@@ -701,6 +726,11 @@ const formatDate = (dateStr) => {
 };
 
 const getCommentClass = (item) => {
+	// Check closure from workflow state data first
+	const info = getStateInfo(item.workflow_state_current);
+	if (info?.closure === "Positive") return "comment-approved";
+	if (info?.closure === "Negative") return "comment-rejected";
+	// Fallback to action-name-based checks
 	const action = item.workflow_action?.toLowerCase() || "";
 	if (action.includes("send back")) return "comment-sent-back";
 	if (action.includes("approve")) return "comment-approved";
@@ -708,12 +738,14 @@ const getCommentClass = (item) => {
 	return "comment-info";
 };
 
-// Icon Components - Based on actions (original logic)
+// Icon Components - closure-based with action fallback
 const getIconComponent = (item) => {
+	const info = getStateInfo(item.workflow_state_current);
 	const action = item.workflow_action?.toLowerCase() || "";
 	const state = item.workflow_state_current?.toLowerCase() || "";
 
-	if (action.includes("approve") || state.includes("approved")) {
+	// Closure-based: Positive → checkmark
+	if (info?.closure === "Positive" || action.includes("approve") || state.includes("approved")) {
 		return h(
 			"svg",
 			{ viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2" },
@@ -721,7 +753,8 @@ const getIconComponent = (item) => {
 		);
 	}
 
-	if (action.includes("reject") || state.includes("rejected")) {
+	// Closure-based: Negative → X
+	if (info?.closure === "Negative" || action.includes("reject") || state.includes("rejected")) {
 		return h(
 			"svg",
 			{ viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2" },
@@ -1105,6 +1138,14 @@ defineExpose({
 
 .timeline-item:last-child .timeline-left::before {
 	display: none;
+}
+
+/* Timeline line colors */
+.timeline-item.line-success .timeline-left::before {
+	background: #10b981;
+}
+.timeline-item.line-danger .timeline-left::before {
+	background: #ef4444;
 }
 
 /* Timeline Node */

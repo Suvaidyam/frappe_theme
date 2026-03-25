@@ -176,9 +176,6 @@ doc_events = {
 	"Report": {
 		"before_save": "frappe_theme.overrides.report.before_save",
 	},
-	"Workflow": {
-		"before_save": "frappe_theme.overrides.workflow.workflow_before_save",
-	},
 	"File": {
 		"after_insert": "frappe_theme.controllers.sva_integrations.cloud_assets.file_upload_to_cloud",
 		"on_trash": "frappe_theme.controllers.sva_integrations.cloud_assets.delete_from_cloud",

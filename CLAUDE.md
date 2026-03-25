@@ -147,6 +147,7 @@ Detailed docs for each feature are in `docs/`:
 | `theme-customization.md` | My Theme DocType colors |
 | `data-protection.md` | Field-level encryption and masking |
 | `workflow-customization.md` | Approval workflows and audit trail |
+| `approval-timeline.md` | Approval Timeline component — progress bar, closure types, API, Vue usage |
 | `cloud-storage.md` | AWS S3 and Azure Blob |
 | `gallery-and-carousel.md` | File gallery and carousel |
 | `workspace-configuration.md` | Workspace heatmaps/tables |
