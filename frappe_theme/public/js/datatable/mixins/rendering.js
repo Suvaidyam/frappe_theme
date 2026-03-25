@@ -407,7 +407,7 @@ const RenderingMixin = {
 				td.style.position = "sticky";
 				td.style.left = `${left}px`;
 				td.style.zIndex = "2";
-				td.style.backgroundColor = "#f9f9f9";
+				td.style.backgroundColor = col?.bg_color || "#f9f9f9";
 				td.style.minWidth = `${colWidth}px`;
 				td.style.maxWidth = `${colWidth}px`;
 				if (isLastSticky) td.style.borderRight = "2px solid #d1d8dd";
@@ -422,15 +422,11 @@ const RenderingMixin = {
 				);
 				if (ftype === "Currency") {
 					const currency = fieldMeta.options || frappe.sys_defaults?.currency || "INR";
-					td.textContent = format_currency(sum, currency);
+					td.textContent = formatCurrency(sum, currency);
 				} else if (ftype === "Percent") {
 					const visibleRowLength = this.rows?.length || 0;
 					const avg = sum / (visibleRowLength || 1); // Average across visible rows
-					td.textContent =
-						avg.toLocaleString("en-US", {
-							minimumFractionDigits: 0,
-							maximumFractionDigits: 2,
-						}) + "%";
+					td.innerHTML = this.percentageCell(avg, col?.color || "#3182ce");
 				} else {
 					td.textContent = sum.toLocaleString("en-US", {
 						minimumFractionDigits: 0,
@@ -440,11 +436,14 @@ const RenderingMixin = {
 				td.style.textAlign = "right";
 				td.style.padding = "4px 8px";
 			} else {
-				td.textContent = "--";
+				td.textContent = "-";
 				td.style.textAlign = "center";
 				td.style.padding = "4px 8px";
 				td.style.color = "var(--text-muted)";
 			}
+
+			if (col?.color) td.style.color = col.color;
+			if (col?.bg_color) td.style.backgroundColor = col.bg_color;
 
 			tr.appendChild(td);
 		});
