@@ -51,7 +51,6 @@ const formatDatetime = (datetime) => {
 function formatCurrency(v, currency, decimals = 2) {
 	const format = get_number_format(currency);
 	const symbol = get_currency_symbol(currency);
-	console.log(format, symbol, "format");
 
 	const show_symbol_on_right =
 		frappe.model.get_value(":Currency", currency, "symbol_on_right") ?? false;
