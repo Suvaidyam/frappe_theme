@@ -67,6 +67,15 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 										read_only: field_obj?.read_only,
 										reqd: field_obj?.read_only ? 0 : field_obj?.reqd,
 										options: field.options,
+										...(["Table MultiSelect", "Table"].includes(
+											field.fieldtype
+										)
+											? {
+													data: field_data,
+													cannot_add_rows: field_obj?.read_only,
+													cannot_delete_rows: field_obj?.read_only,
+											  }
+											: {}),
 									};
 									if (_field.fieldtype === "Table") {
 										_field["fields"] = field_obj.fields;
