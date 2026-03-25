@@ -147,23 +147,29 @@ const DataMixin = {
 				this.total = message;
 			}
 			// Update pagination after getting total count
-			if (this.total > this.limit) {
-				if (
-					!this.wrapper
-						.querySelector("div#footer-element")
-						?.querySelector("div#pagination-element")
-				) {
-					this.setupPagination();
-				} else {
+			if (this.total > this.limit && !this.isTransposed) {
+				const footer = this.wrapper?.querySelector("div#footer-element");
+				const footerRight = footer?.querySelector("#sva-dt-footer-right");
+				const target = footerRight || footer;
+				const existing = target?.querySelector("div#pagination-element");
+				if (!existing && target) {
+					target.appendChild(this.setupPagination());
+				} else if (existing) {
 					this.updatePageButtons();
 				}
 			} else {
 				// Remove pagination if not needed
 				let paginationElement = this.wrapper
-					.querySelector("div#footer-element")
+					.querySelector("div#sva-dt-footer-right")
 					?.querySelector("div#pagination-element");
+				if (!paginationElement) {
+					paginationElement = this.wrapper
+						.querySelector("div#footer-element")
+						?.querySelector("div#pagination-element");
+				}
 				if (paginationElement) {
 					paginationElement.remove();
+					this.pageButtonsContainer = null;
 				}
 			}
 			let res = await this.sva_db.call({

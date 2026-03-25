@@ -1,11 +1,15 @@
 const RenderingMixin = {
 	createTableRow(row, rowIndex) {
 		const tr = document.createElement("tr");
-		tr.style.maxHeight = "32px";
-		tr.style.height = "32px";
 		tr.style.backgroundColor = "#fff";
 		tr.setAttribute("data-row-index", rowIndex);
 		tr.setAttribute("data-docname", row.name);
+
+		const hasWrapColumn = this.header?.some((h) => h.wrap);
+		if (!hasWrapColumn) {
+			tr.style.maxHeight = "32px";
+			tr.style.height = "32px";
+		}
 
 		let primaryKey = row?.name || row?.rowIndex || rowIndex?.id || rowIndex;
 
@@ -24,52 +28,59 @@ const RenderingMixin = {
 				let formatter =
 					this.frm.dt_events[this.doctype ?? this.link_report].formatter["#"];
 				serialTd.innerHTML = formatter(serialNumber, row, this);
+			} else if (!this.hasNavigableColumn && this.connection?.connection_type !== "Report") {
+				const doctype = this.doctype;
+				const href = `/app/${encodeURIComponent(
+					frappe.router.slug(doctype)
+				)}/${encodeURIComponent(row.name)}`;
+				const linkColor = frappe.boot?.my_theme?.navbar_color || "var(--primary-color)";
+				serialTd.innerHTML = `<a href="${href}" data-doctype="${doctype}" data-name="${row.name}" style="cursor:pointer; text-decoration:underline; color:${linkColor};">${serialNumber}</a>`;
 			} else {
-				serialTd.innerHTML = `<p style="cursor: pointer; text-decoration:underline;" data-docname="${row.name}">${serialNumber}</p>`;
+				serialTd.innerHTML = `<p data-docname="${row.name}">${serialNumber}</p>`;
 			}
 			if (
 				this.frm?.dt_events?.[this.doctype || this.link_report]?.columnEvents?.["#"]?.click
 			) {
 				this.bindColumnEvents(serialTd, serialNumber, { fieldname: "#" }, row);
-			} else {
-				serialTd.addEventListener("click", () => {
-					let route = frappe.get_route();
-					frappe
-						.set_route(
-							"Form",
-							this.connection.connection_type == "Report"
-								? this.connection.report_ref_dt
-								: this.doctype,
-							row.name
-						)
-						.then(() => {
-							cur_frm.add_custom_button("Back", () => {
-								frappe.set_route(route);
-							});
-						});
-				});
 			}
 
 			tr.appendChild(serialTd);
 		}
 
 		// Data Columns
-		let left = 0;
-		let freezeColumnsAtLeft = this.options.serialNumberColumn ? 1 : 0; // Adjust for serial column
-		this.columns.forEach((column) => {
+		let left = this.options.serialNumberColumn ? 40 : 0;
+		const lastStickyIdx = this.columns.reduce((last, col, idx) => {
+			let h = this.header?.find((hh) => hh.fieldname === col.fieldname);
+			return h?.sticky ? idx : last;
+		}, -1);
+		this.columns.forEach((column, columnIndex) => {
 			const td = document.createElement("td");
-			td.style = this.getCellStyle(column, freezeColumnsAtLeft, left);
-			if (this.options.freezeColumnsAtLeft >= freezeColumnsAtLeft) {
-				left += column.width;
-				freezeColumnsAtLeft++;
+			let col = this.header?.find((h) => h.fieldname === column.fieldname);
+			const isSticky = !!col?.sticky;
+			const isLastSticky = columnIndex === lastStickyIdx;
+			td.style = this.getCellStyle(column, isSticky, left, isLastSticky);
+			if (isSticky) {
+				td.classList.add("sva-dt-sticky-column");
+				left += (Number(col?.width) || 2) * 50;
 			}
 
 			td.textContent = row[column.fieldname] || "";
 			if (this.options.editable) {
 				this.createEditableField(td, column, row);
 			} else {
-				this.createNonEditableField(td, column, row);
+				this.createNonEditableField(td, column, row, columnIndex);
 			}
+			if (col?.wrap) {
+				td.style.whiteSpace = "normal";
+				td.style.wordBreak = "break-word";
+				td.style.overflowWrap = "break-word";
+				td.style.overflow = "visible";
+				td.style.textOverflow = "unset";
+				td.style.height = "auto";
+				td.style.minHeight = "32px";
+			}
+			if (col?.color) td.style.color = col.color;
+			if (col?.bg_color) td.style.backgroundColor = col.bg_color;
 			tr.appendChild(td);
 		});
 
@@ -169,7 +180,15 @@ const RenderingMixin = {
 			tr.appendChild(wfActionTd);
 		}
 
-		// Action Column
+		// Action Column (always visible to match settings header)
+		const actionTd = document.createElement("td");
+		actionTd.classList.add("sva-dt-action-column");
+		actionTd.style.minWidth = "50px";
+		actionTd.style.textAlign = "center";
+		actionTd.style.position = "sticky";
+		actionTd.style.right = "0px";
+		actionTd.style.zIndex = "3";
+		actionTd.style.backgroundColor = "#fff";
 		if (
 			(this.conf_perms.length &&
 				(this.conf_perms.includes("read") ||
@@ -177,34 +196,27 @@ const RenderingMixin = {
 					this.conf_perms.includes("write"))) ||
 			this.childLinks?.length
 		) {
-			const actionTd = document.createElement("td");
-			actionTd.style.minWidth = "50px";
-			actionTd.style.textAlign = "center";
-			actionTd.style.position = "sticky";
-			actionTd.style.right = "0px";
-			actionTd.style.backgroundColor = "#fff";
 			actionTd.appendChild(this.createActionColumn(row, primaryKey));
-
-			tr.appendChild(actionTd);
 		}
+		tr.appendChild(actionTd);
 
 		// Add hover effect
 		tr.addEventListener("mouseover", () => {
+			tr.style.transition = "background-color 0.15s ease";
 			tr.style.backgroundColor = "#f5f5f5";
-			tr.querySelectorAll(".sva-dt-serial-number-column").forEach((td) => {
-				td.style.backgroundColor = "#f5f5f5";
-			});
-			tr.querySelectorAll(".sva-dt-action-column").forEach((td) => {
+			tr.querySelectorAll("td").forEach((td) => {
+				td.style.transition = "background-color 0.15s ease";
+				if (!td.dataset.originalBg)
+					td.dataset.originalBg = window.getComputedStyle(td).backgroundColor || "#fff";
 				td.style.backgroundColor = "#f5f5f5";
 			});
 		});
 		tr.addEventListener("mouseleave", () => {
+			tr.style.transition = "background-color 0.15s ease";
 			tr.style.backgroundColor = "#fff";
-			tr.querySelectorAll(".sva-dt-serial-number-column").forEach((td) => {
-				td.style.backgroundColor = "#fff";
-			});
-			tr.querySelectorAll(".sva-dt-action-column").forEach((td) => {
-				td.style.backgroundColor = "#fff";
+			tr.querySelectorAll("td").forEach((td) => {
+				td.style.transition = "background-color 0.15s ease";
+				td.style.backgroundColor = td.dataset.originalBg || "#fff";
 			});
 		});
 
@@ -257,60 +269,44 @@ const RenderingMixin = {
 
 		if (this.options.serialNumberColumn) {
 			const serialTh = document.createElement("th");
-			serialTh.textContent = __("#");
+			serialTh.textContent = __("S.No.");
 			serialTh.title = __("Serial Number");
 			serialTh.style =
 				"width:40px;text-align:center;position:sticky;left:0px;background-color:#F3F3F3;";
 			tr.appendChild(serialTh);
 		}
 
-		let left = 0;
-		let freezeColumnsAtLeft = 1;
-		this.columns.forEach((column) => {
+		let left = this.options.serialNumberColumn ? 40 : 0;
+		const lastStickyHeadIdx = this.columns.reduce((last, col, idx) => {
+			let h = this.header?.find((hh) => hh.fieldname === col.fieldname);
+			return h?.sticky ? idx : last;
+		}, -1);
+		this.columns.forEach((column, columnIndex) => {
 			const th = document.createElement("th");
 			let col = this.header.find((h) => h.fieldname === column.fieldname);
-			if (col?.width) {
-				th.style = `min-width:${Number(col?.width) * 50}px !important;max-width:${
-					Number(col?.width) * 50
-				}px !important;width:${
-					Number(col?.width) * 50
-				}px !important; white-space: nowrap;overflow: hidden;text-overflow:ellipsis;`;
+			const colWidth = (Number(col?.width) || 2) * 50;
+			const isLastSticky = columnIndex === lastStickyHeadIdx;
+
+			if (col?.sticky) {
+				th.style = `position:sticky; left:${left}px; z-index:2; background-color:#F3F3F3;cursor:${
+					column.sortable ? "pointer" : "default"
+				};min-width:${colWidth}px !important;max-width:${colWidth}px !important;width:${colWidth}px !important; white-space: nowrap;overflow: hidden;text-overflow:ellipsis;${
+					isLastSticky ? "border-right: 2px solid #d1d8dd;" : ""
+				}`;
+				left += colWidth;
+			} else if (col?.width) {
+				th.style = `min-width:${colWidth}px !important;max-width:${colWidth}px !important;width:${colWidth}px !important; white-space: nowrap;overflow: hidden;text-overflow:ellipsis;${
+					column.sortable ? "cursor:pointer;" : ""
+				}`;
+			} else if (column.sortable) {
+				th.style = `cursor:pointer;`;
 			}
+
 			th.textContent = __(strip_html(column.label) || column.fieldname);
 			th.title = __(strip_html(column.label) || column.fieldname);
 
 			if (column.sortable) {
-				this.createSortingIcon(th, column); // Create the sorting dropdown
-				if (col?.width) {
-					th.style = `min-width:${Number(col?.width) * 50}px !important;max-width:${
-						Number(col?.width) * 50
-					}px !important;width:${
-						Number(col?.width) * 50
-					}px !important; white-space: nowrap;overflow: hidden;text-overflow:ellipsis;cursor:pointer;`;
-				} else {
-					th.style = `cursor:pointer;`;
-				}
-			}
-
-			if (
-				this.options.freezeColumnsAtLeft &&
-				this.options.freezeColumnsAtLeft >= freezeColumnsAtLeft
-			) {
-				if (col?.width) {
-					th.style = `position:sticky; left:${left}px; z-index:2; background-color:#F3F3F3;cursor:${
-						column.sortable ? "pointer" : "default"
-					};min-width:${Number(col?.width) * 50}px !important;max-width:${
-						Number(col?.width) * 50
-					}px !important;width:${
-						Number(col?.width) * 50
-					}px !important; white-space: nowrap;overflow: hidden;text-overflow:ellipsis;`;
-				} else {
-					th.style = `position:sticky; left:${left}px; z-index:2; background-color:#F3F3F3;cursor:${
-						column.sortable ? "pointer" : "default"
-					}`;
-				}
-				left += column.width;
-				freezeColumnsAtLeft++;
+				this.createSortingIcon(th, column);
 			}
 
 			tr.appendChild(th);
@@ -335,7 +331,7 @@ const RenderingMixin = {
 		// ========================= Action Column ======================
 		const action_th = document.createElement("th");
 		action_th.style =
-			"width:5px; text-align:center;position:sticky;right:0px;background-color:#F3F3F3;";
+			"width:5px; text-align:center;position:sticky;right:0px;z-index:3;background-color:#F3F3F3;";
 		action_th.appendChild(this.createSettingsButton());
 		action_th.title = __("Settings");
 		tr.appendChild(action_th);
@@ -368,6 +364,100 @@ const RenderingMixin = {
 		});
 	},
 
+	createTotalRow() {
+		if (!this.connection?.add_total_row) return null;
+		const tr = document.createElement("tr");
+		tr.classList.add("sva-dt-total-row");
+		tr.style.fontWeight = "bold";
+		tr.style.backgroundColor = "#f9f9f9";
+		tr.style.borderTop = "2px solid #d1d8dd";
+		const totalRowHeight = "32px";
+		tr.style.minHeight = totalRowHeight;
+		tr.style.height = totalRowHeight;
+
+		if (this.options.serialNumberColumn) {
+			const td = document.createElement("td");
+			td.style =
+				"position:sticky;left:0;z-index:2;background-color:#f9f9f9;text-align:center;min-width:40px;font-weight:bold;";
+			td.style.height = totalRowHeight;
+			td.style.minHeight = totalRowHeight;
+			td.textContent = __("Total");
+			tr.appendChild(td);
+		}
+
+		const summableTypes = ["Currency", "Int", "Float", "Percent"];
+		let left = this.options.serialNumberColumn ? 40 : 0;
+		const lastStickyIdx = this.columns.reduce((last, col, idx) => {
+			let h = this.header?.find((hh) => hh.fieldname === col.fieldname);
+			return h?.sticky ? idx : last;
+		}, -1);
+
+		this.columns.forEach((column, columnIndex) => {
+			const td = document.createElement("td");
+			let col = this.header?.find((h) => h.fieldname === column.fieldname);
+			const fieldMeta =
+				this.meta?.fields?.find((f) => f.fieldname === column.fieldname) || column;
+			const colWidth = (Number(col?.width) || 2) * 50;
+			const isSticky = !!col?.sticky;
+			const isLastSticky = columnIndex === lastStickyIdx;
+			td.style.height = totalRowHeight;
+			td.style.minHeight = totalRowHeight;
+
+			if (isSticky) {
+				td.style.position = "sticky";
+				td.style.left = `${left}px`;
+				td.style.zIndex = "2";
+				td.style.backgroundColor = col?.bg_color || "#f9f9f9";
+				td.style.minWidth = `${colWidth}px`;
+				td.style.maxWidth = `${colWidth}px`;
+				if (isLastSticky) td.style.borderRight = "2px solid #d1d8dd";
+				left += colWidth;
+			}
+
+			const ftype = fieldMeta.fieldtype || column.fieldtype;
+			if (summableTypes.includes(ftype)) {
+				const sum = this.rows.reduce(
+					(acc, row) => acc + (parseFloat(row[column.fieldname]) || 0),
+					0
+				);
+				if (ftype === "Currency") {
+					const currency = fieldMeta.options || frappe.sys_defaults?.currency || "INR";
+					td.textContent = formatCurrency(sum, currency);
+				} else if (ftype === "Percent") {
+					const visibleRowLength = this.rows?.length || 0;
+					const avg = sum / (visibleRowLength || 1); // Average across visible rows
+					td.innerHTML = this.percentageCell(avg, col?.color || "#3182ce");
+				} else {
+					td.textContent = sum.toLocaleString("en-US", {
+						minimumFractionDigits: 0,
+						maximumFractionDigits: 2,
+					});
+				}
+				td.style.textAlign = "right";
+				td.style.padding = "4px 8px";
+			} else {
+				td.textContent = "-";
+				td.style.textAlign = "center";
+				td.style.padding = "4px 8px";
+				td.style.color = "var(--text-muted)";
+			}
+
+			if (col?.color) td.style.color = col.color;
+			if (col?.bg_color) td.style.backgroundColor = col.bg_color;
+
+			tr.appendChild(td);
+		});
+
+		const actionTd = document.createElement("td");
+		actionTd.style =
+			"position:sticky;right:0;z-index:3;background-color:#f9f9f9;min-width:50px;";
+		actionTd.style.height = totalRowHeight;
+		actionTd.style.minHeight = totalRowHeight;
+		tr.appendChild(actionTd);
+
+		return tr;
+	},
+
 	createTableBody() {
 		if (this.rows?.length === 0) {
 			return this.createNoDataFoundPage();
@@ -391,8 +481,11 @@ const RenderingMixin = {
 				row.rowIndex = rowIndex;
 				const tr = document.createElement("tr");
 				let primaryKey = row?.name || row?.rowIndex || rowIndex?.id || rowIndex;
-				tr.style.maxHeight = "32px";
-				tr.style.height = "32px";
+				const hasWrapColumn = this.header?.some((h) => h.wrap);
+				if (!hasWrapColumn) {
+					tr.style.maxHeight = "32px";
+					tr.style.height = "32px";
+				}
 				tr.style.backgroundColor = "#fff";
 
 				// Serial Number Column
@@ -414,8 +507,19 @@ const RenderingMixin = {
 						let formatter =
 							this.frm.dt_events[this.doctype ?? this.link_report].formatter["#"];
 						serialTd.innerHTML = formatter(serialNumber, row, this);
+					} else if (
+						!this.hasNavigableColumn &&
+						this.connection?.connection_type !== "Report"
+					) {
+						const doctype = this.doctype;
+						const href = `/app/${encodeURIComponent(
+							frappe.router.slug(doctype)
+						)}/${encodeURIComponent(row.name)}`;
+						const linkColor =
+							frappe.boot?.my_theme?.navbar_color || "var(--primary-color)";
+						serialTd.innerHTML = `<a href="${href}" data-doctype="${doctype}" data-name="${row.name}" style="cursor:pointer; text-decoration:underline; color:${linkColor};">${serialNumber}</a>`;
 					} else {
-						serialTd.innerHTML = `<p style="cursor: pointer; text-decoration:underline;" data-docname="${row.name}">${serialNumber}</p>`;
+						serialTd.innerHTML = `<p data-docname="${row.name}">${serialNumber}</p>`;
 					}
 
 					if (
@@ -424,44 +528,44 @@ const RenderingMixin = {
 						]?.click
 					) {
 						this.bindColumnEvents(serialTd, serialNumber, { fieldname: "#" }, row);
-					} else {
-						serialTd.addEventListener("click", () => {
-							let route = frappe.get_route();
-							frappe
-								.set_route(
-									"Form",
-									this.connection.connection_type == "Report"
-										? this.connection.report_ref_dt
-										: this.doctype,
-									row.name
-								)
-								.then(() => {
-									cur_frm.add_custom_button("Back", () => {
-										frappe.set_route(route);
-									});
-								});
-						});
 					}
 
 					tr.appendChild(serialTd);
 				}
 
-				let left = 0;
-				let freezeColumnsAtLeft = 1;
-				this.columns.forEach((column) => {
+				let left = this.options.serialNumberColumn ? 40 : 0;
+				const lastStickyIdx = this.columns.reduce((last, col, idx) => {
+					let h = this.header?.find((hh) => hh.fieldname === col.fieldname);
+					return h?.sticky ? idx : last;
+				}, -1);
+				this.columns.forEach((column, columnIndex) => {
 					const td = document.createElement("td");
-					td.style = this.getCellStyle(column, freezeColumnsAtLeft, left);
-					if (this.options.freezeColumnsAtLeft >= freezeColumnsAtLeft) {
-						left += column.width;
-						freezeColumnsAtLeft++;
+					let col = this.header?.find((h) => h.fieldname === column.fieldname);
+					const isSticky = !!col?.sticky;
+					const isLastSticky = columnIndex === lastStickyIdx;
+					td.style = this.getCellStyle(column, isSticky, left, isLastSticky);
+					if (isSticky) {
+						td.classList.add("sva-dt-sticky-column");
+						left += (Number(col?.width) || 2) * 50;
 					}
 
 					td.textContent = row[column.fieldname] || "";
 					if (this.options.editable) {
 						this.createEditableField(td, column, row);
 					} else {
-						this.createNonEditableField(td, column, row);
+						this.createNonEditableField(td, column, row, columnIndex);
 					}
+					if (col?.wrap) {
+						td.style.whiteSpace = "normal";
+						td.style.wordBreak = "break-word";
+						td.style.overflowWrap = "break-word";
+						td.style.overflow = "visible";
+						td.style.textOverflow = "unset";
+						td.style.height = "auto";
+						td.style.minHeight = "32px";
+					}
+					if (col?.color) td.style.color = col.color;
+					if (col?.bg_color) td.style.backgroundColor = col.bg_color;
 					tr.appendChild(td);
 				});
 
@@ -605,6 +709,14 @@ const RenderingMixin = {
 					}
 				}
 				// ========================= Workflow End ===================
+				const actionTd = document.createElement("td");
+				actionTd.classList.add("sva-dt-action-column");
+				actionTd.style.minWidth = "50px";
+				actionTd.style.textAlign = "center";
+				actionTd.style.position = "sticky";
+				actionTd.style.right = "0px";
+				actionTd.style.zIndex = "3";
+				actionTd.style.backgroundColor = "#fff";
 				if (
 					(this.conf_perms.length &&
 						(this.conf_perms.includes("read") ||
@@ -612,35 +724,28 @@ const RenderingMixin = {
 							this.conf_perms.includes("write"))) ||
 					this.childLinks?.length
 				) {
-					const actionTd = document.createElement("td");
-					actionTd.classList.add("sva-dt-action-column");
-					actionTd.style.minWidth = "50px";
-					actionTd.style.textAlign = "center";
-					actionTd.style.position = "sticky";
-					actionTd.style.right = "0px";
-					actionTd.style.backgroundColor = "#fff";
 					actionTd.appendChild(this.createActionColumn(row, primaryKey));
-
-					tr.appendChild(actionTd);
 				}
+				tr.appendChild(actionTd);
 
 				// Add hover effect
 				tr.addEventListener("mouseover", () => {
+					tr.style.transition = "background-color 0.15s ease";
 					tr.style.backgroundColor = "#f5f5f5";
-					tr.querySelectorAll(".sva-dt-serial-number-column").forEach((td) => {
-						td.style.backgroundColor = "#f5f5f5";
-					});
-					tr.querySelectorAll(".sva-dt-action-column").forEach((td) => {
+					tr.querySelectorAll("td").forEach((td) => {
+						td.style.transition = "background-color 0.15s ease";
+						if (!td.dataset.originalBg)
+							td.dataset.originalBg =
+								window.getComputedStyle(td).backgroundColor || "#fff";
 						td.style.backgroundColor = "#f5f5f5";
 					});
 				});
 				tr.addEventListener("mouseleave", () => {
+					tr.style.transition = "background-color 0.15s ease";
 					tr.style.backgroundColor = "#fff";
-					tr.querySelectorAll(".sva-dt-serial-number-column").forEach((td) => {
-						td.style.backgroundColor = "#fff";
-					});
-					tr.querySelectorAll(".sva-dt-action-column").forEach((td) => {
-						td.style.backgroundColor = "#fff";
+					tr.querySelectorAll("td").forEach((td) => {
+						td.style.transition = "background-color 0.15s ease";
+						td.style.backgroundColor = td.dataset.originalBg || "#fff";
 					});
 				});
 
@@ -665,6 +770,10 @@ const RenderingMixin = {
 
 		this.table_wrapper.addEventListener("scroll", handleScroll);
 		renderBatch();
+
+		const totalRow = this.createTotalRow();
+		if (totalRow) tbody.appendChild(totalRow);
+
 		return tbody;
 	},
 
