@@ -4,7 +4,7 @@ const FieldsMixin = {
 			return `position: sticky; left:${left}px; z-index: 2; background-color: white; min-width:${
 				column.width || 150
 			}px; max-width:${column.width || 200}px; padding: 0px${
-				isLastSticky ? "; border-right: 2px solid #d1d8dd" : ""
+				isLastSticky ? "; box-shadow: inset -2px 0 0 0 #d1d8dd" : ""
 			}`;
 		}
 		return `min-width:${column.width || 150}px; max-width:${
@@ -768,9 +768,22 @@ const FieldsMixin = {
 					frappe.router.slug(doctype)
 				)}/${encodeURIComponent(row.name)}`;
 				const value = row[column.fieldname];
-				const linkColor = frappe.boot?.my_theme?.navbar_color || "var(--primary-color)";
+				// If both `name` and `title_field` columns are visible, only the title_field
+				// should get the "link emphasis" color/underline.
+				const titleField = this.meta?.title_field;
+				const hasNameColumn = (this.columns || []).some((c) => c.fieldname === "name");
+				const hasTitleColumn =
+					titleField && (this.columns || []).some((c) => c.fieldname === titleField);
+				const bothVisible = !!(hasNameColumn && hasTitleColumn);
+				const isNameColumn = columnField.fieldname === "name";
+				const emphasizeThisColumn = !(bothVisible && isNameColumn);
+
+				const linkColor = emphasizeThisColumn
+					? frappe.boot?.my_theme?.navbar_color || "var(--primary-color)"
+					: "inherit";
+				const textDecoration = emphasizeThisColumn ? "underline" : "none";
 				if (value && !["null", "undefined", null, undefined].includes(value)) {
-					td.innerHTML = `<a class="ellipsis" href="${href}" title="${value}" data-doctype="${doctype}" data-name="${row.name}" style="cursor:pointer; text-decoration:underline; color:${linkColor};">${value}</a>`;
+					td.innerHTML = `<a class="ellipsis" href="${href}" title="${value}" data-doctype="${doctype}" data-name="${row.name}" style="cursor:pointer; text-decoration:${textDecoration}; color:${linkColor};">${value}</a>`;
 				} else {
 					td.innerHTML = `<span title="-">-</span>`;
 				}

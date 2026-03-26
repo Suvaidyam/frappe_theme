@@ -16,11 +16,16 @@ const RenderingMixin = {
 		// Serial Number Column
 		if (this.options.serialNumberColumn) {
 			const serialTd = document.createElement("td");
-			serialTd.style.minWidth = "40px";
+			serialTd.style.minWidth = "48px";
+			serialTd.style.width = "48px";
+			serialTd.style.maxWidth = "48px";
 			serialTd.style.textAlign = "center";
 			serialTd.style.position = "sticky";
 			serialTd.style.left = "0px";
 			serialTd.style.backgroundColor = "#fff";
+			serialTd.style.zIndex = "4";
+			serialTd.style.boxShadow = "inset -1px 0 0 0 #d1d8dd";
+			serialTd.style.padding = "0px !important";
 
 			const serialNumber =
 				this.page > 1 ? (this.page - 1) * this.limit + (rowIndex + 1) : rowIndex + 1;
@@ -48,7 +53,7 @@ const RenderingMixin = {
 		}
 
 		// Data Columns
-		let left = this.options.serialNumberColumn ? 40 : 0;
+		let left = this.options.serialNumberColumn ? 48 : 0;
 		const lastStickyIdx = this.columns.reduce((last, col, idx) => {
 			let h = this.header?.find((hh) => hh.fieldname === col.fieldname);
 			return h?.sticky ? idx : last;
@@ -56,6 +61,8 @@ const RenderingMixin = {
 		this.columns.forEach((column, columnIndex) => {
 			const td = document.createElement("td");
 			let col = this.header?.find((h) => h.fieldname === column.fieldname);
+			const fieldMeta =
+				this.meta?.fields?.find((f) => f.fieldname === column.fieldname) || column;
 			const isSticky = !!col?.sticky;
 			const isLastSticky = columnIndex === lastStickyIdx;
 			td.style = this.getCellStyle(column, isSticky, left, isLastSticky);
@@ -79,7 +86,7 @@ const RenderingMixin = {
 				td.style.height = "auto";
 				td.style.minHeight = "32px";
 			}
-			if (col?.color) td.style.color = col.color;
+			if (col?.color && fieldMeta?.fieldtype !== "Percent") td.style.color = col.color;
 			if (col?.bg_color) td.style.backgroundColor = col.bg_color;
 			tr.appendChild(td);
 		});
@@ -272,11 +279,11 @@ const RenderingMixin = {
 			serialTh.textContent = __("S.No.");
 			serialTh.title = __("Serial Number");
 			serialTh.style =
-				"width:40px;text-align:center;position:sticky;left:0px;background-color:#F3F3F3;";
+				"width:48px;min-width:48px;max-width:48px;text-align:center;position:sticky;left:0px;z-index:4;background-color:#F3F3F3;box-shadow: inset -1px 0 0 0 #d1d8dd;padding: 0px !important;";
 			tr.appendChild(serialTh);
 		}
 
-		let left = this.options.serialNumberColumn ? 40 : 0;
+		let left = this.options.serialNumberColumn ? 48 : 0;
 		const lastStickyHeadIdx = this.columns.reduce((last, col, idx) => {
 			let h = this.header?.find((hh) => hh.fieldname === col.fieldname);
 			return h?.sticky ? idx : last;
@@ -291,7 +298,7 @@ const RenderingMixin = {
 				th.style = `position:sticky; left:${left}px; z-index:2; background-color:#F3F3F3;cursor:${
 					column.sortable ? "pointer" : "default"
 				};min-width:${colWidth}px !important;max-width:${colWidth}px !important;width:${colWidth}px !important; white-space: nowrap;overflow: hidden;text-overflow:ellipsis;${
-					isLastSticky ? "border-right: 2px solid #d1d8dd;" : ""
+					isLastSticky ? "box-shadow: inset -2px 0 0 0 #d1d8dd;" : ""
 				}`;
 				left += colWidth;
 			} else if (col?.width) {
@@ -378,7 +385,7 @@ const RenderingMixin = {
 		if (this.options.serialNumberColumn) {
 			const td = document.createElement("td");
 			td.style =
-				"position:sticky;left:0;z-index:2;background-color:#f9f9f9;text-align:center;min-width:40px;font-weight:bold;";
+				"position:sticky;left:0;z-index:2;background-color:#f9f9f9;text-align:center;min-width:48px;font-weight:bold;";
 			td.style.height = totalRowHeight;
 			td.style.minHeight = totalRowHeight;
 			td.textContent = __("Total");
@@ -386,7 +393,7 @@ const RenderingMixin = {
 		}
 
 		const summableTypes = ["Currency", "Int", "Float", "Percent"];
-		let left = this.options.serialNumberColumn ? 40 : 0;
+		let left = this.options.serialNumberColumn ? 48 : 0;
 		const lastStickyIdx = this.columns.reduce((last, col, idx) => {
 			let h = this.header?.find((hh) => hh.fieldname === col.fieldname);
 			return h?.sticky ? idx : last;
@@ -410,7 +417,7 @@ const RenderingMixin = {
 				td.style.backgroundColor = col?.bg_color || "#f9f9f9";
 				td.style.minWidth = `${colWidth}px`;
 				td.style.maxWidth = `${colWidth}px`;
-				if (isLastSticky) td.style.borderRight = "2px solid #d1d8dd";
+				if (isLastSticky) td.style.boxShadow = "inset -2px 0 0 0 #d1d8dd";
 				left += colWidth;
 			}
 
@@ -442,7 +449,7 @@ const RenderingMixin = {
 				td.style.color = "var(--text-muted)";
 			}
 
-			if (col?.color) td.style.color = col.color;
+			if (col?.color && ftype !== "Percent") td.style.color = col.color;
 			if (col?.bg_color) td.style.backgroundColor = col.bg_color;
 
 			tr.appendChild(td);
@@ -492,11 +499,16 @@ const RenderingMixin = {
 				if (this.options.serialNumberColumn) {
 					const serialTd = document.createElement("td");
 					serialTd.classList.add("sva-dt-serial-number-column");
-					serialTd.style.minWidth = "40px";
+					serialTd.style.minWidth = "48px";
+					serialTd.style.width = "48px";
+					serialTd.style.maxWidth = "48px";
 					serialTd.style.textAlign = "center";
 					serialTd.style.position = "sticky";
 					serialTd.style.left = "0px";
 					serialTd.style.backgroundColor = "#fff";
+					serialTd.style.zIndex = "4";
+					serialTd.style.boxShadow = "inset -1px 0 0 0 #d1d8dd";
+					serialTd.style.padding = "0px !important";
 					const serialNumber =
 						this.page > 1
 							? (this.page - 1) * this.limit + (rowIndex + 1)
@@ -533,7 +545,7 @@ const RenderingMixin = {
 					tr.appendChild(serialTd);
 				}
 
-				let left = this.options.serialNumberColumn ? 40 : 0;
+				let left = this.options.serialNumberColumn ? 48 : 0;
 				const lastStickyIdx = this.columns.reduce((last, col, idx) => {
 					let h = this.header?.find((hh) => hh.fieldname === col.fieldname);
 					return h?.sticky ? idx : last;
@@ -541,6 +553,8 @@ const RenderingMixin = {
 				this.columns.forEach((column, columnIndex) => {
 					const td = document.createElement("td");
 					let col = this.header?.find((h) => h.fieldname === column.fieldname);
+					const fieldMeta =
+						this.meta?.fields?.find((f) => f.fieldname === column.fieldname) || column;
 					const isSticky = !!col?.sticky;
 					const isLastSticky = columnIndex === lastStickyIdx;
 					td.style = this.getCellStyle(column, isSticky, left, isLastSticky);
@@ -564,7 +578,8 @@ const RenderingMixin = {
 						td.style.height = "auto";
 						td.style.minHeight = "32px";
 					}
-					if (col?.color) td.style.color = col.color;
+					if (col?.color && fieldMeta?.fieldtype !== "Percent")
+						td.style.color = col.color;
 					if (col?.bg_color) td.style.backgroundColor = col.bg_color;
 					tr.appendChild(td);
 				});
@@ -779,7 +794,13 @@ const RenderingMixin = {
 
 	updateTableBody() {
 		if (this.rows.length === 0) {
-			this.table.replaceChild(this.createNoDataFoundPage(), this.tBody);
+			const currentChild =
+				this.table.querySelector("tbody") || this.table.querySelector("#noDataFoundPage");
+			if (currentChild) {
+				this.table.replaceChild(this.createNoDataFoundPage(), currentChild);
+			} else {
+				this.table.appendChild(this.createNoDataFoundPage());
+			}
 			return;
 		}
 		const oldTbody = this.table.querySelector("tbody");
