@@ -354,9 +354,10 @@ const FieldsMixin = {
 						];
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
-					td.innerHTML = `<span title="${row[column.fieldname] || "-"}">${
-						row[column.fieldname] || "-"
-					}</span>`;
+					const _span = document.createElement("span");
+					_span.title = row[column.fieldname] || "-";
+					_span.textContent = row[column.fieldname] || "-";
+					td.appendChild(_span);
 					if (col?.width) {
 						$(td).css({
 							width: `${Number(col?.width) * 50}px`,
@@ -480,7 +481,10 @@ const FieldsMixin = {
 						row[column.fieldname],
 						frappe.sys_defaults.currency
 					);
-					td.innerHTML = `<span title="${value}">${value}</span>`;
+					const _span = document.createElement("span");
+					_span.title = value;
+					_span.textContent = value;
+					td.appendChild(_span);
 					if (col?.width) {
 						$(td).css({
 							width: `${Number(col?.width) * 50}px`,
@@ -520,9 +524,12 @@ const FieldsMixin = {
 					row[column.fieldname] &&
 					!["null", "undefined", null, undefined].includes(row[column.fieldname])
 				) {
-					td.innerHTML = `<a title="${row[column.fieldname]}" href="${
-						row[column.fieldname]
-					}" target = "_blank" >${row[column.fieldname] || "-"}</a> `;
+					const _a = document.createElement("a");
+					_a.title = row[column.fieldname];
+					_a.href = row[column.fieldname];
+					_a.target = "_blank";
+					_a.textContent = row[column.fieldname] || "-";
+					td.appendChild(_a);
 				} else {
 					td.innerHTML = "-";
 				}
@@ -556,11 +563,15 @@ const FieldsMixin = {
 					row[column.fieldname] &&
 					!["null", "undefined", null, undefined].includes(row[column.fieldname])
 				) {
-					td.innerHTML = `<img title="${row[column.fieldname]}" alt="${
-						row[column.fieldname]
-					}" src="${
-						row[column.fieldname]
-					}" style = "width:30px;border-radius:50%;height:30px;object-fit:cover;" /> `;
+					const _img = document.createElement("img");
+					_img.title = row[column.fieldname];
+					_img.alt = row[column.fieldname];
+					_img.src = row[column.fieldname];
+					_img.style.width = "30px";
+					_img.style.borderRadius = "50%";
+					_img.style.height = "30px";
+					_img.style.objectFit = "cover";
+					td.appendChild(_img);
 					return;
 				} else {
 					td.innerHTML = "-";
@@ -584,7 +595,10 @@ const FieldsMixin = {
 							minimumFractionDigits: 0,
 							maximumFractionDigits: 2,
 						}) || 0;
-					td.innerHTML = `<span title="${value}">${value}</span>`;
+					const _span = document.createElement("span");
+					_span.title = value;
+					_span.textContent = value;
+					td.appendChild(_span);
 					if (col?.width) {
 						$(td).css({
 							width: `${Number(col?.width) * 50}px`,
@@ -637,7 +651,7 @@ const FieldsMixin = {
 							maximumFractionDigits: 2,
 						}) || 0;
 					let clampedValue = Math.min(Math.max(parseFloat(value) || 0, 0), 100);
-					let barColor = col?.color || "#3182ce";
+					let barColor = col?.color || "#2E7D32";
 					td.innerHTML = this.percentageCell(clampedValue, barColor);
 					if (col?.width) {
 						$(td).css({
@@ -685,9 +699,13 @@ const FieldsMixin = {
 						];
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
-					td.innerHTML = `<span title="${
-						row[column.fieldname] ? formaDate(row[column.fieldname]) : "-"
-					}">${row[column.fieldname] ? formaDate(row[column.fieldname]) : "-"}</span>`;
+					const _dateVal = row[column.fieldname]
+						? formaDate(row[column.fieldname])
+						: "-";
+					const _span = document.createElement("span");
+					_span.title = _dateVal;
+					_span.textContent = _dateVal;
+					td.appendChild(_span);
 					if (col?.width) {
 						$(td).css({
 							width: `${Number(col?.width) * 50}px`,
@@ -727,11 +745,13 @@ const FieldsMixin = {
 						];
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
-					td.innerHTML = `<span title="${
-						row[column.fieldname] ? formatDatetime(row[column.fieldname]) : "-"
-					}">${
-						row[column.fieldname] ? formatDatetime(row[column.fieldname]) : "-"
-					}</span>`;
+					const _datetimeVal = row[column.fieldname]
+						? formatDatetime(row[column.fieldname])
+						: "-";
+					const _span = document.createElement("span");
+					_span.title = _datetimeVal;
+					_span.textContent = _datetimeVal;
+					td.appendChild(_span);
 					if (col?.width) {
 						$(td).css({
 							width: `${Number(col?.width) * 50}px`,
@@ -783,7 +803,17 @@ const FieldsMixin = {
 					: "inherit";
 				const textDecoration = emphasizeThisColumn ? "underline" : "none";
 				if (value && !["null", "undefined", null, undefined].includes(value)) {
-					td.innerHTML = `<a class="ellipsis" href="${href}" title="${value}" data-doctype="${doctype}" data-name="${row.name}" style="cursor:pointer; text-decoration:${textDecoration}; color:${linkColor};">${value}</a>`;
+					const _a = document.createElement("a");
+					_a.className = "ellipsis";
+					_a.href = href;
+					_a.title = value;
+					_a.dataset.doctype = doctype;
+					_a.dataset.name = row.name;
+					_a.style.cursor = "pointer";
+					_a.style.textDecoration = textDecoration;
+					_a.style.color = linkColor;
+					_a.textContent = value;
+					td.appendChild(_a);
 				} else {
 					td.innerHTML = `<span title="-">-</span>`;
 				}
@@ -867,9 +897,10 @@ const FieldsMixin = {
 					row[column.fieldname] &&
 					!["null", "undefined", null, undefined].includes(row[column.fieldname])
 				) {
-					td.innerHTML = `<span title="${row[column.fieldname] || ""}">${
-						row[column.fieldname] || ""
-					}</span>`;
+					const _span = document.createElement("span");
+					_span.title = row[column.fieldname] || "";
+					_span.textContent = row[column.fieldname] || "";
+					td.appendChild(_span);
 				} else {
 					td.innerHTML = `<span title="-">-</span>`;
 				}

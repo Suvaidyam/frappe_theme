@@ -444,7 +444,7 @@ const RenderingMixin = {
 				} else if (ftype === "Percent") {
 					const visibleRowLength = this.rows?.length || 0;
 					const avg = sum / (visibleRowLength || 1); // Average across visible rows
-					td.innerHTML = this.percentageCell(avg, col?.color || "#3182ce");
+					td.innerHTML = this.percentageCell(avg, col?.color || "#2E7D32");
 				} else {
 					td.textContent = sum.toLocaleString("en-US", {
 						minimumFractionDigits: 0,
