@@ -22,7 +22,9 @@ function getFieldConfigFromSettings(list_view_settings) {
 			if (f.width) widths[f.fieldname] = f.width;
 			if (f.sticky) sticky[f.fieldname] = true;
 		});
-	} catch {}
+	} catch (e) {
+		/* ignore parse errors */
+	}
 	return { widths, sticky };
 }
 
@@ -49,7 +51,8 @@ const overrideListView = () => {
 			let left = 0;
 
 			for (const col of this.columns) {
-				const fieldname = col.df?.fieldname || (col.type === "Status" ? "status_field" : null);
+				const fieldname =
+					col.df?.fieldname || (col.type === "Status" ? "status_field" : null);
 				if (!fieldname) continue;
 
 				if (this.saved_sticky_cols[fieldname]) {
@@ -86,7 +89,8 @@ const overrideListView = () => {
 
 			let $columns = this.columns
 				.map((col) => {
-					const fieldname = col.df?.fieldname || (col.type === "Status" ? "status_field" : null);
+					const fieldname =
+						col.df?.fieldname || (col.type === "Status" ? "status_field" : null);
 					let classes = [
 						"list-row-col ellipsis",
 						col.type == "Subject" ? "list-subject level" : "hidden-xs",
@@ -101,9 +105,10 @@ const overrideListView = () => {
 					} else {
 						const label = __(col.df?.label || col.type, null, col.df?.parent);
 						const title = __("Click to sort by {0}", [label]);
-						const attrs = fieldname && col.type !== "Status"
-							? `data-sort-by="${fieldname}" title="${title}"`
-							: "";
+						const attrs =
+							fieldname && col.type !== "Status"
+								? `data-sort-by="${fieldname}" title="${title}"`
+								: "";
 						html = `<span ${attrs}>${label}</span>`;
 					}
 
@@ -112,7 +117,9 @@ const overrideListView = () => {
 					const savedMultiplier = fieldname ? this.saved_column_widths[fieldname] : null;
 					if (savedMultiplier) {
 						const widthPx = toPixels(savedMultiplier);
-						styles.push(`width:${widthPx}px; min-width:${widthPx}px; max-width:${widthPx}px; flex: 0 0 ${widthPx}px`);
+						styles.push(
+							`width:${widthPx}px; min-width:${widthPx}px; max-width:${widthPx}px; flex: 0 0 ${widthPx}px`
+						);
 					}
 					const stickyCSS = fieldname ? this._getStickyStyle(fieldname) : "";
 					if (stickyCSS) {
@@ -121,7 +128,9 @@ const overrideListView = () => {
 					}
 					const styleAttr = styles.length ? `style="${styles.join("; ")}"` : "";
 
-					return `<div class="${classes}" ${styleAttr} data-col-fieldname="${fieldname || ""}">${html}</div>`;
+					return `<div class="${classes}" ${styleAttr} data-col-fieldname="${
+						fieldname || ""
+					}">${html}</div>`;
 				})
 				.join("");
 
@@ -148,7 +157,9 @@ const overrideListView = () => {
 
 		get_header_html_skeleton(left = "", right = "") {
 			const hasSticky = Object.keys(this.saved_sticky_cols || {}).length > 0;
-			const levelLeftClass = hasSticky ? "level-left list-header-subject" : "level-left list-header-subject";
+			const levelLeftClass = hasSticky
+				? "level-left list-header-subject"
+				: "level-left list-header-subject";
 			return `
 			<div class="list-row-container">
 				<header class="level list-row-head text-muted">
@@ -203,7 +214,12 @@ const overrideListView = () => {
 				const $el = $wrapper.children().first();
 				if (savedMultiplier) {
 					const widthPx = toPixels(savedMultiplier);
-					$el.css({ width: widthPx, "min-width": widthPx, "max-width": widthPx, flex: `0 0 ${widthPx}px` });
+					$el.css({
+						width: widthPx,
+						"min-width": widthPx,
+						"max-width": widthPx,
+						flex: `0 0 ${widthPx}px`,
+					});
 				}
 				if (isSticky) {
 					const stickyInfo = this._getStickyInfo();
@@ -231,7 +247,9 @@ const overrideListView = () => {
 				const isSticky = this.saved_sticky_cols[fieldname];
 				const stickyCSS = isSticky ? this._getStickyStyle(fieldname) : "";
 
-				const $els = $(`.list-view .frappe-list .result .level-left .list-row-col.${fieldname}`);
+				const $els = $(
+					`.list-view .frappe-list .result .level-left .list-row-col.${fieldname}`
+				);
 				$els.css({
 					width: finalWidth,
 					"min-width": hasSaved ? finalWidth : "",
@@ -245,7 +263,7 @@ const overrideListView = () => {
 							position: "sticky",
 							left: info.left,
 							"z-index": 2,
-													});
+						});
 					}
 				}
 			});
@@ -253,7 +271,9 @@ const overrideListView = () => {
 			Object.entries(saved).forEach(([fieldname, multiplier]) => {
 				if (!this.column_max_widths[fieldname]) {
 					const widthPx = toPixels(multiplier);
-					const $els = $(`.list-view .frappe-list .result .level-left [data-col-fieldname="${fieldname}"]`);
+					const $els = $(
+						`.list-view .frappe-list .result .level-left [data-col-fieldname="${fieldname}"]`
+					);
 					$els.css({
 						width: widthPx,
 						"min-width": widthPx,
@@ -267,7 +287,7 @@ const overrideListView = () => {
 								position: "sticky",
 								left: info.left,
 								"z-index": 2,
-															});
+							});
 						}
 					}
 				}
@@ -295,7 +315,11 @@ const patchListSettings = () => {
 				// Parse existing fields
 				let fields_data = [];
 				if (settings.fields) {
-					try { fields_data = JSON.parse(settings.fields); } catch {}
+					try {
+						fields_data = JSON.parse(settings.fields);
+					} catch (e) {
+						/* ignore parse errors */
+					}
 				}
 
 				// Build config maps from existing data
@@ -310,12 +334,20 @@ const patchListSettings = () => {
 				if (!fields_data.length) {
 					if (meta.title_field) {
 						const tf = frappe.meta.get_docfield(doctype, meta.title_field.trim());
-						if (tf) fields_data.push({ fieldname: tf.fieldname, label: __(tf.label, null, doctype) });
+						if (tf)
+							fields_data.push({
+								fieldname: tf.fieldname,
+								label: __(tf.label, null, doctype),
+							});
 					} else {
 						fields_data.push({ fieldname: "name", label: __("ID") });
 					}
 					if (frappe.has_indicator(doctype)) {
-						fields_data.push({ fieldname: "status_field", label: __("Status"), type: "Status" });
+						fields_data.push({
+							fieldname: "status_field",
+							label: __("Status"),
+							type: "Status",
+						});
 					}
 					meta.fields.forEach((field) => {
 						if (
@@ -323,7 +355,10 @@ const patchListSettings = () => {
 							!frappe.model.no_value_type.includes(field.fieldtype) &&
 							field.fieldname !== (meta.title_field || "").trim()
 						) {
-							fields_data.push({ fieldname: field.fieldname, label: __(field.label, null, doctype) });
+							fields_data.push({
+								fieldname: field.fieldname,
+								label: __(field.label, null, doctype),
+							});
 						}
 					});
 				}
@@ -351,7 +386,8 @@ const patchListSettings = () => {
 					for (let idx = 0; idx < fields_data.length && idx < max_fields; idx++) {
 						let is_sortable = idx == 0 ? `` : `sortable`;
 						let show_sortable_handle = idx == 0 ? `hide` : ``;
-						let can_remove = idx == 0 || is_status_field(fields_data[idx]) ? `hide` : ``;
+						let can_remove =
+							idx == 0 || is_status_field(fields_data[idx]) ? `hide` : ``;
 						let currentWidth = widthMap[fields_data[idx].fieldname] || 0;
 						let isSticky = stickyMap[fields_data[idx].fieldname] ? "checked" : "";
 
@@ -468,7 +504,8 @@ const patchListSettings = () => {
 				// Setup remove field handlers
 				const setupRemoveFields = () => {
 					let fields_html_field = dialog.get_field("fields_html");
-					let remove_fields = fields_html_field.$wrapper[0].getElementsByClassName("remove-field");
+					let remove_fields =
+						fields_html_field.$wrapper[0].getElementsByClassName("remove-field");
 
 					for (let idx = 0; idx < remove_fields.length; idx++) {
 						remove_fields.item(idx).onclick = () => {
@@ -497,7 +534,8 @@ const patchListSettings = () => {
 				// Setup add new fields
 				const setupAddNewFields = () => {
 					let fields_html_field = dialog.get_field("fields_html");
-					let addBtn = fields_html_field.$wrapper[0].getElementsByClassName("add-new-fields")[0];
+					let addBtn =
+						fields_html_field.$wrapper[0].getElementsByClassName("add-new-fields")[0];
 					if (!addBtn) return;
 
 					addBtn.onclick = () => {
@@ -533,18 +571,25 @@ const patchListSettings = () => {
 
 							if (!dialog._removed_fields) dialog._removed_fields = [];
 							existingFieldnames.forEach((c) => {
-								if (!values.includes(c) && c !== "status_field" && c !== (meta.title_field || "").trim() && c !== "name") {
+								if (
+									!values.includes(c) &&
+									c !== "status_field" &&
+									c !== (meta.title_field || "").trim() &&
+									c !== "name"
+								) {
 									dialog._removed_fields.push(c);
 								}
 							});
 
 							const newFieldsData = [];
 							newFieldsData.push(fields_data[0]);
-							const statusField = fields_data.find((f) => f.fieldname === "status_field");
+							const statusField = fields_data.find(
+								(f) => f.fieldname === "status_field"
+							);
 							if (statusField) newFieldsData.push(statusField);
 
 							values.forEach((val) => {
-								if (val === (fields_data[0]?.fieldname)) return;
+								if (val === fields_data[0]?.fieldname) return;
 								const existing = fields_data.find((f) => f.fieldname === val);
 								if (existing) {
 									newFieldsData.push(existing);
