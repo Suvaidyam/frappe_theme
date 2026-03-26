@@ -804,7 +804,7 @@ const FieldsMixin = {
 				const textDecoration = emphasizeThisColumn ? "underline" : "none";
 				if (value && !["null", "undefined", null, undefined].includes(value)) {
 					const _a = document.createElement("a");
-					_a.className = "ellipsis";
+					if (!col?.wrap) _a.className = "ellipsis";
 					_a.href = href;
 					_a.title = value;
 					_a.dataset.doctype = doctype;
@@ -822,10 +822,14 @@ const FieldsMixin = {
 						width: `${Number(col?.width) * 50}px`,
 						minWidth: `${Number(col?.width) * 50}px`,
 						maxWidth: `${Number(col?.width) * 50}px`,
-						height: "32px",
-						whiteSpace: "nowrap",
-						overflow: "hidden",
-						textOverflow: "ellipsis",
+						...(col?.wrap
+							? { minHeight: "32px" }
+							: {
+									height: "32px",
+									whiteSpace: "nowrap",
+									overflow: "hidden",
+									textOverflow: "ellipsis",
+							  }),
 						padding: "0px 5px",
 					});
 				} else {
@@ -833,10 +837,14 @@ const FieldsMixin = {
 						width: `150px`,
 						minWidth: `150px`,
 						maxWidth: `150px`,
-						height: "32px",
-						whiteSpace: "nowrap",
-						overflow: "hidden",
-						textOverflow: "ellipsis",
+						...(col?.wrap
+							? { minHeight: "32px" }
+							: {
+									height: "32px",
+									whiteSpace: "nowrap",
+									overflow: "hidden",
+									textOverflow: "ellipsis",
+							  }),
 						padding: "0px 5px",
 					});
 				}
