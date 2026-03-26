@@ -25,7 +25,7 @@ const RenderingMixin = {
 			serialTd.style.backgroundColor = "#fff";
 			serialTd.style.zIndex = "4";
 			serialTd.style.boxShadow = "inset -1px 0 0 0 #d1d8dd";
-			serialTd.style.padding = "0px !important";
+			serialTd.style.setProperty("padding", "0px", "important");
 
 			const serialNumber =
 				this.page > 1 ? (this.page - 1) * this.limit + (rowIndex + 1) : rowIndex + 1;
@@ -39,9 +39,20 @@ const RenderingMixin = {
 					frappe.router.slug(doctype)
 				)}/${encodeURIComponent(row.name)}`;
 				const linkColor = frappe.boot?.my_theme?.navbar_color || "var(--primary-color)";
-				serialTd.innerHTML = `<a href="${href}" data-doctype="${doctype}" data-name="${row.name}" style="cursor:pointer; text-decoration:underline; color:${linkColor};">${serialNumber}</a>`;
+				const a = document.createElement("a");
+				a.href = href;
+				a.dataset.doctype = doctype;
+				a.dataset.name = row.name;
+				a.style.cursor = "pointer";
+				a.style.textDecoration = "underline";
+				a.style.color = linkColor;
+				a.textContent = serialNumber;
+				serialTd.appendChild(a);
 			} else {
-				serialTd.innerHTML = `<p data-docname="${row.name}">${serialNumber}</p>`;
+				const p = document.createElement("p");
+				p.dataset.docname = row.name;
+				p.textContent = serialNumber;
+				serialTd.appendChild(p);
 			}
 			if (
 				this.frm?.dt_events?.[this.doctype || this.link_report]?.columnEvents?.["#"]?.click
@@ -508,7 +519,7 @@ const RenderingMixin = {
 					serialTd.style.backgroundColor = "#fff";
 					serialTd.style.zIndex = "4";
 					serialTd.style.boxShadow = "inset -1px 0 0 0 #d1d8dd";
-					serialTd.style.padding = "0px !important";
+					serialTd.style.setProperty("padding", "0px", "important");
 					const serialNumber =
 						this.page > 1
 							? (this.page - 1) * this.limit + (rowIndex + 1)
@@ -529,9 +540,20 @@ const RenderingMixin = {
 						)}/${encodeURIComponent(row.name)}`;
 						const linkColor =
 							frappe.boot?.my_theme?.navbar_color || "var(--primary-color)";
-						serialTd.innerHTML = `<a href="${href}" data-doctype="${doctype}" data-name="${row.name}" style="cursor:pointer; text-decoration:underline; color:${linkColor};">${serialNumber}</a>`;
+						const a = document.createElement("a");
+						a.href = href;
+						a.dataset.doctype = doctype;
+						a.dataset.name = row.name;
+						a.style.cursor = "pointer";
+						a.style.textDecoration = "underline";
+						a.style.color = linkColor;
+						a.textContent = serialNumber;
+						serialTd.appendChild(a);
 					} else {
-						serialTd.innerHTML = `<p data-docname="${row.name}">${serialNumber}</p>`;
+						const p = document.createElement("p");
+						p.dataset.docname = row.name;
+						p.textContent = serialNumber;
+						serialTd.appendChild(p);
 					}
 
 					if (
