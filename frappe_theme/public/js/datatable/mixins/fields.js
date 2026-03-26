@@ -636,7 +636,9 @@ const FieldsMixin = {
 							minimumFractionDigits: 0,
 							maximumFractionDigits: 2,
 						}) || 0;
-					td.innerHTML = `<span title="${value}%">${value}%</span>`;
+					let clampedValue = Math.min(Math.max(parseFloat(value) || 0, 0), 100);
+					let barColor = col?.color || "#3182ce";
+					td.innerHTML = this.percentageCell(clampedValue, barColor);
 					if (col?.width) {
 						$(td).css({
 							width: `${Number(col?.width) * 50}px`,
@@ -902,6 +904,26 @@ const FieldsMixin = {
 				);
 			}
 		}
+	},
+	percentageCell(value, bgColor, textColor) {
+		const pct = Math.min(100, Math.max(0, Math.round(value)));
+
+		return `
+		<div style="display:flex; align-items:center; gap:8px; width:100%;">
+			<div style="flex:1; height:5px; background:#e5e5e5; border-radius:99px; overflow:hidden;">
+				<div style="width:${pct}%; height:100%; background:${bgColor}; border-radius:99px;"></div>
+			</div>
+			<span style="
+				font-size:12px;
+				font-weight:500;
+				color:${textColor};
+				font-variant-numeric:tabular-nums;
+				white-space:nowrap;
+				min-width:36px;
+				text-align:right;
+			">${pct}%</span>
+		</div>
+	`.trim();
 	},
 };
 

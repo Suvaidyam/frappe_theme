@@ -1,11 +1,15 @@
 const RenderingMixin = {
 	createTableRow(row, rowIndex) {
 		const tr = document.createElement("tr");
-		tr.style.maxHeight = "32px";
-		tr.style.height = "32px";
 		tr.style.backgroundColor = "#fff";
 		tr.setAttribute("data-row-index", rowIndex);
 		tr.setAttribute("data-docname", row.name);
+
+		const hasWrapColumn = this.header?.some((h) => h.wrap);
+		if (!hasWrapColumn) {
+			tr.style.maxHeight = "32px";
+			tr.style.height = "32px";
+		}
 
 		let primaryKey = row?.name || row?.rowIndex || rowIndex?.id || rowIndex;
 
@@ -66,6 +70,17 @@ const RenderingMixin = {
 			} else {
 				this.createNonEditableField(td, column, row, columnIndex);
 			}
+			if (col?.wrap) {
+				td.style.whiteSpace = "normal";
+				td.style.wordBreak = "break-word";
+				td.style.overflowWrap = "break-word";
+				td.style.overflow = "visible";
+				td.style.textOverflow = "unset";
+				td.style.height = "auto";
+				td.style.minHeight = "32px";
+			}
+			if (col?.color) td.style.color = col.color;
+			if (col?.bg_color) td.style.backgroundColor = col.bg_color;
 			tr.appendChild(td);
 		});
 
@@ -187,19 +202,21 @@ const RenderingMixin = {
 
 		// Add hover effect
 		tr.addEventListener("mouseover", () => {
+			tr.style.transition = "background-color 0.15s ease";
 			tr.style.backgroundColor = "#f5f5f5";
-			tr.querySelectorAll(
-				".sva-dt-serial-number-column, .sva-dt-action-column, .sva-dt-sticky-column"
-			).forEach((td) => {
+			tr.querySelectorAll("td").forEach((td) => {
+				td.style.transition = "background-color 0.15s ease";
+				if (!td.dataset.originalBg)
+					td.dataset.originalBg = window.getComputedStyle(td).backgroundColor || "#fff";
 				td.style.backgroundColor = "#f5f5f5";
 			});
 		});
 		tr.addEventListener("mouseleave", () => {
+			tr.style.transition = "background-color 0.15s ease";
 			tr.style.backgroundColor = "#fff";
-			tr.querySelectorAll(
-				".sva-dt-serial-number-column, .sva-dt-action-column, .sva-dt-sticky-column"
-			).forEach((td) => {
-				td.style.backgroundColor = "#fff";
+			tr.querySelectorAll("td").forEach((td) => {
+				td.style.transition = "background-color 0.15s ease";
+				td.style.backgroundColor = td.dataset.originalBg || "#fff";
 			});
 		});
 
@@ -347,6 +364,100 @@ const RenderingMixin = {
 		});
 	},
 
+	createTotalRow() {
+		if (!this.connection?.add_total_row) return null;
+		const tr = document.createElement("tr");
+		tr.classList.add("sva-dt-total-row");
+		tr.style.fontWeight = "bold";
+		tr.style.backgroundColor = "#f9f9f9";
+		tr.style.borderTop = "2px solid #d1d8dd";
+		const totalRowHeight = "32px";
+		tr.style.minHeight = totalRowHeight;
+		tr.style.height = totalRowHeight;
+
+		if (this.options.serialNumberColumn) {
+			const td = document.createElement("td");
+			td.style =
+				"position:sticky;left:0;z-index:2;background-color:#f9f9f9;text-align:center;min-width:40px;font-weight:bold;";
+			td.style.height = totalRowHeight;
+			td.style.minHeight = totalRowHeight;
+			td.textContent = __("Total");
+			tr.appendChild(td);
+		}
+
+		const summableTypes = ["Currency", "Int", "Float", "Percent"];
+		let left = this.options.serialNumberColumn ? 40 : 0;
+		const lastStickyIdx = this.columns.reduce((last, col, idx) => {
+			let h = this.header?.find((hh) => hh.fieldname === col.fieldname);
+			return h?.sticky ? idx : last;
+		}, -1);
+
+		this.columns.forEach((column, columnIndex) => {
+			const td = document.createElement("td");
+			let col = this.header?.find((h) => h.fieldname === column.fieldname);
+			const fieldMeta =
+				this.meta?.fields?.find((f) => f.fieldname === column.fieldname) || column;
+			const colWidth = (Number(col?.width) || 2) * 50;
+			const isSticky = !!col?.sticky;
+			const isLastSticky = columnIndex === lastStickyIdx;
+			td.style.height = totalRowHeight;
+			td.style.minHeight = totalRowHeight;
+
+			if (isSticky) {
+				td.style.position = "sticky";
+				td.style.left = `${left}px`;
+				td.style.zIndex = "2";
+				td.style.backgroundColor = col?.bg_color || "#f9f9f9";
+				td.style.minWidth = `${colWidth}px`;
+				td.style.maxWidth = `${colWidth}px`;
+				if (isLastSticky) td.style.borderRight = "2px solid #d1d8dd";
+				left += colWidth;
+			}
+
+			const ftype = fieldMeta.fieldtype || column.fieldtype;
+			if (summableTypes.includes(ftype)) {
+				const sum = this.rows.reduce(
+					(acc, row) => acc + (parseFloat(row[column.fieldname]) || 0),
+					0
+				);
+				if (ftype === "Currency") {
+					const currency = fieldMeta.options || frappe.sys_defaults?.currency || "INR";
+					td.textContent = formatCurrency(sum, currency);
+				} else if (ftype === "Percent") {
+					const visibleRowLength = this.rows?.length || 0;
+					const avg = sum / (visibleRowLength || 1); // Average across visible rows
+					td.innerHTML = this.percentageCell(avg, col?.color || "#3182ce");
+				} else {
+					td.textContent = sum.toLocaleString("en-US", {
+						minimumFractionDigits: 0,
+						maximumFractionDigits: 2,
+					});
+				}
+				td.style.textAlign = "right";
+				td.style.padding = "4px 8px";
+			} else {
+				td.textContent = "-";
+				td.style.textAlign = "center";
+				td.style.padding = "4px 8px";
+				td.style.color = "var(--text-muted)";
+			}
+
+			if (col?.color) td.style.color = col.color;
+			if (col?.bg_color) td.style.backgroundColor = col.bg_color;
+
+			tr.appendChild(td);
+		});
+
+		const actionTd = document.createElement("td");
+		actionTd.style =
+			"position:sticky;right:0;z-index:3;background-color:#f9f9f9;min-width:50px;";
+		actionTd.style.height = totalRowHeight;
+		actionTd.style.minHeight = totalRowHeight;
+		tr.appendChild(actionTd);
+
+		return tr;
+	},
+
 	createTableBody() {
 		if (this.rows?.length === 0) {
 			return this.createNoDataFoundPage();
@@ -370,8 +481,11 @@ const RenderingMixin = {
 				row.rowIndex = rowIndex;
 				const tr = document.createElement("tr");
 				let primaryKey = row?.name || row?.rowIndex || rowIndex?.id || rowIndex;
-				tr.style.maxHeight = "32px";
-				tr.style.height = "32px";
+				const hasWrapColumn = this.header?.some((h) => h.wrap);
+				if (!hasWrapColumn) {
+					tr.style.maxHeight = "32px";
+					tr.style.height = "32px";
+				}
 				tr.style.backgroundColor = "#fff";
 
 				// Serial Number Column
@@ -441,6 +555,17 @@ const RenderingMixin = {
 					} else {
 						this.createNonEditableField(td, column, row, columnIndex);
 					}
+					if (col?.wrap) {
+						td.style.whiteSpace = "normal";
+						td.style.wordBreak = "break-word";
+						td.style.overflowWrap = "break-word";
+						td.style.overflow = "visible";
+						td.style.textOverflow = "unset";
+						td.style.height = "auto";
+						td.style.minHeight = "32px";
+					}
+					if (col?.color) td.style.color = col.color;
+					if (col?.bg_color) td.style.backgroundColor = col.bg_color;
 					tr.appendChild(td);
 				});
 
@@ -605,19 +730,22 @@ const RenderingMixin = {
 
 				// Add hover effect
 				tr.addEventListener("mouseover", () => {
+					tr.style.transition = "background-color 0.15s ease";
 					tr.style.backgroundColor = "#f5f5f5";
-					tr.querySelectorAll(
-						".sva-dt-serial-number-column, .sva-dt-action-column, .sva-dt-sticky-column"
-					).forEach((td) => {
+					tr.querySelectorAll("td").forEach((td) => {
+						td.style.transition = "background-color 0.15s ease";
+						if (!td.dataset.originalBg)
+							td.dataset.originalBg =
+								window.getComputedStyle(td).backgroundColor || "#fff";
 						td.style.backgroundColor = "#f5f5f5";
 					});
 				});
 				tr.addEventListener("mouseleave", () => {
+					tr.style.transition = "background-color 0.15s ease";
 					tr.style.backgroundColor = "#fff";
-					tr.querySelectorAll(
-						".sva-dt-serial-number-column, .sva-dt-action-column, .sva-dt-sticky-column"
-					).forEach((td) => {
-						td.style.backgroundColor = "#fff";
+					tr.querySelectorAll("td").forEach((td) => {
+						td.style.transition = "background-color 0.15s ease";
+						td.style.backgroundColor = td.dataset.originalBg || "#fff";
 					});
 				});
 
@@ -642,6 +770,10 @@ const RenderingMixin = {
 
 		this.table_wrapper.addEventListener("scroll", handleScroll);
 		renderBatch();
+
+		const totalRow = this.createTotalRow();
+		if (totalRow) tbody.appendChild(totalRow);
+
 		return tbody;
 	},
 
