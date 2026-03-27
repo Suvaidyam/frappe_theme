@@ -3,6 +3,14 @@ if (frappe.ui?.FileUploader) {
 		constructor(options = {}) {
 			// Override or enforce disable_file_browser
 			options.disable_file_browser = true;
+			// // Call parent constructor with modified options
+
+			// 			/* Other available flags
+			// 			make_attachments_public,
+			// 			allow_web_link,
+			// 			allow_take_photo,
+			// 			allow_toggle_private,
+			// 			allow_toggle_optimize,
 
 			// Force all uploads to public if enabled in mGrant Settings
 			if (frappe.boot?.mgrant_settings?.force_public_file_upload) {
@@ -1124,8 +1132,8 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					field?.connection_type === "Is Custom Design"
 						? field?.template
 						: ["Direct", "Unfiltered", "Indirect"].includes(field.connection_type)
-						? field.link_doctype
-						: field.referenced_link_doctype
+							? field.link_doctype
+							: field.referenced_link_doctype
 				)} items`
 			);
 			element.innerHTML = `
