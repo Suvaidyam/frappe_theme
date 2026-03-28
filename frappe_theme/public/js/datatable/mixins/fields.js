@@ -1,7 +1,8 @@
 const FieldsMixin = {
 	getCellStyle(column, isSticky, left, isLastSticky) {
+		const rowBg = this.connection?.table_body_bg_color || "#fff";
 		if (isSticky) {
-			return `position: sticky; left:${left}px; z-index: 2; background-color: white; min-width:${
+			return `position: sticky; left:${left}px; z-index: 2; background-color: ${rowBg}; min-width:${
 				column.width || 150
 			}px; max-width:${column.width || 200}px; padding: 0px${
 				isLastSticky ? "; box-shadow: inset -2px 0 0 0 #d1d8dd" : ""
@@ -263,7 +264,10 @@ const FieldsMixin = {
 				this.permissions.includes("write") &&
 				this.conf_perms.includes("write") &&
 				is_editable;
-			if (col?.inline_edit && editable) {
+			// Show select control when inline_edit is configured OR table is in editable mode.
+			// The control's read_only flag gates actual editing; the condition here only
+			// determines whether the control renders at all.
+			if (col?.inline_edit || this.options?.editable) {
 				let me = this;
 				const control = frappe.ui.form.make_control({
 					parent: td,
@@ -273,43 +277,41 @@ const FieldsMixin = {
 							column?.read_only ||
 							(column?.read_only_depends_on
 								? frappe.utils.custom_eval(column.read_only_depends_on, row)
-								: false),
+								: false) ||
+							(!editable && !this.options?.editable),
 						onchange: async function () {
-							let changedValue = control.get_input_value();
-							if (row[column.fieldname] && row[column.fieldname] != changedValue) {
-								try {
-									let response = await me.sva_db.set_value(
-										me.doctype,
-										row.name,
-										column.fieldname,
-										changedValue
+							const changedValue = control.get_input_value();
+							if (me.options?.editable) {
+								// Child table mode: update frm.doc and mark dirty
+								if (row[column.fieldname] !== changedValue) {
+									let rowIndex = me.frm?.doc?.[me.childTableFieldName]?.findIndex(
+										(r) => r.name === row.name
 									);
-									if (response) {
-										me.reloadRow(response);
-										frappe.show_alert({
-											message: `${
-												column?.label || column.fieldname
-											} updated successfully`,
-											indicator: "success",
-										});
+									if (rowIndex >= 0) {
+										me.frm.doc[me.childTableFieldName][rowIndex][column.fieldname] =
+											changedValue;
+										me.frm.dirty();
 									}
-								} catch (error) {
-									frappe.show_alert({
-										message: `Error updating ${
-											column?.label || column.fieldname
-										}`,
-										indicator: "danger",
-									});
 								}
+							} else if (!editable) {
+								return; // user lacks write permission — do not save
 							} else {
+								// Connected list mode: save via API whenever value actually changes.
+								// Use changedValue directly — the old two-branch logic saved
+								// row[column.fieldname] (possibly null) in the else case, which
+								// silently dropped the user's selection when the original value was empty.
+								const currentValue = row[column.fieldname] ?? "";
+								const newValue = changedValue === "-" ? "" : (changedValue ?? "");
+								if (newValue === currentValue) return; // no real change
 								try {
 									let response = await me.sva_db.set_value(
 										me.doctype,
 										row.name,
 										column.fieldname,
-										row[column.fieldname]
+										newValue
 									);
 									if (response) {
+										row[column.fieldname] = newValue; // keep closure in sync
 										me.reloadRow(response);
 										frappe.show_alert({
 											message: `${
