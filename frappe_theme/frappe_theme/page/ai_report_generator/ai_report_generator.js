@@ -11,8 +11,6 @@ frappe.pages["ai-report-generator"].on_page_load = function (wrapper) {
 class AIReportGenerator {
 	constructor(page) {
 		this.page = page;
-		this.current_step = 1;
-		this.total_steps = 7;
 		this.state = {
 			selected_doctypes: [],
 			suggestions: null,
@@ -21,6 +19,7 @@ class AIReportGenerator {
 			selected_filters: [],
 			generated: null,
 			preview_data: null,
+			analyzed: false,
 		};
 		this.render();
 	}
@@ -28,165 +27,182 @@ class AIReportGenerator {
 	render() {
 		this.page.main.html(`
 			<div class="ai-report-generator">
-				<div class="step-indicator">${this.render_step_dots()}</div>
-				<div class="wizard-body">
-					${this.render_step_1()}
-					${this.render_step_2()}
-					${this.render_step_3()}
-					${this.render_step_4()}
-					${this.render_step_5()}
-					${this.render_step_6()}
-					${this.render_step_7()}
-				</div>
-				<div class="wizard-actions">
-					<button class="btn btn-default btn-back" style="display:none;">Back</button>
-					<span></span>
-					<button class="btn btn-primary btn-next">Next</button>
-				</div>
+				${this.render_doctype_section()}
+				${this.render_describe_section()}
+				${this.render_suggestions_section()}
+				${this.render_request_section()}
+				${this.render_generated_section()}
+				${this.render_preview_section()}
+				${this.render_save_section()}
 			</div>
 		`);
 		this.$wrapper = this.page.main.find(".ai-report-generator");
-		this.show_step(1);
 		this.bind_events();
 	}
 
-	render_step_dots() {
-		const labels = [
-			"DocTypes",
-			"Describe",
-			"Suggestions",
-			"Request",
-			"Generate",
-			"Preview",
-			"Save",
-		];
-		return labels
-			.map(
-				(label, i) =>
-					`<div class="step-dot" data-step="${i + 1}" title="${label}">${i + 1}</div>`
-			)
-			.join("");
-	}
-
-	render_step_1() {
+	render_doctype_section() {
 		return `
-			<div class="wizard-step" data-step="1">
-				<h4>Step 1: Select DocTypes</h4>
-				<p class="text-muted">Choose the DocTypes you want to build a report from.</p>
-				<div class="form-group">
-					<input type="text" class="form-control doctype-search"
-						placeholder="Type to search DocTypes..." autocomplete="off">
-					<div class="selected-doctypes" style="margin-top:10px;"></div>
+			<div class="report-section" data-section="doctypes">
+				<div class="section-header">
+					<h4>Select DocTypes</h4>
+					<p class="text-muted">Choose the DocTypes you want to build a report from.</p>
+				</div>
+				<div class="section-body">
+					<div class="form-group">
+						<input type="text" class="form-control doctype-search"
+							placeholder="Type to search DocTypes..." autocomplete="off">
+						<div class="selected-doctypes" style="margin-top:10px;"></div>
+					</div>
+					<button class="btn btn-primary btn-sm btn-analyze" style="margin-top:10px;">
+						Analyze DocTypes
+					</button>
 				</div>
 			</div>
 		`;
 	}
 
-	render_step_2() {
+	render_describe_section() {
 		return `
-			<div class="wizard-step" data-step="2">
-				<h4>Step 2: Describe DocTypes</h4>
-				<p class="text-muted">Help the AI understand your DocTypes by providing descriptions.</p>
-				<div class="description-forms"></div>
-			</div>
-		`;
-	}
-
-	render_step_3() {
-		return `
-			<div class="wizard-step" data-step="3">
-				<h4>Step 3: Review Suggested Fields</h4>
-				<p class="text-muted">Select columns and filters for your report.</p>
-				<div>
-					<h5>Columns</h5>
-					<div class="suggested-columns"></div>
+			<div class="report-section section-disabled" data-section="describe">
+				<div class="section-header">
+					<h4>Describe DocTypes</h4>
+					<p class="text-muted">Help the AI understand your DocTypes by providing descriptions.</p>
 				</div>
-				<div style="margin-top:15px;">
-					<h5>Filters</h5>
-					<div class="suggested-filters"></div>
+				<div class="section-body">
+					<div class="description-forms"></div>
+					<button class="btn btn-primary btn-sm btn-save-descriptions" style="margin-top:10px; display:none;">
+						Save Descriptions
+					</button>
+					<p class="text-muted no-descriptions-msg" style="display:none;">
+						All selected DocTypes already have descriptions.
+					</p>
 				</div>
 			</div>
 		`;
 	}
 
-	render_step_4() {
+	render_suggestions_section() {
 		return `
-			<div class="wizard-step" data-step="4">
-				<h4>Step 4: Describe Your Report</h4>
-				<p class="text-muted">Tell the AI what you want this report to show, in plain language.</p>
-				<div class="form-group">
-					<textarea class="form-control user-request" rows="6"
-						placeholder="e.g., Show me a report of all Sales Orders grouped by customer with total amount, filtered by date range and status..."></textarea>
+			<div class="report-section section-disabled" data-section="suggestions">
+				<div class="section-header">
+					<h4>Review Suggested Fields</h4>
+					<p class="text-muted">Select columns and filters for your report.</p>
+				</div>
+				<div class="section-body">
+					<div class="suggestions-row">
+						<div class="suggestions-col">
+							<div class="suggestions-col-header">
+								<h5>Columns</h5>
+								<label class="check-all-label">
+									<input type="checkbox" class="check-all-cols" checked> Select All
+								</label>
+							</div>
+							<input type="text" class="form-control form-control-sm suggestion-search"
+								data-target="cols" placeholder="Search columns..." style="margin-bottom:8px;">
+							<div class="suggested-columns"></div>
+						</div>
+						<div class="suggestions-col">
+							<div class="suggestions-col-header">
+								<h5>Filters</h5>
+								<label class="check-all-label">
+									<input type="checkbox" class="check-all-fils" checked> Select All
+								</label>
+							</div>
+							<input type="text" class="form-control form-control-sm suggestion-search"
+								data-target="fils" placeholder="Search filters..." style="margin-bottom:8px;">
+							<div class="suggested-filters"></div>
+						</div>
+					</div>
 				</div>
 			</div>
 		`;
 	}
 
-	render_step_5() {
+	render_request_section() {
 		return `
-			<div class="wizard-step" data-step="5">
-				<h4>Step 5: Generated Report</h4>
-				<div class="generated-content"></div>
-			</div>
-		`;
-	}
-
-	render_step_6() {
-		return `
-			<div class="wizard-step" data-step="6">
-				<h4>Step 6: Preview</h4>
-				<p class="text-muted">Preview the report data (limited to 20 rows).</p>
-				<div class="preview-filters" style="margin-bottom:10px;"></div>
-				<button class="btn btn-sm btn-default btn-run-preview">Run Preview</button>
-				<div class="preview-result" style="margin-top:15px;"></div>
-			</div>
-		`;
-	}
-
-	render_step_7() {
-		return `
-			<div class="wizard-step" data-step="7">
-				<h4>Step 7: Save as Report</h4>
-				<div class="form-group">
-					<label>Report Name</label>
-					<input type="text" class="form-control report-name" placeholder="My Custom Report">
+			<div class="report-section section-disabled" data-section="request">
+				<div class="section-header">
+					<h4>Describe Your Report</h4>
+					<p class="text-muted">Tell the AI what you want this report to show, in plain language.</p>
 				</div>
-				<div class="form-group" style="margin-top:10px;">
-					<label>Reference DocType</label>
-					<input type="text" class="form-control ref-doctype" readonly>
-				</div>
-				<div class="form-group" style="margin-top:10px;">
-					<label>Description (optional, for future AI Dashboard use)</label>
-					<textarea class="form-control report-description" rows="3"></textarea>
+				<div class="section-body">
+					<div class="form-group">
+						<textarea class="form-control user-request" rows="4"
+							placeholder="e.g., Show me a report of all Sales Orders grouped by customer with total amount, filtered by date range and status..."></textarea>
+					</div>
+					<button class="btn btn-primary btn-sm btn-generate" style="margin-top:10px;">
+						Generate Report
+					</button>
 				</div>
 			</div>
 		`;
 	}
 
-	show_step(step) {
-		this.current_step = step;
-		this.$wrapper.find(".wizard-step").removeClass("active");
-		this.$wrapper.find(`.wizard-step[data-step="${step}"]`).addClass("active");
+	render_generated_section() {
+		return `
+			<div class="report-section section-disabled" data-section="generated">
+				<div class="section-header">
+					<h4>Generated Report</h4>
+				</div>
+				<div class="section-body">
+					<div class="generated-content"></div>
+				</div>
+			</div>
+		`;
+	}
 
-		// Update step dots
-		this.$wrapper.find(".step-dot").each(function () {
-			const s = parseInt($(this).data("step"));
-			$(this)
-				.toggleClass("active", s === step)
-				.toggleClass("completed", s < step);
-		});
+	render_preview_section() {
+		return `
+			<div class="report-section section-disabled" data-section="preview">
+				<div class="section-header">
+					<h4>Preview</h4>
+					<p class="text-muted">Preview the report data (limited to 20 rows).</p>
+				</div>
+				<div class="section-body">
+					<div class="preview-filters" style="margin-bottom:10px;"></div>
+					<button class="btn btn-default btn-sm btn-run-preview">Run Preview</button>
+					<div class="preview-result" style="margin-top:15px;"></div>
+				</div>
+			</div>
+		`;
+	}
 
-		// Button visibility
-		this.$wrapper.find(".btn-back").toggle(step > 1);
-		const $next = this.$wrapper.find(".btn-next");
-		if (step === 5) {
-			$next.text("Preview");
-		} else if (step === 7) {
-			$next.text("Save as Report");
-		} else {
-			$next.text("Next");
+	render_save_section() {
+		return `
+			<div class="report-section section-disabled" data-section="save">
+				<div class="section-header">
+					<h4>Save as Report</h4>
+				</div>
+				<div class="section-body">
+					<div class="form-group">
+						<label>Report Name</label>
+						<input type="text" class="form-control report-name" placeholder="My Custom Report">
+					</div>
+					<div class="form-group" style="margin-top:10px;">
+						<label>Reference DocType</label>
+						<input type="text" class="form-control ref-doctype" readonly>
+					</div>
+					<div class="form-group" style="margin-top:10px;">
+						<label>Description (optional, for future AI Dashboard use)</label>
+						<textarea class="form-control report-description" rows="3"></textarea>
+					</div>
+					<button class="btn btn-primary btn-sm btn-save-report" style="margin-top:10px;">
+						Save Report
+					</button>
+				</div>
+			</div>
+		`;
+	}
+
+	enable_section(name) {
+		this.$wrapper.find(`[data-section="${name}"]`).removeClass("section-disabled");
+	}
+
+	scroll_to_section(name) {
+		const $section = this.$wrapper.find(`[data-section="${name}"]`);
+		if ($section.length) {
+			$section[0].scrollIntoView({ behavior: "smooth", block: "start" });
 		}
-		$next.toggle(step <= this.total_steps);
 	}
 
 	bind_events() {
@@ -204,12 +220,20 @@ class AIReportGenerator {
 			},
 		});
 
-		// Next button
-		this.$wrapper.find(".btn-next").on("click", () => me.handle_next());
-		this.$wrapper.find(".btn-back").on("click", () => me.handle_back());
+		// Analyze button
+		this.$wrapper.find(".btn-analyze").on("click", () => me.handle_analyze());
+
+		// Save descriptions button
+		this.$wrapper.find(".btn-save-descriptions").on("click", () => me.handle_save_descriptions());
+
+		// Generate button
+		this.$wrapper.find(".btn-generate").on("click", () => me.handle_generate());
 
 		// Preview button
 		this.$wrapper.find(".btn-run-preview").on("click", () => me.run_preview());
+
+		// Save report button
+		this.$wrapper.find(".btn-save-report").on("click", () => me.save_report());
 	}
 
 	setup_awesomplete($input, items) {
@@ -250,59 +274,56 @@ class AIReportGenerator {
 		});
 	}
 
-	async handle_next() {
-		const step = this.current_step;
-
-		if (step === 1) {
-			if (!this.state.selected_doctypes.length) {
-				frappe.msgprint("Please select at least one DocType.");
-				return;
-			}
-			await this.analyze_doctypes();
-			// Skip step 2 if no missing descriptions
-			if (!this.state.missing_descriptions.length) {
-				this.show_step(3);
-				this.render_suggestions();
-			} else {
-				this.show_step(2);
-				this.render_description_forms();
-			}
-		} else if (step === 2) {
-			await this.save_descriptions();
-			this.show_step(3);
-			this.render_suggestions();
-		} else if (step === 3) {
-			this.collect_selections();
-			this.show_step(4);
-		} else if (step === 4) {
-			const request = this.$wrapper.find(".user-request").val().trim();
-			if (!request) {
-				frappe.msgprint("Please describe what you want the report to show.");
-				return;
-			}
-			await this.generate_report(request);
-			this.show_step(5);
-			this.render_generated();
-		} else if (step === 5) {
-			this.collect_edits();
-			this.show_step(6);
-			this.render_preview_filters();
-		} else if (step === 6) {
-			this.show_step(7);
-			this.$wrapper
-				.find(".ref-doctype")
-				.val(this.state.selected_doctypes[0]);
-		} else if (step === 7) {
-			await this.save_report();
+	async handle_analyze() {
+		if (!this.state.selected_doctypes.length) {
+			frappe.msgprint("Please select at least one DocType.");
+			return;
 		}
+		await this.analyze_doctypes();
+		this.state.analyzed = true;
+
+		// Enable and populate sections
+		this.enable_section("describe");
+		this.enable_section("suggestions");
+		this.enable_section("request");
+
+		if (this.state.missing_descriptions.length) {
+			this.render_description_forms();
+			this.$wrapper.find(".btn-save-descriptions").show();
+			this.$wrapper.find(".no-descriptions-msg").hide();
+			this.scroll_to_section("describe");
+		} else {
+			this.$wrapper.find(".btn-save-descriptions").hide();
+			this.$wrapper.find(".no-descriptions-msg").show();
+			this.scroll_to_section("suggestions");
+		}
+
+		this.render_suggestions();
 	}
 
-	handle_back() {
-		if (this.current_step === 3 && !this.state.missing_descriptions.length) {
-			this.show_step(1);
-		} else {
-			this.show_step(this.current_step - 1);
+	async handle_save_descriptions() {
+		await this.save_descriptions();
+		frappe.show_alert({ message: "Descriptions saved.", indicator: "green" });
+		this.scroll_to_section("suggestions");
+	}
+
+	async handle_generate() {
+		const request = this.$wrapper.find(".user-request").val().trim();
+		if (!request) {
+			frappe.msgprint("Please describe what you want the report to show.");
+			return;
 		}
+		this.collect_selections();
+		await this.generate_report(request);
+
+		this.enable_section("generated");
+		this.enable_section("preview");
+		this.enable_section("save");
+
+		this.render_generated();
+		this.render_preview_filters();
+		this.$wrapper.find(".ref-doctype").val(this.state.selected_doctypes[0]);
+		this.scroll_to_section("generated");
 	}
 
 	async analyze_doctypes() {
@@ -341,7 +362,6 @@ class AIReportGenerator {
 	}
 
 	async save_descriptions() {
-		const me = this;
 		const promises = [];
 		this.$wrapper.find(".dt-description").each(function () {
 			const dt = $(this).data("dt");
@@ -365,71 +385,69 @@ class AIReportGenerator {
 	render_suggestions() {
 		if (!this.state.suggestions) return;
 
-		// Columns
+		// Columns — compact checkbox grid
 		const $cols = this.$wrapper.find(".suggested-columns");
 		if (this.state.suggestions.columns.length) {
 			$cols.html(`
-				<table class="suggestion-table">
-					<thead><tr>
-						<th><input type="checkbox" class="check-all-cols" checked></th>
-						<th>Field</th><th>Label</th><th>Type</th><th>DocType</th>
-					</tr></thead>
-					<tbody>
-						${this.state.suggestions.columns
-							.map(
-								(c, i) => `
-							<tr>
-								<td><input type="checkbox" class="col-check" data-idx="${i}" checked></td>
-								<td>${c.fieldname}</td>
-								<td>${c.label}</td>
-								<td>${c.fieldtype}</td>
-								<td>${c.doctype}</td>
-							</tr>`
-							)
-							.join("")}
-					</tbody>
-				</table>
+				<div class="suggestion-grid">
+					${this.state.suggestions.columns
+						.map(
+							(c, i) => `
+						<label class="suggestion-chip" title="${c.fieldname} (${c.fieldtype}) — ${c.doctype}">
+							<input type="checkbox" class="col-check" data-idx="${i}" checked>
+							<span class="chip-label">${c.label}</span>
+							<span class="chip-meta">${c.doctype}</span>
+						</label>`
+						)
+						.join("")}
+				</div>
 			`);
-			$cols.find(".check-all-cols").on("change", function () {
-				$cols.find(".col-check").prop("checked", $(this).is(":checked"));
-			});
 		} else {
-			$cols.html('<p class="text-muted">No column suggestions available.</p>');
+			$cols.html('<p class="text-muted">No column suggestions.</p>');
 		}
 
-		// Filters
+		// Bind select-all for columns
+		this.$wrapper.find(".check-all-cols").off("change").on("change", function () {
+			$cols.find(".col-check").prop("checked", $(this).is(":checked"));
+		});
+
+		// Filters — compact checkbox grid
 		const $fils = this.$wrapper.find(".suggested-filters");
 		if (this.state.suggestions.filters.length) {
 			$fils.html(`
-				<table class="suggestion-table">
-					<thead><tr>
-						<th><input type="checkbox" class="check-all-fils" checked></th>
-						<th>Field</th><th>Label</th><th>Type</th><th>DocType</th>
-					</tr></thead>
-					<tbody>
-						${this.state.suggestions.filters
-							.map(
-								(f, i) => `
-							<tr>
-								<td><input type="checkbox" class="fil-check" data-idx="${i}" checked></td>
-								<td>${f.fieldname}</td>
-								<td>${f.label}</td>
-								<td>${f.fieldtype}</td>
-								<td>${f.doctype}</td>
-							</tr>`
-							)
-							.join("")}
-					</tbody>
-				</table>
+				<div class="suggestion-grid">
+					${this.state.suggestions.filters
+						.map(
+							(f, i) => `
+						<label class="suggestion-chip" title="${f.fieldname} (${f.fieldtype}) — ${f.doctype}">
+							<input type="checkbox" class="fil-check" data-idx="${i}" checked>
+							<span class="chip-label">${f.label}</span>
+							<span class="chip-meta">${f.doctype}</span>
+						</label>`
+						)
+						.join("")}
+				</div>
 			`);
-			$fils.find(".check-all-fils").on("change", function () {
-				$fils.find(".fil-check").prop("checked", $(this).is(":checked"));
-			});
 		} else {
-			$fils.html(
-				'<p class="text-muted">No filter suggestions available.</p>'
-			);
+			$fils.html('<p class="text-muted">No filter suggestions.</p>');
 		}
+
+		// Bind select-all for filters
+		this.$wrapper.find(".check-all-fils").off("change").on("change", function () {
+			$fils.find(".fil-check").prop("checked", $(this).is(":checked"));
+		});
+
+		// Bind search inputs
+		this.$wrapper.find(".suggestion-search").off("input").on("input", function () {
+			const query = $(this).val().toLowerCase();
+			const target = $(this).data("target");
+			const $grid = target === "cols" ? $cols : $fils;
+			$grid.find(".suggestion-chip").each(function () {
+				const text = $(this).text().toLowerCase();
+				const title = ($(this).attr("title") || "").toLowerCase();
+				$(this).toggle(text.includes(query) || title.includes(query));
+			});
+		});
 	}
 
 	collect_selections() {
@@ -477,26 +495,30 @@ class AIReportGenerator {
 				<h5>Columns</h5>
 				<button class="btn btn-xs btn-default btn-add-col">+ Add Column</button>
 			</div>
-			<table class="editable-table columns-table">
-				<thead><tr><th>Fieldname</th><th>Label</th><th>Type</th><th>Options</th><th>Width</th><th></th></tr></thead>
-				<tbody>
-					${g.columns.map((c, i) => this.column_row(c, i)).join("")}
-				</tbody>
-			</table>
+			<div class="editable-table-scroll">
+				<table class="editable-table columns-table">
+					<thead><tr><th>Fieldname</th><th>Label</th><th>Type</th><th>Options</th><th>Width</th><th></th></tr></thead>
+					<tbody>
+						${g.columns.map((c, i) => this.column_row(c, i)).join("")}
+					</tbody>
+				</table>
+			</div>
 
 			<div style="display:flex;justify-content:space-between;align-items:center;margin-top:15px;">
 				<h5>Filters</h5>
 				<button class="btn btn-xs btn-default btn-add-fil">+ Add Filter</button>
 			</div>
-			<table class="editable-table filters-table">
-				<thead><tr><th>Fieldname</th><th>Label</th><th>Type</th><th>Options</th><th>Default</th><th>Reqd</th><th></th></tr></thead>
-				<tbody>
-					${g.filters.map((f, i) => this.filter_row(f, i)).join("")}
-				</tbody>
-			</table>
+			<div class="editable-table-scroll">
+				<table class="editable-table filters-table">
+					<thead><tr><th>Fieldname</th><th>Label</th><th>Type</th><th>Options</th><th>Default</th><th>Reqd</th><th></th></tr></thead>
+					<tbody>
+						${g.filters.map((f, i) => this.filter_row(f, i)).join("")}
+					</tbody>
+				</table>
+			</div>
 
 			<div style="margin-top:15px;">
-				<button class="btn btn-default btn-regenerate">Regenerate</button>
+				<button class="btn btn-default btn-sm btn-regenerate">Regenerate</button>
 			</div>
 		`);
 
@@ -608,6 +630,7 @@ class AIReportGenerator {
 	}
 
 	async run_preview() {
+		this.collect_edits();
 		const g = this.state.generated;
 		if (!g) return;
 
@@ -666,6 +689,7 @@ class AIReportGenerator {
 			return;
 		}
 
+		this.collect_edits();
 		const g = this.state.generated;
 		const ref_doctype =
 			this.$wrapper.find(".ref-doctype").val() ||
@@ -700,11 +724,9 @@ class AIReportGenerator {
 	}
 
 	show_loading(msg) {
-		this.$wrapper
-			.find(".wizard-body")
-			.prepend(
-				`<div class="loading-overlay main-loading">${msg}</div>`
-			);
+		this.$wrapper.prepend(
+			`<div class="loading-overlay main-loading">${msg}</div>`
+		);
 	}
 
 	hide_loading() {

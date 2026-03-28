@@ -4,54 +4,29 @@
     padding: 20px;
 }
 
-.ai-report-generator .wizard-step {
-    display: none;
+.ai-report-generator .report-section {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    padding: 20px;
+    margin-bottom: 20px;
+    transition: opacity 0.2s;
 }
 
-.ai-report-generator .wizard-step.active {
-    display: block;
+.ai-report-generator .report-section.section-disabled {
+    opacity: 0.4;
+    pointer-events: none;
 }
 
-.ai-report-generator .step-indicator {
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-    margin-bottom: 30px;
-    flex-wrap: wrap;
+.ai-report-generator .section-header h4 {
+    margin: 0 0 4px;
 }
 
-.ai-report-generator .step-dot {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: var(--gray-300);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--gray-600);
-    transition: all 0.2s;
+.ai-report-generator .section-header {
+    margin-bottom: 15px;
 }
 
-.ai-report-generator .step-dot.active {
-    background: var(--primary);
-    color: white;
-}
-
-.ai-report-generator .step-dot.completed {
-    background: var(--green-500);
-    color: white;
-}
-
-.ai-report-generator .wizard-actions {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 20px;
-    padding-top: 15px;
-    border-top: 1px solid var(--border-color);
-}
-
+/* DocType tags */
 .ai-report-generator .doctype-tag {
     display: inline-flex;
     align-items: center;
@@ -70,25 +45,82 @@
     margin-left: 4px;
 }
 
-.ai-report-generator .suggestion-table {
-    width: 100%;
-    margin: 10px 0;
+/* Suggestions — stacked columns/filters */
+.ai-report-generator .suggestions-row {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 }
 
-.ai-report-generator .suggestion-table th,
-.ai-report-generator .suggestion-table td {
-    padding: 6px 10px;
-    text-align: left;
-    border-bottom: 1px solid var(--border-color);
+.ai-report-generator .suggestions-col-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
 }
 
-.ai-report-generator .suggestion-table th {
-    background: var(--bg-color);
-    font-weight: 600;
+.ai-report-generator .suggestions-col-header h5 {
+    margin: 0;
+}
+
+.ai-report-generator .check-all-label {
     font-size: 12px;
-    text-transform: uppercase;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
 }
 
+/* Compact checkbox grid for suggestions */
+.ai-report-generator .suggestion-grid {
+    max-height: 280px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-content: flex-start;
+}
+
+.ai-report-generator .suggestion-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    font-size: 12px;
+    cursor: pointer;
+    background: var(--fg-color);
+    transition: background 0.15s, border-color 0.15s;
+    white-space: nowrap;
+    margin: 0;
+}
+
+.ai-report-generator .suggestion-chip:hover {
+    background: var(--bg-light-gray);
+}
+
+.ai-report-generator .suggestion-chip input[type="checkbox"] {
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.ai-report-generator .suggestion-chip .chip-label {
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.ai-report-generator .suggestion-chip .chip-meta {
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+/* SQL editor */
 .ai-report-generator .sql-editor {
     width: 100%;
     min-height: 200px;
@@ -110,6 +142,55 @@
     font-size: 13px;
 }
 
+/* Editable tables with scrollable container + sticky header */
+.ai-report-generator .editable-table-scroll {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    margin: 10px 0;
+}
+
+.ai-report-generator .editable-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+}
+
+.ai-report-generator .editable-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.ai-report-generator .editable-table th,
+.ai-report-generator .editable-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 13px;
+}
+
+.ai-report-generator .editable-table th {
+    background: var(--bg-color);
+    font-weight: 600;
+}
+
+.ai-report-generator .editable-table input,
+.ai-report-generator .editable-table select {
+    width: 100%;
+    border: none;
+    background: transparent;
+    padding: 2px 4px;
+    font-size: 13px;
+}
+
+.ai-report-generator .editable-table .remove-row {
+    cursor: pointer;
+    color: var(--red-500);
+    text-align: center;
+}
+
+/* Preview table */
 .ai-report-generator .preview-table-wrapper {
     overflow-x: auto;
     margin: 10px 0;
@@ -133,6 +214,7 @@
     font-weight: 600;
 }
 
+/* Loading */
 .ai-report-generator .loading-overlay {
     display: flex;
     align-items: center;
@@ -140,37 +222,4 @@
     gap: 10px;
     padding: 40px;
     color: var(--text-muted);
-}
-
-.ai-report-generator .editable-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 10px 0;
-}
-
-.ai-report-generator .editable-table th,
-.ai-report-generator .editable-table td {
-    padding: 6px 8px;
-    border: 1px solid var(--border-color);
-    font-size: 13px;
-}
-
-.ai-report-generator .editable-table th {
-    background: var(--bg-color);
-    font-weight: 600;
-}
-
-.ai-report-generator .editable-table input,
-.ai-report-generator .editable-table select {
-    width: 100%;
-    border: none;
-    background: transparent;
-    padding: 2px 4px;
-    font-size: 13px;
-}
-
-.ai-report-generator .editable-table .remove-row {
-    cursor: pointer;
-    color: var(--red-500);
-    text-align: center;
 }
