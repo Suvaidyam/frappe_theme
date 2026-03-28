@@ -704,12 +704,14 @@ const RenderingMixin = {
 							});
 							el.addEventListener("change", async (event) => {
 								const action = event.target.value;
-								const link = this.workflow.transitions.find(
-									(l) =>
-										l.state == row[workflow_state_field] &&
-										l.action === action &&
-										frappe.user_roles.includes(l.allowed)
-								);
+								const link =
+									transitions.find((l) => l.action === action) ||
+									this.workflow.transitions.find(
+										(l) =>
+											l.state == row[workflow_state_field] &&
+											l.action === action &&
+											frappe.user_roles.includes(l.allowed)
+									);
 								const originalState = el?.getAttribute("title");
 								if (link) {
 									if (window.onWorkflowStateChange) {
