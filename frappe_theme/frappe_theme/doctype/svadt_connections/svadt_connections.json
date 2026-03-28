@@ -28,7 +28,8 @@
   "redirect_to_main_form",
   "keep_workflow_enabled_form_submission",
   "full_screen_dialog",
-  "disable_workflow"
+  "disable_workflow",
+  "table_body_bg_color"
  ],
  "fields": [
   {
@@ -165,6 +166,11 @@
    "fieldname": "disable_workflow",
    "fieldtype": "Check",
    "label": "Hide workflow (Even If exists)"
+  },
+  {
+   "fieldname": "table_body_bg_color",
+   "fieldtype": "Color",
+   "label": "Table Body Background Color"
   },
   {
    "fieldname": "column_break_jdmi",

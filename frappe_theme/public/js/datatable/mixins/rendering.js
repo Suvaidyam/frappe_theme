@@ -1,7 +1,7 @@
 const RenderingMixin = {
 	createTableRow(row, rowIndex) {
 		const tr = document.createElement("tr");
-		tr.style.backgroundColor = "#fff";
+		tr.style.backgroundColor = this.connection?.table_body_bg_color || "#fff";
 		tr.setAttribute("data-row-index", rowIndex);
 		tr.setAttribute("data-docname", row.name);
 
@@ -23,7 +23,7 @@ const RenderingMixin = {
 			serialTd.style.textAlign = "center";
 			serialTd.style.position = "sticky";
 			serialTd.style.left = "0px";
-			serialTd.style.backgroundColor = "#fff";
+			serialTd.style.backgroundColor = this.connection?.table_body_bg_color || "#fff";
 			serialTd.style.zIndex = "4";
 			serialTd.style.boxShadow = "inset -1px 0 0 0 #d1d8dd";
 			serialTd.style.setProperty("padding", "0px", "important");
@@ -84,7 +84,7 @@ const RenderingMixin = {
 			}
 
 			td.textContent = row[column.fieldname] || "";
-			if (this.options.editable) {
+			if (this.options.editable && column.fieldtype !== "Select") {
 				this.createEditableField(td, column, row);
 			} else {
 				this.createNonEditableField(td, column, row, columnIndex);
@@ -207,7 +207,7 @@ const RenderingMixin = {
 		actionTd.style.position = "sticky";
 		actionTd.style.right = "0px";
 		actionTd.style.zIndex = "3";
-		actionTd.style.backgroundColor = "#fff";
+		actionTd.style.backgroundColor = this.connection?.table_body_bg_color || "#fff";
 		if (
 			(this.conf_perms.length &&
 				(this.conf_perms.includes("read") ||
@@ -232,10 +232,10 @@ const RenderingMixin = {
 		});
 		tr.addEventListener("mouseleave", () => {
 			tr.style.transition = "background-color 0.15s ease";
-			tr.style.backgroundColor = "#fff";
+			tr.style.backgroundColor = this.connection?.table_body_bg_color || "#fff";
 			tr.querySelectorAll("td").forEach((td) => {
 				td.style.transition = "background-color 0.15s ease";
-				td.style.backgroundColor = td.dataset.originalBg || "#fff";
+				td.style.backgroundColor = td.dataset.originalBg || this.connection?.table_body_bg_color || "#fff";
 			});
 		});
 
@@ -258,18 +258,16 @@ const RenderingMixin = {
 		el.appendChild(this.table);
 		this.table.appendChild(this.createTableBody());
 
-		// Auto transpose if enabled for reports
+		// Auto transpose if enabled — hide immediately to prevent flash of normal table
 		if (
 			this.connection?.enable_auto_transpose &&
-			["Direct","Report"].includes(this.connection?.connection_type)
+			["Direct", "Report"].includes(this.connection?.connection_type)
 		) {
 			this.isTransposed = true;
-			setTimeout(async () => {
-				console.log(this.connection, "connectionconnection");
-
-				this.rows = await this.getDocList();
-				this.table.replaceChild(this.createTableBody(), this.table.querySelector("tbody"));
+			this.table.style.visibility = "hidden";
+			setTimeout(() => {
 				this.transposeTable();
+				this.table.style.visibility = "";
 			}, 0);
 		}
 
@@ -287,6 +285,7 @@ const RenderingMixin = {
             font-weight:${this.options?.style?.tableHeader?.fontWeight || "normal"};
             z-index:3; font-weight:200 !important;white-space: nowrap;`;
 		const tr = document.createElement("tr");
+		tr.style.backgroundColor = "rgb(248, 249, 250)";
 
 		if (this.options.serialNumberColumn) {
 			const serialTh = document.createElement("th");
@@ -309,7 +308,7 @@ const RenderingMixin = {
 			const isLastSticky = columnIndex === lastStickyHeadIdx;
 
 			if (col?.sticky) {
-				th.style = `position:sticky; left:${left}px; z-index:2; background-color:#F3F3F3;cursor:${
+				th.style = `position:sticky; left:${left}px; z-index:2; background-color:rgb(248, 249, 250);cursor:${
 					column.sortable ? "pointer" : "default"
 				};min-width:${colWidth}px !important;max-width:${colWidth}px !important;width:${colWidth}px !important; white-space: nowrap;overflow: hidden;text-overflow:ellipsis;${
 					isLastSticky ? "box-shadow: inset -2px 0 0 0 #d1d8dd;" : ""
@@ -494,7 +493,7 @@ const RenderingMixin = {
 			this.sortByColumn(this.currentSort.column, this.currentSort.direction, false);
 		}
 
-		const renderBatch = async () => {
+		const renderBatch = () => {
 			const fragment = document.createDocumentFragment(); // Use a document fragment to batch DOM changes
 
 			for (let i = 0; i < batchSize && rowIndex < this.rows.length; i++) {
@@ -507,7 +506,7 @@ const RenderingMixin = {
 					tr.style.maxHeight = "32px";
 					tr.style.height = "32px";
 				}
-				tr.style.backgroundColor = "#fff";
+				tr.style.backgroundColor = this.connection?.table_body_bg_color || "#fff";
 
 				// Serial Number Column
 				if (this.options.serialNumberColumn) {
@@ -519,7 +518,7 @@ const RenderingMixin = {
 					serialTd.style.textAlign = "center";
 					serialTd.style.position = "sticky";
 					serialTd.style.left = "0px";
-					serialTd.style.backgroundColor = "#fff";
+					serialTd.style.backgroundColor = this.connection?.table_body_bg_color || "#fff";
 					serialTd.style.zIndex = "4";
 					serialTd.style.boxShadow = "inset -1px 0 0 0 #d1d8dd";
 					serialTd.style.setProperty("padding", "0px", "important");
@@ -589,7 +588,7 @@ const RenderingMixin = {
 					}
 
 					td.textContent = row[column.fieldname] || "";
-					if (this.options.editable) {
+					if (this.options.editable && column.fieldtype !== "Select") {
 						this.createEditableField(td, column, row);
 					} else {
 						this.createNonEditableField(td, column, row, columnIndex);
@@ -657,94 +656,106 @@ const RenderingMixin = {
 							el.style["text-align"] = "center";
 							wfActionTd.appendChild(el);
 						} else {
-							el.disabled =
-								(this.connection?.keep_workflow_enabled_form_submission
-									? false
-									: this.frm?.doc?.docstatus !== 0) ||
-								closureStates.includes(row[workflow_state_field]) ||
-								!this.workflow?.transitions?.some(
-									(tr) =>
-										frappe.user_roles.includes(tr.allowed) &&
-										tr.state === row[workflow_state_field]
-								);
-							let { message: transitions } = await this.sva_db.call({
-								method: "frappe.model.workflow.get_transitions",
-								doc: { ...row, doctype: this.doctype },
-							});
-							el.disabled =
-								el.disabled ||
-								transitions.length === 0 ||
-								(this.connection?.disable_workflow_depends_on
-									? frappe.utils.custom_eval(
-											this.connection?.disable_workflow_depends_on,
-											row
-									  )
-									: false);
-							el.setAttribute(
-								"title",
-								__(
-									this.workflow_state_map?.[row[workflow_state_field]] ||
-										row[workflow_state_field]
-								)
-							);
-							el.innerHTML =
-								`<option value="" style="color:black" selected disabled class="ellipsis">${__(
-									this.workflow_state_map?.[row[workflow_state_field]] ||
-										row[workflow_state_field]
-								)}</option>` +
-								[...new Set(transitions?.map((e) => e.action))]
-									?.map(
-										(action) =>
-											`<option value="${action}" style="background-color:white; color:black; cursor:pointer;" class="rounded p-1">${__(
-												action
-											)}</option>`
-									)
-									.join("");
-							el.addEventListener("focus", (event) => {
-								const originalState = el?.getAttribute("title");
-								el.value = "";
-								el.title = originalState;
-							});
-							el.addEventListener("change", async (event) => {
-								const action = event.target.value;
-								const link =
-									transitions.find((l) => l.action === action) ||
-									this.workflow.transitions.find(
-										(l) =>
-											l.state == row[workflow_state_field] &&
-											l.action === action &&
-											frappe.user_roles.includes(l.allowed)
-									);
-								const originalState = el?.getAttribute("title");
-								if (link) {
-									if (window.onWorkflowStateChange) {
-										await window.onWorkflowStateChange(
-											this,
-											link,
-											primaryKey,
-											el,
-											originalState
+							// Render immediately with placeholder — rows appear without
+							// waiting for get_transitions API. Transitions load in background.
+							const stateLabel =
+								this.workflow_state_map?.[row[workflow_state_field]] ||
+								row[workflow_state_field] ||
+								"";
+							el.setAttribute("title", __(stateLabel));
+							el.innerHTML = `<option value="" style="color:black" selected disabled class="ellipsis">${__(stateLabel)}</option>`;
+							el.disabled = true;
+							wfActionTd.appendChild(el);
+
+							// Background load — frappe.xcall so concurrent per-row calls
+							// do NOT cancel each other (sva_db.call aborts the previous request).
+							;(async () => {
+								try {
+									const initialDisabled =
+										(this.connection?.keep_workflow_enabled_form_submission
+											? false
+											: this.frm?.doc?.docstatus !== 0) ||
+										closureStates.includes(row[workflow_state_field]) ||
+										!this.workflow?.transitions?.some(
+											(tr) =>
+												frappe.user_roles.includes(tr.allowed) &&
+												tr.state === row[workflow_state_field]
 										);
-									} else {
-										try {
-											await this.wf_action(
-												link,
-												primaryKey,
-												el,
-												originalState,
-												row
+
+									const transitions = await frappe.xcall(
+										"frappe.model.workflow.get_transitions",
+										{ doc: { ...row, doctype: this.doctype } }
+									);
+
+									const disableByDependsOn =
+										this.connection?.disable_workflow_depends_on
+											? frappe.utils.custom_eval(
+													this.connection?.disable_workflow_depends_on,
+													row
+											  )
+											: false;
+
+									el.disabled =
+										initialDisabled || !transitions?.length || disableByDependsOn;
+
+									el.innerHTML =
+										`<option value="" style="color:black" selected disabled class="ellipsis">${__(stateLabel)}</option>` +
+										[...new Set(transitions?.map((e) => e.action))]
+											?.map(
+												(action) =>
+													`<option value="${action}" style="background-color:white; color:black; cursor:pointer;" class="rounded p-1">${__(
+														action
+													)}</option>`
+											)
+											.join("");
+
+									el.addEventListener("focus", () => {
+										const originalState = el?.getAttribute("title");
+										el.value = "";
+										el.title = originalState;
+									});
+									el.addEventListener("change", async (event) => {
+										const action = event.target.value;
+										const link =
+											transitions.find((l) => l.action === action) ||
+											this.workflow.transitions.find(
+												(l) =>
+													l.state == row[workflow_state_field] &&
+													l.action === action &&
+													frappe.user_roles.includes(l.allowed)
 											);
-										} catch (error) {
-											el.value = ""; // Reset dropdown value
+										const originalState = el?.getAttribute("title");
+										if (link) {
+											if (window.onWorkflowStateChange) {
+												await window.onWorkflowStateChange(
+													this,
+													link,
+													primaryKey,
+													el,
+													originalState
+												);
+											} else {
+												try {
+													await this.wf_action(
+														link,
+														primaryKey,
+														el,
+														originalState,
+														row
+													);
+												} catch (error) {
+													el.value = "";
+													el.title = __(originalState);
+												}
+											}
+											el.value = "";
 											el.title = __(originalState);
 										}
-									}
-									el.value = "";
-									el.title = __(originalState);
+									});
+								} catch (_e) {
+									// Leave as disabled with current state label on error
 								}
-							});
-
-							wfActionTd.appendChild(el);
+							})();
 						}
 						wfActionTd.style.textAlign = "center";
 						tr.appendChild(wfActionTd);
@@ -758,7 +769,7 @@ const RenderingMixin = {
 				actionTd.style.position = "sticky";
 				actionTd.style.right = "0px";
 				actionTd.style.zIndex = "3";
-				actionTd.style.backgroundColor = "#fff";
+				actionTd.style.backgroundColor = this.connection?.table_body_bg_color || "#fff";
 				if (
 					(this.conf_perms.length &&
 						(this.conf_perms.includes("read") ||
@@ -784,10 +795,10 @@ const RenderingMixin = {
 				});
 				tr.addEventListener("mouseleave", () => {
 					tr.style.transition = "background-color 0.15s ease";
-					tr.style.backgroundColor = "#fff";
+					tr.style.backgroundColor = this.connection?.table_body_bg_color || "#fff";
 					tr.querySelectorAll("td").forEach((td) => {
 						td.style.transition = "background-color 0.15s ease";
-						td.style.backgroundColor = td.dataset.originalBg || "#fff";
+						td.style.backgroundColor = td.dataset.originalBg || this.connection?.table_body_bg_color || "#fff";
 					});
 				});
 
@@ -830,27 +841,41 @@ const RenderingMixin = {
 			}
 			return;
 		}
+
+		// When transposed: set opacity=0 first so the browser paints an invisible
+		// frame, then rebuild the normal table structure, then transpose and fade in.
+		// This prevents any flash of the non-transposed table.
+		if (this.isTransposed) {
+			this.table.style.transition = "opacity 0.15s ease";
+			this.table.style.opacity = "0";
+			requestAnimationFrame(() => {
+				const oldTbody = this.table.querySelector("tbody");
+				const newTbody = this.createTableBody();
+				this.table.replaceChild(
+					newTbody,
+					oldTbody || this.table.querySelector("#noDataFoundPage")
+				);
+				const oldThead = this.table.querySelector("thead");
+				const newThead = this.createTableHead();
+				if (oldThead) {
+					this.table.replaceChild(newThead, oldThead);
+				} else {
+					this.table.insertBefore(newThead, this.table.querySelector("tbody"));
+				}
+				requestAnimationFrame(() => {
+					this.transposeTable();
+					this.table.style.opacity = "1";
+				});
+			});
+			return;
+		}
+
 		const oldTbody = this.table.querySelector("tbody");
 		const newTbody = this.createTableBody();
 		this.table.replaceChild(
 			newTbody,
 			oldTbody || this.table.querySelector("#noDataFoundPage")
-		); // Replace old tbody with new sorted tbody
-
-		// Reapply transpose if it was previously transposed.
-		// Must restore the normal thead first — the old thead still holds the
-		// transposed structure (settings + action cells), so transposeTable()
-		// would see mismatched row sizes and produce undefined values.
-		if (this.isTransposed) {
-			const oldThead = this.table.querySelector("thead");
-			const newThead = this.createTableHead();
-			if (oldThead) {
-				this.table.replaceChild(newThead, oldThead);
-			} else {
-				this.table.insertBefore(newThead, this.table.querySelector("tbody"));
-			}
-			setTimeout(() => this.transposeTable(), 0);
-		}
+		);
 	},
 
 	createNoDataFoundPage() {
