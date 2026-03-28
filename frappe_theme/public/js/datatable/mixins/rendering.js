@@ -12,6 +12,7 @@ const RenderingMixin = {
 		}
 
 		let primaryKey = row?.name || row?.rowIndex || rowIndex?.id || rowIndex;
+		
 
 		// Serial Number Column
 		if (this.options.serialNumberColumn) {
@@ -34,9 +35,9 @@ const RenderingMixin = {
 					frappe.router.slug(doctype)
 				)}/${encodeURIComponent(row.name)}`;
 				const linkColor = frappe.boot?.my_theme?.navbar_color || "var(--primary-color)";
-				serialTd.innerHTML = `<a href="${href}" data-doctype="${doctype}" data-name="${row.name}" style="cursor:pointer; text-decoration:underline; color:${linkColor};">${serialNumber}</a>`;
+				serialTd.innerHTML = `<a href="${href}" data-doctype="${doctype}" data-name="${row.name}" style="cursor:pointer; text-decoration:underline; color:${linkColor};">=${serialNumber}</a>`;
 			} else {
-				serialTd.innerHTML = `<p data-docname="${row.name}">${serialNumber}</p>`;
+				serialTd.innerHTML = `<p data-docname="${row.name}">=${serialNumber}</p>`;
 			}
 			if (
 				this.frm?.dt_events?.[this.doctype || this.link_report]?.columnEvents?.["#"]?.click
@@ -242,10 +243,12 @@ const RenderingMixin = {
 		// Auto transpose if enabled for reports
 		if (
 			this.connection?.enable_auto_transpose &&
-			this.connection?.connection_type === "Report"
+			["Direct","Report"].includes(this.connection?.connection_type)
 		) {
 			this.isTransposed = true;
 			setTimeout(async () => {
+				console.log(this.connection, "connectionconnection");
+
 				this.rows = await this.getDocList();
 				this.table.replaceChild(this.createTableBody(), this.table.querySelector("tbody"));
 				this.transposeTable();
@@ -790,8 +793,18 @@ const RenderingMixin = {
 			oldTbody || this.table.querySelector("#noDataFoundPage")
 		); // Replace old tbody with new sorted tbody
 
-		// Reapply transpose if it was previously transposed
+		// Reapply transpose if it was previously transposed.
+		// Must restore the normal thead first — the old thead still holds the
+		// transposed structure (settings + action cells), so transposeTable()
+		// would see mismatched row sizes and produce undefined values.
 		if (this.isTransposed) {
+			const oldThead = this.table.querySelector("thead");
+			const newThead = this.createTableHead();
+			if (oldThead) {
+				this.table.replaceChild(newThead, oldThead);
+			} else {
+				this.table.insertBefore(newThead, this.table.querySelector("tbody"));
+			}
 			setTimeout(() => this.transposeTable(), 0);
 		}
 	},
