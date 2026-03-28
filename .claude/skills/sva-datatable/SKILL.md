@@ -13,8 +13,8 @@ SVADatatable is a modular interactive table component split across an orchestrat
 frappe_theme/public/js/datatable/
 ├── sva_datatable.bundle.js          ← Orchestrator: class definition, constructor, reloadTable, reloadRow
 ├── mixins/
-│   ├── rendering.js                 ← Table DOM creation: createTable, createTableHead, createTableBody, createTableRow, createSortingIcon, updateTableBody, createNoDataFoundPage, createSkeletonLoader
-│   ├── fields.js                    ← Cell rendering: getCellStyle, createEditableField, createNonEditableField, bindColumnEvents
+│   ├── rendering.js                 ← Table DOM creation: createTable, createTableHead, createTableBody, createTableRow, createTotalRow, createSortingIcon, updateTableBody, createNoDataFoundPage, createSkeletonLoader
+│   ├── fields.js                    ← Cell rendering: getCellStyle, createEditableField, createNonEditableField, bindColumnEvents, percentageCell
 │   ├── action_column.js             ← Row actions: createActionColumn, checkCondition
 │   ├── form_dialog.js               ← CRUD dialogs: createFormDialog, deleteRecord, childTableDialog
 │   ├── workflow.js                  ← Workflow transitions: wf_action
@@ -107,6 +107,50 @@ SVADatatable is consumed in multiple ways — all must keep working:
 
 **None of these require changes** when modifying mixins — the orchestrator's exports remain identical.
 
+## Percent Progress Bar
+
+Percent fieldtype columns render a visual progress bar instead of plain text. Implemented in `fields.js` via `percentageCell(value, bgColor, textColor)`.
+
+- **Bar**: A thin (5px) rounded bar filled proportionally to the value (clamped 0–100%), with rounded ends (`border-radius:99px`)
+- **Bar color**: Uses the column's `color` from list view settings (`col?.color`), defaults to `#3182ce` (blue). Set in `fields.js` line ~640: `let barColor = col?.color || "#3182ce"`
+- **Text color**: The `textColor` param is optional — when omitted, text inherits from `td.style.color` which is set by list view settings in `rendering.js` (line 82: `if (col?.color) td.style.color = col.color`). Currently no caller passes `textColor`.
+- **Text**: Rounded integer value shown right-aligned next to the bar with `%` suffix (`font-variant-numeric: tabular-nums` for alignment)
+- **Custom formatters** still override the progress bar if defined via `dt_events` (checked first, lines 622–632)
+- **Total row**: Percent columns show the **average** across visible rows, also rendered as a progress bar with list view color (`rendering.js` line ~429)
+
+```javascript
+// percentageCell(value, bgColor, textColor) in fields.js
+// Returns HTML: flex row with [thin bar div] + [pct% span]
+// Bar: <div style="flex:1; height:5px; background:#e5e5e5;"> → <div width:${pct}%; background:${bgColor}>
+// Text: <span font-size:12px; color:${textColor}>${pct}%</span>
+```
+
+## List View Setting Colors on Cells
+
+Colors from list view settings are applied to every data row cell in `rendering.js` (lines 82–83), **after** the cell content is rendered:
+
+```javascript
+if (col?.color) td.style.color = col.color;
+if (col?.bg_color) td.style.backgroundColor = col.bg_color;
+```
+
+This cascades into child elements (e.g., progress bar text) via CSS inheritance.
+
+## Total Row
+
+The total row (`createTotalRow()` in `rendering.js`) is enabled by `connection.add_total_row`. Key behaviors:
+
+- **Summable types**: Currency, Int, Float, Percent
+- **Currency**: Uses `formatCurrency()` from `utils.js` (same locale-aware formatter as data rows)
+- **Percent**: Shows **average** (not sum) as a progress bar via `percentageCell(avg, col?.color || "#3182ce")`
+- **Int/Float**: Sum with `toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })`
+- **Non-summable**: Shows "-" centered with `var(--text-muted)` color
+- **Colors from list view settings** are applied **last** (lines 445–446) so they override defaults like `var(--text-muted)`:
+  - `col?.color` → `td.style.color`
+  - `col?.bg_color` → `td.style.backgroundColor` (overrides default `#f9f9f9`)
+- **Sticky columns**: Use `col?.bg_color || "#f9f9f9"` as background (must be explicit, not inherited from `<tr>`, to cover scrolled content)
+- **Default styling**: `fontWeight: bold`, `backgroundColor: #f9f9f9`, `borderTop: 2px solid #d1d8dd`
+
 ## Event System (dt_events)
 
 SVADatatable fires lifecycle events that consumer code hooks into via `frm.dt_events[doctype]` and `frm.dt_global_events`. The key phases are:
@@ -164,6 +208,13 @@ Then manually verify in the browser:
 - Filter area
 - Settings/column visibility dialog
 - Child table dialogs (tests `frappe.ui.SvaDataTable` self-reference)
+- Total row displays when `add_total_row` is enabled on the connection
+- Total row sums Currency/Int/Float and averages Percent columns
+- Total row respects `color` and `bg_color` from list view settings
+- Total row sticky columns show correct `bg_color` (fallback `#f9f9f9`)
+- Percent columns show progress bar (thin bar + value label)
+- Percent progress bar uses `color` from list view settings (default blue `#3182ce`)
+- Currency formatting in total row matches data rows (`formatCurrency` from `utils.js`)
 
 ## Related Documentation
 

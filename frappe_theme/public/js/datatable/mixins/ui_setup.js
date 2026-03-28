@@ -393,7 +393,8 @@ const UISetupMixin = {
 	async setupFooter(wrapper) {
 		let footer = document.createElement("div");
 		footer.id = "footer-element";
-		footer.style = "display:flex;width:100%;height:fit-content;justify-content:space-between;";
+		footer.style =
+			"display:flex;align-items:center;width:100%;padding-bottom:20px;height:fit-content;justify-content:space-between;";
 		this.footer_element = footer;
 		if (!wrapper.querySelector("div#footer-element")) {
 			wrapper.appendChild(footer);
@@ -406,6 +407,26 @@ const UISetupMixin = {
 				.querySelector("div#create-button-container")
 		) {
 			wrapper.querySelector("div#footer-element").appendChild(buttonContainer);
+		}
+
+		// Right-side container for always-visible actions + pagination
+		let footerRight = wrapper
+			.querySelector("div#footer-element")
+			?.querySelector("div#sva-dt-footer-right");
+		if (!footerRight) {
+			footerRight = document.createElement("div");
+			footerRight.id = "sva-dt-footer-right";
+			footerRight.style.cssText =
+				"display:flex;align-items:center;justify-content:flex-end;gap:10px;";
+			wrapper.querySelector("div#footer-element").appendChild(footerRight);
+		}
+
+		// Always show page size controls (10 / 20 / 50)
+		if (footerRight && !footerRight.querySelector("div#sva-dt-page-size-wrap")) {
+			footerRight.appendChild(this.setupPageSizeControl());
+		} else if (footerRight) {
+			// Keep active state in sync with current this.limit
+			this.setupPageSizeControl();
 		}
 		let is_addable = this.connection?.disable_add_depends_on
 			? !frappe.utils.custom_eval(
@@ -432,7 +453,7 @@ const UISetupMixin = {
 					create_button.textContent = this.connection?.add_row_button_label || "Add row";
 					create_button.classList.add("btn", "btn-secondary", "btn-sm");
 					create_button.style =
-						"width:fit-content;height:fit-content; margin-bottom:10px;";
+						"width:fit-content;height:32px;margin-bottom:0;align-self:center;";
 					let add_row_handler = this.frm?.["dt_events"]?.[this.doctype]?.add_row_handler;
 					if (!(add_row_handler && typeof add_row_handler === "function")) {
 						add_row_handler = async () => {
@@ -469,12 +490,9 @@ const UISetupMixin = {
 			}
 		}
 		if (this.total > this.limit && !this.isTransposed) {
-			if (
-				!wrapper
-					.querySelector("div#footer-element")
-					?.querySelector("div#pagination-element")
-			) {
-				wrapper.querySelector("div#footer-element").appendChild(this.setupPagination());
+			const paginationExists = footerRight?.querySelector("div#pagination-element");
+			if (!paginationExists) {
+				footerRight.appendChild(this.setupPagination());
 			}
 		}
 	},

@@ -35,6 +35,7 @@ app_include_js = [
 	f"/assets/frappe_theme/js/svadb.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/fields_comment.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/extended_chart.js?ver={time.time()}",
+	f"/assets/frappe_theme/js/list_column_width.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/mobile_view.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/utils.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/custom_import.js?ver={time.time()}",

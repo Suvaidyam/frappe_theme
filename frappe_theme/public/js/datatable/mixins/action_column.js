@@ -267,7 +267,8 @@ const ActionColumnMixin = {
 			commentBtn.style.display = "inline-flex";
 			commentBtn.style.alignItems = "center";
 			commentBtn.style.marginLeft = "0";
-			commentBtn.style.marginRight = "6px";
+			// spacing is controlled by the action dropdown container gap
+			commentBtn.style.marginRight = "0";
 			commentBtn.title = __("Comments");
 			commentBtn.innerHTML = frappe.utils.icon("message", "sm");
 
@@ -376,7 +377,7 @@ const ActionColumnMixin = {
 		dropdown.style.display = "flex";
 		dropdown.style.alignItems = "center";
 		dropdown.style.justifyContent = "center";
-		dropdown.style.gap = "12px";
+		dropdown.style.gap = "23px";
 		if (commentBtn) {
 			dropdown.appendChild(commentBtn);
 		}

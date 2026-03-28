@@ -247,6 +247,22 @@ class SvaDataTable {
 							this.columns = [...columns.filter((f) => f.in_list_view)];
 						}
 					}
+					// Ensure ID or title_field is always the first column
+					if (this.connection?.connection_type !== "Report") {
+						const titleField = this.meta?.title_field;
+						const titleIdx = titleField
+							? this.columns.findIndex((c) => c.fieldname === titleField)
+							: -1;
+						const nameIdx = this.columns.findIndex((c) => c.fieldname === "name");
+
+						if (titleIdx > 0) {
+							const [col] = this.columns.splice(titleIdx, 1);
+							this.columns.unshift(col);
+						} else if (titleIdx === -1 && nameIdx > 0) {
+							const [col] = this.columns.splice(nameIdx, 1);
+							this.columns.unshift(col);
+						}
+					}
 					if (this.connection?.connection_type !== "Report") {
 						const subjectFieldname = this.meta?.title_field || "name";
 						this.hasNavigableColumn = this.columns.some(

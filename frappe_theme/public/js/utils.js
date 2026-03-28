@@ -48,17 +48,25 @@ const formatDatetime = (datetime) => {
 	return `${date_part} ${time_part}`;
 };
 
-function formatCurrency(amount, currencyCode) {
-	let country_code =
-		locals?.["Country"]?.[frappe.sys_defaults?.country]?.code?.toUpperCase() || "US";
-	const formatter = new Intl.NumberFormat(
-		`${frappe.sys_defaults?.lang || "en"}-${country_code}`,
-		{
-			style: "currency",
-			currency: currencyCode || "INR",
+function formatCurrency(v, currency, decimals = 2) {
+	const format = get_number_format(currency);
+	const symbol = get_currency_symbol(currency);
+
+	const show_symbol_on_right =
+		frappe.model.get_value(":Currency", currency, "symbol_on_right") ?? false;
+
+	if (decimals === undefined) {
+		decimals = frappe.boot.sysdefaults.currency_precision || null;
+	}
+
+	if (symbol) {
+		if (show_symbol_on_right) {
+			return format_number(v, format, decimals) + " " + __(symbol);
 		}
-	);
-	return formatter.format(amount);
+		return __(symbol) + " " + format_number(v, format, decimals);
+	}
+
+	return format_number(v, format, decimals);
 }
 
 function formatCurrencyWithSuffix(amount, currencyCode, shorten = true) {
