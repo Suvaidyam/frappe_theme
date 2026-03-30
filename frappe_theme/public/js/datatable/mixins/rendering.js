@@ -493,7 +493,7 @@ const RenderingMixin = {
 			this.sortByColumn(this.currentSort.column, this.currentSort.direction, false);
 		}
 
-		const renderBatch = () => {
+		const renderBatch = async () => {
 			const fragment = document.createDocumentFragment(); // Use a document fragment to batch DOM changes
 
 			for (let i = 0; i < batchSize && rowIndex < this.rows.length; i++) {
@@ -754,6 +754,7 @@ const RenderingMixin = {
 									});
 								} catch (_e) {
 									// Leave as disabled with current state label on error
+									console.error("Error loading workflow transitions for row", row, _e);
 								}
 							})();
 						}
