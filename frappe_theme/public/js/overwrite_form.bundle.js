@@ -250,9 +250,9 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 				});
 				if (message) {
 					this.dts = message;
-					window.sva_datatable_configuration = {
+					Object.assign(window.sva_datatable_configuration, {
 						[frm.doc.doctype]: this.dts,
-					};
+					});
 				}
 			} else {
 				this.dts = window.sva_datatable_configuration?.[frm.doc.doctype];
