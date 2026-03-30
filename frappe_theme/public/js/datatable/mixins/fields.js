@@ -263,12 +263,8 @@ const FieldsMixin = {
 				this.permissions.includes("write") &&
 				this.conf_perms.includes("write") &&
 				is_editable;
-			// Show select control when inline_edit is configured OR table is in editable mode.
-			// The control's read_only flag gates actual editing; the condition here only
-			// determines whether the control renders at all.
-			if (col?.inline_edit || this.options?.editable) {
+			if (col?.inline_edit && editable) {
 				let me = this;
-				let isReady = false;
 				const control = frappe.ui.form.make_control({
 					parent: td,
 					df: {
@@ -277,12 +273,10 @@ const FieldsMixin = {
 							column?.read_only ||
 							(column?.read_only_depends_on
 								? frappe.utils.custom_eval(column.read_only_depends_on, row)
-								: false) ||
-							(!editable && !this.options?.editable),
+								: false),
 						onchange: async function () {
-							if (!isReady) return;
-							let changedValue = control.get_input_value();
-							if ((row[column.fieldname] || "") != (changedValue || "")) {
+							let changedValue = control?.get_input_value();
+							if (row[column.fieldname] && row[column.fieldname] != changedValue) {
 								try {
 									let response = await me.sva_db.set_value(
 										me.doctype,
@@ -291,7 +285,31 @@ const FieldsMixin = {
 										changedValue
 									);
 									if (response) {
-										row[column.fieldname] = changedValue;
+										me.reloadRow(response);
+										frappe.show_alert({
+											message: `${
+												column?.label || column.fieldname
+											} updated successfully`,
+											indicator: "success",
+										});
+									}
+								} catch (error) {
+									frappe.show_alert({
+										message: `Error updating ${
+											column?.label || column.fieldname
+										}`,
+										indicator: "danger",
+									});
+								}
+							} else {
+								try {
+									let response = await me.sva_db.set_value(
+										me.doctype,
+										row.name,
+										column.fieldname,
+										changedValue
+									);
+									if (response) {
 										me.reloadRow(response);
 										frappe.show_alert({
 											message: `${
@@ -311,7 +329,7 @@ const FieldsMixin = {
 							}
 						},
 					},
-					value: row[column.fieldname] || "",
+					value: row[column.fieldname] || "-",
 					render_input: true,
 					only_input: true,
 				});
