@@ -1,7 +1,7 @@
 const RenderingMixin = {
 	createTableRow(row, rowIndex) {
 		const tr = document.createElement("tr");
-		tr.style.backgroundColor = this.connection?.table_body_bg_color || "#fff";
+		tr.style.backgroundColor = "#fff";
 		tr.setAttribute("data-row-index", rowIndex);
 		tr.setAttribute("data-docname", row.name);
 
@@ -23,7 +23,7 @@ const RenderingMixin = {
 			serialTd.style.textAlign = "center";
 			serialTd.style.position = "sticky";
 			serialTd.style.left = "0px";
-			serialTd.style.backgroundColor = this.connection?.table_body_bg_color || "#fff";
+			serialTd.style.backgroundColor = "#fff";
 			serialTd.style.zIndex = "4";
 			serialTd.style.boxShadow = "inset -1px 0 0 0 #d1d8dd";
 			serialTd.style.setProperty("padding", "0px", "important");
@@ -207,7 +207,7 @@ const RenderingMixin = {
 		actionTd.style.position = "sticky";
 		actionTd.style.right = "0px";
 		actionTd.style.zIndex = "3";
-		actionTd.style.backgroundColor = this.connection?.table_body_bg_color || "#fff";
+		actionTd.style.backgroundColor = "#fff";
 		if (
 			(this.conf_perms.length &&
 				(this.conf_perms.includes("read") ||
@@ -232,10 +232,10 @@ const RenderingMixin = {
 		});
 		tr.addEventListener("mouseleave", () => {
 			tr.style.transition = "background-color 0.15s ease";
-			tr.style.backgroundColor = this.connection?.table_body_bg_color || "#fff";
+			tr.style.backgroundColor = "#fff";
 			tr.querySelectorAll("td").forEach((td) => {
 				td.style.transition = "background-color 0.15s ease";
-				td.style.backgroundColor = td.dataset.originalBg || this.connection?.table_body_bg_color || "#fff";
+				td.style.backgroundColor = td.dataset.originalBg || "#fff";
 			});
 		});
 
@@ -261,7 +261,7 @@ const RenderingMixin = {
 		// Auto transpose if enabled — hide immediately to prevent flash of normal table
 		if (
 			this.connection?.enable_auto_transpose &&
-			["Direct", "Report"].includes(this.connection?.connection_type)
+			["Direct", "Indirect", "Referenced", "Unfiltered", "Report"].includes(this.connection?.connection_type)
 		) {
 			this.isTransposed = true;
 			this.table.style.visibility = "hidden";
@@ -506,7 +506,7 @@ const RenderingMixin = {
 					tr.style.maxHeight = "32px";
 					tr.style.height = "32px";
 				}
-				tr.style.backgroundColor = this.connection?.table_body_bg_color || "#fff";
+				tr.style.backgroundColor = "#fff";
 
 				// Serial Number Column
 				if (this.options.serialNumberColumn) {
@@ -518,7 +518,7 @@ const RenderingMixin = {
 					serialTd.style.textAlign = "center";
 					serialTd.style.position = "sticky";
 					serialTd.style.left = "0px";
-					serialTd.style.backgroundColor = this.connection?.table_body_bg_color || "#fff";
+					serialTd.style.backgroundColor = "#fff";
 					serialTd.style.zIndex = "4";
 					serialTd.style.boxShadow = "inset -1px 0 0 0 #d1d8dd";
 					serialTd.style.setProperty("padding", "0px", "important");
@@ -769,7 +769,7 @@ const RenderingMixin = {
 				actionTd.style.position = "sticky";
 				actionTd.style.right = "0px";
 				actionTd.style.zIndex = "3";
-				actionTd.style.backgroundColor = this.connection?.table_body_bg_color || "#fff";
+				actionTd.style.backgroundColor = "#fff";
 				if (
 					(this.conf_perms.length &&
 						(this.conf_perms.includes("read") ||
@@ -795,10 +795,10 @@ const RenderingMixin = {
 				});
 				tr.addEventListener("mouseleave", () => {
 					tr.style.transition = "background-color 0.15s ease";
-					tr.style.backgroundColor = this.connection?.table_body_bg_color || "#fff";
+					tr.style.backgroundColor = "#fff";
 					tr.querySelectorAll("td").forEach((td) => {
 						td.style.transition = "background-color 0.15s ease";
-						td.style.backgroundColor = td.dataset.originalBg || this.connection?.table_body_bg_color || "#fff";
+						td.style.backgroundColor = td.dataset.originalBg || "#fff";
 					});
 				});
 
@@ -842,31 +842,9 @@ const RenderingMixin = {
 			return;
 		}
 
-		// When transposed: set opacity=0 first so the browser paints an invisible
-		// frame, then rebuild the normal table structure, then transpose and fade in.
-		// This prevents any flash of the non-transposed table.
+		// When transposed: update cells in-place for smooth pagination (no flash/rebuild).
 		if (this.isTransposed) {
-			this.table.style.transition = "opacity 0.15s ease";
-			this.table.style.opacity = "0";
-			requestAnimationFrame(() => {
-				const oldTbody = this.table.querySelector("tbody");
-				const newTbody = this.createTableBody();
-				this.table.replaceChild(
-					newTbody,
-					oldTbody || this.table.querySelector("#noDataFoundPage")
-				);
-				const oldThead = this.table.querySelector("thead");
-				const newThead = this.createTableHead();
-				if (oldThead) {
-					this.table.replaceChild(newThead, oldThead);
-				} else {
-					this.table.insertBefore(newThead, this.table.querySelector("tbody"));
-				}
-				requestAnimationFrame(() => {
-					this.transposeTable();
-					this.table.style.opacity = "1";
-				});
-			});
+			this._refreshTransposeData();
 			return;
 		}
 

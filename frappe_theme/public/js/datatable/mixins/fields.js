@@ -1,8 +1,7 @@
 const FieldsMixin = {
 	getCellStyle(column, isSticky, left, isLastSticky) {
-		const rowBg = this.connection?.table_body_bg_color || "#fff";
 		if (isSticky) {
-			return `position: sticky; left:${left}px; z-index: 2; background-color: ${rowBg}; min-width:${
+			return `position: sticky; left:${left}px; z-index: 2; background-color: #fff; min-width:${
 				column.width || 150
 			}px; max-width:${column.width || 200}px; padding: 0px${
 				isLastSticky ? "; box-shadow: inset -2px 0 0 0 #d1d8dd" : ""

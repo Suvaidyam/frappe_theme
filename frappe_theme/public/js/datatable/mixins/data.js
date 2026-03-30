@@ -147,7 +147,7 @@ const DataMixin = {
 				this.total = message;
 			}
 			// Update pagination after getting total count
-			if (this.total > this.limit && !this.isTransposed) {
+			if (this.total > this.limit) {
 				const footer = this.wrapper?.querySelector("div#footer-element");
 				const footerRight = footer?.querySelector("#sva-dt-footer-right");
 				const target = footerRight || footer;

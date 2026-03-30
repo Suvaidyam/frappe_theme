@@ -79,23 +79,10 @@ const PaginationMixin = {
 				this.limit = next;
 				this.page = 1;
 				this._updatePageSizeButtonActive?.();
-				if (this.isTransposed) {
-					if (next > prevLimit) {
-						// Expanding: fetch all rows, then append only the new ones
-						const prevRowCount = this.rows.length;
-						this.rows = await this.getDocList();
-						this.appendTransposeColumns(prevRowCount);
-					} else {
-						// Shrinking: trim DOM columns, no refetch needed
-						this.rows = this.rows.slice(0, next);
-						this.trimTransposeColumns(next);
-					}
-				} else {
-					this.rows = await this.getDocList();
-					this.updateTableBody();
-					if (this.pageButtonsContainer) {
-						this.updatePageButtons();
-					}
+				this.rows = await this.getDocList();
+				this.updateTableBody();
+				if (this.pageButtonsContainer) {
+					this.updatePageButtons();
 				}
 			});
 			buttons.push(pageSizeBtn);

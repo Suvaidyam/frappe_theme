@@ -12,7 +12,7 @@ const TransposeMixin = {
 
 			const settingsTh = document.createElement("th");
 			settingsTh.style.cssText =
-				"width:150px; text-align:left;position:sticky;left:0px;background-color:#F3F3F3;border-right:1px solid #dee2e6;";
+				"width:150px; text-align:left;position:sticky;left:0px;z-index:1;background-color:#F3F3F3;border-right:1px solid #dee2e6;";
 			settingsTh.appendChild(this.createSettingsButton());
 			actionRow.appendChild(settingsTh);
 
@@ -26,12 +26,12 @@ const TransposeMixin = {
 				const row = tbody.insertRow();
 				row.style.maxHeight = "32px";
 				row.style.height = "32px";
-				row.style.backgroundColor = this.connection?.table_body_bg_color || "#fff";
+				row.style.backgroundColor = "#fff";
 
 				const labelCell = row.insertCell();
 				labelCell.textContent = column.label || column.fieldname;
 				labelCell.style.cssText =
-					"height:32px;padding:0px 5px;font-weight:normal;width:150px;min-width:150px;position:sticky;left:0px;background-color:#f8f9fa;border-right:1px solid #dee2e6;";
+					"height:32px;padding:0px 5px;font-weight:normal;width:150px;min-width:150px;position:sticky;left:0px;z-index:1;background-color:#f8f9fa;border-right:1px solid #dee2e6;";
 
 				if (index === 0) {
 					const valueCell = row.insertCell();
@@ -51,15 +51,6 @@ const TransposeMixin = {
 			});
 
 			return;
-		}
-
-		// Remove pagination navigation when transposed (page-size buttons stay)
-		const _paginationEl =
-			this.wrapper?.querySelector("div#sva-dt-footer-right")?.querySelector("div#pagination-element") ||
-			this.wrapper?.querySelector("div#footer-element")?.querySelector("div#pagination-element");
-		if (_paginationEl) {
-			_paginationEl.remove();
-			this.pageButtonsContainer = null;
 		}
 
 		// Remove stale action dropdown menus from document.body before rebuilding
@@ -128,7 +119,7 @@ const TransposeMixin = {
 			const snLabelCell = snRow.insertCell();
 			snLabelCell.textContent = __("S.No.");
 			snLabelCell.style.cssText =
-				"height:32px;padding:0px 5px;font-weight:500;width:150px;min-width:150px;position:sticky;left:0px;background-color:#f8f9fa;border-right:1px solid #dee2e6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
+				"height:32px;padding:0px 5px;font-weight:500;width:150px;min-width:150px;position:sticky;left:0px;z-index:1;background-color:#f8f9fa;border-right:1px solid #dee2e6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
 
 			this.rows.forEach((_rowData, rowIndex) => {
 				const snCell = snRow.insertCell();
@@ -149,7 +140,7 @@ const TransposeMixin = {
 			const colWidth = col?.width ? `${Number(col.width) * 50}px` : null;
 
 			const row = tbody.insertRow();
-			row.style.backgroundColor = this.connection?.table_body_bg_color || "#fff";
+			row.style.backgroundColor = "#fff";
 			if (isWrapped) {
 				row.style.height = "auto";
 			} else {
@@ -236,7 +227,7 @@ const TransposeMixin = {
 			const wfLabelCell = wfRow.insertCell();
 			wfLabelCell.textContent = this.connection?.action_label || __("Approval");
 			wfLabelCell.style.cssText =
-				"height:32px;padding:0px 5px;font-weight:500;width:150px;min-width:150px;position:sticky;left:0px;background-color:#f8f9fa;border-right:1px solid #dee2e6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
+				"height:32px;padding:0px 5px;font-weight:500;width:150px;min-width:150px;position:sticky;left:0px;z-index:1;background-color:#f8f9fa;border-right:1px solid #dee2e6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
 
 			this.rows.forEach((rowData) => {
 				const cell = wfRow.insertCell();
@@ -399,6 +390,116 @@ const TransposeMixin = {
 		// Rebuild action row with fresh dropdowns only for the remaining records.
 		// Must happen AFTER this.rows is already sliced to newCount in the caller.
 		this._refreshActionRow();
+	},
+
+	// In-place data refresh for transpose pagination — no full rebuild, no fade.
+	// Reuses existing cells, updates their content, adds/removes columns as needed.
+	_refreshTransposeData() {
+		if (!this.table) return;
+		const tbody = this.table.querySelector("tbody");
+		// No existing transposed tbody → fall back to full rebuild
+		if (!tbody || !tbody.querySelector("tr")) {
+			this.transposeTable();
+			return;
+		}
+
+		const newCount = this.rows.length;
+
+		// 1. Refresh action-row dropdowns
+		this._refreshActionRow();
+
+		const tbodyRows = Array.from(tbody.querySelectorAll("tr"));
+		let fieldRowOffset = 0;
+
+		// 2. S.No. row
+		if (this.options?.serialNumberColumn && tbodyRows.length > 0) {
+			const snRow = tbodyRows[0];
+			this._updateTransposeRowCells(snRow, newCount, (cell, rowData, idx) => {
+				cell.style.cssText =
+					"height:32px;padding:0px 5px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
+				const serialNumber =
+					this.page > 1 ? (this.page - 1) * this.limit + (idx + 1) : idx + 1;
+				this._fillTransposeSnCell(cell, rowData, serialNumber);
+			});
+			fieldRowOffset = 1;
+		}
+
+		// 3. Data rows (one per field)
+		this.columns.forEach((column, columnIndex) => {
+			const row = tbodyRows[fieldRowOffset + columnIndex];
+			if (!row) return;
+
+			const col = this.header?.find((h) => h.fieldname === column.fieldname) || null;
+			const isWrapped = !!col?.wrap;
+			const colWidth = col?.width ? `${Number(col.width) * 50}px` : null;
+
+			this._updateTransposeRowCells(row, newCount, (cell, rowData) => {
+				cell.style.padding = "0px 5px";
+				cell.style.textAlign = "left";
+				if (isWrapped) {
+					cell.style.whiteSpace = "normal";
+					cell.style.wordBreak = "break-word";
+					cell.style.overflowWrap = "break-word";
+					cell.style.overflow = "visible";
+					cell.style.textOverflow = "unset";
+					cell.style.height = "auto";
+					cell.style.minHeight = "32px";
+				} else {
+					cell.style.height = "32px";
+					cell.style.whiteSpace = "nowrap";
+					cell.style.overflow = "hidden";
+					cell.style.textOverflow = "ellipsis";
+				}
+				if (colWidth) {
+					cell.style.width = colWidth;
+					cell.style.minWidth = colWidth;
+					cell.style.maxWidth = colWidth;
+				}
+				if (col?.color) cell.style.color = col.color;
+				if (col?.bg_color) cell.style.backgroundColor = col.bg_color;
+				cell.textContent = rowData[column.fieldname] ?? "";
+				this.createNonEditableField(cell, column, rowData, columnIndex);
+			});
+		});
+
+		// 4. Workflow row
+		if (
+			this.workflow &&
+			(this.wf_editable_allowed || this.wf_transitions_allowed) &&
+			!this.connection?.disable_workflow &&
+			this.connection?.connection_type !== "Report"
+		) {
+			const wfRow = tbody.querySelector("tr[data-wf-row='1']");
+			if (wfRow) {
+				this._updateTransposeRowCells(wfRow, newCount, (cell, rowData) => {
+					cell.style.cssText = "height:32px;padding:2px 5px;text-align:center;";
+					this._createTransposeWorkflowCell(cell, rowData);
+				});
+			}
+		}
+	},
+
+	// Reuse / add / remove data cells in a transposed row in-place.
+	// children[0] is the sticky label — skipped.
+	// callback(cell, rowData, idx) populates each data cell.
+	_updateTransposeRowCells(row, newCount, callback) {
+		const existingDataCells = Array.from(row.children).slice(1);
+
+		this.rows.forEach((rowData, idx) => {
+			let cell;
+			if (idx < existingDataCells.length) {
+				cell = existingDataCells[idx];
+				cell.textContent = ""; // clear before re-populating
+			} else {
+				cell = row.insertCell();
+			}
+			callback(cell, rowData, idx);
+		});
+
+		// Remove surplus cells when this page has fewer records than the last
+		while (row.children.length > newCount + 1) {
+			row.removeChild(row.lastElementChild);
+		}
 	},
 
 	// Fills a transpose S.No. cell with a clickable link (or plain text for Reports),
