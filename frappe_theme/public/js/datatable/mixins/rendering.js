@@ -854,6 +854,7 @@ const RenderingMixin = {
 			newTbody,
 			oldTbody || this.table.querySelector("#noDataFoundPage")
 		);
+		this.tBody = newTbody;
 	},
 
 	createNoDataFoundPage() {

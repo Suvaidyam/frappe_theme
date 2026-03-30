@@ -268,6 +268,7 @@ const FieldsMixin = {
 			// determines whether the control renders at all.
 			if (col?.inline_edit || this.options?.editable) {
 				let me = this;
+				let isReady = false;
 				const control = frappe.ui.form.make_control({
 					parent: td,
 					df: {
@@ -279,38 +280,18 @@ const FieldsMixin = {
 								: false) ||
 							(!editable && !this.options?.editable),
 						onchange: async function () {
-							const changedValue = control.get_input_value();
-							if (me.options?.editable) {
-								// Child table mode: update frm.doc and mark dirty
-								if (row[column.fieldname] !== changedValue) {
-									let rowIndex = me.frm?.doc?.[me.childTableFieldName]?.findIndex(
-										(r) => r.name === row.name
-									);
-									if (rowIndex >= 0) {
-										me.frm.doc[me.childTableFieldName][rowIndex][column.fieldname] =
-											changedValue;
-										me.frm.dirty();
-									}
-								}
-							} else if (!editable) {
-								return; // user lacks write permission — do not save
-							} else {
-								// Connected list mode: save via API whenever value actually changes.
-								// Use changedValue directly — the old two-branch logic saved
-								// row[column.fieldname] (possibly null) in the else case, which
-								// silently dropped the user's selection when the original value was empty.
-								const currentValue = row[column.fieldname] ?? "";
-								const newValue = changedValue === "-" ? "" : (changedValue ?? "");
-								if (newValue === currentValue) return; // no real change
+							if (!isReady) return;
+							let changedValue = control.get_input_value();
+							if ((row[column.fieldname] || "") != (changedValue || "")) {
 								try {
 									let response = await me.sva_db.set_value(
 										me.doctype,
 										row.name,
 										column.fieldname,
-										newValue
+										changedValue
 									);
 									if (response) {
-										row[column.fieldname] = newValue; // keep closure in sync
+										row[column.fieldname] = changedValue;
 										me.reloadRow(response);
 										frappe.show_alert({
 											message: `${
@@ -330,7 +311,7 @@ const FieldsMixin = {
 							}
 						},
 					},
-					value: row[column.fieldname] || "-",
+					value: row[column.fieldname] || "",
 					render_input: true,
 					only_input: true,
 				});
@@ -343,6 +324,7 @@ const FieldsMixin = {
 				});
 				$(td).css({ height: "25px !important", padding: "0px 5px" });
 				control.refresh();
+				isReady = true;
 			} else {
 				if (
 					this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
