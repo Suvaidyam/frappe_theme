@@ -16,11 +16,16 @@ const RenderingMixin = {
 		// Serial Number Column
 		if (this.options.serialNumberColumn) {
 			const serialTd = document.createElement("td");
-			serialTd.style.minWidth = "40px";
+			serialTd.style.minWidth = "48px";
+			serialTd.style.width = "48px";
+			serialTd.style.maxWidth = "48px";
 			serialTd.style.textAlign = "center";
 			serialTd.style.position = "sticky";
 			serialTd.style.left = "0px";
 			serialTd.style.backgroundColor = "#fff";
+			serialTd.style.zIndex = "4";
+			serialTd.style.boxShadow = "inset -1px 0 0 0 #d1d8dd";
+			serialTd.style.setProperty("padding", "0px", "important");
 
 			const serialNumber =
 				this.page > 1 ? (this.page - 1) * this.limit + (rowIndex + 1) : rowIndex + 1;
@@ -34,9 +39,20 @@ const RenderingMixin = {
 					frappe.router.slug(doctype)
 				)}/${encodeURIComponent(row.name)}`;
 				const linkColor = frappe.boot?.my_theme?.navbar_color || "var(--primary-color)";
-				serialTd.innerHTML = `<a href="${href}" data-doctype="${doctype}" data-name="${row.name}" style="cursor:pointer; text-decoration:underline; color:${linkColor};">${serialNumber}</a>`;
+				const a = document.createElement("a");
+				a.href = href;
+				a.dataset.doctype = doctype;
+				a.dataset.name = row.name;
+				a.style.cursor = "pointer";
+				a.style.textDecoration = "underline";
+				a.style.color = linkColor;
+				a.textContent = serialNumber;
+				serialTd.appendChild(a);
 			} else {
-				serialTd.innerHTML = `<p data-docname="${row.name}">${serialNumber}</p>`;
+				const p = document.createElement("p");
+				p.dataset.docname = row.name;
+				p.textContent = serialNumber;
+				serialTd.appendChild(p);
 			}
 			if (
 				this.frm?.dt_events?.[this.doctype || this.link_report]?.columnEvents?.["#"]?.click
@@ -48,7 +64,7 @@ const RenderingMixin = {
 		}
 
 		// Data Columns
-		let left = this.options.serialNumberColumn ? 40 : 0;
+		let left = this.options.serialNumberColumn ? 48 : 0;
 		const lastStickyIdx = this.columns.reduce((last, col, idx) => {
 			let h = this.header?.find((hh) => hh.fieldname === col.fieldname);
 			return h?.sticky ? idx : last;
@@ -56,6 +72,8 @@ const RenderingMixin = {
 		this.columns.forEach((column, columnIndex) => {
 			const td = document.createElement("td");
 			let col = this.header?.find((h) => h.fieldname === column.fieldname);
+			const fieldMeta =
+				this.meta?.fields?.find((f) => f.fieldname === column.fieldname) || column;
 			const isSticky = !!col?.sticky;
 			const isLastSticky = columnIndex === lastStickyIdx;
 			td.style = this.getCellStyle(column, isSticky, left, isLastSticky);
@@ -79,7 +97,7 @@ const RenderingMixin = {
 				td.style.height = "auto";
 				td.style.minHeight = "32px";
 			}
-			if (col?.color) td.style.color = col.color;
+			if (col?.color && fieldMeta?.fieldtype !== "Percent") td.style.color = col.color;
 			if (col?.bg_color) td.style.backgroundColor = col.bg_color;
 			tr.appendChild(td);
 		});
@@ -272,11 +290,11 @@ const RenderingMixin = {
 			serialTh.textContent = __("S.No.");
 			serialTh.title = __("Serial Number");
 			serialTh.style =
-				"width:40px;text-align:center;position:sticky;left:0px;background-color:#F3F3F3;";
+				"width:48px;min-width:48px;max-width:48px;text-align:center;position:sticky;left:0px;z-index:4;background-color:#F3F3F3;box-shadow: inset -1px 0 0 0 #d1d8dd;padding: 0px !important;";
 			tr.appendChild(serialTh);
 		}
 
-		let left = this.options.serialNumberColumn ? 40 : 0;
+		let left = this.options.serialNumberColumn ? 48 : 0;
 		const lastStickyHeadIdx = this.columns.reduce((last, col, idx) => {
 			let h = this.header?.find((hh) => hh.fieldname === col.fieldname);
 			return h?.sticky ? idx : last;
@@ -291,7 +309,7 @@ const RenderingMixin = {
 				th.style = `position:sticky; left:${left}px; z-index:2; background-color:#F3F3F3;cursor:${
 					column.sortable ? "pointer" : "default"
 				};min-width:${colWidth}px !important;max-width:${colWidth}px !important;width:${colWidth}px !important; white-space: nowrap;overflow: hidden;text-overflow:ellipsis;${
-					isLastSticky ? "border-right: 2px solid #d1d8dd;" : ""
+					isLastSticky ? "box-shadow: inset -2px 0 0 0 #d1d8dd;" : ""
 				}`;
 				left += colWidth;
 			} else if (col?.width) {
@@ -378,7 +396,7 @@ const RenderingMixin = {
 		if (this.options.serialNumberColumn) {
 			const td = document.createElement("td");
 			td.style =
-				"position:sticky;left:0;z-index:2;background-color:#f9f9f9;text-align:center;min-width:40px;font-weight:bold;";
+				"position:sticky;left:0;z-index:2;background-color:#f9f9f9;text-align:center;min-width:48px;font-weight:bold;";
 			td.style.height = totalRowHeight;
 			td.style.minHeight = totalRowHeight;
 			td.textContent = __("Total");
@@ -386,7 +404,7 @@ const RenderingMixin = {
 		}
 
 		const summableTypes = ["Currency", "Int", "Float", "Percent"];
-		let left = this.options.serialNumberColumn ? 40 : 0;
+		let left = this.options.serialNumberColumn ? 48 : 0;
 		const lastStickyIdx = this.columns.reduce((last, col, idx) => {
 			let h = this.header?.find((hh) => hh.fieldname === col.fieldname);
 			return h?.sticky ? idx : last;
@@ -407,10 +425,10 @@ const RenderingMixin = {
 				td.style.position = "sticky";
 				td.style.left = `${left}px`;
 				td.style.zIndex = "2";
-				td.style.backgroundColor = "#f9f9f9";
+				td.style.backgroundColor = col?.bg_color || "#f9f9f9";
 				td.style.minWidth = `${colWidth}px`;
 				td.style.maxWidth = `${colWidth}px`;
-				if (isLastSticky) td.style.borderRight = "2px solid #d1d8dd";
+				if (isLastSticky) td.style.boxShadow = "inset -2px 0 0 0 #d1d8dd";
 				left += colWidth;
 			}
 
@@ -422,15 +440,11 @@ const RenderingMixin = {
 				);
 				if (ftype === "Currency") {
 					const currency = fieldMeta.options || frappe.sys_defaults?.currency || "INR";
-					td.textContent = format_currency(sum, currency);
+					td.textContent = formatCurrency(sum, currency);
 				} else if (ftype === "Percent") {
 					const visibleRowLength = this.rows?.length || 0;
 					const avg = sum / (visibleRowLength || 1); // Average across visible rows
-					td.textContent =
-						avg.toLocaleString("en-US", {
-							minimumFractionDigits: 0,
-							maximumFractionDigits: 2,
-						}) + "%";
+					td.innerHTML = this.percentageCell(avg, col?.color || "#2E7D32");
 				} else {
 					td.textContent = sum.toLocaleString("en-US", {
 						minimumFractionDigits: 0,
@@ -440,11 +454,14 @@ const RenderingMixin = {
 				td.style.textAlign = "right";
 				td.style.padding = "4px 8px";
 			} else {
-				td.textContent = "--";
+				td.textContent = "-";
 				td.style.textAlign = "center";
 				td.style.padding = "4px 8px";
 				td.style.color = "var(--text-muted)";
 			}
+
+			if (col?.color && ftype !== "Percent") td.style.color = col.color;
+			if (col?.bg_color) td.style.backgroundColor = col.bg_color;
 
 			tr.appendChild(td);
 		});
@@ -493,11 +510,16 @@ const RenderingMixin = {
 				if (this.options.serialNumberColumn) {
 					const serialTd = document.createElement("td");
 					serialTd.classList.add("sva-dt-serial-number-column");
-					serialTd.style.minWidth = "40px";
+					serialTd.style.minWidth = "48px";
+					serialTd.style.width = "48px";
+					serialTd.style.maxWidth = "48px";
 					serialTd.style.textAlign = "center";
 					serialTd.style.position = "sticky";
 					serialTd.style.left = "0px";
 					serialTd.style.backgroundColor = "#fff";
+					serialTd.style.zIndex = "4";
+					serialTd.style.boxShadow = "inset -1px 0 0 0 #d1d8dd";
+					serialTd.style.setProperty("padding", "0px", "important");
 					const serialNumber =
 						this.page > 1
 							? (this.page - 1) * this.limit + (rowIndex + 1)
@@ -518,9 +540,20 @@ const RenderingMixin = {
 						)}/${encodeURIComponent(row.name)}`;
 						const linkColor =
 							frappe.boot?.my_theme?.navbar_color || "var(--primary-color)";
-						serialTd.innerHTML = `<a href="${href}" data-doctype="${doctype}" data-name="${row.name}" style="cursor:pointer; text-decoration:underline; color:${linkColor};">${serialNumber}</a>`;
+						const a = document.createElement("a");
+						a.href = href;
+						a.dataset.doctype = doctype;
+						a.dataset.name = row.name;
+						a.style.cursor = "pointer";
+						a.style.textDecoration = "underline";
+						a.style.color = linkColor;
+						a.textContent = serialNumber;
+						serialTd.appendChild(a);
 					} else {
-						serialTd.innerHTML = `<p data-docname="${row.name}">${serialNumber}</p>`;
+						const p = document.createElement("p");
+						p.dataset.docname = row.name;
+						p.textContent = serialNumber;
+						serialTd.appendChild(p);
 					}
 
 					if (
@@ -534,7 +567,7 @@ const RenderingMixin = {
 					tr.appendChild(serialTd);
 				}
 
-				let left = this.options.serialNumberColumn ? 40 : 0;
+				let left = this.options.serialNumberColumn ? 48 : 0;
 				const lastStickyIdx = this.columns.reduce((last, col, idx) => {
 					let h = this.header?.find((hh) => hh.fieldname === col.fieldname);
 					return h?.sticky ? idx : last;
@@ -542,6 +575,8 @@ const RenderingMixin = {
 				this.columns.forEach((column, columnIndex) => {
 					const td = document.createElement("td");
 					let col = this.header?.find((h) => h.fieldname === column.fieldname);
+					const fieldMeta =
+						this.meta?.fields?.find((f) => f.fieldname === column.fieldname) || column;
 					const isSticky = !!col?.sticky;
 					const isLastSticky = columnIndex === lastStickyIdx;
 					td.style = this.getCellStyle(column, isSticky, left, isLastSticky);
@@ -565,7 +600,8 @@ const RenderingMixin = {
 						td.style.height = "auto";
 						td.style.minHeight = "32px";
 					}
-					if (col?.color) td.style.color = col.color;
+					if (col?.color && fieldMeta?.fieldtype !== "Percent")
+						td.style.color = col.color;
 					if (col?.bg_color) td.style.backgroundColor = col.bg_color;
 					tr.appendChild(td);
 				});
@@ -668,12 +704,14 @@ const RenderingMixin = {
 							});
 							el.addEventListener("change", async (event) => {
 								const action = event.target.value;
-								const link = this.workflow.transitions.find(
-									(l) =>
-										l.state == row[workflow_state_field] &&
-										l.action === action &&
-										frappe.user_roles.includes(l.allowed)
-								);
+								const link =
+									transitions.find((l) => l.action === action) ||
+									this.workflow.transitions.find(
+										(l) =>
+											l.state == row[workflow_state_field] &&
+											l.action === action &&
+											frappe.user_roles.includes(l.allowed)
+									);
 								const originalState = el?.getAttribute("title");
 								if (link) {
 									if (window.onWorkflowStateChange) {
@@ -780,7 +818,13 @@ const RenderingMixin = {
 
 	updateTableBody() {
 		if (this.rows.length === 0) {
-			this.table.replaceChild(this.createNoDataFoundPage(), this.tBody);
+			const currentChild =
+				this.table.querySelector("tbody") || this.table.querySelector("#noDataFoundPage");
+			if (currentChild) {
+				this.table.replaceChild(this.createNoDataFoundPage(), currentChild);
+			} else {
+				this.table.appendChild(this.createNoDataFoundPage());
+			}
 			return;
 		}
 		const oldTbody = this.table.querySelector("tbody");

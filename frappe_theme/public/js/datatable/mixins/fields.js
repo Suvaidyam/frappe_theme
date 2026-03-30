@@ -4,7 +4,7 @@ const FieldsMixin = {
 			return `position: sticky; left:${left}px; z-index: 2; background-color: white; min-width:${
 				column.width || 150
 			}px; max-width:${column.width || 200}px; padding: 0px${
-				isLastSticky ? "; border-right: 2px solid #d1d8dd" : ""
+				isLastSticky ? "; box-shadow: inset -2px 0 0 0 #d1d8dd" : ""
 			}`;
 		}
 		return `min-width:${column.width || 150}px; max-width:${
@@ -354,9 +354,10 @@ const FieldsMixin = {
 						];
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
-					td.innerHTML = `<span title="${row[column.fieldname] || "-"}">${
-						row[column.fieldname] || "-"
-					}</span>`;
+					const _span = document.createElement("span");
+					_span.title = row[column.fieldname] || "-";
+					_span.textContent = row[column.fieldname] || "-";
+					td.appendChild(_span);
 					if (col?.width) {
 						$(td).css({
 							width: `${Number(col?.width) * 50}px`,
@@ -480,7 +481,10 @@ const FieldsMixin = {
 						row[column.fieldname],
 						frappe.sys_defaults.currency
 					);
-					td.innerHTML = `<span title="${value}">${value}</span>`;
+					const _span = document.createElement("span");
+					_span.title = value;
+					_span.textContent = value;
+					td.appendChild(_span);
 					if (col?.width) {
 						$(td).css({
 							width: `${Number(col?.width) * 50}px`,
@@ -520,9 +524,12 @@ const FieldsMixin = {
 					row[column.fieldname] &&
 					!["null", "undefined", null, undefined].includes(row[column.fieldname])
 				) {
-					td.innerHTML = `<a title="${row[column.fieldname]}" href="${
-						row[column.fieldname]
-					}" target = "_blank" >${row[column.fieldname] || "-"}</a> `;
+					const _a = document.createElement("a");
+					_a.title = row[column.fieldname];
+					_a.href = row[column.fieldname];
+					_a.target = "_blank";
+					_a.textContent = row[column.fieldname] || "-";
+					td.appendChild(_a);
 				} else {
 					td.innerHTML = "-";
 				}
@@ -556,11 +563,15 @@ const FieldsMixin = {
 					row[column.fieldname] &&
 					!["null", "undefined", null, undefined].includes(row[column.fieldname])
 				) {
-					td.innerHTML = `<img title="${row[column.fieldname]}" alt="${
-						row[column.fieldname]
-					}" src="${
-						row[column.fieldname]
-					}" style = "width:30px;border-radius:50%;height:30px;object-fit:cover;" /> `;
+					const _img = document.createElement("img");
+					_img.title = row[column.fieldname];
+					_img.alt = row[column.fieldname];
+					_img.src = row[column.fieldname];
+					_img.style.width = "30px";
+					_img.style.borderRadius = "50%";
+					_img.style.height = "30px";
+					_img.style.objectFit = "cover";
+					td.appendChild(_img);
 					return;
 				} else {
 					td.innerHTML = "-";
@@ -584,7 +595,10 @@ const FieldsMixin = {
 							minimumFractionDigits: 0,
 							maximumFractionDigits: 2,
 						}) || 0;
-					td.innerHTML = `<span title="${value}">${value}</span>`;
+					const _span = document.createElement("span");
+					_span.title = value;
+					_span.textContent = value;
+					td.appendChild(_span);
 					if (col?.width) {
 						$(td).css({
 							width: `${Number(col?.width) * 50}px`,
@@ -636,7 +650,9 @@ const FieldsMixin = {
 							minimumFractionDigits: 0,
 							maximumFractionDigits: 2,
 						}) || 0;
-					td.innerHTML = `<span title="${value}%">${value}%</span>`;
+					let clampedValue = Math.min(Math.max(parseFloat(value) || 0, 0), 100);
+					let barColor = col?.color || "#2E7D32";
+					td.innerHTML = this.percentageCell(clampedValue, barColor);
 					if (col?.width) {
 						$(td).css({
 							width: `${Number(col?.width) * 50}px`,
@@ -683,9 +699,13 @@ const FieldsMixin = {
 						];
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
-					td.innerHTML = `<span title="${
-						row[column.fieldname] ? formaDate(row[column.fieldname]) : "-"
-					}">${row[column.fieldname] ? formaDate(row[column.fieldname]) : "-"}</span>`;
+					const _dateVal = row[column.fieldname]
+						? formaDate(row[column.fieldname])
+						: "-";
+					const _span = document.createElement("span");
+					_span.title = _dateVal;
+					_span.textContent = _dateVal;
+					td.appendChild(_span);
 					if (col?.width) {
 						$(td).css({
 							width: `${Number(col?.width) * 50}px`,
@@ -725,11 +745,13 @@ const FieldsMixin = {
 						];
 					td.innerHTML = formatter(row[column.fieldname], column, row, this);
 				} else {
-					td.innerHTML = `<span title="${
-						row[column.fieldname] ? formatDatetime(row[column.fieldname]) : "-"
-					}">${
-						row[column.fieldname] ? formatDatetime(row[column.fieldname]) : "-"
-					}</span>`;
+					const _datetimeVal = row[column.fieldname]
+						? formatDatetime(row[column.fieldname])
+						: "-";
+					const _span = document.createElement("span");
+					_span.title = _datetimeVal;
+					_span.textContent = _datetimeVal;
+					td.appendChild(_span);
 					if (col?.width) {
 						$(td).css({
 							width: `${Number(col?.width) * 50}px`,
@@ -766,9 +788,32 @@ const FieldsMixin = {
 					frappe.router.slug(doctype)
 				)}/${encodeURIComponent(row.name)}`;
 				const value = row[column.fieldname];
-				const linkColor = frappe.boot?.my_theme?.navbar_color || "var(--primary-color)";
+				// If both `name` and `title_field` columns are visible, only the title_field
+				// should get the "link emphasis" color/underline.
+				const titleField = this.meta?.title_field;
+				const hasNameColumn = (this.columns || []).some((c) => c.fieldname === "name");
+				const hasTitleColumn =
+					titleField && (this.columns || []).some((c) => c.fieldname === titleField);
+				const bothVisible = !!(hasNameColumn && hasTitleColumn);
+				const isNameColumn = columnField.fieldname === "name";
+				const emphasizeThisColumn = !(bothVisible && isNameColumn);
+
+				const linkColor = emphasizeThisColumn
+					? frappe.boot?.my_theme?.navbar_color || "var(--primary-color)"
+					: "inherit";
+				const textDecoration = emphasizeThisColumn ? "underline" : "none";
 				if (value && !["null", "undefined", null, undefined].includes(value)) {
-					td.innerHTML = `<a class="ellipsis" href="${href}" title="${value}" data-doctype="${doctype}" data-name="${row.name}" style="cursor:pointer; text-decoration:underline; color:${linkColor};">${value}</a>`;
+					const _a = document.createElement("a");
+					if (!col?.wrap) _a.className = "ellipsis";
+					_a.href = href;
+					_a.title = value;
+					_a.dataset.doctype = doctype;
+					_a.dataset.name = row.name;
+					_a.style.cursor = "pointer";
+					_a.style.textDecoration = textDecoration;
+					_a.style.color = linkColor;
+					_a.textContent = value;
+					td.appendChild(_a);
 				} else {
 					td.innerHTML = `<span title="-">-</span>`;
 				}
@@ -777,10 +822,14 @@ const FieldsMixin = {
 						width: `${Number(col?.width) * 50}px`,
 						minWidth: `${Number(col?.width) * 50}px`,
 						maxWidth: `${Number(col?.width) * 50}px`,
-						height: "32px",
-						whiteSpace: "nowrap",
-						overflow: "hidden",
-						textOverflow: "ellipsis",
+						...(col?.wrap
+							? { minHeight: "32px" }
+							: {
+									height: "32px",
+									whiteSpace: "nowrap",
+									overflow: "hidden",
+									textOverflow: "ellipsis",
+							  }),
 						padding: "0px 5px",
 					});
 				} else {
@@ -788,10 +837,14 @@ const FieldsMixin = {
 						width: `150px`,
 						minWidth: `150px`,
 						maxWidth: `150px`,
-						height: "32px",
-						whiteSpace: "nowrap",
-						overflow: "hidden",
-						textOverflow: "ellipsis",
+						...(col?.wrap
+							? { minHeight: "32px" }
+							: {
+									height: "32px",
+									whiteSpace: "nowrap",
+									overflow: "hidden",
+									textOverflow: "ellipsis",
+							  }),
 						padding: "0px 5px",
 					});
 				}
@@ -852,9 +905,10 @@ const FieldsMixin = {
 					row[column.fieldname] &&
 					!["null", "undefined", null, undefined].includes(row[column.fieldname])
 				) {
-					td.innerHTML = `<span title="${row[column.fieldname] || ""}">${
-						row[column.fieldname] || ""
-					}</span>`;
+					const _span = document.createElement("span");
+					_span.title = row[column.fieldname] || "";
+					_span.textContent = row[column.fieldname] || "";
+					td.appendChild(_span);
 				} else {
 					td.innerHTML = `<span title="-">-</span>`;
 				}
@@ -902,6 +956,26 @@ const FieldsMixin = {
 				);
 			}
 		}
+	},
+	percentageCell(value, bgColor, textColor) {
+		const pct = Math.min(100, Math.max(0, Math.round(value)));
+
+		return `
+		<div style="display:flex; align-items:center; gap:8px; width:100%;">
+			<div style="flex:1; height:5px; background:#e5e5e5; border-radius:99px; overflow:hidden;">
+				<div style="width:${pct}%; height:100%; background:${bgColor}; border-radius:99px;"></div>
+			</div>
+			<span style="
+				font-size:12px;
+				font-weight:500;
+				color:${textColor};
+				font-variant-numeric:tabular-nums;
+				white-space:nowrap;
+				min-width:36px;
+				text-align:right;
+			">${pct}%</span>
+		</div>
+	`.trim();
 	},
 };
 
