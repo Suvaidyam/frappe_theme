@@ -307,7 +307,7 @@ const FieldsMixin = {
 										me.doctype,
 										row.name,
 										column.fieldname,
-										changedValue
+										row[column.fieldname],
 									);
 									if (response) {
 										me.reloadRow(response);
@@ -342,7 +342,6 @@ const FieldsMixin = {
 				});
 				$(td).css({ height: "25px !important", padding: "0px 5px" });
 				control.refresh();
-				isReady = true;
 			} else {
 				if (
 					this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
