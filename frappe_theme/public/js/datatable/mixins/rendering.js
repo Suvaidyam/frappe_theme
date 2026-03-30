@@ -491,7 +491,16 @@ const RenderingMixin = {
 			this.sortByColumn(this.currentSort.column, this.currentSort.direction, false);
 		}
 
+		// One pre-fetch for all workflow transitions before any row is rendered.
+		// All renderBatch iterations (including scroll-triggered ones) await this
+		// single shared promise — subsequent awaits resolve immediately.
+		const wfTransitionsReady =
+			this.workflow && this.wf_transitions_allowed && !this.connection?.disable_workflow
+				? this._prefetchWfTransitions(this.rows)
+				: Promise.resolve();
+
 		const renderBatch = async () => {
+			await wfTransitionsReady;
 			const fragment = document.createDocumentFragment(); // Use a document fragment to batch DOM changes
 
 			for (let i = 0; i < batchSize && rowIndex < this.rows.length; i++) {
@@ -664,10 +673,8 @@ const RenderingMixin = {
 										frappe.user_roles.includes(tr.allowed) &&
 										tr.state === row[workflow_state_field]
 								);
-							let { message: transitions } = await this.sva_db.call({
-								method: "frappe.model.workflow.get_transitions",
-								doc: { ...row, doctype: this.doctype },
-							});
+							const transitions =
+								this._wfTransitionsByState?.[row[workflow_state_field]] || [];
 							el.disabled =
 								el.disabled ||
 								transitions.length === 0 ||
@@ -793,6 +800,15 @@ const RenderingMixin = {
 			}
 
 			tbody.appendChild(fragment); // Append all rows at once to minimize reflows
+
+			// Append total row after the last batch of rows
+			if (rowIndex >= this.rows.length) {
+				const existingTotalRow = tbody.querySelector(".sva-dt-total-row");
+				if (!existingTotalRow) {
+					const totalRow = this.createTotalRow();
+					if (totalRow) tbody.appendChild(totalRow);
+				}
+			}
 		};
 
 		const handleScroll = () => {
@@ -809,9 +825,6 @@ const RenderingMixin = {
 
 		this.table_wrapper.addEventListener("scroll", handleScroll);
 		renderBatch();
-
-		const totalRow = this.createTotalRow();
-		if (totalRow) tbody.appendChild(totalRow);
 
 		return tbody;
 	},

@@ -179,7 +179,8 @@ class DTConf:
 			if options["return_columns"]:
 				return {"result": result, "columns": report.get("columns")}
 			else:
-				return result
+				link_titles = DTConf.resolve_link_titles(options["ref_doctype"], result, None)
+				return [result, link_titles]
 		elif report.report_type == "Script Report":
 			response = run(report.name, filters=inner_filters)
 			columns = response.get("columns")
@@ -200,7 +201,8 @@ class DTConf:
 			if options["return_columns"]:
 				return {"result": result, "columns": columns}
 			else:
-				return result
+				link_titles = DTConf.resolve_link_titles(options["ref_doctype"], result, None)
+				return [result, link_titles]
 
 	def doc_type_list(options):
 		filters = options["filters"]
@@ -223,7 +225,7 @@ class DTConf:
 				doctype=ref_doctype, docname=doc, base_doctype=doctype, filters=filters
 			)
 
-		return frappe.get_list(
+		rows = frappe.get_list(
 			doctype,
 			filters=valid_filters,
 			fields=fields,
@@ -231,6 +233,63 @@ class DTConf:
 			order_by=order_by,
 			limit_start=limit_start,
 		)
+
+		link_titles = DTConf.resolve_link_titles(doctype, rows, fields)
+		return [rows, link_titles]
+
+	@staticmethod
+	def resolve_link_titles(doctype, rows, fields):
+		"""
+		For every Link column in the doctype whose linked doctype uses a title field,
+		batch-fetch the display titles and return them as {"LinkedDT::name": title}.
+		Called once per get_dt_list — no extra network round-trip on the client.
+		"""
+		if not rows:
+			return {}
+
+		try:
+			meta = frappe.get_meta(doctype)
+		except Exception:
+			return {}
+
+		link_fields = [f for f in meta.fields if f.fieldtype == "Link" and f.options]
+
+		# If specific fields were requested, restrict to those
+		if fields and fields != ["*"]:
+			requested = set(fields)
+			link_fields = [f for f in link_fields if f.fieldname in requested]
+
+		# Group unique names per linked doctype, only for doctypes with a title field
+		by_doctype = {}
+		for lf in link_fields:
+			try:
+				linked_meta = frappe.get_meta(lf.options)
+			except Exception:
+				continue
+			if not linked_meta.show_title_field_in_link or not linked_meta.title_field:
+				continue
+			title_field = linked_meta.title_field
+			names = {row.get(lf.fieldname) for row in rows if row.get(lf.fieldname)}
+			if names:
+				by_doctype.setdefault(lf.options, {"title_field": title_field, "names": set()})[
+					"names"
+				].update(names)
+
+		link_titles = {}
+		for linked_dt, info in by_doctype.items():
+			try:
+				title_rows = frappe.get_all(
+					linked_dt,
+					filters=[["name", "in", list(info["names"])]],
+					fields=["name", info["title_field"]],
+				)
+				for r in title_rows:
+					title = r.get(info["title_field"]) or r["name"]
+					link_titles[f"{linked_dt}::{r['name']}"] = title
+			except Exception:
+				pass
+
+		return link_titles
 
 	def get_dt_count(options):
 		filters = options["filters"]

@@ -146,3 +146,34 @@ def get_dt_count(doctype, doc=None, ref_doctype=None, filters=None, _type="List"
 		"unfiltered": unfiltered,
 	}
 	return DTConf.get_dt_count(options)
+
+
+@frappe.whitelist()
+def get_workflow_transitions_for_table(doctype, states):
+	"""
+	Return allowed workflow transitions for each unique state in one call.
+	Avoids the per-row DB load that frappe.model.workflow.get_transitions does.
+
+	states: JSON list of unique workflow state strings present in the table rows
+	Returns: { state: [transition_dicts] }
+	"""
+	import json
+
+	if isinstance(states, str):
+		states = json.loads(states)
+
+	try:
+		workflow = frappe.get_doc("Workflow", {"document_type": doctype, "is_active": 1})
+	except Exception:
+		return {}
+
+	user_roles = set(frappe.get_roles())
+	result = {}
+
+	for state in states:
+		transitions = [
+			tr.as_dict() for tr in workflow.transitions if tr.state == state and tr.allowed in user_roles
+		]
+		result[state] = transitions
+
+	return result

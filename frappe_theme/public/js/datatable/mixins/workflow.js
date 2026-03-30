@@ -235,6 +235,41 @@ const WorkflowMixin = {
 		}
 		take_action();
 	},
+
+	// Pre-fetches allowed workflow transitions for all unique non-closed states in the table
+	// in a single API call. Result is stored in this._wfTransitionsByState for sync lookup
+	// during render. Call once before renderBatch starts; cleared on each reloadTable.
+	async _prefetchWfTransitions(rows) {
+		if (!this.workflow || !this.wf_transitions_allowed) {
+			this._wfTransitionsByState = {};
+			return;
+		}
+		const wfField = this.workflow.workflow_state_field;
+		const closureStates =
+			this.workflow?.states
+				?.filter((s) => ["Positive", "Negative"].includes(s.custom_closure))
+				.map((e) => e.state) || [];
+
+		const states = [
+			...new Set(rows.map((r) => r[wfField]).filter((s) => s && !closureStates.includes(s))),
+		];
+
+		if (!states.length) {
+			this._wfTransitionsByState = {};
+			return;
+		}
+
+		try {
+			const { message } = await this.sva_db.call({
+				method: "frappe_theme.dt_api.get_workflow_transitions_for_table",
+				doctype: this.doctype,
+				states,
+			});
+			this._wfTransitionsByState = message || {};
+		} catch (e) {
+			this._wfTransitionsByState = {};
+		}
+	},
 };
 
 export default WorkflowMixin;

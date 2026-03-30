@@ -189,7 +189,19 @@ const DataMixin = {
 				_type: this.connection.connection_type,
 				unfiltered: this.connection?.unfiltered,
 			});
-			return res.message;
+			const msg = res.message;
+			// Non-Report: server returns [rows, link_titles]
+			if (Array.isArray(msg) && Array.isArray(msg[0])) {
+				const [rows, link_titles] = msg;
+				if (link_titles) {
+					for (const [key, title] of Object.entries(link_titles)) {
+						const sep = key.indexOf("::");
+						frappe.utils.add_link_title(key.slice(0, sep), key.slice(sep + 2), title);
+					}
+				}
+				return rows;
+			}
+			return msg;
 		} catch (error) {
 			console.error(error);
 			return [];
