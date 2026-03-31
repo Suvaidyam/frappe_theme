@@ -83,7 +83,7 @@ const RenderingMixin = {
 			}
 
 			td.textContent = row[column.fieldname] || "";
-			if (this.options.editable) {
+			if (this.options.editable && column.fieldtype !== "Select") {
 				this.createEditableField(td, column, row);
 			} else {
 				this.createNonEditableField(td, column, row, columnIndex);
@@ -257,16 +257,18 @@ const RenderingMixin = {
 		el.appendChild(this.table);
 		this.table.appendChild(this.createTableBody());
 
-		// Auto transpose if enabled for reports
+		// Auto transpose if enabled — hide immediately to prevent flash of normal table
 		if (
 			this.connection?.enable_auto_transpose &&
-			this.connection?.connection_type === "Report"
+			["Direct", "Indirect", "Referenced", "Unfiltered", "Report"].includes(
+				this.connection?.connection_type
+			)
 		) {
 			this.isTransposed = true;
-			setTimeout(async () => {
-				this.rows = await this.getDocList();
-				this.table.replaceChild(this.createTableBody(), this.table.querySelector("tbody"));
+			this.table.style.visibility = "hidden";
+			setTimeout(() => {
 				this.transposeTable();
+				this.table.style.visibility = "";
 			}, 0);
 		}
 
@@ -284,6 +286,7 @@ const RenderingMixin = {
             font-weight:${this.options?.style?.tableHeader?.fontWeight || "normal"};
             z-index:3; font-weight:200 !important;white-space: nowrap;`;
 		const tr = document.createElement("tr");
+		tr.style.backgroundColor = "rgb(248, 249, 250)";
 
 		if (this.options.serialNumberColumn) {
 			const serialTh = document.createElement("th");
@@ -306,7 +309,7 @@ const RenderingMixin = {
 			const isLastSticky = columnIndex === lastStickyHeadIdx;
 
 			if (col?.sticky) {
-				th.style = `position:sticky; left:${left}px; z-index:2; background-color:#F3F3F3;cursor:${
+				th.style = `position:sticky; left:${left}px; z-index:2; background-color:rgb(248, 249, 250);cursor:${
 					column.sortable ? "pointer" : "default"
 				};min-width:${colWidth}px !important;max-width:${colWidth}px !important;width:${colWidth}px !important; white-space: nowrap;overflow: hidden;text-overflow:ellipsis;${
 					isLastSticky ? "box-shadow: inset -2px 0 0 0 #d1d8dd;" : ""
@@ -492,12 +495,13 @@ const RenderingMixin = {
 		}
 
 		// One pre-fetch for all workflow transitions before any row is rendered.
-		// All renderBatch iterations (including scroll-triggered ones) await this
-		// single shared promise — subsequent awaits resolve immediately.
-		const wfTransitionsReady =
+		// Stored on `this` so transpose rendering (transposeTable / _createTransposeWorkflowCell)
+		// can await the same promise instead of firing per-row API calls.
+		this._wfTransitionsReady =
 			this.workflow && this.wf_transitions_allowed && !this.connection?.disable_workflow
 				? this._prefetchWfTransitions(this.rows)
 				: Promise.resolve();
+		const wfTransitionsReady = this._wfTransitionsReady;
 
 		const renderBatch = async () => {
 			await wfTransitionsReady;
@@ -595,7 +599,7 @@ const RenderingMixin = {
 					}
 
 					td.textContent = row[column.fieldname] || "";
-					if (this.options.editable) {
+					if (this.options.editable && column.fieldtype !== "Select") {
 						this.createEditableField(td, column, row);
 					} else {
 						this.createNonEditableField(td, column, row, columnIndex);
@@ -663,7 +667,26 @@ const RenderingMixin = {
 							el.style["text-align"] = "center";
 							wfActionTd.appendChild(el);
 						} else {
-							el.disabled =
+							// Render immediately with placeholder — rows appear without
+							// waiting for get_transitions API. Transitions load in background.
+							const stateLabel =
+								this.workflow_state_map?.[row[workflow_state_field]] ||
+								row[workflow_state_field] ||
+								"";
+							el.setAttribute("title", __(stateLabel));
+							el.innerHTML = `<option value="" style="color:black" selected disabled class="ellipsis">${__(
+								stateLabel
+							)}</option>`;
+							el.disabled = true;
+							wfActionTd.appendChild(el);
+
+							// Transitions are pre-fetched for the whole table in one API call
+							// (get_workflow_transitions_for_table) before renderBatch starts —
+							// do a synchronous lookup here; no per-row network call needed.
+							const transitions =
+								this._wfTransitionsByState?.[row[workflow_state_field]] ?? [];
+
+							const initialDisabled =
 								(this.connection?.keep_workflow_enabled_form_submission
 									? false
 									: this.frm?.doc?.docstatus !== 0) ||
@@ -673,28 +696,20 @@ const RenderingMixin = {
 										frappe.user_roles.includes(tr.allowed) &&
 										tr.state === row[workflow_state_field]
 								);
-							const transitions =
-								this._wfTransitionsByState?.[row[workflow_state_field]] || [];
+
+							const disableByDependsOn = this.connection?.disable_workflow_depends_on
+								? frappe.utils.custom_eval(
+										this.connection?.disable_workflow_depends_on,
+										row
+								  )
+								: false;
+
 							el.disabled =
-								el.disabled ||
-								transitions.length === 0 ||
-								(this.connection?.disable_workflow_depends_on
-									? frappe.utils.custom_eval(
-											this.connection?.disable_workflow_depends_on,
-											row
-									  )
-									: false);
-							el.setAttribute(
-								"title",
-								__(
-									this.workflow_state_map?.[row[workflow_state_field]] ||
-										row[workflow_state_field]
-								)
-							);
+								initialDisabled || !transitions?.length || disableByDependsOn;
+
 							el.innerHTML =
 								`<option value="" style="color:black" selected disabled class="ellipsis">${__(
-									this.workflow_state_map?.[row[workflow_state_field]] ||
-										row[workflow_state_field]
+									stateLabel
 								)}</option>` +
 								[...new Set(transitions?.map((e) => e.action))]
 									?.map(
@@ -704,7 +719,8 @@ const RenderingMixin = {
 											)}</option>`
 									)
 									.join("");
-							el.addEventListener("focus", (event) => {
+
+							el.addEventListener("focus", () => {
 								const originalState = el?.getAttribute("title");
 								el.value = "";
 								el.title = originalState;
@@ -739,7 +755,7 @@ const RenderingMixin = {
 												row
 											);
 										} catch (error) {
-											el.value = ""; // Reset dropdown value
+											el.value = "";
 											el.title = __(originalState);
 										}
 									}
@@ -747,8 +763,6 @@ const RenderingMixin = {
 									el.title = __(originalState);
 								}
 							});
-
-							wfActionTd.appendChild(el);
 						}
 						wfActionTd.style.textAlign = "center";
 						tr.appendChild(wfActionTd);
@@ -840,17 +854,20 @@ const RenderingMixin = {
 			}
 			return;
 		}
+
+		// When transposed: update cells in-place for smooth pagination (no flash/rebuild).
+		if (this.isTransposed) {
+			this._refreshTransposeData();
+			return;
+		}
+
 		const oldTbody = this.table.querySelector("tbody");
 		const newTbody = this.createTableBody();
 		this.table.replaceChild(
 			newTbody,
 			oldTbody || this.table.querySelector("#noDataFoundPage")
-		); // Replace old tbody with new sorted tbody
-
-		// Reapply transpose if it was previously transposed
-		if (this.isTransposed) {
-			setTimeout(() => this.transposeTable(), 0);
-		}
+		);
+		this.tBody = newTbody;
 	},
 
 	createNoDataFoundPage() {
