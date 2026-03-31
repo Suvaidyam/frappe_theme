@@ -662,6 +662,7 @@ const TransposeMixin = {
 				});
 			} catch (_e) {
 				// Leave the select as-is (disabled with current state label) on error.
+				console.error("Error loading workflow transitions for row", rowData, _e);
 			}
 		})();
 	},

@@ -307,7 +307,7 @@ const FieldsMixin = {
 										me.doctype,
 										row.name,
 										column.fieldname,
-										row[column.fieldname]
+										changedValue
 									);
 									if (response) {
 										me.reloadRow(response);
