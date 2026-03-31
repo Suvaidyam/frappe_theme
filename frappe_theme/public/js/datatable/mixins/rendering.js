@@ -494,7 +494,17 @@ const RenderingMixin = {
 			this.sortByColumn(this.currentSort.column, this.currentSort.direction, false);
 		}
 
+		// One pre-fetch for all workflow transitions before any row is rendered.
+		// Stored on `this` so transpose rendering (transposeTable / _createTransposeWorkflowCell)
+		// can await the same promise instead of firing per-row API calls.
+		this._wfTransitionsReady =
+			this.workflow && this.wf_transitions_allowed && !this.connection?.disable_workflow
+				? this._prefetchWfTransitions(this.rows)
+				: Promise.resolve();
+		const wfTransitionsReady = this._wfTransitionsReady;
+
 		const renderBatch = async () => {
+			await wfTransitionsReady;
 			const fragment = document.createDocumentFragment(); // Use a document fragment to batch DOM changes
 
 			for (let i = 0; i < batchSize && rowIndex < this.rows.length; i++) {
@@ -670,104 +680,89 @@ const RenderingMixin = {
 							el.disabled = true;
 							wfActionTd.appendChild(el);
 
-							// Background load — frappe.xcall so concurrent per-row calls
-							// do NOT cancel each other (sva_db.call aborts the previous request).
-							(async () => {
-								try {
-									const initialDisabled =
-										(this.connection?.keep_workflow_enabled_form_submission
-											? false
-											: this.frm?.doc?.docstatus !== 0) ||
-										closureStates.includes(row[workflow_state_field]) ||
-										!this.workflow?.transitions?.some(
-											(tr) =>
-												frappe.user_roles.includes(tr.allowed) &&
-												tr.state === row[workflow_state_field]
-										);
+							// Transitions are pre-fetched for the whole table in one API call
+							// (get_workflow_transitions_for_table) before renderBatch starts —
+							// do a synchronous lookup here; no per-row network call needed.
+							const transitions =
+								this._wfTransitionsByState?.[row[workflow_state_field]] ?? [];
 
-									const transitions = await frappe.xcall(
-										"frappe.model.workflow.get_transitions",
-										{ doc: { ...row, doctype: this.doctype } }
+							const initialDisabled =
+								(this.connection?.keep_workflow_enabled_form_submission
+									? false
+									: this.frm?.doc?.docstatus !== 0) ||
+								closureStates.includes(row[workflow_state_field]) ||
+								!this.workflow?.transitions?.some(
+									(tr) =>
+										frappe.user_roles.includes(tr.allowed) &&
+										tr.state === row[workflow_state_field]
+								);
+
+							const disableByDependsOn = this.connection?.disable_workflow_depends_on
+								? frappe.utils.custom_eval(
+										this.connection?.disable_workflow_depends_on,
+										row
+								  )
+								: false;
+
+							el.disabled =
+								initialDisabled || !transitions?.length || disableByDependsOn;
+
+							el.innerHTML =
+								`<option value="" style="color:black" selected disabled class="ellipsis">${__(
+									stateLabel
+								)}</option>` +
+								[...new Set(transitions?.map((e) => e.action))]
+									?.map(
+										(action) =>
+											`<option value="${action}" style="background-color:white; color:black; cursor:pointer;" class="rounded p-1">${__(
+												action
+											)}</option>`
+									)
+									.join("");
+
+							el.addEventListener("focus", () => {
+								const originalState = el?.getAttribute("title");
+								el.value = "";
+								el.title = originalState;
+							});
+							el.addEventListener("change", async (event) => {
+								const action = event.target.value;
+								const link =
+									transitions.find((l) => l.action === action) ||
+									this.workflow.transitions.find(
+										(l) =>
+											l.state == row[workflow_state_field] &&
+											l.action === action &&
+											frappe.user_roles.includes(l.allowed)
 									);
-
-									const disableByDependsOn = this.connection
-										?.disable_workflow_depends_on
-										? frappe.utils.custom_eval(
-												this.connection?.disable_workflow_depends_on,
+								const originalState = el?.getAttribute("title");
+								if (link) {
+									if (window.onWorkflowStateChange) {
+										await window.onWorkflowStateChange(
+											this,
+											link,
+											primaryKey,
+											el,
+											originalState
+										);
+									} else {
+										try {
+											await this.wf_action(
+												link,
+												primaryKey,
+												el,
+												originalState,
 												row
-										  )
-										: false;
-
-									el.disabled =
-										initialDisabled ||
-										!transitions?.length ||
-										disableByDependsOn;
-
-									el.innerHTML =
-										`<option value="" style="color:black" selected disabled class="ellipsis">${__(
-											stateLabel
-										)}</option>` +
-										[...new Set(transitions?.map((e) => e.action))]
-											?.map(
-												(action) =>
-													`<option value="${action}" style="background-color:white; color:black; cursor:pointer;" class="rounded p-1">${__(
-														action
-													)}</option>`
-											)
-											.join("");
-
-									el.addEventListener("focus", () => {
-										const originalState = el?.getAttribute("title");
-										el.value = "";
-										el.title = originalState;
-									});
-									el.addEventListener("change", async (event) => {
-										const action = event.target.value;
-										const link =
-											transitions.find((l) => l.action === action) ||
-											this.workflow.transitions.find(
-												(l) =>
-													l.state == row[workflow_state_field] &&
-													l.action === action &&
-													frappe.user_roles.includes(l.allowed)
 											);
-										const originalState = el?.getAttribute("title");
-										if (link) {
-											if (window.onWorkflowStateChange) {
-												await window.onWorkflowStateChange(
-													this,
-													link,
-													primaryKey,
-													el,
-													originalState
-												);
-											} else {
-												try {
-													await this.wf_action(
-														link,
-														primaryKey,
-														el,
-														originalState,
-														row
-													);
-												} catch (error) {
-													el.value = "";
-													el.title = __(originalState);
-												}
-											}
+										} catch (error) {
 											el.value = "";
 											el.title = __(originalState);
 										}
-									});
-								} catch (_e) {
-									// Leave as disabled with current state label on error
-									console.error(
-										"Error loading workflow transitions for row",
-										row,
-										_e
-									);
+									}
+									el.value = "";
+									el.title = __(originalState);
 								}
-							})();
+							});
 						}
 						wfActionTd.style.textAlign = "center";
 						tr.appendChild(wfActionTd);
@@ -819,6 +814,15 @@ const RenderingMixin = {
 			}
 
 			tbody.appendChild(fragment); // Append all rows at once to minimize reflows
+
+			// Append total row after the last batch of rows
+			if (rowIndex >= this.rows.length) {
+				const existingTotalRow = tbody.querySelector(".sva-dt-total-row");
+				if (!existingTotalRow) {
+					const totalRow = this.createTotalRow();
+					if (totalRow) tbody.appendChild(totalRow);
+				}
+			}
 		};
 
 		const handleScroll = () => {
@@ -835,9 +839,6 @@ const RenderingMixin = {
 
 		this.table_wrapper.addEventListener("scroll", handleScroll);
 		renderBatch();
-
-		const totalRow = this.createTotalRow();
-		if (totalRow) tbody.appendChild(totalRow);
 
 		return tbody;
 	},

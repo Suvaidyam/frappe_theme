@@ -579,11 +579,15 @@ const TransposeMixin = {
 			return;
 		}
 
-		// Async: load available transitions and enable the select if there are actions.
-		// Uses frappe.xcall (not this.sva_db.call) so concurrent per-record calls do NOT
-		// abort each other — sva_db.call() always cancels the previous request via AbortController.
+		// Await the single table-level prefetch promise (populated by createTableBody via
+		// get_workflow_transitions_for_table), then do a sync lookup — no per-row API call.
 		(async () => {
 			try {
+				await (this._wfTransitionsReady || Promise.resolve());
+
+				const transitions =
+					this._wfTransitionsByState?.[rowData[workflow_state_field]] ?? [];
+
 				let initialDisabled =
 					(this.connection?.keep_workflow_enabled_form_submission
 						? false
@@ -594,10 +598,6 @@ const TransposeMixin = {
 							frappe.user_roles.includes(tr.allowed) &&
 							tr.state === rowData[workflow_state_field]
 					);
-
-				const transitions = await frappe.xcall("frappe.model.workflow.get_transitions", {
-					doc: { ...rowData, doctype: this.doctype },
-				});
 
 				const disableByDependsOn = this.connection?.disable_workflow_depends_on
 					? frappe.utils.custom_eval(

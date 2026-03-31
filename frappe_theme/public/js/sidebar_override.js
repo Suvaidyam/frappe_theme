@@ -17,6 +17,8 @@ frappe.ui.Sidebar = class CustomSidebar extends frappe.ui.Sidebar {
 
 	// Method to restore active state after page load
 	restore_active_state() {
+		if (!this.$sidebar) return;
+
 		const activeItem = localStorage.getItem("sidebar-active-item");
 		const activeUrl = localStorage.getItem("sidebar-active-url");
 
@@ -87,6 +89,8 @@ frappe.ui.Sidebar = class CustomSidebar extends frappe.ui.Sidebar {
 		`);
 	}
 	set_active_workspace_item() {
+		if (!this.$sidebar) return;
+
 		const current_route = frappe.get_route();
 		if (!current_route || !current_route.length) return;
 
