@@ -505,22 +505,15 @@ const TransposeMixin = {
 	// Fills a transpose S.No. cell with a clickable link (or plain text for Reports),
 	// mirroring the non-transpose serial-number column behaviour in rendering.js.
 	_fillTransposeSnCell(cell, rowData, serialNumber) {
-		if (
-			this.frm?.dt_events?.[this.doctype ?? this.link_report]?.formatter?.["#"]
-		) {
-			const formatter =
-				this.frm.dt_events[this.doctype ?? this.link_report].formatter["#"];
+		if (this.frm?.dt_events?.[this.doctype ?? this.link_report]?.formatter?.["#"]) {
+			const formatter = this.frm.dt_events[this.doctype ?? this.link_report].formatter["#"];
 			cell.innerHTML = formatter(serialNumber, rowData, this);
-		} else if (
-			!this.hasNavigableColumn &&
-			this.connection?.connection_type !== "Report"
-		) {
+		} else if (!this.hasNavigableColumn && this.connection?.connection_type !== "Report") {
 			const doctype = this.doctype;
 			const href = `/app/${encodeURIComponent(
 				frappe.router.slug(doctype)
 			)}/${encodeURIComponent(rowData.name)}`;
-			const linkColor =
-				frappe.boot?.my_theme?.navbar_color || "var(--primary-color)";
+			const linkColor = frappe.boot?.my_theme?.navbar_color || "var(--primary-color)";
 			const a = document.createElement("a");
 			a.href = href;
 			a.dataset.doctype = doctype;
@@ -568,7 +561,9 @@ const TransposeMixin = {
 		// Render the select with current state immediately so the cell is never empty.
 		// Transitions (action options) are loaded async below and appended afterwards.
 		el.setAttribute("title", __(stateLabel));
-		el.innerHTML = `<option value="" style="color:black" selected disabled class="ellipsis">${__(stateLabel)}</option>`;
+		el.innerHTML = `<option value="" style="color:black" selected disabled class="ellipsis">${__(
+			stateLabel
+		)}</option>`;
 		el.disabled = true;
 
 		// Append to DOM immediately — this guarantees visibility regardless of async outcome.
@@ -600,10 +595,9 @@ const TransposeMixin = {
 							tr.state === rowData[workflow_state_field]
 					);
 
-				const transitions = await frappe.xcall(
-					"frappe.model.workflow.get_transitions",
-					{ doc: { ...rowData, doctype: this.doctype } }
-				);
+				const transitions = await frappe.xcall("frappe.model.workflow.get_transitions", {
+					doc: { ...rowData, doctype: this.doctype },
+				});
 
 				const disableByDependsOn = this.connection?.disable_workflow_depends_on
 					? frappe.utils.custom_eval(
@@ -612,12 +606,13 @@ const TransposeMixin = {
 					  )
 					: false;
 
-				el.disabled =
-					initialDisabled || !transitions?.length || disableByDependsOn;
+				el.disabled = initialDisabled || !transitions?.length || disableByDependsOn;
 
 				// Append transition action options
 				el.innerHTML =
-					`<option value="" style="color:black" selected disabled class="ellipsis">${__(stateLabel)}</option>` +
+					`<option value="" style="color:black" selected disabled class="ellipsis">${__(
+						stateLabel
+					)}</option>` +
 					[...new Set(transitions?.map((e) => e.action))]
 						?.map(
 							(action) =>

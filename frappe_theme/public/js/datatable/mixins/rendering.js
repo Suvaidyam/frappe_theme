@@ -12,7 +12,6 @@ const RenderingMixin = {
 		}
 
 		let primaryKey = row?.name || row?.rowIndex || rowIndex?.id || rowIndex;
-		
 
 		// Serial Number Column
 		if (this.options.serialNumberColumn) {
@@ -261,7 +260,9 @@ const RenderingMixin = {
 		// Auto transpose if enabled — hide immediately to prevent flash of normal table
 		if (
 			this.connection?.enable_auto_transpose &&
-			["Direct", "Indirect", "Referenced", "Unfiltered", "Report"].includes(this.connection?.connection_type)
+			["Direct", "Indirect", "Referenced", "Unfiltered", "Report"].includes(
+				this.connection?.connection_type
+			)
 		) {
 			this.isTransposed = true;
 			this.table.style.visibility = "hidden";
@@ -663,13 +664,15 @@ const RenderingMixin = {
 								row[workflow_state_field] ||
 								"";
 							el.setAttribute("title", __(stateLabel));
-							el.innerHTML = `<option value="" style="color:black" selected disabled class="ellipsis">${__(stateLabel)}</option>`;
+							el.innerHTML = `<option value="" style="color:black" selected disabled class="ellipsis">${__(
+								stateLabel
+							)}</option>`;
 							el.disabled = true;
 							wfActionTd.appendChild(el);
 
 							// Background load — frappe.xcall so concurrent per-row calls
 							// do NOT cancel each other (sva_db.call aborts the previous request).
-							;(async () => {
+							(async () => {
 								try {
 									const initialDisabled =
 										(this.connection?.keep_workflow_enabled_form_submission
@@ -687,19 +690,23 @@ const RenderingMixin = {
 										{ doc: { ...row, doctype: this.doctype } }
 									);
 
-									const disableByDependsOn =
-										this.connection?.disable_workflow_depends_on
-											? frappe.utils.custom_eval(
-													this.connection?.disable_workflow_depends_on,
-													row
-											  )
-											: false;
+									const disableByDependsOn = this.connection
+										?.disable_workflow_depends_on
+										? frappe.utils.custom_eval(
+												this.connection?.disable_workflow_depends_on,
+												row
+										  )
+										: false;
 
 									el.disabled =
-										initialDisabled || !transitions?.length || disableByDependsOn;
+										initialDisabled ||
+										!transitions?.length ||
+										disableByDependsOn;
 
 									el.innerHTML =
-										`<option value="" style="color:black" selected disabled class="ellipsis">${__(stateLabel)}</option>` +
+										`<option value="" style="color:black" selected disabled class="ellipsis">${__(
+											stateLabel
+										)}</option>` +
 										[...new Set(transitions?.map((e) => e.action))]
 											?.map(
 												(action) =>
@@ -754,7 +761,11 @@ const RenderingMixin = {
 									});
 								} catch (_e) {
 									// Leave as disabled with current state label on error
-									console.error("Error loading workflow transitions for row", row, _e);
+									console.error(
+										"Error loading workflow transitions for row",
+										row,
+										_e
+									);
 								}
 							})();
 						}
