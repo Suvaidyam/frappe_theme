@@ -247,6 +247,11 @@ class DTConf:
 		if not rows:
 			return {}
 
+		# Script Reports (and some Query Reports) return list-of-lists; link title
+		# resolution requires dict rows, so skip it for those result sets.
+		if not isinstance(rows[0], dict):
+			return {}
+
 		try:
 			meta = frappe.get_meta(doctype)
 		except Exception:

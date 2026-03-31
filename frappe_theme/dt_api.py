@@ -160,7 +160,13 @@ def get_workflow_transitions_for_table(doctype, states):
 	import json
 
 	if isinstance(states, str):
-		states = json.loads(states)
+		try:
+			states = json.loads(states)
+		except (json.JSONDecodeError, TypeError):
+			frappe.throw(frappe._("Invalid value for 'states': expected a JSON list of strings."))
+
+	if not isinstance(states, list) or not all(isinstance(s, str) for s in states):
+		frappe.throw(frappe._("'states' must be a list of strings."))
 
 	try:
 		workflow = frappe.get_doc("Workflow", {"document_type": doctype, "is_active": 1})

@@ -541,6 +541,12 @@ const ActionColumnMixin = {
 					delete this._threadCountPromises[cacheKey];
 					resolve(r.message || {});
 				},
+				error: () => {
+					// Clean up so the next render attempt retries rather than
+					// waiting on a promise that will never settle.
+					delete this._threadCountPromises[cacheKey];
+					resolve({});
+				},
 			});
 		});
 		this._threadCountPromises[cacheKey] = promise;
