@@ -108,6 +108,8 @@ jinja = {"methods": "frappe_theme.utils.jinja_methods"}
 # before_install = "frappe_theme.install.before_install"
 # after_install = "frappe_theme.install.after_install"
 after_migrate = "frappe_theme.setup.migration.after_migrate"
+setup_wizard_requires = "assets/frappe_theme/js/setup_wizard.js"
+setup_wizard_stages = "frappe_theme.setup.setup_wizard.get_setup_stages"
 
 # Uninstallation
 # ------------
