@@ -151,6 +151,11 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 											bg?.style?.toLowerCase() || "secondary"
 										}">${action}</span></p>`,
 									},
+									{
+										fieldtype: "Section Break",
+										label: "",
+										hide_border: 1,
+									},
 									...(customFields || []),
 									...(resolvedFields ? resolvedFields : []),
 								];

@@ -100,6 +100,11 @@ const WorkflowMixin = {
 					bg?.style?.toLowerCase() || "secondary"
 				}">${selected_state_info.action}</span></p>`,
 			},
+			{
+				fieldtype: "Section Break",
+				label: "",
+				hide_border: 1,
+			},
 			...(customFields || []),
 			...(fields ? fields : []),
 		];
