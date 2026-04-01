@@ -23,7 +23,7 @@ const RenderingMixin = {
 			serialTd.style.position = "sticky";
 			serialTd.style.left = "0px";
 			serialTd.style.backgroundColor = "#fff";
-			serialTd.style.zIndex = "4";
+			serialTd.style.zIndex = "3";
 			serialTd.style.boxShadow = "inset -1px 0 0 0 #d1d8dd";
 			serialTd.style.setProperty("padding", "0px", "important");
 
@@ -293,7 +293,7 @@ const RenderingMixin = {
 			serialTh.textContent = __("S.No.");
 			serialTh.title = __("Serial Number");
 			serialTh.style =
-				"width:48px;min-width:48px;max-width:48px;text-align:center;position:sticky;left:0px;z-index:4;background-color:#F3F3F3;box-shadow: inset -1px 0 0 0 #d1d8dd;padding: 0px !important;";
+				"width:48px;min-width:48px;max-width:48px;text-align:center;position:sticky;left:0px;z-index:3;background-color:#F3F3F3;box-shadow: inset -1px 0 0 0 #d1d8dd;padding: 0px !important;";
 			tr.appendChild(serialTh);
 		}
 
@@ -352,7 +352,7 @@ const RenderingMixin = {
 		// ========================= Action Column ======================
 		const action_th = document.createElement("th");
 		action_th.style =
-			"width:5px; text-align:center;position:sticky;right:0px;z-index:3;background-color:#F3F3F3;";
+			"width:5px; text-align:center;position:sticky;right:0px;background-color:#F3F3F3;";
 		action_th.appendChild(this.createSettingsButton());
 		action_th.title = __("Settings");
 		tr.appendChild(action_th);
@@ -470,8 +470,7 @@ const RenderingMixin = {
 		});
 
 		const actionTd = document.createElement("td");
-		actionTd.style =
-			"position:sticky;right:0;z-index:3;background-color:#f9f9f9;min-width:50px;";
+		actionTd.style = "position:sticky;right:0;background-color:#f9f9f9;min-width:50px;";
 		actionTd.style.height = totalRowHeight;
 		actionTd.style.minHeight = totalRowHeight;
 		tr.appendChild(actionTd);
@@ -530,7 +529,7 @@ const RenderingMixin = {
 					serialTd.style.position = "sticky";
 					serialTd.style.left = "0px";
 					serialTd.style.backgroundColor = "#fff";
-					serialTd.style.zIndex = "4";
+					serialTd.style.zIndex = "3";
 					serialTd.style.boxShadow = "inset -1px 0 0 0 #d1d8dd";
 					serialTd.style.setProperty("padding", "0px", "important");
 					const serialNumber =
@@ -775,7 +774,7 @@ const RenderingMixin = {
 				actionTd.style.textAlign = "center";
 				actionTd.style.position = "sticky";
 				actionTd.style.right = "0px";
-				actionTd.style.zIndex = "3";
+				// actionTd.style.zIndex = "3";
 				actionTd.style.backgroundColor = "#fff";
 				if (
 					(this.conf_perms.length &&
