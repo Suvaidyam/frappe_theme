@@ -173,7 +173,7 @@ frappe.ui.form.on("Workflow Transition", {
                         <div></div>
                         <div></div>
                         <div></div>
-                        <button class="remove-layout-row btn btn-xs" title="Remove" style="
+                        <button type="button" class="remove-layout-row btn btn-xs" title="Remove" style="
                             padding: 0 4px;
                             line-height: 1.4;
                             font-size: 14px;
@@ -264,7 +264,9 @@ frappe.ui.form.on("Workflow Transition", {
                                 ${is_included ? "checked" : ""}
                                 style="width: 14px; height: 14px; margin: 0;"
                             >
-                            <span class="field-label" style="font-size: 13px;">${item.label}</span>
+                            <span class="field-label" style="font-size: 13px;">${frappe.utils.escape_html(
+								item.label || ""
+							)}</span>
                         </label>
                         <div style="text-align: center;">
                             <label style="display: flex; align-items: center; justify-content: center; cursor: pointer; margin-bottom: 0;">
@@ -344,8 +346,8 @@ frappe.ui.form.on("Workflow Transition", {
 						fieldname: "layout_buttons",
 						fieldtype: "HTML",
 						options: `<div style="display:flex; gap:8px; justify-content:flex-end; padding-top:20px;">
-							<button class="btn btn-xs btn-default add-section-break-btn" style="font-size:12px;">+ Section Break</button>
-							<button class="btn btn-xs btn-default add-column-break-btn" style="font-size:12px;">+ Column Break</button>
+							<button type="button" class="btn btn-sm btn-default add-section-break-btn" style="font-size:12px;">+ Section Break</button>
+							<button type="button" class="btn btn-xs btn-default add-column-break-btn" style="font-size:12px;">+ Column Break</button>
 						</div>`,
 					},
 					{ fieldtype: "Column Break" },
