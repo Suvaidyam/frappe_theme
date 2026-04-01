@@ -25,7 +25,6 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 
 		frappe.workflow.get_transitions(this.frm.doc).then(async (transitions) => {
 			this.frm.page.clear_actions_menu();
-
 			// Show regular workflow transitions
 			transitions?.forEach((d) => {
 				if (frappe.user_roles.includes(d.allowed) && has_approval_access(d)) {
@@ -36,72 +35,79 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 						let fields = [];
 						let action = d.action;
 						if (wf_dialog_fields?.length) {
-							fields = await me.frm.meta?.fields
-								.filter((field) => {
-									return wf_dialog_fields.some(
-										(f) => f.fieldname == field.fieldname
-									);
-								})
-								.map(async (field) => {
-									let field_obj = wf_dialog_fields.find(
-										(f) => f.fieldname == field.fieldname
-									);
-									if (field.fieldtype === "Table") {
-										let fields = await frappe.xcall(
-											"frappe_theme.dt_api.get_meta_fields",
-											{
-												doctype: field.options,
-												_type: "Direct",
-											}
-										);
-										field_obj["fields"] = fields;
-									}
-									let field_data = me.frm.doc[field.fieldname];
-									let _field = {
-										label: field.label,
-										fieldname: field.fieldname,
-										fieldtype: field.fieldtype,
-										default:
-											(field_obj?.read_only || field_obj?.fetch_if_exists) &&
-											field_data,
-										read_only: field_obj?.read_only,
-										reqd: field_obj?.read_only ? 0 : field_obj?.reqd,
-										options: field.options,
-										...(["Table MultiSelect", "Table"].includes(
-											field.fieldtype
-										)
-											? {
-													data: field_data,
-													cannot_add_rows: field_obj?.read_only,
-													cannot_delete_rows: field_obj?.read_only,
-											  }
-											: {}),
+							const metaMap = {};
+							(me.frm.meta?.fields || []).forEach((f) => {
+								metaMap[f.fieldname] = f;
+							});
+							fields = wf_dialog_fields.map(async (item) => {
+								// Pass layout items through directly
+								if (
+									item.fieldtype === "Section Break" ||
+									item.fieldtype === "Column Break"
+								) {
+									return {
+										fieldtype: item.fieldtype,
+										label: item.label || "",
+										...(item.hide_border ? { hide_border: 1 } : {}),
 									};
-									if (_field.fieldtype === "Table") {
-										_field["fields"] = field_obj.fields;
-									}
-									if (
-										!field_obj?.reqd &&
-										["Attach", "Attach Image", "Attach File"].includes(
-											field.fieldtype
-										)
-									) {
-										if (
-											field_data?.startsWith("/private/") ||
-											field_data?.startsWith("/files/")
-										) {
-											_field.label = "";
-											_field.fieldtype = "HTML";
-											_field.options = `${field.label} :  <a href="${
-												window.location.origin + field_data
-											}" target="_blank"><i>${field_data}</i></a>`;
-											_field.default = "";
-											_field.read_only = true;
-											_field.reqd = 0;
+								}
+								const field = metaMap[item.fieldname];
+								if (!field) return null;
+								let field_obj = item;
+								if (field.fieldtype === "Table") {
+									let tableFields = await frappe.xcall(
+										"frappe_theme.dt_api.get_meta_fields",
+										{
+											doctype: field.options,
+											_type: "Direct",
 										}
+									);
+									field_obj = { ...field_obj, fields: tableFields };
+								}
+								let field_data = me.frm.doc[field.fieldname];
+								let _field = {
+									label: field.label,
+									fieldname: field.fieldname,
+									fieldtype: field.fieldtype,
+									default:
+										(field_obj?.read_only || field_obj?.fetch_if_exists) &&
+										field_data,
+									read_only: field_obj?.read_only,
+									reqd: field_obj?.read_only ? 0 : field_obj?.reqd,
+									options: field.options,
+									...(["Table MultiSelect", "Table"].includes(field.fieldtype)
+										? {
+												data: field_data,
+												cannot_add_rows: field_obj?.read_only,
+												cannot_delete_rows: field_obj?.read_only,
+										  }
+										: {}),
+								};
+								if (_field.fieldtype === "Table") {
+									_field["fields"] = field_obj.fields;
+								}
+								if (
+									!field_obj?.reqd &&
+									["Attach", "Attach Image", "Attach File"].includes(
+										field.fieldtype
+									)
+								) {
+									if (
+										field_data?.startsWith("/private/") ||
+										field_data?.startsWith("/files/")
+									) {
+										_field.label = "";
+										_field.fieldtype = "HTML";
+										_field.options = `${field.label} :  <a href="${
+											window.location.origin + field_data
+										}" target="_blank"><i>${field_data}</i></a>`;
+										_field.default = "";
+										_field.read_only = true;
+										_field.reqd = 0;
 									}
-									return _field;
-								});
+								}
+								return _field;
+							});
 						} else {
 							fields = me.frm.meta?.fields
 								?.filter((field) => {
@@ -124,7 +130,7 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 						if (fields?.length || customFields?.length) {
 							try {
 								// Resolve all field promises before proceeding
-								const resolvedFields = await Promise.all(fields);
+								const resolvedFields = (await Promise.all(fields)).filter(Boolean);
 
 								let workflow_state_bg = await frappe.db.get_list(
 									"Workflow State",
