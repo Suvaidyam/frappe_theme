@@ -116,7 +116,13 @@
   "column_break_yjyk",
   "hd_creds",
   "change_logs_tab",
-  "change_logs"
+  "change_logs",
+  "ai_report_tab",
+  "ai_provider_section",
+  "ai_provider",
+  "ai_api_key",
+  "column_break_ai",
+  "ai_model"
  ],
  "fields": [
   {
@@ -685,6 +691,38 @@
   {
    "fieldname": "column_break_yjyk",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ai_report_tab",
+   "fieldtype": "Tab Break",
+   "label": "AI Report Generator"
+  },
+  {
+   "fieldname": "ai_provider_section",
+   "fieldtype": "Section Break",
+   "label": "AI Provider Settings"
+  },
+  {
+   "default": "OpenAI",
+   "fieldname": "ai_provider",
+   "fieldtype": "Select",
+   "label": "AI Provider",
+   "options": "OpenAI\nAnthropic"
+  },
+  {
+   "fieldname": "ai_api_key",
+   "fieldtype": "Password",
+   "label": "API Key"
+  },
+  {
+   "fieldname": "column_break_ai",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ai_model",
+   "fieldtype": "Data",
+   "label": "Model",
+   "placeholder": "gpt-4o or claude-sonnet-4-5-20241022"
   }
  ],
  "hide_toolbar": 1,
