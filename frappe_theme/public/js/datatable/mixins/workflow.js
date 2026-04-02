@@ -2,6 +2,7 @@ import { add_custom_approval_assignments_fields } from "../../utils.bundle.js";
 
 const WorkflowMixin = {
 	// ================================ Workflow Action  Logic ================================
+
 	async wf_action(selected_state_info, docname, wf_select_el, prevState, doc) {
 		let me = this;
 		let workflowFormValue;
@@ -34,12 +35,23 @@ const WorkflowMixin = {
 		});
 		let fields = [];
 		if (wf_dialog_fields?.length) {
-			fields = meta?.message?.fields
-				.filter((field) => {
-					return wf_dialog_fields.some((f) => f.fieldname == field.fieldname);
-				})
-				.map((field) => {
-					let field_obj = wf_dialog_fields.find((f) => f.fieldname == field.fieldname);
+			const metaMap = {};
+			(meta?.message?.fields || []).forEach((f) => {
+				metaMap[f.fieldname] = f;
+			});
+			fields = wf_dialog_fields
+				.map((item) => {
+					// Pass layout items through directly
+					if (item.fieldtype === "Section Break" || item.fieldtype === "Column Break") {
+						return {
+							fieldtype: item.fieldtype,
+							label: item.label || "",
+							...(item.hide_border ? { hide_border: 1 } : {}),
+						};
+					}
+					const field = metaMap[item.fieldname];
+					if (!field) return null;
+					let field_obj = item;
 					return {
 						label: field.label,
 						fieldname: field.fieldname,
@@ -52,13 +64,14 @@ const WorkflowMixin = {
 						options: field.options,
 						...(["Table MultiSelect", "Table"].includes(field.fieldtype)
 							? {
-									data: field_data,
+									data: doc[field.fieldname],
 									cannot_add_rows: field_obj?.read_only,
 									cannot_delete_rows: field_obj?.read_only,
 							  }
 							: {}),
 					};
-				});
+				})
+				.filter(Boolean);
 		} else {
 			fields = meta?.message?.fields
 				?.filter((field) => {
@@ -86,6 +99,11 @@ const WorkflowMixin = {
 				options: `<p>Action:  <span style="padding: 4px 8px; border-radius: 100px; color:white;  font-size: 12px; font-weight: 400;" class="bg-${
 					bg?.style?.toLowerCase() || "secondary"
 				}">${selected_state_info.action}</span></p>`,
+			},
+			{
+				fieldtype: "Section Break",
+				label: "",
+				hide_border: 1,
 			},
 			...(customFields || []),
 			...(fields ? fields : []),
