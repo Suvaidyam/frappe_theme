@@ -35,6 +35,7 @@ app_include_js = [
 	f"/assets/frappe_theme/js/svadb.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/fields_comment.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/extended_chart.js?ver={time.time()}",
+	f"/assets/frappe_theme/js/list_column_width.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/mobile_view.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/utils.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/custom_import.js?ver={time.time()}",
@@ -44,6 +45,7 @@ app_include_js = [
 	f"/assets/frappe_theme/js/breadcrumb_override.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/sidebar_override.js?ver={time.time()}",
 	"/assets/frappe_theme/js/multi_image_gallery.js",
+	"/assets/frappe_theme/js/background_file.js",
 ]
 extend_bootinfo = "frappe_theme.boot.boot_theme"
 # include js, css files in header of web template
@@ -106,6 +108,8 @@ jinja = {"methods": "frappe_theme.utils.jinja_methods"}
 # before_install = "frappe_theme.install.before_install"
 # after_install = "frappe_theme.install.after_install"
 after_migrate = "frappe_theme.setup.migration.after_migrate"
+# setup_wizard_requires = "assets/frappe_theme/js/setup_wizard.js"
+# setup_wizard_stages = "frappe_theme.setup.setup_wizard.get_setup_stages"
 
 # Uninstallation
 # ------------

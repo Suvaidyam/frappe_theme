@@ -92,6 +92,7 @@ class ListSettings {
 					fieldtype: "HTML",
 				},
 			],
+			size: "extra-large",
 		});
 		me.dialog.set_values(me.settings);
 		me.dialog.set_primary_action(__("Save"), () => {
@@ -133,59 +134,120 @@ class ListSettings {
 		let fields_html = me.dialog.get_field("fields_html");
 		let wrapper = fields_html.$wrapper[0];
 		let fields = ``;
+		const isAdmin = frappe.session.user == "Administrator";
+		const primaryFieldname =
+			!me.only_list_settings && me.connection_type !== "Report"
+				? me.getPrimaryFieldname()
+				: null;
 		for (let idx in me.listview_settings) {
-			// let is_sortable = idx == 0 ? `` : `sortable`;
-			// let show_sortable_handle = idx == 0 ? `hide` : ``;
+			const s = me.listview_settings[idx];
+			const isPrimary = s.fieldname === primaryFieldname && parseInt(idx) === 0;
+			const showEdit = !me.only_list_settings && ["Select"].includes(s.fieldtype) && isAdmin;
+			const vis = !me.only_list_settings ? "visible" : "hidden";
 			fields += `
-				<div class="control-input flex align-center form-control fields_order sortable"
-					style="display: block; margin-bottom: 5px;" data-fieldname="${me.listview_settings[idx].fieldname}"
-					data-label="${me.listview_settings[idx].label}" data-fieldtype="${
-				me.listview_settings[idx].fieldtype
-			}">
-
-					<div class="row">
-						<div class="col-1">
-							${frappe.utils.icon("drag", "xs", "", "", "sortable-handle ")}
-						</div>
-						<div class="col-10" style="padding-left:0px;">
-							<div class="row align-items-center no-gutters">
-								<div class="col-8">
-									${__(me.listview_settings[idx].label, null, me.doctype)}
-								</div>
-								<div class="col-4 d-flex align-items-center" style="gap:5px;height:100%;">
-									<input type="number" class="form-control control-input bg-white column-width-input" style="margin-top:-5px;height:25px; visibility:${
-										!me.only_list_settings ? "visible" : "hidden"
-									}"  data-fieldname="${
-				me.listview_settings[idx].fieldname
-			}" value="${me.listview_settings[idx]?.width || 2}" />
-									<input style="visibility:${
-										!me.only_list_settings &&
-										["Select"].includes(me.listview_settings[idx].fieldtype) &&
-										frappe.session.user == "Administrator"
-											? "visible"
-											: "hidden"
-									};height:18px;min-width:18px; margin-top:-2px;" type="checkbox" class="form-control bg-white inline-edit-checkbox" data-fieldname="${
-				me.listview_settings[idx].fieldname
-			}" value="${me.listview_settings[idx]?.inline_edit || 0}" ${
-				me.listview_settings[idx]?.inline_edit ? "checked" : ""
-			} />
-								</div>
+				<div class="control-input flex align-center form-control fields_order ${
+					isPrimary ? "" : "sortable"
+				}"
+					style="display: block; margin-bottom: 5px;${
+						isPrimary ? "background-color:#f0f4f8;" : ""
+					}" data-fieldname="${s.fieldname}"
+					data-label="${s.label}" data-fieldtype="${s.fieldtype}">
+					<div class="d-flex align-items-center no-gutters">
+						<div style="width:40%;display:flex;align-items:center;gap:4px;overflow:hidden;">
+							<div style="flex-shrink:0;text-align:center;width:20px;">
+								${
+									isPrimary
+										? frappe.utils.icon("lock", "xs")
+										: frappe.utils.icon(
+												"drag",
+												"xs",
+												"",
+												"",
+												"sortable-handle "
+										  )
+								}
+							</div>
+							<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+								${__(s.label, null, me.doctype)}
 							</div>
 						</div>
-						<div class="col-1">
-							<a class="text-muted remove-field" data-fieldname="${me.listview_settings[idx].fieldname}">
-								${frappe.utils.icon("delete", "xs")}
-							</a>
+						<div style="width:60%;display:flex;align-items:center;">
+							<div style="width:22%;visibility:${vis};" class="d-flex justify-content-center">
+								<input type="number" class="form-control bg-white column-width-input" style="height:25px;width:80px;padding:2px 7px;" data-fieldname="${
+									s.fieldname
+								}" value="${s?.width || 2}" />
+							</div>
+							<div style="width:11%;visibility:${
+								showEdit ? "visible" : "hidden"
+							};" class="d-flex justify-content-center">
+								<input style="height:16px;width:16px!important;cursor:pointer;accent-color:var(--primary);" type="checkbox" class="inline-edit-checkbox" data-fieldname="${
+									s.fieldname
+								}" ${s?.inline_edit ? "checked" : ""} />
+							</div>
+							<div style="width:11%;visibility:${vis};" class="d-flex justify-content-center">
+								<input style="height:16px;width:16px!important;cursor:pointer;accent-color:var(--primary);" type="checkbox" class="sticky-checkbox" data-fieldname="${
+									s.fieldname
+								}" ${s?.sticky ? "checked" : ""} />
+							</div>
+							<div style="width:11%;visibility:${vis};" class="d-flex justify-content-center">
+								<input style="height:16px;width:16px!important;cursor:pointer;accent-color:var(--primary);" type="checkbox" class="wrap-checkbox" data-fieldname="${
+									s.fieldname
+								}" ${s?.wrap ? "checked" : ""} />
+							</div>
+							<div style="width:17%;visibility:${vis};gap:3px;" class="d-flex justify-content-center align-items-center">
+								<input type="color" class="color-input" style="width:20px;height:20px;padding:0;border:1px solid #d1d8dd;border-radius:3px;cursor:pointer;" data-fieldname="${
+									s.fieldname
+								}" value="${s?.color || "#000000"}" />
+								<a class="text-muted reset-color" data-fieldname="${s.fieldname}" title="${__(
+				"Reset Color"
+			)}" style="cursor:pointer;font-size:10px;${
+				s?.color ? "" : "visibility:hidden;"
+			}">&times;</a>
+							</div>
+							<div style="width:17%;visibility:${vis};gap:3px;" class="d-flex justify-content-center align-items-center">
+								<input type="color" class="bg-color-input" style="width:20px;height:20px;padding:0;border:1px solid #d1d8dd;border-radius:3px;cursor:pointer;" data-fieldname="${
+									s.fieldname
+								}" value="${s?.bg_color || "#ffffff"}" />
+								<a class="text-muted reset-bg-color" data-fieldname="${s.fieldname}" title="${__(
+				"Reset Background"
+			)}" style="cursor:pointer;font-size:10px;${
+				s?.bg_color ? "" : "visibility:hidden;"
+			}">&times;</a>
+							</div>
+							<div style="width:11%;text-align:center;">
+								<a class="text-muted remove-field" data-fieldname="${s.fieldname}">
+									${frappe.utils.icon("delete", "xs")}
+								</a>
+							</div>
 						</div>
 					</div>
 				</div>`;
 		}
 
 		fields_html.html(`
-			<div class="form-group">
-				<div class="clearfix">
-					<label class="control-label" style="padding-right: 0px;">${__("Fields")}</label>
-				</div>
+			<div class="form-group pt-2">
+				${
+					!me.only_list_settings
+						? `<div class="d-flex no-gutters" style="margin-bottom:8px;padding:0 12px;font-weight:600;font-size:11px;color:var(--text-muted);">
+					<div style="width:40%;">${__("Fieldname")}</div>
+					<div style="width:60%;display:flex;text-align:center;">
+						<div style="width:22%;">${__("Column Width")}</div>
+						<div style="width:11%;">${__("Edit")}</div>
+						<div style="width:11%;">${__("Sticky")}</div>
+						<div style="width:11%;">${__("Wrap")}</div>
+						<div style="width:17%;">${__("Color")} <a class="reset-all-color" title="${__(
+								"Reset All"
+						  )}" style="cursor:pointer;color:var(--text-light);font-weight:400;">&times;</a></div>
+						<div style="width:17%;" title="Background Color">${__(
+							"BG"
+						)} <a class="reset-all-bg-color" title="${__(
+								"Reset All"
+						  )}" style="cursor:pointer;color:var(--text-light);font-weight:400;">&times;</a></div>
+						<div style="width:11%;"></div>
+					</div>
+				</div>`
+						: ""
+				}
 				<div class="control-input-wrapper">
 				${fields}
 				</div>
@@ -200,6 +262,54 @@ class ListSettings {
 			me.update_fields();
 		});
 		$(fields_html.$wrapper).on("change", ".inline-edit-checkbox", function () {
+			me.update_fields();
+		});
+		$(fields_html.$wrapper).on("change", ".sticky-checkbox", function () {
+			me.update_fields();
+		});
+		$(fields_html.$wrapper).on("change", ".wrap-checkbox", function () {
+			me.update_fields();
+		});
+		$(fields_html.$wrapper).on("change", ".color-input", function () {
+			const val = $(this).val();
+			$(this)
+				.closest("div")
+				.find(".reset-color")
+				.css("visibility", val && val !== "#000000" ? "visible" : "hidden");
+			me.update_fields();
+		});
+		$(fields_html.$wrapper).on("change", ".bg-color-input", function () {
+			const val = $(this).val();
+			$(this)
+				.closest("div")
+				.find(".reset-bg-color")
+				.css("visibility", val && val !== "#ffffff" ? "visible" : "hidden");
+			me.update_fields();
+		});
+		$(fields_html.$wrapper).on("click", ".reset-color", function () {
+			const fieldname = $(this).data("fieldname");
+			$(fields_html.$wrapper)
+				.find(`.color-input[data-fieldname="${fieldname}"]`)
+				.val("#000000")
+				.trigger("change");
+			$(this).css("visibility", "hidden");
+			me.update_fields();
+		});
+		$(fields_html.$wrapper).on("click", ".reset-bg-color", function () {
+			const fieldname = $(this).data("fieldname");
+			$(fields_html.$wrapper)
+				.find(`.bg-color-input[data-fieldname="${fieldname}"]`)
+				.val("#ffffff")
+				.trigger("change");
+			$(this).css("visibility", "hidden");
+			me.update_fields();
+		});
+		$(fields_html.$wrapper).on("click", ".reset-all-color", function () {
+			$(fields_html.$wrapper).find(".color-input").val("#000000").trigger("change");
+			me.update_fields();
+		});
+		$(fields_html.$wrapper).on("click", ".reset-all-bg-color", function () {
+			$(fields_html.$wrapper).find(".bg-color-input").val("#ffffff").trigger("change");
 			me.update_fields();
 		});
 		new Sortable(wrapper.getElementsByClassName("control-input-wrapper")[0], {
@@ -258,17 +368,24 @@ class ListSettings {
 					label: __(fields_order.item(idx).getAttribute("data-label")),
 				});
 			} else {
+				const el = fields_order.item(idx);
+				const colorVal = el.querySelector(".color-input")?.value;
+				const bgVal = el.querySelector(".bg-color-input")?.value;
 				me.listview_settings.push({
-					fieldname: fields_order.item(idx).getAttribute("data-fieldname"),
-					fieldtype: fields_order.item(idx).getAttribute("data-fieldtype"),
-					label: __(fields_order.item(idx).getAttribute("data-label")),
-					width: fields_order.item(idx).querySelector(".column-width-input")?.value || 2,
-					inline_edit: fields_order.item(idx).querySelector(".inline-edit-checkbox")
-						?.checked
-						? 1
-						: 0 || 0,
+					fieldname: el.getAttribute("data-fieldname"),
+					fieldtype: el.getAttribute("data-fieldtype"),
+					label: __(el.getAttribute("data-label")),
+					width: el.querySelector(".column-width-input")?.value || 2,
+					inline_edit: el.querySelector(".inline-edit-checkbox")?.checked ? 1 : 0,
+					sticky: el.querySelector(".sticky-checkbox")?.checked ? 1 : 0,
+					wrap: el.querySelector(".wrap-checkbox")?.checked ? 1 : 0,
+					color: colorVal && colorVal !== "#000000" ? colorVal : "",
+					bg_color: bgVal && bgVal !== "#ffffff" ? bgVal : "",
 				});
 			}
+		}
+		if (!me.only_list_settings && me.connection_type !== "Report") {
+			me.ensurePrimaryFieldFirst();
 		}
 		me.dialog.set_value("listview_settings", JSON.stringify(me.listview_settings));
 	}
@@ -323,6 +440,10 @@ class ListSettings {
 								fieldtype: field.fieldtype,
 								width: 2,
 								inline_edit: 0,
+								sticky: 0,
+								wrap: 0,
+								color: "",
+								bg_color: "",
 							});
 						} else if (
 							["creation", "owner", "modified", "modified_by"].includes(value)
@@ -335,6 +456,10 @@ class ListSettings {
 									fieldtype: ad_field.fieldtype,
 									width: 2,
 									inline_edit: 0,
+									sticky: 0,
+									wrap: 0,
+									color: "",
+									bg_color: "",
 								});
 							}
 						}
@@ -342,6 +467,9 @@ class ListSettings {
 				}
 			}
 
+			if (!me.only_list_settings && me.connection_type !== "Report") {
+				me.ensurePrimaryFieldFirst();
+			}
 			me.dialog.set_value("listview_settings", JSON.stringify(me.listview_settings));
 			me.refresh();
 			d.hide();
@@ -372,6 +500,27 @@ class ListSettings {
 				: JSON.parse(this.settings?.listview_settings || []);
 		}
 		me.listview_settings.uniqBy((f) => f.fieldname);
+		if (!me.only_list_settings && me.connection_type !== "Report") {
+			me.ensurePrimaryFieldFirst();
+		}
+	}
+
+	getPrimaryFieldname() {
+		const titleField = this.sva_dt?.meta?.title_field;
+		if (titleField) {
+			const exists = this.listview_settings.some((f) => f.fieldname === titleField);
+			if (exists) return titleField;
+		}
+		return "name";
+	}
+
+	ensurePrimaryFieldFirst() {
+		const primaryFieldname = this.getPrimaryFieldname();
+		const idx = this.listview_settings.findIndex((f) => f.fieldname === primaryFieldname);
+		if (idx > 0) {
+			const [field] = this.listview_settings.splice(idx, 1);
+			this.listview_settings.unshift(field);
+		}
 	}
 
 	set_list_view_fields(meta) {
@@ -389,6 +538,10 @@ class ListSettings {
 					fieldtype: field.fieldtype,
 					width: 2,
 					inline_edit: field.inline_edit ? 1 : 0,
+					sticky: 0,
+					wrap: 0,
+					color: "",
+					bg_color: "",
 				});
 			}
 		});

@@ -1,22 +1,54 @@
-if (frappe.ui?.FileUploader) {
-	frappe.ui.FileUploader = class CustomFileUploader extends frappe.ui?.FileUploader {
-		constructor(options = {}) {
-			// Override or enforce disable_file_browser
-			options.disable_file_browser = true;
-			// Call parent constructor with modified options
+(function () {
+	function createPatchedFileUploader(OriginalClass) {
+		if (OriginalClass.__patched_for_mgrant) return OriginalClass;
 
-			/* Other available flags
-			make_attachments_public,
-			allow_web_link,
-			allow_take_photo,
-			allow_toggle_private,
-			allow_toggle_optimize,
+		class CustomFileUploader extends OriginalClass {
+			constructor(options = {}) {
+				options.disable_file_browser = true;
 
-			*/
-			super(options);
+				// Force all uploads to public if enabled in mGrant Settings
+				if (frappe.boot?.mgrant_settings?.force_public_file_upload) {
+					options.make_attachments_public = true;
+					options.allow_toggle_private = false;
+				}
+
+				super(options);
+
+				// Hide "Set all public/private" toggle button when force public is enabled
+				if (frappe.boot?.mgrant_settings?.force_public_file_upload && this.dialog) {
+					this.dialog.get_secondary_btn().hide();
+				}
+			}
 		}
-	};
-}
+		CustomFileUploader.__patched_for_mgrant = true;
+		return CustomFileUploader;
+	}
+
+	if (frappe.ui?.FileUploader) {
+		// Already defined — patch immediately
+		frappe.ui.FileUploader = createPatchedFileUploader(frappe.ui.FileUploader);
+	} else {
+		// Not yet defined (lazy-loaded) — intercept the property assignment
+		let _value;
+		Object.defineProperty(frappe.ui, "FileUploader", {
+			configurable: true,
+			enumerable: true,
+			get() {
+				return _value;
+			},
+			set(cls) {
+				_value = createPatchedFileUploader(cls);
+				// Convert back to a plain writable property after the first assignment
+				Object.defineProperty(frappe.ui, "FileUploader", {
+					value: _value,
+					writable: true,
+					configurable: true,
+					enumerable: true,
+				});
+			},
+		});
+	}
+})();
 
 import { get_parent_section_field_by_fieldname } from "./utils.bundle.js";
 import Loader from "./loader-element.js";
@@ -239,9 +271,9 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 				});
 				if (message) {
 					this.dts = message;
-					window.sva_datatable_configuration = {
+					Object.assign(window.sva_datatable_configuration, {
 						[frm.doc.doctype]: this.dts,
-					};
+					});
 				}
 			} else {
 				this.dts = window.sva_datatable_configuration?.[frm.doc.doctype];
@@ -900,6 +932,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 							card_settings_data?.number_card?.label ||
 							"Untitled",
 						details: card_settings_data?.number_card,
+						show_full_number: field.sva_ft?.show_full_number,
 						listview_settings: field.sva_ft.listview_settings || null,
 						report: card_settings_data?.report || null,
 						icon_value: field.sva_ft.icon || null,
@@ -1120,8 +1153,8 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					field?.connection_type === "Is Custom Design"
 						? field?.template
 						: ["Direct", "Unfiltered", "Indirect"].includes(field.connection_type)
-						? field.link_doctype
-						: field.referenced_link_doctype
+							? field.link_doctype
+							: field.referenced_link_doctype
 				)} items`
 			);
 			element.innerHTML = `

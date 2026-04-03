@@ -401,7 +401,7 @@ function create_new_comment_thread(fieldName, field, frm) {
 				doctype_name: frm.doctype,
 				docname: frm.docname,
 				field_name: fieldName,
-				field_label: field.df.label || fieldName,
+				field_label: field?.df?.label || field.frm?.child_row?.doctype || fieldName,
 			},
 			callback: function (response) {
 				if (response.message) {
@@ -453,8 +453,11 @@ function load_field_comments(fieldName, field, frm) {
                     <div class="field-comment-section" style="margin-bottom: 25px; padding: 15px; border-radius: 12px; border: none; box-shadow: none;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
                             <h5 style="margin: 0; font-size: 15px;">${
-								field.df.label || fieldName
-							}</h5>
+								!field.df.label && frm?.child_row?.doctype
+									? `${frm?.child_row?.doctype} - `
+									: ""
+							}${field.df.label || frm?.child_row?.__title}
+					</h5>
                             <div style="display: flex; gap: 8px;">
                                 <button class="btn btn-default btn-sm new-thread-btn" style="padding: 4px 8px; display: none;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-plus" viewBox="0 0 16 16">
@@ -476,7 +479,8 @@ function load_field_comments(fieldName, field, frm) {
 							doctype_name: frm.doctype,
 							docname: frm.docname,
 							field_name: fieldName,
-							field_label: field.df.label || fieldName,
+							field_label:
+								field?.df?.label || field.frm?.child_row?.doctype || fieldName,
 						},
 						callback: function (response) {
 							if (!response.message) return;
@@ -1211,7 +1215,7 @@ function initializeCommentControl(
 					doctype_name: field.frm.doctype,
 					docname: field.frm.docname,
 					field_name: fieldName,
-					field_label: field.df.label || fieldName,
+					field_label: field?.df?.label || field.frm?.child_row?.doctype || fieldName,
 					comment_text: comment,
 					is_external: isExternal,
 					is_vendor: isVendor,

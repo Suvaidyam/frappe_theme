@@ -16,6 +16,7 @@ class SVAHeatmap {
 		this.frm = opts.frm || null;
 		this.stateLayer = null;
 		this.districtLayer = null;
+		this.shorten_number = this?.conf?.show_full_number ? false : true;
 		this.mapId = "map-" + frappe.utils.get_random(8);
 		this.isLoading = true;
 		this.primaryTargetField = opts.primary_target;
@@ -482,30 +483,36 @@ class SVAHeatmap {
 		}
 		switch (data?.fieldtype) {
 			case "Currency":
-				return frappe.utils.format_currency(data.value || 0);
+				return frappe.utils.format_currency(data.value || 0, null, this.shorten_number);
 			case "Float":
-				return frappe.utils.shorten_number(
-					data.value || 0,
-					frappe.sys_defaults.country,
-					null,
-					data?.column?.precision || 2
-				);
+				return this.shorten_number
+					? frappe.utils.shorten_number(
+							data.value || 0,
+							frappe.sys_defaults.country,
+							null,
+							data?.column?.precision || 2
+					  )
+					: format_number(data.value || 0, null, data?.column?.precision || 2);
 			case "Int":
-				return frappe.utils.shorten_number(
-					data.value || 0,
-					frappe.sys_defaults.country,
-					null,
-					0
-				);
+				return this.shorten_number
+					? frappe.utils.shorten_number(
+							data.value || 0,
+							frappe.sys_defaults.country,
+							null,
+							0
+					  )
+					: format_number(data.value || 0, null, 0);
 			case "Percent":
 				return `${format_number(data.value || 0, null, data?.column?.precision || 2)}%`;
 			default:
-				return frappe.utils.shorten_number(
-					data.value || 0,
-					frappe.sys_defaults.country,
-					null,
-					0
-				);
+				return this.shorten_number
+					? frappe.utils.shorten_number(
+							data.value || 0,
+							frappe.sys_defaults.country,
+							null,
+							0
+					  )
+					: format_number(data.value || 0, null, 0);
 		}
 	}
 

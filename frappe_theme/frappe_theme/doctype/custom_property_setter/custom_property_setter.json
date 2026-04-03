@@ -20,6 +20,7 @@
   "column_break_vafi",
   "label",
   "info",
+  "show_full_number",
   "column_break_fwyn",
   "section_break_ylfd",
   "sdg_report",
@@ -88,6 +89,7 @@
   "full_screen_dialog",
   "disable_workflow",
   "enable_auto_transpose",
+  "add_total_row",
   "section_break_okbe",
   "child_confs",
   "heat_map_section",
@@ -676,7 +678,7 @@
   },
   {
    "default": "0",
-   "depends_on": "eval:[\"Report\"].includes(doc.property_type) || doc.is_report === 1",
+   "depends_on": "eval:[\"Direct\", \"Indirect\", \"Referenced\", \"Unfiltered\", \"Report\"].includes(doc.connection_type)",
    "fieldname": "enable_auto_transpose",
    "fieldtype": "Check",
    "label": "Transpose"
@@ -823,13 +825,26 @@
    "fieldname": "state_name_column",
    "fieldtype": "Data",
    "label": "State Name Column"
+  },
+  {
+   "default": "0",
+   "fieldname": "add_total_row",
+   "fieldtype": "Check",
+   "label": "Add Total Row"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:[\"SDG Wheel\", \"Number Card\", \"Dashboard Chart\", \"Heatmap (India Map)\"].includes(doc.property_type)",
+   "fieldname": "show_full_number",
+   "fieldtype": "Check",
+   "label": "Show Full Number"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_virtual": 1,
  "links": [],
- "modified": "2026-02-05 14:24:48.038586",
+ "modified": "2026-03-30 12:54:41.025050",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Custom Property Setter",

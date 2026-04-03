@@ -179,7 +179,8 @@ class DTConf:
 			if options["return_columns"]:
 				return {"result": result, "columns": report.get("columns")}
 			else:
-				return result
+				link_titles = DTConf.resolve_link_titles(options["ref_doctype"], result, None)
+				return [result, link_titles]
 		elif report.report_type == "Script Report":
 			response = run(report.name, filters=inner_filters)
 			columns = response.get("columns")
@@ -200,7 +201,8 @@ class DTConf:
 			if options["return_columns"]:
 				return {"result": result, "columns": columns}
 			else:
-				return result
+				link_titles = DTConf.resolve_link_titles(options["ref_doctype"], result, None)
+				return [result, link_titles]
 
 	def doc_type_list(options):
 		filters = options["filters"]
@@ -212,6 +214,8 @@ class DTConf:
 		ref_doctype = options["ref_doctype"]
 		doctype = options["doctype"]
 
+		if isinstance(filters, str):
+			filters = json.loads(filters)
 		if filters is not None and not isinstance(filters, (dict | list)):
 			filters = {}
 
@@ -221,7 +225,7 @@ class DTConf:
 				doctype=ref_doctype, docname=doc, base_doctype=doctype, filters=filters
 			)
 
-		return frappe.get_list(
+		rows = frappe.get_list(
 			doctype,
 			filters=valid_filters,
 			fields=fields,
@@ -230,8 +234,72 @@ class DTConf:
 			limit_start=limit_start,
 		)
 
+		link_titles = DTConf.resolve_link_titles(doctype, rows, fields)
+		return [rows, link_titles]
+
+	@staticmethod
+	def resolve_link_titles(doctype, rows, fields):
+		"""
+		For every Link column in the doctype whose linked doctype uses a title field,
+		batch-fetch the display titles and return them as {"LinkedDT::name": title}.
+		Called once per get_dt_list — no extra network round-trip on the client.
+		"""
+		if not rows:
+			return {}
+
+		# Script Reports (and some Query Reports) return list-of-lists; link title
+		# resolution requires dict rows, so skip it for those result sets.
+		if not isinstance(rows[0], dict):
+			return {}
+
+		try:
+			meta = frappe.get_meta(doctype)
+		except Exception:
+			return {}
+
+		link_fields = [f for f in meta.fields if f.fieldtype == "Link" and f.options]
+
+		# If specific fields were requested, restrict to those
+		if fields and fields != ["*"]:
+			requested = set(fields)
+			link_fields = [f for f in link_fields if f.fieldname in requested]
+
+		# Group unique names per linked doctype, only for doctypes with a title field
+		by_doctype = {}
+		for lf in link_fields:
+			try:
+				linked_meta = frappe.get_meta(lf.options)
+			except Exception:
+				continue
+			if not linked_meta.show_title_field_in_link or not linked_meta.title_field:
+				continue
+			title_field = linked_meta.title_field
+			names = {row.get(lf.fieldname) for row in rows if row.get(lf.fieldname)}
+			if names:
+				by_doctype.setdefault(lf.options, {"title_field": title_field, "names": set()})[
+					"names"
+				].update(names)
+
+		link_titles = {}
+		for linked_dt, info in by_doctype.items():
+			try:
+				title_rows = frappe.get_all(
+					linked_dt,
+					filters=[["name", "in", list(info["names"])]],
+					fields=["name", info["title_field"]],
+				)
+				for r in title_rows:
+					title = r.get(info["title_field"]) or r["name"]
+					link_titles[f"{linked_dt}::{r['name']}"] = title
+			except Exception:
+				pass
+
+		return link_titles
+
 	def get_dt_count(options):
 		filters = options["filters"]
+		if isinstance(filters, str):
+			filters = json.loads(filters)
 		doctype = options["doctype"]
 		if options["_type"] == "Report":
 			report = frappe.get_doc("Report", options["doctype"])
@@ -256,7 +324,17 @@ class DTConf:
 				)
 				return len(result)
 		else:
-			cleaned_filters = [item[:-1] if item and item[-1] is False else item for item in filters]
+			cleaned_filters = []
+			for item in filters:
+				if item and item[-1] is False:
+					item = item[:-1]
+				# Normalize operator to lowercase (e.g. 'IN' -> 'in') for query builder compatibility
+				if isinstance(item, list):
+					if len(item) == 4 and isinstance(item[2], str):
+						item = [item[0], item[1], item[2].lower(), item[3]]
+					elif len(item) == 3 and isinstance(item[1], str):
+						item = [item[0], item[1].lower(), item[2]]
+				cleaned_filters.append(item)
 			return frappe.db.count(doctype, filters=cleaned_filters)
 
 	# listview settings
