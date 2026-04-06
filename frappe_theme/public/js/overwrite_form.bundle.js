@@ -27,7 +27,7 @@
 						}
 					});
 				});
-				observer.observe(this.dialog.$wrapper[0], { childList: true, subtree: true });
+				observer.observe(this.dialog.$wrapper[0], { childList: true, subtree: true })
 			}
 		}
 		CustomFileUploader.__patched_for_mgrant = true;
