@@ -678,7 +678,7 @@
   },
   {
    "default": "0",
-   "depends_on": "eval:[\"Report\"].includes(doc.property_type) || doc.is_report === 1",
+   "depends_on": "eval:[\"Direct\", \"Indirect\", \"Referenced\", \"Unfiltered\", \"Report\"].includes(doc.connection_type)",
    "fieldname": "enable_auto_transpose",
    "fieldtype": "Check",
    "label": "Transpose"
@@ -844,7 +844,7 @@
  "index_web_pages_for_search": 1,
  "is_virtual": 1,
  "links": [],
- "modified": "2026-03-25 10:51:47.943917",
+ "modified": "2026-03-30 12:54:41.025050",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Custom Property Setter",
