@@ -290,35 +290,21 @@ const ActionColumnMixin = {
 			}
 
 			const self = this;
-			const refreshCountBadge = function () {
-				frappe.call({
-					method: "frappe_theme.api.get_all_field_thread_counts_detailed",
-					args: {
-						doctype_name: _commentDoctype,
-						docname: _commentDocname,
-					},
-					callback: function (r) {
-						const counts = r.message || {};
-						const detail = counts[rowDocname] || {};
-						const openCount = detail.open || 0;
-						const closedCount = detail.closed || 0;
-						if (typeof window.renderThreadCountBadge === "function") {
-							countBadge.innerHTML = window.renderThreadCountBadge(
-								openCount,
-								closedCount
-							);
-						} else {
-							countBadge.textContent = openCount;
-						}
-						countBadge.style.display = "flex";
+			const refreshCountBadge = async function () {
+				const counts = await self._fetchThreadCounts(_commentDoctype, _commentDocname);
+				const detail = counts[rowDocname] || {};
+				const openCount = detail.open || 0;
+				const closedCount = detail.closed || 0;
+				if (typeof window.renderThreadCountBadge === "function") {
+					countBadge.innerHTML = window.renderThreadCountBadge(openCount, closedCount);
+				} else {
+					countBadge.textContent = openCount;
+				}
+				countBadge.style.display = "flex";
 
-						// Store counts for tooltip
-						countBadge.dataset.openCount = openCount;
-						countBadge.dataset.closedCount = closedCount;
-
-						// Tooltip is handled by renderThreadCountBadge via event delegation on document.body
-					},
-				});
+				// Store counts for tooltip
+				countBadge.dataset.openCount = openCount;
+				countBadge.dataset.closedCount = closedCount;
 			};
 
 			// Initial count load
@@ -535,6 +521,36 @@ const ActionColumnMixin = {
 			return condition(this, row, primaryKey);
 		}
 		return condition;
+	},
+	// Deduplicates concurrent get_all_field_thread_counts_detailed calls across all rows.
+	// All rows rendered in the same tick share a single in-flight promise, so N rows
+	// produce exactly 1 API request instead of N.
+	_fetchThreadCounts(doctype, docname) {
+		if (!this._threadCountPromises) {
+			this._threadCountPromises = {};
+		}
+		const cacheKey = `${doctype}::${docname}`;
+		if (this._threadCountPromises[cacheKey]) {
+			return this._threadCountPromises[cacheKey];
+		}
+		const promise = new Promise((resolve) => {
+			frappe.call({
+				method: "frappe_theme.api.get_all_field_thread_counts_detailed",
+				args: { doctype_name: doctype, docname: docname },
+				callback: (r) => {
+					delete this._threadCountPromises[cacheKey];
+					resolve(r.message || {});
+				},
+				error: () => {
+					// Clean up so the next render attempt retries rather than
+					// waiting on a promise that will never settle.
+					delete this._threadCountPromises[cacheKey];
+					resolve({});
+				},
+			});
+		});
+		this._threadCountPromises[cacheKey] = promise;
+		return promise;
 	},
 };
 

@@ -1,7 +1,7 @@
 const FieldsMixin = {
 	getCellStyle(column, isSticky, left, isLastSticky) {
 		if (isSticky) {
-			return `position: sticky; left:${left}px; z-index: 2; background-color: white; min-width:${
+			return `position: sticky; left:${left}px; z-index: 2; background-color: #fff; min-width:${
 				column.width || 150
 			}px; max-width:${column.width || 200}px; padding: 0px${
 				isLastSticky ? "; box-shadow: inset -2px 0 0 0 #d1d8dd" : ""
@@ -275,7 +275,7 @@ const FieldsMixin = {
 								? frappe.utils.custom_eval(column.read_only_depends_on, row)
 								: false),
 						onchange: async function () {
-							let changedValue = control.get_input_value();
+							let changedValue = control?.get_input_value();
 							if (row[column.fieldname] && row[column.fieldname] != changedValue) {
 								try {
 									let response = await me.sva_db.set_value(
@@ -307,7 +307,7 @@ const FieldsMixin = {
 										me.doctype,
 										row.name,
 										column.fieldname,
-										row[column.fieldname]
+										changedValue
 									);
 									if (response) {
 										me.reloadRow(response);

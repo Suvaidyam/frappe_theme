@@ -489,7 +489,7 @@ const UISetupMixin = {
 				}
 			}
 		}
-		if (this.total > this.limit && !this.isTransposed) {
+		if (this.total > this.limit) {
 			const paginationExists = footerRight?.querySelector("div#pagination-element");
 			if (!paginationExists) {
 				footerRight.appendChild(this.setupPagination());
