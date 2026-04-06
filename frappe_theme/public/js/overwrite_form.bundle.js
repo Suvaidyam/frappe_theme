@@ -18,6 +18,16 @@
 				if (frappe.boot?.mgrant_settings?.force_public_file_upload && this.dialog) {
 					this.dialog.get_secondary_btn().hide();
 				}
+				// Replace Frappe's default public warning (which says "Mark it private...")
+				const observer = new MutationObserver(() => {
+					this.dialog.$wrapper[0].querySelectorAll(".alert-warning").forEach((el) => {
+						if (el.textContent.includes("Mark it private")) {
+							el.textContent =
+								"This file is public and can be accessed by anyone, even without logging in.";
+						}
+					});
+				});
+				observer.observe(this.dialog.$wrapper[0], { childList: true, subtree: true })
 			}
 		}
 		CustomFileUploader.__patched_for_mgrant = true;
@@ -49,6 +59,7 @@
 		});
 	}
 })();
+
 
 import { get_parent_section_field_by_fieldname } from "./utils.bundle.js";
 import Loader from "./loader-element.js";
