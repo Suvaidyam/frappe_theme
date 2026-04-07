@@ -135,18 +135,37 @@ class ListSettings {
 		let wrapper = fields_html.$wrapper[0];
 		let fields = ``;
 		const isAdmin = frappe.session.user == "Administrator";
+		const primaryFieldname =
+			!me.only_list_settings && me.connection_type !== "Report"
+				? me.getPrimaryFieldname()
+				: null;
 		for (let idx in me.listview_settings) {
 			const s = me.listview_settings[idx];
+			const isPrimary = s.fieldname === primaryFieldname && parseInt(idx) === 0;
 			const showEdit = !me.only_list_settings && ["Select"].includes(s.fieldtype) && isAdmin;
 			const vis = !me.only_list_settings ? "visible" : "hidden";
 			fields += `
-				<div class="control-input flex align-center form-control fields_order sortable"
-					style="display: block; margin-bottom: 5px;" data-fieldname="${s.fieldname}"
+				<div class="control-input flex align-center form-control fields_order ${
+					isPrimary ? "" : "sortable"
+				}"
+					style="display: block; margin-bottom: 5px;${
+						isPrimary ? "background-color:#f0f4f8;" : ""
+					}" data-fieldname="${s.fieldname}"
 					data-label="${s.label}" data-fieldtype="${s.fieldtype}">
 					<div class="d-flex align-items-center no-gutters">
 						<div style="width:40%;display:flex;align-items:center;gap:4px;overflow:hidden;">
 							<div style="flex-shrink:0;text-align:center;width:20px;">
-								${frappe.utils.icon("drag", "xs", "", "", "sortable-handle ")}
+								${
+									isPrimary
+										? frappe.utils.icon("lock", "xs")
+										: frappe.utils.icon(
+												"drag",
+												"xs",
+												"",
+												"",
+												"sortable-handle "
+										  )
+								}
 							</div>
 							<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
 								${__(s.label, null, me.doctype)}
@@ -365,6 +384,9 @@ class ListSettings {
 				});
 			}
 		}
+		if (!me.only_list_settings && me.connection_type !== "Report") {
+			me.ensurePrimaryFieldFirst();
+		}
 		me.dialog.set_value("listview_settings", JSON.stringify(me.listview_settings));
 	}
 
@@ -445,6 +467,9 @@ class ListSettings {
 				}
 			}
 
+			if (!me.only_list_settings && me.connection_type !== "Report") {
+				me.ensurePrimaryFieldFirst();
+			}
 			me.dialog.set_value("listview_settings", JSON.stringify(me.listview_settings));
 			me.refresh();
 			d.hide();
@@ -475,6 +500,27 @@ class ListSettings {
 				: JSON.parse(this.settings?.listview_settings || []);
 		}
 		me.listview_settings.uniqBy((f) => f.fieldname);
+		if (!me.only_list_settings && me.connection_type !== "Report") {
+			me.ensurePrimaryFieldFirst();
+		}
+	}
+
+	getPrimaryFieldname() {
+		const titleField = this.sva_dt?.meta?.title_field;
+		if (titleField) {
+			const exists = this.listview_settings.some((f) => f.fieldname === titleField);
+			if (exists) return titleField;
+		}
+		return "name";
+	}
+
+	ensurePrimaryFieldFirst() {
+		const primaryFieldname = this.getPrimaryFieldname();
+		const idx = this.listview_settings.findIndex((f) => f.fieldname === primaryFieldname);
+		if (idx > 0) {
+			const [field] = this.listview_settings.splice(idx, 1);
+			this.listview_settings.unshift(field);
+		}
 	}
 
 	set_list_view_fields(meta) {

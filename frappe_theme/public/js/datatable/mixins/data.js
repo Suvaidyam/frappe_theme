@@ -147,7 +147,7 @@ const DataMixin = {
 				this.total = message;
 			}
 			// Update pagination after getting total count
-			if (this.total > this.limit && !this.isTransposed) {
+			if (this.total > this.limit) {
 				const footer = this.wrapper?.querySelector("div#footer-element");
 				const footerRight = footer?.querySelector("#sva-dt-footer-right");
 				const target = footerRight || footer;
@@ -179,17 +179,25 @@ const DataMixin = {
 				ref_doctype: this.frm?.doc?.doctype,
 				filters: filters_to_apply,
 				fields: this.fields || ["*"],
-				limit_page_length: this.isTransposed ? 0 : this.limit,
+				limit_page_length: this.limit,
 				order_by: `${this.sort_by} ${this.sort_order}`,
-				limit_start: this.isTransposed
-					? 0
-					: this.page > 0
-					? (this.page - 1) * this.limit
-					: 0,
+				limit_start: this.page > 0 ? (this.page - 1) * this.limit : 0,
 				_type: this.connection.connection_type,
 				unfiltered: this.connection?.unfiltered,
 			});
-			return res.message;
+			const msg = res.message;
+			// Non-Report: server returns [rows, link_titles]
+			if (Array.isArray(msg) && Array.isArray(msg[0])) {
+				const [rows, link_titles] = msg;
+				if (link_titles) {
+					for (const [key, title] of Object.entries(link_titles)) {
+						const sep = key.indexOf("::");
+						frappe.utils.add_link_title(key.slice(0, sep), key.slice(sep + 2), title);
+					}
+				}
+				return rows;
+			}
+			return msg;
 		} catch (error) {
 			console.error(error);
 			return [];

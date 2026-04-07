@@ -497,6 +497,17 @@ const FormDialogMixin = {
 					}
 					continue;
 				}
+				if (f.fieldtype === "Button") {
+					if (this.frm?.["dt_events"]?.[doctype]?.[f.fieldname]) {
+						let change = this.frm["dt_events"][doctype][f.fieldname];
+						f.click = change.bind(this, this, mode, f, name);
+					}
+					if (this.frm?.["dt_global_events"]?.[f.fieldname]) {
+						let change = this.frm["dt_global_events"][f.fieldname];
+						f.click = change.bind(this, this, mode, f, name);
+					}
+					continue;
+				}
 				if (
 					!["Check", "Button", "Table", "Table MultiSelect", "Currency"].includes(
 						f.fieldtype
