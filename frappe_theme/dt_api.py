@@ -171,7 +171,7 @@ def get_workflow_transitions_for_table(doctype, docnames):
 
 	result = {}
 	for docname in docnames:
-		doc = frappe.get_doc(doctype, docname)
+		doc = frappe._dict({"doctype": doctype, "name": docname})
 		transitions = get_custom_transitions(doc)
 		result[docname] = transitions
 	return result
