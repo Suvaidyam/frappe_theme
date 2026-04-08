@@ -240,6 +240,7 @@ const getCount = async () => {
 		if (props.card.fetch_from == "DocField") {
 			data.value["count"] = cur_frm.doc[props.card.field];
 			data.value["field_type"] = cur_frm.fields_dict[props.card.field].df.fieldtype;
+			data.value["column"] = cur_frm.fields_dict[props.card.field].df;
 			setTimeout(() => {
 				loading.value = false;
 			}, 500);
