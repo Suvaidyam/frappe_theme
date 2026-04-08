@@ -682,8 +682,7 @@ const RenderingMixin = {
 							// Transitions are pre-fetched for the whole table in one API call
 							// (get_workflow_transitions_for_table) before renderBatch starts —
 							// do a synchronous lookup here; no per-row network call needed.
-							const transitions =
-								this._wfTransitionsByState?.[row[workflow_state_field]] ?? [];
+							const transitions = this._wfTransitionsByDocname?.[row.name] ?? [];
 
 							const initialDisabled =
 								(this.connection?.keep_workflow_enabled_form_submission
