@@ -585,8 +585,7 @@ const TransposeMixin = {
 			try {
 				await (this._wfTransitionsReady || Promise.resolve());
 
-				const transitions =
-					this._wfTransitionsByState?.[rowData[workflow_state_field]] ?? [];
+				const transitions = this._wfTransitionsByDocname?.[rowData.name] ?? [];
 
 				let initialDisabled =
 					(this.connection?.keep_workflow_enabled_form_submission
