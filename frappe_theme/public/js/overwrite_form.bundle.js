@@ -27,7 +27,7 @@
 						}
 					});
 				});
-				observer.observe(this.dialog.$wrapper[0], { childList: true, subtree: true })
+				observer.observe(this.dialog.$wrapper[0], { childList: true, subtree: true });
 			}
 		}
 		CustomFileUploader.__patched_for_mgrant = true;
@@ -59,7 +59,6 @@
 		});
 	}
 })();
-
 
 import { get_parent_section_field_by_fieldname } from "./utils.bundle.js";
 import Loader from "./loader-element.js";
@@ -1164,8 +1163,8 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					field?.connection_type === "Is Custom Design"
 						? field?.template
 						: ["Direct", "Unfiltered", "Indirect"].includes(field.connection_type)
-							? field.link_doctype
-							: field.referenced_link_doctype
+						? field.link_doctype
+						: field.referenced_link_doctype
 				)} items`
 			);
 			element.innerHTML = `
