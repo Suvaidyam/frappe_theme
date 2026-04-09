@@ -254,12 +254,12 @@ const WorkflowMixin = {
 		take_action();
 	},
 
-	// Pre-fetches allowed workflow transitions for all unique non-closed states in the table
-	// in a single API call. Result is stored in this._wfTransitionsByState for sync lookup
+	// Pre-fetches allowed workflow transitions for all unique non-closed docs in the table
+	// in a single API call. Result is stored in this._wfTransitionsByDocname for sync lookup
 	// during render. Call once before renderBatch starts; cleared on each reloadTable.
 	async _prefetchWfTransitions(rows) {
 		if (!this.workflow || !this.wf_transitions_allowed) {
-			this._wfTransitionsByState = {};
+			this._wfTransitionsByDocname = {};
 			return;
 		}
 		const wfField = this.workflow.workflow_state_field;
@@ -268,12 +268,17 @@ const WorkflowMixin = {
 				?.filter((s) => ["Positive", "Negative"].includes(s.custom_closure))
 				.map((e) => e.state) || [];
 
-		const states = [
-			...new Set(rows.map((r) => r[wfField]).filter((s) => s && !closureStates.includes(s))),
+		const docnames = [
+			...new Set(
+				rows
+					.filter((row) => row && !closureStates.includes(row[wfField]))
+					.map((row) => row.name)
+					.filter(Boolean)
+			),
 		];
 
-		if (!states.length) {
-			this._wfTransitionsByState = {};
+		if (!docnames.length) {
+			this._wfTransitionsByDocname = {};
 			return;
 		}
 
@@ -281,11 +286,11 @@ const WorkflowMixin = {
 			const { message } = await this.sva_db.call({
 				method: "frappe_theme.dt_api.get_workflow_transitions_for_table",
 				doctype: this.doctype,
-				states,
+				docnames,
 			});
-			this._wfTransitionsByState = message || {};
+			this._wfTransitionsByDocname = message || {};
 		} catch (e) {
-			this._wfTransitionsByState = {};
+			this._wfTransitionsByDocname = {};
 		}
 	},
 };
