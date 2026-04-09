@@ -23,7 +23,7 @@ const RenderingMixin = {
 			serialTd.style.position = "sticky";
 			serialTd.style.left = "0px";
 			serialTd.style.backgroundColor = "#fff";
-			serialTd.style.zIndex = "3";
+			serialTd.style.zIndex = "1";
 			serialTd.style.boxShadow = "inset -1px 0 0 0 #d1d8dd";
 			serialTd.style.setProperty("padding", "0px", "important");
 
@@ -293,7 +293,7 @@ const RenderingMixin = {
 			serialTh.textContent = __("S.No.");
 			serialTh.title = __("Serial Number");
 			serialTh.style =
-				"width:48px;min-width:48px;max-width:48px;text-align:center;position:sticky;left:0px;z-index:3;background-color:#F3F3F3;box-shadow: inset -1px 0 0 0 #d1d8dd;padding: 0px !important;";
+				"width:48px;min-width:48px;max-width:48px;text-align:center;position:sticky;left:0px;z-index:1;background-color:#F3F3F3;box-shadow: inset -1px 0 0 0 #d1d8dd;padding: 0px !important;";
 			tr.appendChild(serialTh);
 		}
 
@@ -529,7 +529,7 @@ const RenderingMixin = {
 					serialTd.style.position = "sticky";
 					serialTd.style.left = "0px";
 					serialTd.style.backgroundColor = "#fff";
-					serialTd.style.zIndex = "3";
+					serialTd.style.zIndex = "1";
 					serialTd.style.boxShadow = "inset -1px 0 0 0 #d1d8dd";
 					serialTd.style.setProperty("padding", "0px", "important");
 					const serialNumber =
