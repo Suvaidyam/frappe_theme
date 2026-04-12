@@ -191,10 +191,12 @@ const ViewportMixin = {
 	_appendDocColumn(doc, absIndex) {
 		const conf = (this.column_configs || [])[absIndex] || {};
 
-		// 1. Header cell — insert before the sentinel so sentinel stays at far right
+		// 1. Header cell — insert before _createTh ("+") or sentinel, whichever comes first.
+		//    Order in thead: [...doc cols] [+create?] [sentinel?]
 		const th = this._buildDocHeaderCell(doc, absIndex, conf);
-		if (this._sentinel) {
-			this._theadRow.insertBefore(th, this._sentinel);
+		const headerInsertBefore = this._createTh || this._sentinel;
+		if (headerInsertBefore) {
+			this._theadRow.insertBefore(th, headerInsertBefore);
 		} else {
 			this._theadRow.appendChild(th);
 		}

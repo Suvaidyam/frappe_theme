@@ -33,7 +33,7 @@ Or, if you're writing inline DocType JS (registered via `doctype_js` in hooks.py
 
 ## Basic usage
 
-### Minimal — doctype name + doc list
+### Minimal — doctype name + doc names (`string[]`)
 
 ```js
 const container = document.createElement("div");
@@ -46,7 +46,68 @@ new SVAVerticalDocRenderer({
 });
 ```
 
-This fetches the `Employee` meta automatically, fetches the three documents, and renders the table.
+Fetches the `Employee` meta automatically, fetches the three documents, and renders the table. If you pass more names than fit in the viewport, the rest are lazily fetched as the user scrolls right.
+
+---
+
+### `docs: null` — auto-fetch with server-side pagination
+
+Never loads more than one batch per API call:
+
+```js
+new SVAVerticalDocRenderer({
+    wrapper: container,
+    doctype: "Employee",
+    docs: null,                              // auto-fetch
+    filters: [["department", "=", "IT"]],   // frappe.db.get_list filters
+    order_by: "employee_name asc",
+    column_batch_size: 5,                   // columns per scroll batch (0 = auto from viewport)
+});
+```
+
+Initial load: `get_list({ start: 0, limit: 5 })`. On scroll: `start: 5`, `start: 10`, … Stops when the server returns fewer than `batch_size` records.
+
+---
+
+### `docs: object[]` — inline data, zero API calls for data
+
+```js
+const records = [
+    { name: "EMP-0001", first_name: "Alice", department: "IT" },
+    { name: "EMP-0002", first_name: "Bob",   department: "HR" },
+];
+
+new SVAVerticalDocRenderer({
+    wrapper: container,
+    doctype: "Employee",   // string — meta still fetched from server
+    docs: records,         // object[] — used as-is, no get_list call
+});
+```
+
+---
+
+### Mimicked meta — zero network calls
+
+Any `{ name, fields[] }` object works as the `doctype` param — no real DB table required:
+
+```js
+const fakeMeta = {
+    name: "My Comparison",
+    fields: [
+        { fieldname: "info_section", label: "Info",      fieldtype: "Section Break" },
+        { fieldname: "full_name",    label: "Full Name", fieldtype: "Data" },
+        { fieldname: "score",        label: "Score",     fieldtype: "Float" },
+    ],
+};
+
+const fakeData = [
+    { name: "row-1", full_name: "Alice", score: 9.5 },
+    { name: "row-2", full_name: "Bob",   score: 8.2 },
+];
+
+// Zero network calls — meta and data both provided inline
+new SVAVerticalDocRenderer({ wrapper: container, doctype: fakeMeta, docs: fakeData });
+```
 
 ---
 
@@ -123,8 +184,10 @@ new SVAVerticalDocRenderer({
                           //   frm.meta    → used directly; doctype name = frm.meta.name
                           //   customMeta  → any object with .name and .fields
 
-    docs,                 // string[] — doc names shown as columns, left to right
-                          //   e.g. ["EMP-0001", "EMP-0002", "EMP-0003"]
+    docs,                 // string[] | object[] | null
+                          //   string[]  → doc names fetched in viewport batches
+                          //   object[]  → inline data; zero API calls; lazy from memory
+                          //   null      → auto-fetch via frappe.db.get_list (paginated)
 
     // ── Column headers ───────────────────────────────────────────────────────
     column_configs,       // object[] — styling per column, index-aligned with docs
@@ -163,8 +226,17 @@ new SVAVerticalDocRenderer({
 
     // ── Permissions & editing ───────────────────────────────────────────────
     crud_permissions,     // string[] (default ["read"])
-                          //   Add "write" to enable inline editing on cells
-                          //   e.g. ["read", "write"]
+                          //   "write"  → inline cell editing
+                          //   "create" → "+" column header to create new docs in a dialog
+                          //   e.g. ["read", "write", "create"]
+
+    // ── Pagination / lazy loading ───────────────────────────────────────────
+    filters,              // frappe filter array — used when docs: null
+                          //   e.g. [["department", "=", "IT"]]
+    order_by,             // string — e.g. "creation desc" — used when docs: null
+    column_batch_size,    // number (default 0 = auto-calculate from viewport width)
+                          //   Number of columns to render per scroll batch
+    column_width,         // number px (default 150) — column width estimate for auto batch size
 
     // ── Integration ─────────────────────────────────────────────────────────
     frm,                  // Frappe form object (optional)
@@ -262,6 +334,23 @@ frm.vdr_events = {
 
     afterSave(df, docName, newValue) {
         frappe.show_alert({ message: `${df.label} updated`, indicator: "green" });
+    },
+};
+```
+
+### Create hooks (inline creation)
+
+```js
+frm.vdr_events = {
+    beforeCreate(values, dialog) {
+        if (!values.full_name) {
+            frappe.msgprint("Full name is required.");
+            return false; // cancels the insert
+        }
+    },
+
+    afterCreate(newDoc) {
+        frappe.show_alert({ message: `Created ${newDoc.name}`, indicator: "green" });
     },
 };
 ```

@@ -22,11 +22,14 @@ vertical_doc_renderer/
 ├── sva_vertical_doc_renderer.bundle.js   ← Main class + mixin assembly
 └── mixins/
     ├── ui_setup.js    ← Wrapper, scroll container, loading state, AbortSignal
-    ├── data.js        ← fetchMeta() + fetchDocs() via frappe.db
+    ├── data.js        ← fetchMeta() + fetchDocs() — three-branch (object[]/string[]/null)
     ├── fields.js      ← formatCellValue() with vdr_events.formatCell hook
-    ├── rendering.js   ← buildTable, buildThead, buildTbody, section/field rows, legend
+    ├── rendering.js   ← buildTable, buildThead (_theadRow + _createTh), buildTbody,
+    │                     _buildDocHeaderCell(), _buildValueCell(), section/field rows, legend
     ├── edit.js        ← Inline editing + dialog editing + beforeSave/afterSave hooks
-    └── helpers.js     ← getColumnCount, sortDataByDocs, isEmptyRow, getFieldUnit
+    ├── helpers.js     ← getColumnCount, isEmptyRow, getFieldUnit, getVisibleFields
+    ├── viewport.js    ← IntersectionObserver sentinel; lazy column loading on scroll
+    └── create.js      ← "+" column header; openCreateDialog(); beforeCreate/afterCreate hooks
 ```
 
 ---
@@ -40,9 +43,13 @@ new SVAVerticalDocRenderer({
 
   doctype,              // string | object
                         //   string  → DocType name; fetchMeta() calls frappe.db.get_meta()
-                        //   object  → pre-built meta (e.g. frm.meta); name derived from .name
+                        //   object  → pre-built/mimicked meta {name, fields[]}; used as-is
 
-  docs,                 // string[] — doc names shown as columns (left-to-right)
+  docs,                 // string[] | object[] | null
+                        //   string[]  → names; fetched in batches as user scrolls
+                        //   object[]  → inline data; zero API calls; lazy-sliced from memory
+                        //   null      → frappe.db.get_list paginated (start + limit per batch)
+
   column_configs,       // [{label, bg_color, text_color}] — index-aligned to docs
   fields_to_show,       // string[] | null — allowlist; null = all non-hidden fields
   fields_to_hide,       // string[] — fieldnames to exclude
@@ -52,7 +59,16 @@ new SVAVerticalDocRenderer({
   title,                // string | null
   show_legend,          // boolean
   legend_items,         // [{label, bg_color, text_color, description}]
-  crud_permissions,     // string[] — ["read"] or ["read","write"]
+
+  crud_permissions,     // string[] — ["read"] | ["read","write"] | ["read","write","create"]
+                        //   "write"  → inline cell editing
+                        //   "create" → "+" column header opens create dialog
+
+  filters,              // frappe filter array — used when docs: null
+  order_by,             // string — used when docs: null
+  column_batch_size,    // number (0 = auto from viewport width)
+  column_width,         // number px (default 150) — for auto batch-size calculation
+
   signal,               // AbortSignal
 });
 ```
@@ -71,6 +87,8 @@ frm.vdr_events = {
   renderColumnHeader(doc, colIndex, th) {},      // mutate th directly
   beforeSave(df, docName, newValue) {},          // return false to cancel save
   afterSave(df, docName, newValue) {},
+  beforeCreate(values, dialog) {},               // return false to cancel create
+  afterCreate(newDoc) {},
   afterRender(instance) {},
 };
 ```
@@ -118,10 +136,11 @@ Override these in your app CSS to restyle:
 
 ## Pending / known gaps
 
-- **Pagination**: no pagination yet; all docs passed in `docs[]` are fetched at once
 - **Refresh method**: no public `refresh()` — re-instantiate to reload
 - **Child table fields**: skipped during fetch (only scalar fields fetched)
 - **Link field display values**: `frappe.format()` resolves link titles asynchronously; initial render shows raw names until resolved
+- **doctype.name not validated**: when `doctype` is an object, `doctype.name` is never checked against the server — any string works (intentional for mimicked meta)
+- **docs: null + mimicked meta**: unsupported — warns and renders empty (no real DB table to query)
 
 ---
 

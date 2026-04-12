@@ -65,6 +65,12 @@ const RenderingMixin = {
 			tr.appendChild(this._buildDocHeaderCell(doc, i, conf));
 		});
 
+		// "+" create column — always stays at the far right (viewport mixin inserts before it)
+		if (this.allow_create) {
+			this._createTh = this._buildCreateHeaderCell();
+			tr.appendChild(this._createTh);
+		}
+
 		thead.appendChild(tr);
 		return thead;
 	},

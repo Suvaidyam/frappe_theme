@@ -5,6 +5,7 @@ import RenderingMixin from "./mixins/rendering.js";
 import EditMixin from "./mixins/edit.js";
 import HelpersMixin from "./mixins/helpers.js";
 import ViewportMixin from "./mixins/viewport.js";
+import CreateMixin from "./mixins/create.js";
 
 /**
  * SVAVerticalDocRenderer
@@ -21,10 +22,13 @@ import ViewportMixin from "./mixins/viewport.js";
  *
  *     doctype,              // string | object
  *                           //   string  → DocType name; meta is fetched automatically
- *                           //   object  → pre-built Frappe meta (e.g. frm.meta or frappe.get_meta result)
+ *                           //   object  → pre-built/mimicked meta {name, fields[]}
  *                           //             doctype name is derived from meta.name
  *
- *     docs,                 // string[] — doc names to display as columns (left-to-right)
+ *     docs,                 // string[] | object[] | null
+ *                           //   string[]  → doc names; data fetched in batches as user scrolls
+ *                           //   object[]  → inline data; zero API calls; lazy-loaded from memory
+ *                           //   null      → frappe.db.get_list with start+limit pagination
  *
  *     column_configs,       // [{label, bg_color, text_color}] — per-column header styling
  *                           //   index-aligned to docs array
@@ -40,7 +44,15 @@ import ViewportMixin from "./mixins/viewport.js";
  *     show_legend,          // boolean (default false)
  *     legend_items,         // [{label, bg_color, text_color, description}]
  *
- *     crud_permissions,     // string[] (default ["read"]) — include "write" to enable inline editing
+ *     crud_permissions,     // string[] (default ["read"])
+ *                           //   "write"  → inline cell editing
+ *                           //   "create" → "+" column header to create new docs
+ *
+ *     filters,              // frappe.db.get_list filter array — used when docs: null
+ *     order_by,             // string — e.g. "creation desc" — used when docs: null
+ *     column_batch_size,    // number (default 0 = auto from viewport width)
+ *     column_width,         // number px (default 150) — used for auto batch-size calculation
+ *
  *     signal,               // AbortSignal — clears the wrapper when aborted
  *   });
  *
@@ -49,23 +61,14 @@ import ViewportMixin from "./mixins/viewport.js";
  * Set frm.vdr_events to override rendering at any granularity:
  *
  *   frm.vdr_events = {
- *     // Return non-null/undefined to replace default frappe.format() output
- *     formatCell(value, df, doc, colIndex) {},
- *
- *     // Return true to signal that the tr was fully built (skip default cells)
- *     renderRow(df, allDocsData, tr) {},
- *
- *     // Return true to signal the tr was built (skip default td)
- *     renderSectionHeader(label, colCount, tr) {},
- *
- *     // Mutate the th element (no return value needed)
- *     renderColumnHeader(doc, colIndex, th) {},
- *
- *     // Return false to cancel a save operation
- *     beforeSave(df, docName, newValue) {},
- *
+ *     formatCell(value, df, doc, colIndex) {},      // return non-null to replace frappe.format() output
+ *     renderRow(df, allDocsData, tr) {},            // return true = custom row fully built
+ *     renderSectionHeader(label, colCount, tr) {},  // return true = custom header fully built
+ *     renderColumnHeader(doc, colIndex, th) {},     // mutate th directly
+ *     beforeSave(df, docName, newValue) {},         // return false to cancel save
  *     afterSave(df, docName, newValue) {},
- *
+ *     beforeCreate(values, dialog) {},              // return false to cancel create
+ *     afterCreate(newDoc) {},
  *     afterRender(instance) {},
  *   };
  */
@@ -74,7 +77,7 @@ class SVAVerticalDocRenderer {
 		wrapper,
 		frm,
 		doctype,
-		docs = [],
+		docs = null,
 		column_configs = [],
 		fields_to_show = null,
 		fields_to_hide = [],
@@ -85,9 +88,13 @@ class SVAVerticalDocRenderer {
 		show_legend = false,
 		legend_items = [],
 		crud_permissions = ["read"],
+		filters = [],
+		order_by = null,
+		column_batch_size = 0,
+		column_width = 150,
 		signal = null,
 	}) {
-		// Branch on doctype type: string = name to fetch, object = pre-built meta
+		// Branch on doctype type: string = name to fetch, object = pre-built/mimicked meta
 		const isMetaObj = doctype && typeof doctype === "object";
 
 		Object.assign(this, {
@@ -95,7 +102,8 @@ class SVAVerticalDocRenderer {
 			frm,
 			doctype: isMetaObj ? doctype.name : doctype,
 			_meta_override: isMetaObj ? doctype : null,
-			docs,
+			_docs_input: docs,   // raw input — data.js and viewport.js branch on this
+			docs: [],            // names of currently rendered columns (grows as batches load)
 			column_configs,
 			fields_to_show,
 			fields_to_hide,
@@ -106,6 +114,11 @@ class SVAVerticalDocRenderer {
 			show_legend,
 			legend_items,
 			crud_permissions,
+			allow_create: crud_permissions.includes("create"),
+			filters,
+			order_by,
+			column_batch_size,
+			column_width,
 			signal,
 		});
 
@@ -124,10 +137,11 @@ class SVAVerticalDocRenderer {
 		this.showLoading();
 
 		await this.fetchMeta();
-		await this.fetchDocs();
+		await this.fetchDocs();     // loads first batch only
 
 		this.hideLoading();
-		this.render();
+		this.render();              // renders first-batch columns
+		this.setupViewportLoader(); // IntersectionObserver watches for scroll-right
 	}
 }
 
@@ -138,7 +152,9 @@ Object.assign(
 	FieldsMixin,
 	RenderingMixin,
 	EditMixin,
-	HelpersMixin
+	HelpersMixin,
+	ViewportMixin,
+	CreateMixin
 );
 
 export default SVAVerticalDocRenderer;
