@@ -4,6 +4,7 @@ import FieldsMixin from "./mixins/fields.js";
 import RenderingMixin from "./mixins/rendering.js";
 import EditMixin from "./mixins/edit.js";
 import HelpersMixin from "./mixins/helpers.js";
+import ViewportMixin from "./mixins/viewport.js";
 
 /**
  * SVAVerticalDocRenderer

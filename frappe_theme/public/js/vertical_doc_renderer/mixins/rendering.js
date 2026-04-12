@@ -39,6 +39,7 @@ const RenderingMixin = {
 	_buildThead() {
 		const thead = document.createElement("thead");
 		const tr = document.createElement("tr");
+		this._theadRow = tr; // stored so viewport mixin can append new columns
 
 		// "Parameters" sticky label column
 		const paramTh = document.createElement("th");
@@ -58,35 +59,10 @@ const RenderingMixin = {
 			tr.appendChild(unitTh);
 		}
 
-		// One column per doc
-		this.docs.forEach((docName, i) => {
-			const doc = this.data[i] || { name: docName };
+		// One column per doc — first batch only; viewport mixin appends the rest
+		this.data.forEach((doc, i) => {
 			const conf = (this.column_configs && this.column_configs[i]) || {};
-			const bgColor = conf.bg_color || "#4472C4";
-			const textColor = conf.text_color || "#fff";
-			const label = conf.label || doc.name;
-
-			const th = document.createElement("th");
-			th.className = "sva-vdr-header-cell sva-vdr-doc-header";
-			th.dataset.docname = doc.name;
-			th.style.cssText = `
-				background: ${bgColor};
-				color: ${textColor};
-				font-weight: 600;
-				padding: 6px 10px;
-				text-align: center;
-				white-space: nowrap;
-				border: 1px solid rgba(0,0,0,.08);
-				min-width: 120px;
-			`;
-			th.textContent = label;
-
-			// Developer override
-			if (typeof this.events.renderColumnHeader === "function") {
-				this.events.renderColumnHeader(doc, i, th);
-			}
-
-			tr.appendChild(th);
+			tr.appendChild(this._buildDocHeaderCell(doc, i, conf));
 		});
 
 		thead.appendChild(tr);
@@ -231,34 +207,80 @@ const RenderingMixin = {
 			tr.appendChild(unitTd);
 		}
 
-		// One value cell per document
+		// One value cell per document — first batch only; viewport mixin appends the rest
 		this.data.forEach((doc, colIndex) => {
-			const td = document.createElement("td");
-			td.className = "sva-vdr-value-cell";
-			td.dataset.fieldname = df.fieldname;
-			td.dataset.docname = doc.name;
-			td.style.cssText = `
-				padding: 4px 10px;
-				border: 1px solid rgba(0,0,0,.06);
-				text-align: left;
-				vertical-align: middle;
-				min-width: 100px;
-				max-width: 280px;
-				overflow: hidden;
-				text-overflow: ellipsis;
-				white-space: nowrap;
-			`;
-
-			const formatted = this.formatCellValue(doc[df.fieldname], df, doc, colIndex);
-			td.innerHTML = formatted;
-
-			// Wire up editing
-			this.attachEditListener(td, df, doc, colIndex);
-
-			tr.appendChild(td);
+			tr.appendChild(this._buildValueCell(df, doc, colIndex));
 		});
 
 		return tr;
+	},
+
+	// ─── Reusable column/cell builders (also called by ViewportMixin) ───────
+
+	/**
+	 * Build a single <th> for one document column header.
+	 * @param {object} doc      — document data object (must have .name)
+	 * @param {number} colIndex — 0-based absolute column index
+	 * @param {object} conf     — column config {label, bg_color, text_color}
+	 * @returns {HTMLElement}
+	 */
+	_buildDocHeaderCell(doc, colIndex, conf) {
+		const bgColor = conf.bg_color || "#4472C4";
+		const textColor = conf.text_color || "#fff";
+		const label = conf.label || doc.name;
+
+		const th = document.createElement("th");
+		th.className = "sva-vdr-header-cell sva-vdr-doc-header";
+		th.dataset.docname = doc.name;
+		th.style.cssText = `
+			background: ${bgColor};
+			color: ${textColor};
+			font-weight: 600;
+			padding: 6px 10px;
+			text-align: center;
+			white-space: nowrap;
+			border: 1px solid rgba(0,0,0,.08);
+			min-width: 120px;
+		`;
+		th.textContent = label;
+
+		if (typeof this.events.renderColumnHeader === "function") {
+			this.events.renderColumnHeader(doc, colIndex, th);
+		}
+
+		return th;
+	},
+
+	/**
+	 * Build a single <td> for one document's value in a field row.
+	 * @param {object} df       — field descriptor from meta
+	 * @param {object} doc      — document data object
+	 * @param {number} colIndex — 0-based absolute column index
+	 * @returns {HTMLElement}
+	 */
+	_buildValueCell(df, doc, colIndex) {
+		const td = document.createElement("td");
+		td.className = "sva-vdr-value-cell";
+		td.dataset.fieldname = df.fieldname;
+		td.dataset.docname = doc.name;
+		td.style.cssText = `
+			padding: 4px 10px;
+			border: 1px solid rgba(0,0,0,.06);
+			text-align: left;
+			vertical-align: middle;
+			min-width: 100px;
+			max-width: 280px;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		`;
+
+		const formatted = this.formatCellValue(doc[df.fieldname], df, doc, colIndex);
+		td.innerHTML = formatted;
+
+		this.attachEditListener(td, df, doc, colIndex);
+
+		return td;
 	},
 
 	// ─── Legend ─────────────────────────────────────────────────────────────
