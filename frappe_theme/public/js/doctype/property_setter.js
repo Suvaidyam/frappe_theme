@@ -275,6 +275,20 @@ const field_changes = {
 
 		let carousel_fields_being_affected = [{ fn: "carousel", ft: "Table" }];
 
+		let vdr_fields_being_affected = [
+			{ fn: "vdr_doctype", ft: "Link" },
+			{ fn: "vdr_docs", ft: "Code" },
+			{ fn: "vdr_column_configs", ft: "Code" },
+			{ fn: "vdr_title", ft: "Data" },
+			{ fn: "vdr_fields_to_show", ft: "Code" },
+			{ fn: "vdr_fields_to_hide", ft: "Code" },
+			{ fn: "vdr_show_sections", ft: "Check" },
+			{ fn: "vdr_show_unit", ft: "Check" },
+			{ fn: "vdr_hide_empty_rows", ft: "Check" },
+			{ fn: "vdr_show_legend", ft: "Check" },
+			{ fn: "vdr_legend_items", ft: "Code" },
+		];
+
 		let connecttion_type_map = {
 			"DocType (Indirect)": "Indirect",
 			"DocType (Direct)": "Direct",
@@ -289,6 +303,7 @@ const field_changes = {
 			clear_fields(frm?.config_dialog, heat_map_fields_being_affected);
 			clear_fields(frm?.config_dialog, number_card_fields_being_affected);
 			clear_fields(frm?.config_dialog, carousel_fields_being_affected);
+			clear_fields(frm?.config_dialog, vdr_fields_being_affected);
 			frm?.config_dialog.set_value("html_block", "");
 			frm?.config_dialog.set_value("chart", "");
 		}

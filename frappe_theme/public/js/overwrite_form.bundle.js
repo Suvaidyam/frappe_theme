@@ -77,6 +77,7 @@ import CustomDynamicHtml from "./custom_components/dynamic_html/dynamic_html.bun
 import SVACarousel from "./sva_carousel.bundle.js";
 import FilterRibbon from "./custom_components/filters_ribbon.bundle.js";
 import SVASDGWheel from "./custom_components/sdg_wheel.bundle.js";
+import SVAVerticalDocRenderer from "./vertical_doc_renderer/sva_vertical_doc_renderer.bundle.js";
 // Vue components
 import NumberCardSkeleton from "./vue/sva_card/components/Skeleton.vue";
 import ChartPlaceholder from "./vue/sva_chart/components/Placeholder.vue";
@@ -1091,6 +1092,27 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					placeholder.config.globalProperties.frappe = frappe;
 					placeholder.mount(wrapper);
 				}
+				break;
+			}
+			case "Vertical Doc Renderer": {
+				let conf = field.sva_ft;
+				frm.sva_ft_instances[field.fieldname] = new SVAVerticalDocRenderer({
+					wrapper,
+					frm,
+					doctype: conf.vdr_doctype,
+					docs: conf.vdr_docs ? JSON.parse(conf.vdr_docs) : [],
+					column_configs: conf.vdr_column_configs ? JSON.parse(conf.vdr_column_configs) : [],
+					fields_to_show: conf.vdr_fields_to_show ? JSON.parse(conf.vdr_fields_to_show) : null,
+					fields_to_hide: conf.vdr_fields_to_hide ? JSON.parse(conf.vdr_fields_to_hide) : [],
+					show_section_headers: conf.vdr_show_sections !== 0,
+					show_unit: !!conf.vdr_show_unit,
+					hide_empty_rows: !!conf.vdr_hide_empty_rows,
+					title: conf.vdr_title || null,
+					show_legend: !!conf.vdr_show_legend,
+					legend_items: conf.vdr_legend_items ? JSON.parse(conf.vdr_legend_items) : [],
+					crud_permissions: conf.crud_permissions ? JSON.parse(conf.crud_permissions) : ["read"],
+					signal,
+				});
 				break;
 			}
 		}

@@ -21,6 +21,19 @@
   "label",
   "info",
   "show_full_number",
+  "section_break_vdr",
+  "vdr_doctype",
+  "vdr_docs",
+  "vdr_column_configs",
+  "column_break_vdr",
+  "vdr_title",
+  "vdr_fields_to_show",
+  "vdr_fields_to_hide",
+  "vdr_show_sections",
+  "vdr_show_unit",
+  "vdr_hide_empty_rows",
+  "vdr_show_legend",
+  "vdr_legend_items",
   "column_break_fwyn",
   "section_break_ylfd",
   "sdg_report",
@@ -162,7 +175,7 @@
    "fieldname": "property_type",
    "fieldtype": "Select",
    "label": "Property Type",
-   "options": "\nCarousel\nDocType (Direct)\nDocType (Indirect)\nDocType (Referenced)\nDocType (Unfiltered)\nReport\nIs Custom Design\nHeatmap (India Map)\nSDG Wheel\nDocField\nNumber Card\nDashboard Chart\nCustom HTML Block"
+   "options": "\nCarousel\nDocType (Direct)\nDocType (Indirect)\nDocType (Referenced)\nDocType (Unfiltered)\nReport\nIs Custom Design\nHeatmap (India Map)\nSDG Wheel\nDocField\nNumber Card\nDashboard Chart\nCustom HTML Block\nVertical Doc Renderer"
   },
   {
    "depends_on": "eval:doc.property_type=='Dashboard Chart'",
@@ -838,6 +851,94 @@
    "fieldname": "show_full_number",
    "fieldtype": "Check",
    "label": "Show Full Number"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
+   "fieldname": "section_break_vdr",
+   "fieldtype": "Section Break",
+   "hide_border": 1,
+   "label": "Vertical Doc Renderer"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
+   "fieldname": "vdr_doctype",
+   "fieldtype": "Link",
+   "label": "Source DocType",
+   "mandatory_depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
+   "options": "DocType"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
+   "description": "JSON array of document names, e.g. [\"DOC-001\", \"DOC-002\"]",
+   "fieldname": "vdr_docs",
+   "fieldtype": "Code",
+   "label": "Document Names"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
+   "description": "JSON array of {label, bg_color, text_color} — index-aligned to Document Names",
+   "fieldname": "vdr_column_configs",
+   "fieldtype": "Code",
+   "label": "Column Configs"
+  },
+  {
+   "fieldname": "column_break_vdr",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
+   "fieldname": "vdr_title",
+   "fieldtype": "Data",
+   "label": "Title"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
+   "description": "JSON array of fieldnames to display. Leave empty to show all fields.",
+   "fieldname": "vdr_fields_to_show",
+   "fieldtype": "Code",
+   "label": "Fields to Show"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
+   "description": "JSON array of fieldnames to exclude",
+   "fieldname": "vdr_fields_to_hide",
+   "fieldtype": "Code",
+   "label": "Fields to Hide"
+  },
+  {
+   "default": "1",
+   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
+   "fieldname": "vdr_show_sections",
+   "fieldtype": "Check",
+   "label": "Show Section Headers"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
+   "fieldname": "vdr_show_unit",
+   "fieldtype": "Check",
+   "label": "Show Unit Column"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
+   "fieldname": "vdr_hide_empty_rows",
+   "fieldtype": "Check",
+   "label": "Hide Empty Rows"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
+   "fieldname": "vdr_show_legend",
+   "fieldtype": "Check",
+   "label": "Show Legend"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\" && doc.vdr_show_legend",
+   "description": "JSON array of {label, bg_color, text_color, description}",
+   "fieldname": "vdr_legend_items",
+   "fieldtype": "Code",
+   "label": "Legend Items"
   }
  ],
  "grid_page_length": 50,
