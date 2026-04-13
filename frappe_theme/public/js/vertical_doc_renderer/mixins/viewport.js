@@ -10,6 +10,10 @@
  *   object[]  → slices from in-memory _all_inputs (zero API calls)
  *   string[]  → frappe.db.get_list filtered by the next slice of names
  *   null      → frappe.db.get_list with start offset (strict server-side pagination)
+ *
+ * After each batch is appended:
+ *   - resolveLinkTitles() is called to batch-fetch titles for newly added cells.
+ *   - _appendDeleteCell() is called for each new doc (if delete is enabled).
  */
 const ViewportMixin = {
 	/**
@@ -81,8 +85,8 @@ const ViewportMixin = {
 
 	/**
 	 * Fetch and render the next batch of columns.
-	 * Disconnects the observer first so it doesn't fire again mid-load.
-	 * Re-places the sentinel after appending, ready for the batch after that.
+	 * After appending, calls resolveLinkTitles() and _appendDeleteCell()
+	 * for each new doc.
 	 */
 	async _loadNextBatch() {
 		this._loading_batch = true;
@@ -101,13 +105,26 @@ const ViewportMixin = {
 		}
 
 		if (!batchData || !batchData.length) {
-			// Server returned nothing — we have exhausted all records
+			// Server returned nothing — all records exhausted
 			this._loading_batch = false;
 			return;
 		}
 
-		batchData.forEach((doc, i) => this._appendDocColumn(doc, from + i));
+		batchData.forEach((doc, i) => {
+			const absIndex = from + i;
+			this._appendDocColumn(doc, absIndex);
+
+			// Append delete cell for new column (guard: method may not exist)
+			if (this._appendDeleteCell) {
+				this._appendDeleteCell(doc);
+			}
+		});
 		this._rendered_count += batchData.length;
+
+		// Batch-fetch link titles for newly added columns (non-blocking)
+		if (typeof this.resolveLinkTitles === "function") {
+			this.resolveLinkTitles();
+		}
 
 		this._loading_batch = false;
 		this._placeSentinel(); // watch for the batch after this one

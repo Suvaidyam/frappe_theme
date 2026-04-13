@@ -2,18 +2,25 @@ const UISetupMixin = {
 	/**
 	 * Build the root container inside this.wrapper.
 	 * Creates:
-	 *   this.container  — outer div (relative, overflow-hidden)
-	 *   this.scrollBox  — horizontally scrollable inner div
+	 *   this.container  — outer div (overflow:visible so sticky children work)
+	 *   this.scrollBox  — both-axis scrollable inner div (scroll anchor for sticky)
+	 *
+	 * Vertical sticky (header row) requires the scrollBox to have overflow:auto
+	 * and a bounded max-height; horizontal sticky (params column) requires
+	 * overflow:auto on the X axis. Both are set here.
 	 */
 	setupWrapper() {
 		this.wrapper.innerHTML = "";
 		this.wrapper.style.position = "relative";
 
+		// Inject shared CSS once per page load (spinner keyframes, etc.)
+		this._ensureStyles();
+
 		const container = document.createElement("div");
 		container.className = "sva-vdr-container";
 		container.style.cssText = `
 			width: 100%;
-			overflow: hidden;
+			overflow: visible;
 			font-size: 13px;
 		`;
 		this.container = container;
@@ -34,10 +41,13 @@ const UISetupMixin = {
 
 		const scrollBox = document.createElement("div");
 		scrollBox.className = "sva-vdr-scroll-box";
-		scrollBox.style.cssText = `
-			width: 100%;
-			overflow-x: auto;
-		`;
+		scrollBox.style.cssText = [
+			"width: 100%;",
+			"overflow: auto;",
+			this.max_height > 0 ? `max-height: ${this.max_height}px;` : "",
+		]
+			.filter(Boolean)
+			.join(" ");
 		this.scrollBox = scrollBox;
 		container.appendChild(scrollBox);
 
@@ -45,7 +55,7 @@ const UISetupMixin = {
 	},
 
 	/**
-	 * Show a lightweight skeleton / loading overlay inside the scroll box.
+	 * Show a lightweight loading indicator inside the scroll box.
 	 */
 	showLoading() {
 		if (this.scrollBox.querySelector(".sva-vdr-skeleton")) return;
@@ -57,12 +67,12 @@ const UISetupMixin = {
 			font-size: 13px;
 			text-align: center;
 		`;
-		sk.textContent = __("Loading…");
+		sk.textContent = __("Loading\u2026");
 		this.scrollBox.appendChild(sk);
 	},
 
 	/**
-	 * Remove the loading skeleton.
+	 * Remove the loading indicator.
 	 */
 	hideLoading() {
 		const sk = this.scrollBox.querySelector(".sva-vdr-skeleton");
@@ -77,6 +87,28 @@ const UISetupMixin = {
 		this.signal.addEventListener("abort", () => {
 			this.wrapper.innerHTML = "";
 		});
+	},
+
+	/**
+	 * Inject a <style id="sva-vdr-styles"> tag into document.head with CSS
+	 * that cannot be expressed inline (keyframe animations, class selectors).
+	 * Idempotent — no-op if the tag already exists.
+	 */
+	_ensureStyles() {
+		if (document.getElementById("sva-vdr-styles")) return;
+		const style = document.createElement("style");
+		style.id = "sva-vdr-styles";
+		style.textContent = `
+			@keyframes sva-vdr-spin {
+				to { transform: rotate(360deg); }
+			}
+			.sva-vdr-spinner {
+				display: inline-block;
+				animation: sva-vdr-spin 0.8s linear infinite;
+				margin-left: 4px;
+			}
+		`;
+		document.head.appendChild(style);
 	},
 };
 

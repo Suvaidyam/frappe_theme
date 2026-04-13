@@ -1,10 +1,35 @@
+/**
+ * EditMixin — inline editing with Excel-like auto-sync on focus-out
+ *
+ * Behaviour:
+ *   - Clicking an editable cell opens a Frappe control inline (no dialog).
+ *   - For instant-change types (Check, Select): saves on the `change` event.
+ *   - For text-like types: saves automatically when the input loses focus (blur).
+ *   - ESC cancels and reverts the cell to its original content.
+ *   - While saving: cell opacity drops to 0.5 and a spinner appears.
+ *   - On failure: cell reverts to original content and an error banner is shown.
+ *   - On success: error banner is cleared (if any).
+ *
+ * Complex field types (Link, Text, Attach, etc.) still use a frappe.ui.Dialog
+ * with an explicit Save button, since those controls don't fit well inline.
+ */
 const EditMixin = {
 	/**
-	 * Field types that get inline (in-cell) editing.
+	 * Field types rendered inline (blur/change auto-save).
 	 * All others open a dialog.
 	 */
 	getEditableCellTypes() {
-		return ["Data", "Int", "Float", "Currency", "Percent", "Date", "Datetime", "Time", "Check", "Select", "Small Text"];
+		return [
+			"Data", "Int", "Float", "Currency", "Percent",
+			"Date", "Datetime", "Time", "Check", "Select", "Small Text",
+		];
+	},
+
+	/**
+	 * Field types that fire `change` immediately (no need to wait for blur).
+	 */
+	_getInstantSaveTypes() {
+		return ["Check", "Select"];
 	},
 
 	/**
@@ -18,8 +43,9 @@ const EditMixin = {
 	 */
 	attachEditListener(cell, df, doc, colIndex) {
 		if (!this.crud_permissions.includes("write")) return;
-		// Read-only fields
 		if (df.read_only) return;
+		// Also respect dynamic read_only_depends_on
+		if (this.isFieldReadOnly && this.isFieldReadOnly(df, doc)) return;
 
 		cell.style.cursor = "pointer";
 		cell.title = __("Click to edit");
@@ -35,38 +61,27 @@ const EditMixin = {
 	},
 
 	/**
-	 * Replace cell content with a Frappe control + ✓ / ✗ action buttons.
+	 * Replace cell content with a Frappe control.
+	 * Auto-saves on blur (text fields) or change (Check/Select).
+	 * ESC cancels and reverts.
+	 *
+	 * @param {HTMLElement} cell
+	 * @param {Object}      df
+	 * @param {Object}      doc
+	 * @param {number}      colIndex
 	 */
 	renderInlineEditor(cell, df, doc, colIndex) {
 		cell.dataset.editing = "1";
-		const originalContent = cell.innerHTML;
+		// Preserve original HTML so we can revert on failure or ESC
+		cell.dataset.originalContent = cell.innerHTML;
 		cell.innerHTML = "";
+		cell.style.cursor = "default";
+		cell.title = "";
 
-		// Wrapper for the control
-		const controlWrapper = document.createElement("div");
-		controlWrapper.style.cssText = "display:flex;align-items:center;gap:4px;padding:2px;";
-
+		// Control wrapper (fills the cell width)
 		const inputHolder = document.createElement("div");
-		inputHolder.style.cssText = "flex:1;min-width:0;";
-		controlWrapper.appendChild(inputHolder);
-
-		// ✓ save
-		const saveBtn = document.createElement("button");
-		saveBtn.className = "btn btn-xs btn-success";
-		saveBtn.innerHTML = "✓";
-		saveBtn.title = __("Save");
-		saveBtn.style.cssText = "padding:1px 5px;line-height:1.4;";
-
-		// ✗ cancel
-		const cancelBtn = document.createElement("button");
-		cancelBtn.className = "btn btn-xs btn-default";
-		cancelBtn.innerHTML = "✗";
-		cancelBtn.title = __("Cancel");
-		cancelBtn.style.cssText = "padding:1px 5px;line-height:1.4;";
-
-		controlWrapper.appendChild(saveBtn);
-		controlWrapper.appendChild(cancelBtn);
-		cell.appendChild(controlWrapper);
+		inputHolder.style.cssText = "min-width: 0; width: 100%;";
+		cell.appendChild(inputHolder);
 
 		// Build Frappe control
 		const ctrl = frappe.ui.form.make_control({
@@ -79,27 +94,65 @@ const EditMixin = {
 		ctrl.set_value(doc[df.fieldname]);
 		if (ctrl.$input) ctrl.$input.focus();
 
+		// ── cancel: revert cell to its pre-edit state ──────────────────────
 		const cancel = () => {
-			cell.innerHTML = originalContent;
+			const orig = cell.dataset.originalContent || "";
+			cell.innerHTML = orig;
 			delete cell.dataset.editing;
-			// Re-attach listener
+			delete cell.dataset.originalContent;
+			// Re-attach click listener
 			this.attachEditListener(cell, df, doc, colIndex);
 		};
 
-		cancelBtn.addEventListener("click", (e) => {
-			e.stopPropagation();
-			cancel();
-		});
+		// ── triggerSave: validate → show spinner → persist → clean up ──────
+		const triggerSave = async () => {
+			if (cell.dataset.saving === "1") return;
 
-		saveBtn.addEventListener("click", async (e) => {
-			e.stopPropagation();
 			const newValue = ctrl.get_value();
+
+			// Set saving visual state
+			cell.dataset.saving = "1";
+			cell.style.opacity = "0.5";
+			const spinner = document.createElement("span");
+			spinner.className = "sva-vdr-spinner";
+			spinner.textContent = "\u21BB"; // ↻
+			cell.appendChild(spinner);
+
 			await this.saveValue(df, doc, newValue, cell, colIndex);
-		});
+
+			// saveValue has already updated cell.innerHTML (success) or
+			// reverted it (failure). Just clean up the saving state.
+			delete cell.dataset.saving;
+			cell.style.opacity = "";
+			// spinner element was removed when saveValue replaced innerHTML
+		};
+
+		// ── wire events based on field type ───────────────────────────────
+		if (ctrl.$input) {
+			if (this._getInstantSaveTypes().includes(df.fieldtype)) {
+				// Check, Select — save immediately on change
+				ctrl.$input.on("change", triggerSave);
+			} else {
+				// Text-like fields — save when focus leaves the input
+				ctrl.$input.on("blur", triggerSave);
+				// ESC → cancel without saving
+				ctrl.$input.on("keydown", (e) => {
+					if (e.key === "Escape") {
+						e.preventDefault();
+						cancel();
+					}
+				});
+			}
+		}
 	},
 
 	/**
-	 * Open a frappe.ui.Dialog for complex field types.
+	 * Open a frappe.ui.Dialog for complex field types (Link, Text, Attach, etc.).
+	 * Dialog retains an explicit "Save" button — auto-sync doesn't apply here.
+	 *
+	 * @param {Object}  df
+	 * @param {Object}  doc
+	 * @param {number}  colIndex
 	 */
 	openEditDialog(df, doc, colIndex) {
 		const dialog = new frappe.ui.Dialog({
@@ -116,51 +169,96 @@ const EditMixin = {
 	},
 
 	/**
-	 * Persist the new value via frappe.db.set_value, then refresh the cell.
+	 * Validate and persist a new value via frappe.db.set_value.
+	 * On success: updates cell content, clears error banner.
+	 * On failure: reverts cell to original content, shows error banner.
 	 *
-	 * @param {Object}      df       — field descriptor
-	 * @param {Object}      doc      — document row object (mutated on success)
-	 * @param {*}           newValue — new value to save
-	 * @param {HTMLElement} cell     — cell to refresh (null when called from dialog)
-	 * @param {number}      colIndex — column index
+	 * @param {Object}           df       — field descriptor
+	 * @param {Object}           doc      — document row (mutated on success)
+	 * @param {*}                newValue — new value to save
+	 * @param {HTMLElement|null} cell     — cell to update (null when called from dialog)
+	 * @param {number}           colIndex — column index
 	 */
 	async saveValue(df, doc, newValue, cell, colIndex) {
-		// beforeSave hook — returning false cancels the save
-		if (typeof this.events.beforeSave === "function") {
-			const proceed = await this.events.beforeSave(df, doc.name, newValue);
-			if (proceed === false) {
+		// ── client-side mandatory validation ────────────────────────────────
+		if (typeof this.validateBeforeSave === "function") {
+			const errors = this.validateBeforeSave(df, doc, newValue);
+			if (errors.length) {
+				if (typeof this.showErrorBanner === "function") {
+					this.showErrorBanner(errors);
+				}
 				if (cell) {
+					// Revert immediately — don't make the API call
+					const orig = cell.dataset.originalContent;
+					cell.innerHTML = orig !== undefined
+						? orig
+						: this.formatCellValue(doc[df.fieldname], df, doc, colIndex);
 					delete cell.dataset.editing;
+					delete cell.dataset.originalContent;
+					this.attachEditListener(cell, df, doc, colIndex);
 				}
 				return;
 			}
 		}
 
+		// ── beforeSave hook ─────────────────────────────────────────────────
+		if (typeof this.events.beforeSave === "function") {
+			const proceed = await this.events.beforeSave(df, doc.name, newValue);
+			if (proceed === false) {
+				if (cell) {
+					delete cell.dataset.editing;
+					delete cell.dataset.originalContent;
+				}
+				return;
+			}
+		}
+
+		// ── persist ─────────────────────────────────────────────────────────
 		try {
 			await frappe.db.set_value(this.doctype, doc.name, df.fieldname, newValue);
 			doc[df.fieldname] = newValue;
 
 			if (cell) {
 				delete cell.dataset.editing;
+				delete cell.dataset.originalContent;
+				// Update raw-value stamp so link title re-resolution works
+				cell.dataset.rawValue = String(newValue ?? "");
 				const formatted = this.formatCellValue(newValue, df, doc, colIndex);
 				cell.innerHTML = formatted;
 				this.attachEditListener(cell, df, doc, colIndex);
+
+				// Re-resolve link titles if the saved field is a Link
+				if (df.fieldtype === "Link" && typeof this.resolveLinkTitles === "function") {
+					this.resolveLinkTitles();
+				}
+			}
+
+			// Clear any error banner on success
+			if (typeof this.clearErrorBanner === "function") {
+				this.clearErrorBanner();
 			}
 
 			if (typeof this.events.afterSave === "function") {
 				this.events.afterSave(df, doc.name, newValue);
 			}
 		} catch (err) {
-			frappe.msgprint({
-				title: __("Error"),
-				indicator: "red",
-				message: err.message || __("Could not save value"),
-			});
+			// ── failure: revert + show banner ───────────────────────────────
+			const errMsg =
+				(err && (err.message || err.exc_type)) ||
+				__("Could not save value");
+			const label = __(df.label || df.fieldname);
+			if (typeof this.showErrorBanner === "function") {
+				this.showErrorBanner([`${label}: ${errMsg}`]);
+			}
+
 			if (cell) {
-				// Restore original display
+				// Revert to original HTML (preserves resolved link titles etc.)
+				const orig = cell.dataset.originalContent;
+				cell.innerHTML = orig !== undefined
+					? orig
+					: this.formatCellValue(doc[df.fieldname], df, doc, colIndex);
 				delete cell.dataset.editing;
-				const formatted = this.formatCellValue(doc[df.fieldname], df, doc, colIndex);
-				cell.innerHTML = formatted;
+				delete cell.dataset.originalContent;
 				this.attachEditListener(cell, df, doc, colIndex);
 			}
 		}

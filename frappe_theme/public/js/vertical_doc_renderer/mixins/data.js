@@ -20,14 +20,37 @@ const DataMixin = {
 	/**
 	 * Load DocType meta.
 	 * If this._meta_override is set (caller passed a meta object), use it directly.
-	 * Otherwise fetch via frappe.db.get_meta().
+	 *
+	 * Otherwise uses frappe_theme.dt_api.get_meta_fields with meta_attached=1,
+	 * which returns { fields: [...], meta: {...full frappe meta...} }.
+	 * This mirrors the exact pattern used by SVADatatable.
+	 *
+	 * frappe.xcall is used (instead of frappe.call) because it resolves to the
+	 * message payload directly, just like SVAHTTP.call does in the datatable.
 	 */
 	async fetchMeta() {
 		if (this._meta_override) {
 			this.meta = this._meta_override;
 			return;
 		}
-		this.meta = await frappe.db.get_meta(this.doctype);
+		try {
+			// response = { fields: [...filtered fields (no Tab Break)...], meta: {...} }
+			const response = await frappe.xcall(
+				"frappe_theme.dt_api.get_meta_fields",
+				{ doctype: this.doctype, _type: "Direct", meta_attached: 1 }
+			);
+			// Spread full Frappe meta dict so all properties are available,
+			// then override fields with the filtered list (no Tab Break) and
+			// set name explicitly from this.doctype.
+			this.meta = {
+				...(response?.meta || {}),
+				name: this.doctype,
+				fields: response?.fields || [],
+			};
+		} catch (e) {
+			console.error("SVAVerticalDocRenderer: fetchMeta failed", e);
+			this.meta = { name: this.doctype, fields: [] };
+		}
 	},
 
 	/**
