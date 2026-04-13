@@ -298,12 +298,12 @@
    "fieldtype": "Column Break"
   },
   {
-   "depends_on": "eval:[\"DocType (Direct)\",\"DocType (Indirect)\",\"DocType (Unfiltered)\",\"DocType (Referenced)\",\"Report\", \"Is Custom Design\"].includes(doc.property_type) || doc.is_report === 1",
+   "depends_on": "eval:[\"DocType (Direct)\",\"DocType (Indirect)\",\"DocType (Unfiltered)\",\"DocType (Referenced)\",\"Report\", \"Is Custom Design\", \"Vertical Doc Renderer\"].includes(doc.property_type) || doc.is_report === 1",
    "fieldname": "section_break_qivk",
    "fieldtype": "Section Break"
   },
   {
-   "depends_on": "eval:doc.property_type != \"Is Custom Design\"",
+   "depends_on": "eval:doc.property_type != \"Is Custom Design\" && doc.property_type != \"Vertical Doc Renderer\"",
    "fieldname": "setup_list_settings",
    "fieldtype": "Button",
    "label": "Setup Listview Setting"

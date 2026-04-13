@@ -287,6 +287,7 @@ const field_changes = {
 			{ fn: "vdr_hide_empty_rows", ft: "Check" },
 			{ fn: "vdr_show_legend", ft: "Check" },
 			{ fn: "vdr_legend_items", ft: "Code" },
+			{ fn: "crud_permissions", ft: "Code" },
 		];
 
 		let connecttion_type_map = {

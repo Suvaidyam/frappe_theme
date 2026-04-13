@@ -1111,6 +1111,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					show_legend: !!conf.vdr_show_legend,
 					legend_items: conf.vdr_legend_items ? JSON.parse(conf.vdr_legend_items) : [],
 					crud_permissions: conf.crud_permissions ? JSON.parse(conf.crud_permissions) : ["read"],
+					max_height: conf.vdr_max_height != null ? Number(conf.vdr_max_height) : 600,
 					signal,
 				});
 				break;

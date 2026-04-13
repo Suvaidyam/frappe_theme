@@ -226,9 +226,10 @@ new SVAVerticalDocRenderer({
 
     // ── Permissions & editing ───────────────────────────────────────────────
     crud_permissions,     // string[] (default ["read"])
-                          //   "write"  → inline cell editing
+                          //   "write"  → inline cell auto-sync editing (blur/change saves)
                           //   "create" → "+" column header to create new docs in a dialog
-                          //   e.g. ["read", "write", "create"]
+                          //   "delete" → 🗑 icon row (frappe.model.can_delete() also checked)
+                          //   e.g. ["read", "write", "create", "delete"]
 
     // ── Pagination / lazy loading ───────────────────────────────────────────
     filters,              // frappe filter array — used when docs: null
@@ -237,6 +238,8 @@ new SVAVerticalDocRenderer({
     column_batch_size,    // number (default 0 = auto-calculate from viewport width)
                           //   Number of columns to render per scroll batch
     column_width,         // number px (default 150) — column width estimate for auto batch size
+    max_height,           // number px (default 600) — scrollBox max-height for vertical sticky
+                          //   0 = no limit (header sticks to browser viewport via window scroll)
 
     // ── Integration ─────────────────────────────────────────────────────────
     frm,                  // Frappe form object (optional)
@@ -380,7 +383,7 @@ frm.vdr_events = {
 
 ---
 
-## Inline editing
+## Inline editing (auto-sync)
 
 Enable by adding `"write"` to `crud_permissions`:
 
@@ -395,12 +398,102 @@ new SVAVerticalDocRenderer({
 
 **Behavior by field type:**
 
-| Field types | Edit mode |
+| Field types | Edit behaviour |
 |---|---|
-| Data, Int, Float, Currency, Percent, Date, Datetime, Time, Check, Select, Small Text | In-cell editor (Frappe control with ✓ / ✗ buttons) |
-| Link, Text, Long Text, Attach, and all others | Dialog popup (`frappe.ui.Dialog`) |
+| Data, Int, Float, Currency, Percent, Date, Datetime, Time, Small Text | In-cell editor — saves automatically when focus leaves the input (blur) |
+| Check, Select | In-cell editor — saves immediately on `change` |
+| Link, Text, Long Text, Attach, and all others | Dialog popup (`frappe.ui.Dialog`) with an explicit Save button |
 
-Clicking a cell opens the editor. Saving calls `frappe.db.set_value(doctype, docName, fieldname, newValue)` and refreshes the cell. Fields with `read_only: 1` in the meta are never editable.
+**UX details:**
+- Click a cell to open the editor — no separate Edit button needed.
+- **ESC** while editing reverts the cell to its original content without saving.
+- While saving: cell opacity drops to 0.5 and a spinner (↻) appears.
+- **On success**: error banner (if any) is cleared; in-memory `doc[fieldname]` is updated.
+- **On failure**: cell reverts to original content; a red error banner appears above the table.
+- Read-only fields (`df.read_only = 1` or `read_only_depends_on` evaluated true) are never editable.
+
+---
+
+## Validations (depends_on per cell per document)
+
+`depends_on`, `mandatory_depends_on`, and `read_only_depends_on` are evaluated **independently for each document column** using `frappe.utils.custom_eval` (falling back to `new Function` evaluation):
+
+| Field attribute | Effect |
+|---|---|
+| `depends_on` | Cell is `visibility: hidden` for documents where the expression is false |
+| `read_only_depends_on` | Cell styled as muted; click-to-edit disabled for that document |
+| `mandatory_depends_on` | Saving an empty value shows the error banner and blocks the API call |
+
+Example — show "Verified By" only when Status is "Active":
+```js
+// In your DocType field definition:
+{ fieldname: "verified_by", label: "Verified By", fieldtype: "Link",
+  depends_on: "eval:doc.status == 'Active'" }
+```
+In the comparison table, the "Verified By" row is visible only in columns where `status === "Active"`.
+
+---
+
+## Link field titles
+
+After render (and after each lazy-loaded viewport batch), the component resolves display names for Link fields in a single batch per linked DocType — never one API call per cell:
+
+```
+Customer CUST-001 → "John's Company"   (customer_name field)
+Item     ITEM-001 → "Steel Bolt 5mm"   (item_name field)
+```
+
+**How title fields are discovered (in priority order):**
+1. `frappe.boot.link_title_doctypes` — Frappe populates this at boot for DocTypes with `show_title_field_in_link = 1`
+2. `frappe.get_meta(linkedDoctype)?.title_field` — in-memory fallback; available if the linked DocType's form was opened during the same session (zero extra API calls)
+
+If neither source has a title field, the raw document name is shown (correct default).
+
+To enable display titles for a custom DocType: open **Customize Form** → the DocType → check **Show Title in Link** and set the **Title Field**.
+
+---
+
+## Delete column
+
+Enable by adding `"delete"` to `crud_permissions` (frappe Role Permission Manager is also checked):
+
+```js
+new SVAVerticalDocRenderer({
+    wrapper,
+    doctype: "Employee",
+    docs: ["EMP-0001", "EMP-0002"],
+    crud_permissions: ["read", "write", "create", "delete"],
+});
+```
+
+- A 🗑 button appears in each column header on hover (150 ms debounce so you can move the mouse from header to button).
+- Clicking shows a `frappe.confirm` dialog.
+- On confirm: `frappe.xcall("frappe.client.delete", { doctype, name })` → column removed from DOM and data arrays.
+- Hover state is tracked by `doc.name` (not column index), so remaining columns continue to work correctly after a deletion.
+
+---
+
+## Sticky freeze
+
+The "Parameters" label column and the document header row are both sticky:
+
+| Element | CSS | Result |
+|---|---|---|
+| Parameters column | `position: sticky; left: 0; z-index: 1` | Stays visible while scrolling right |
+| Doc header cells | `position: sticky; top: 0; z-index: 2` | Stays visible while scrolling down |
+| Corner cell (Parameters header) | `position: sticky; top: 0; left: 0; z-index: 3` | Always visible |
+
+Sticky works because `scrollBox` has `overflow: auto` and `max-height`. Control the height with `max_height`:
+
+```js
+new SVAVerticalDocRenderer({
+    wrapper,
+    doctype: "Employee",
+    docs: ["EMP-0001"],
+    max_height: 400,   // px — scrollBox height cap; sticky works within the box
+    // max_height: 0   // no cap — header sticks to the browser viewport via window scroll
+});
+```
 
 ---
 
@@ -461,6 +554,7 @@ Developers who prefer a UI-driven approach can configure the component via the *
    - **Document Names** — JSON array, e.g. `["DOC-001", "DOC-002"]`
    - **Column Configs** — JSON array, e.g. `[{"label":"A","bg_color":"#4472C4","text_color":"#fff"}]`
    - **Fields to Show / Hide**, **Show Section Headers**, **Show Unit Column**, etc.
+   - **Setup Crud Permissions** — click the button to open a dialog for configuring read/write/create/delete access; defaults to `["read"]` only
 
 The component is then rendered automatically on form load. `vdr_events` can still be set from the form's DocType JS to override rendering.
 
@@ -474,17 +568,27 @@ frappe.ui.form.on("My DocType", {
         const wrapper = frm.fields_dict.comparison_view.$wrapper[0];
         wrapper.innerHTML = "";
 
-        // Set event overrides before creating the component
+        // Event overrides — set before instantiating
         frm.vdr_events = {
+            // Colour-code the "status" field per document
             formatCell(value, df, doc, colIndex) {
                 if (df.fieldname === "status") {
                     const colors = { Active: "green", Inactive: "red", Pending: "orange" };
                     return `<span style="color:${colors[value] || "inherit"}">${value || "-"}</span>`;
                 }
-                return null;
+                return null; // use default frappe.format() for everything else
             },
+
+            // Block saving "Blocked" status
+            beforeSave(df, docName, newValue) {
+                if (df.fieldname === "status" && newValue === "Blocked") {
+                    frappe.msgprint("Status cannot be set to Blocked here.");
+                    return false; // cancels the save
+                }
+            },
+
             afterRender(instance) {
-                console.log("VDR ready:", instance);
+                console.log("VDR ready — columns:", instance.docs.length);
             },
         };
 
@@ -492,17 +596,32 @@ frappe.ui.form.on("My DocType", {
             wrapper,
             frm,
             doctype: "Employee",
-            docs: [frm.doc.primary_employee, frm.doc.secondary_employee, frm.doc.tertiary_employee].filter(Boolean),
+
+            // Three docs pinned by the parent form; lazy batches load on scroll
+            docs: [
+                frm.doc.primary_employee,
+                frm.doc.secondary_employee,
+                frm.doc.tertiary_employee,
+            ].filter(Boolean),
+
             column_configs: [
                 { label: "Primary",   bg_color: "#4472C4", text_color: "#fff" },
                 { label: "Secondary", bg_color: "#70AD47", text_color: "#fff" },
                 { label: "Tertiary",  bg_color: "#ED7D31", text_color: "#fff" },
             ],
+
             fields_to_hide: ["naming_series", "full_name", "employee_number"],
             show_section_headers: true,
             show_unit: false,
+            hide_empty_rows: true,
+
             title: "Employee Comparison",
-            crud_permissions: ["read", "write"],
+
+            // Inline editing + create + delete enabled; RPM still enforced
+            crud_permissions: ["read", "write", "create", "delete"],
+
+            max_height: 500,    // px — params column and header row stick within this box
+
             show_legend: true,
             legend_items: [
                 { label: "Primary",   bg_color: "#4472C4", description: "Primary employee for this record" },

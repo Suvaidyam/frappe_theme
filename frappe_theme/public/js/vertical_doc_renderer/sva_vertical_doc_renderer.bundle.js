@@ -6,6 +6,9 @@ import EditMixin from "./mixins/edit.js";
 import HelpersMixin from "./mixins/helpers.js";
 import ViewportMixin from "./mixins/viewport.js";
 import CreateMixin from "./mixins/create.js";
+import ValidationMixin from "./mixins/validation.js";
+import LinkTitlesMixin from "./mixins/link_titles.js";
+import DeleteMixin from "./mixins/delete.js";
 
 /**
  * SVAVerticalDocRenderer
@@ -45,13 +48,16 @@ import CreateMixin from "./mixins/create.js";
  *     legend_items,         // [{label, bg_color, text_color, description}]
  *
  *     crud_permissions,     // string[] (default ["read"])
- *                           //   "write"  → inline cell editing
+ *                           //   "write"  → inline cell auto-sync editing
  *                           //   "create" → "+" column header to create new docs
+ *                           //   "delete" → 🗑 icon row to delete doc columns
  *
  *     filters,              // frappe.db.get_list filter array — used when docs: null
  *     order_by,             // string — e.g. "creation desc" — used when docs: null
  *     column_batch_size,    // number (default 0 = auto from viewport width)
  *     column_width,         // number px (default 150) — used for auto batch-size calculation
+ *     max_height,           // number px (default 600) — scrollBox max-height for vertical sticky
+ *                           //   0 = no limit (header sticks to browser viewport via window scroll)
  *
  *     signal,               // AbortSignal — clears the wrapper when aborted
  *   });
@@ -92,6 +98,7 @@ class SVAVerticalDocRenderer {
 		order_by = null,
 		column_batch_size = 0,
 		column_width = 150,
+		max_height = 600,
 		signal = null,
 	}) {
 		// Branch on doctype type: string = name to fetch, object = pre-built/mimicked meta
@@ -115,10 +122,12 @@ class SVAVerticalDocRenderer {
 			legend_items,
 			crud_permissions,
 			allow_create: crud_permissions.includes("create"),
+			allow_delete: crud_permissions.includes("delete"),
 			filters,
 			order_by,
 			column_batch_size,
 			column_width,
+			max_height,
 			signal,
 		});
 
@@ -141,6 +150,10 @@ class SVAVerticalDocRenderer {
 
 		this.hideLoading();
 		this.render();              // renders first-batch columns
+
+		// Batch-fetch link display titles (non-blocking — updates cells asynchronously)
+		this.resolveLinkTitles();
+
 		this.setupViewportLoader(); // IntersectionObserver watches for scroll-right
 	}
 }
@@ -154,7 +167,10 @@ Object.assign(
 	EditMixin,
 	HelpersMixin,
 	ViewportMixin,
-	CreateMixin
+	CreateMixin,
+	ValidationMixin,
+	LinkTitlesMixin,
+	DeleteMixin
 );
 
 export default SVAVerticalDocRenderer;
