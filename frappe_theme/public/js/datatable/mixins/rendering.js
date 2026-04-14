@@ -23,7 +23,7 @@ const RenderingMixin = {
 			serialTd.style.position = "sticky";
 			serialTd.style.left = "0px";
 			serialTd.style.backgroundColor = "#fff";
-			serialTd.style.zIndex = "3";
+			serialTd.style.zIndex = "1";
 			serialTd.style.boxShadow = "inset -1px 0 0 0 #d1d8dd";
 			serialTd.style.setProperty("padding", "0px", "important");
 
@@ -293,7 +293,7 @@ const RenderingMixin = {
 			serialTh.textContent = __("S.No.");
 			serialTh.title = __("Serial Number");
 			serialTh.style =
-				"width:48px;min-width:48px;max-width:48px;text-align:center;position:sticky;left:0px;z-index:3;background-color:#F3F3F3;box-shadow: inset -1px 0 0 0 #d1d8dd;padding: 0px !important;";
+				"width:48px;min-width:48px;max-width:48px;text-align:center;position:sticky;left:0px;z-index:1;background-color:#F3F3F3;box-shadow: inset -1px 0 0 0 #d1d8dd;padding: 0px !important;";
 			tr.appendChild(serialTh);
 		}
 
@@ -529,7 +529,7 @@ const RenderingMixin = {
 					serialTd.style.position = "sticky";
 					serialTd.style.left = "0px";
 					serialTd.style.backgroundColor = "#fff";
-					serialTd.style.zIndex = "3";
+					serialTd.style.zIndex = "1";
 					serialTd.style.boxShadow = "inset -1px 0 0 0 #d1d8dd";
 					serialTd.style.setProperty("padding", "0px", "important");
 					const serialNumber =
@@ -682,8 +682,7 @@ const RenderingMixin = {
 							// Transitions are pre-fetched for the whole table in one API call
 							// (get_workflow_transitions_for_table) before renderBatch starts —
 							// do a synchronous lookup here; no per-row network call needed.
-							const transitions =
-								this._wfTransitionsByState?.[row[workflow_state_field]] ?? [];
+							const transitions = this._wfTransitionsByDocname?.[row.name] ?? [];
 
 							const initialDisabled =
 								(this.connection?.keep_workflow_enabled_form_submission
