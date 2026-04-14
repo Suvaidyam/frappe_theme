@@ -193,6 +193,65 @@ const ViewportMixin = {
 	},
 
 	/**
+	 * Reload the entire table from scratch.
+	 * Called by the dashboard refresh button (frm.sva_ft_instances loop) or
+	 * after a filter change. Merges this.additional_list_filters into filters
+	 * when set (used by the filter ribbon reset/apply flow).
+	 */
+	async reloadTable() {
+		// Stop in-progress observation
+		if (this._observer) {
+			this._observer.disconnect();
+			this._observer = null;
+		}
+		this._sentinel = null;
+		this._loading_batch = false;
+
+		// Merge base filters with additional (applied by filter ribbon)
+		if (this.additional_list_filters && this.additional_list_filters.length) {
+			this.filters = [...(this._base_filters || []), ...this.additional_list_filters];
+		} else {
+			this.filters = [...(this._base_filters || [])];
+		}
+
+		// Reset data state
+		this.data = [];
+		this.docs = [];
+		this._rendered_count = 0;
+
+		// Clear rendered table
+		if (this.scrollBox) {
+			this.scrollBox.innerHTML = "";
+		}
+
+		// Re-fetch and re-render first batch
+		await this.fetchDocs();
+		this.render();
+		if (typeof this.resolveLinkTitles === "function") {
+			this.resolveLinkTitles();
+		}
+		this.setupViewportLoader();
+	},
+
+	/**
+	 * Apply a filter dict {fieldname: value} from the dashboard filter ribbon.
+	 * Stores additional filters and reloads the table.
+	 * Only meaningful when docs: null (paginated server-side mode).
+	 *
+	 * @param {Object} filters — {fieldname: value} dict
+	 */
+	setFilters(filters) {
+		if (!this._base_filters) {
+			// Snapshot the original filters on first call so resets work correctly
+			this._base_filters = [...(this.filters || [])];
+		}
+		this.additional_list_filters = Object.entries(filters || {})
+			.filter(([, val]) => val !== "" && val !== null && val !== undefined)
+			.map(([fn, val]) => [fn, "=", val]);
+		this.reloadTable();
+	},
+
+	/**
 	 * Append one document's column to the already-rendered table.
 	 * Called for each doc in a lazy-loaded batch.
 	 *

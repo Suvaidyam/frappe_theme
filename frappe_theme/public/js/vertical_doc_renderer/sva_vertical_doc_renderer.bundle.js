@@ -9,6 +9,7 @@ import CreateMixin from "./mixins/create.js";
 import ValidationMixin from "./mixins/validation.js";
 import LinkTitlesMixin from "./mixins/link_titles.js";
 import DeleteMixin from "./mixins/delete.js";
+import RowSettingsMixin from "./mixins/row_settings.js";
 
 /**
  * SVAVerticalDocRenderer
@@ -100,6 +101,8 @@ class SVAVerticalDocRenderer {
 		column_width = 150,
 		max_height = 600,
 		signal = null,
+		vdr_field_name = null, // HTML field name hosting this VDR — enables server-side settings save
+		fields_config = null, // string[] of fieldnames in display order, or null for default
 	}) {
 		// Branch on doctype type: string = name to fetch, object = pre-built/mimicked meta
 		const isMetaObj = doctype && typeof doctype === "object";
@@ -109,8 +112,8 @@ class SVAVerticalDocRenderer {
 			frm,
 			doctype: isMetaObj ? doctype.name : doctype,
 			_meta_override: isMetaObj ? doctype : null,
-			_docs_input: docs,   // raw input — data.js and viewport.js branch on this
-			docs: [],            // names of currently rendered columns (grows as batches load)
+			_docs_input: docs, // raw input — data.js and viewport.js branch on this
+			docs: [], // names of currently rendered columns (grows as batches load)
 			column_configs,
 			fields_to_show,
 			fields_to_hide,
@@ -129,6 +132,10 @@ class SVAVerticalDocRenderer {
 			column_width,
 			max_height,
 			signal,
+			vdr_field_name,
+			fields_config,
+			_initial_fields_config: fields_config ? [...fields_config] : null,
+			_has_user_settings: false,
 		});
 
 		// Pull vdr_events from the form if set; otherwise empty object
@@ -146,10 +153,11 @@ class SVAVerticalDocRenderer {
 		this.showLoading();
 
 		await this.fetchMeta();
-		await this.fetchDocs();     // loads first batch only
+		await this._loadUserRowSettings(); // apply non-admin row settings override (if any)
+		await this.fetchDocs(); // loads first batch only
 
 		this.hideLoading();
-		this.render();              // renders first-batch columns
+		this.render(); // renders first-batch columns
 
 		// Batch-fetch link display titles (non-blocking — updates cells asynchronously)
 		this.resolveLinkTitles();
@@ -170,7 +178,9 @@ Object.assign(
 	CreateMixin,
 	ValidationMixin,
 	LinkTitlesMixin,
-	DeleteMixin
+	DeleteMixin,
+	RowSettingsMixin
 );
 
 export default SVAVerticalDocRenderer;
+frappe.ui.SVAVerticalDocRenderer = SVAVerticalDocRenderer;

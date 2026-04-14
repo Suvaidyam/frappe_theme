@@ -23,7 +23,7 @@ const RenderingMixin = {
 		table.style.cssText = `
 			border-collapse: collapse;
 			width: 100%;
-			min-width: 300px;
+			min-width: 100%;
 			table-layout: auto;
 		`;
 		this._table = table;
@@ -65,11 +65,8 @@ const RenderingMixin = {
 			tr.appendChild(this._buildDocHeaderCell(doc, i, conf));
 		});
 
-		// "+" create column — always at the far right (viewport inserts before it)
-		if (this.allow_create) {
-			this._createTh = this._buildCreateHeaderCell();
-			tr.appendChild(this._createTh);
-		}
+		// "+" is rendered as a floating button outside the table (see ui_setup._buildToolbar)
+		this._createTh = null;
 
 		thead.appendChild(tr);
 		return thead;
@@ -110,8 +107,14 @@ const RenderingMixin = {
 		const visibleFieldNames = new Set(this.getVisibleFields().map((df) => df.fieldname));
 
 		const SKIP_TYPES = new Set([
-			"Column Break", "HTML", "Button", "Fold", "Image",
-			"Signature", "Geolocation", "Barcode",
+			"Column Break",
+			"HTML",
+			"Button",
+			"Fold",
+			"Image",
+			"Signature",
+			"Geolocation",
+			"Barcode",
 		]);
 
 		fields.forEach((df) => {
@@ -324,9 +327,10 @@ const RenderingMixin = {
 			overflow: hidden;
 			text-overflow: ellipsis;
 			white-space: nowrap;
-			${readOnly
-				? "background: var(--sva-vdr-readonly-bg, #f5f5f5); color: var(--sva-vdr-readonly-text, #999);"
-				: ""
+			${
+				readOnly
+					? "background: var(--sva-vdr-readonly-bg, #f5f5f5); color: var(--sva-vdr-readonly-text, #999);"
+					: ""
 			}
 		`;
 

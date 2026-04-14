@@ -39,6 +39,22 @@ const UISetupMixin = {
 			container.appendChild(titleEl);
 		}
 
+		// Toolbar (gear settings button only) — only when vdr_field_name is set
+		const toolbar = this._buildToolbar();
+		if (toolbar) container.appendChild(toolbar);
+
+		// scrollWrapper shrinks to the table's natural width but never exceeds
+		// the container (max-width:100%). position:relative anchors the "+" overlay
+		// so its right:0 stays exactly at the table's right edge.
+		// When the table is wider than the container, scrollWrapper is capped at
+		// 100% and scrollBox (width:100%) provides horizontal overflow scrolling.
+		const scrollWrapper = document.createElement("div");
+		scrollWrapper.style.cssText = `
+			position: relative;
+			width: 100%;
+		`;
+		this._scrollWrapper = scrollWrapper;
+
 		const scrollBox = document.createElement("div");
 		scrollBox.className = "sva-vdr-scroll-box";
 		scrollBox.style.cssText = [
@@ -49,9 +65,66 @@ const UISetupMixin = {
 			.filter(Boolean)
 			.join(" ");
 		this.scrollBox = scrollBox;
-		container.appendChild(scrollBox);
+		scrollWrapper.appendChild(scrollBox);
+
+		// "+" overlay button — top-right corner of the table border
+		if (this.allow_create) {
+			const createBtn = document.createElement("button");
+			createBtn.className = "btn btn-primary btn-xs sva-vdr-create-btn";
+			createBtn.title = __("Add new record");
+			createBtn.style.cssText = `
+				position: absolute;
+				top: 0;
+				right: 0;
+				z-index: 20;
+				font-size: 15px;
+				font-weight: 700;
+				line-height: 1;
+				padding: 2px 8px 3px;
+				border-radius: 0 0 0 4px;
+				border-top: none;
+				border-right: none;
+			`;
+			createBtn.textContent = "+";
+			createBtn.addEventListener("click", () => {
+				if (!createBtn.disabled) this.openCreateDialog();
+			});
+			this._createToolbarBtn = createBtn;
+			scrollWrapper.appendChild(createBtn);
+		}
+
+		container.appendChild(scrollWrapper);
 
 		this.wrapper.appendChild(container);
+	},
+
+	/**
+	 * Build the toolbar row placed between the title and the scrollBox.
+	 * Left side: "+" create button (when allow_create is true).
+	 * Right side: gear settings button (when vdr_field_name is set).
+	 * Returns null when neither button is needed (pure read-only standalone usage).
+	 *
+	 * @returns {HTMLElement|null}
+	 */
+	_buildToolbar() {
+		// Toolbar only contains the settings gear button.
+		// The "+" create button is an overlay on _scrollWrapper (see setupWrapper).
+		if (!this.vdr_field_name) return null;
+
+		const toolbar = document.createElement("div");
+		toolbar.className = "sva-vdr-toolbar";
+		toolbar.style.cssText = `
+			display: flex;
+			justify-content: flex-end;
+			align-items: center;
+			margin-bottom: 4px;
+		`;
+
+		if (typeof this._buildSettingsButton === "function") {
+			toolbar.appendChild(this._buildSettingsButton());
+		}
+
+		return toolbar;
 	},
 
 	/**

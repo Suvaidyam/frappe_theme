@@ -34,6 +34,10 @@
   "vdr_hide_empty_rows",
   "vdr_show_legend",
   "vdr_legend_items",
+  "vdr_max_height",
+  "vdr_link_fieldname",
+  "vdr_foreign_field",
+  "vdr_fields_config",
   "column_break_fwyn",
   "section_break_ylfd",
   "sdg_report",
@@ -303,7 +307,7 @@
    "fieldtype": "Section Break"
   },
   {
-   "depends_on": "eval:doc.property_type != \"Is Custom Design\" && doc.property_type != \"Vertical Doc Renderer\"",
+   "depends_on": "eval:doc.property_type != \"Is Custom Design\"",
    "fieldname": "setup_list_settings",
    "fieldtype": "Button",
    "label": "Setup Listview Setting"
@@ -868,7 +872,7 @@
    "options": "DocType"
   },
   {
-   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
+   "depends_on": "eval:false",
    "description": "JSON array of document names, e.g. [\"DOC-001\", \"DOC-002\"]",
    "fieldname": "vdr_docs",
    "fieldtype": "Code",
@@ -939,6 +943,34 @@
    "fieldname": "vdr_legend_items",
    "fieldtype": "Code",
    "label": "Legend Items"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
+   "description": "Max height in px for the scrollable table area. 0 = no limit.",
+   "fieldname": "vdr_max_height",
+   "fieldtype": "Int",
+   "label": "Max Height (px)"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
+   "description": "Field on the parent form whose value is used to filter the source DocType (e.g. 'employee' → show only records where the foreign field matches frm.doc.employee)",
+   "fieldname": "vdr_link_fieldname",
+   "fieldtype": "Data",
+   "label": "Parent Link Field"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\" && doc.vdr_link_fieldname",
+   "description": "Field on the source DocType to match against the parent link field value. Defaults to 'name' if empty.",
+   "fieldname": "vdr_foreign_field",
+   "fieldtype": "Data",
+   "label": "Foreign Field"
+  },
+  {
+   "depends_on": "eval:false",
+   "description": "JSON array of fieldnames in display order (managed by Setup Listview Setting button and in-table gear icon)",
+   "fieldname": "vdr_fields_config",
+   "fieldtype": "Code",
+   "label": "Fields Config"
   }
  ],
  "grid_page_length": 50,

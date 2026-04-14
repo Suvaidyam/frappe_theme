@@ -83,17 +83,43 @@ const HelpersMixin = {
 	},
 
 	/**
-	 * Return the list of field descriptors that should be rendered as data rows,
-	 * respecting fields_to_show / fields_to_hide and skipping layout fields.
-	 * Section Break and Tab Break are NOT filtered here — rendering.js handles those separately.
+	 * Return the list of field descriptors that should be rendered as data rows.
+	 *
+	 * When this.fields_config is set (row settings saved by user or admin), it is
+	 * the authoritative ordered+visible field list and overrides fields_to_show /
+	 * fields_to_hide. When null, the default meta order + fields_to_show/hide
+	 * applies.
+	 *
+	 * Section Break and Tab Break are NOT filtered here — rendering.js handles
+	 * those separately.
 	 * @returns {Array}
 	 */
 	getVisibleFields() {
-		const SKIP_TYPES = new Set(["Column Break", "HTML", "Button", "Fold", "Image", "Signature", "Geolocation", "Barcode"]);
-		return (this.meta.fields || []).filter((df) => {
-			if (SKIP_TYPES.has(df.fieldtype)) return false;
-			if (df.fieldtype === "Tab Break" || df.fieldtype === "Section Break") return false;
-			if (df.hidden) return false;
+		const SKIP_TYPES = new Set([
+			"Column Break",
+			"HTML",
+			"Button",
+			"Fold",
+			"Image",
+			"Signature",
+			"Geolocation",
+			"Barcode",
+			"Tab Break",
+			"Section Break",
+		]);
+
+		const all = (this.meta.fields || []).filter(
+			(df) => !SKIP_TYPES.has(df.fieldtype) && !df.hidden
+		);
+
+		if (this.fields_config && this.fields_config.length > 0) {
+			// fields_config is authoritative: defines both order and visibility
+			const map = new Map(all.map((df) => [df.fieldname, df]));
+			return this.fields_config.map((fn) => map.get(fn)).filter(Boolean);
+		}
+
+		// Default: apply fields_to_show / fields_to_hide in meta order
+		return all.filter((df) => {
 			if (this.fields_to_hide && this.fields_to_hide.includes(df.fieldname)) return false;
 			if (this.fields_to_show && !this.fields_to_show.includes(df.fieldname)) return false;
 			return true;

@@ -287,6 +287,10 @@ const field_changes = {
 			{ fn: "vdr_hide_empty_rows", ft: "Check" },
 			{ fn: "vdr_show_legend", ft: "Check" },
 			{ fn: "vdr_legend_items", ft: "Code" },
+			{ fn: "vdr_max_height", ft: "Int" },
+			{ fn: "vdr_link_fieldname", ft: "Data" },
+			{ fn: "vdr_foreign_field", ft: "Data" },
+			{ fn: "vdr_fields_config", ft: "Code" },
 			{ fn: "crud_permissions", ft: "Code" },
 		];
 
@@ -759,6 +763,42 @@ const child_table_field_changes = {
 
 const set_list_settings = async (dialog) => {
 	let row = dialog.get_values(true, false);
+
+	// VDR: use vdr_doctype; store result in vdr_fields_config
+	if (row.property_type === "Vertical Doc Renderer") {
+		if (!row.vdr_doctype) {
+			frappe.msgprint({
+				message: __("Please set the Source DocType first."),
+				indicator: "orange",
+			});
+			return;
+		}
+		let dtmeta = await frappe.call({
+			method: "frappe_theme.dt_api.get_meta_fields",
+			args: { doctype: row.vdr_doctype, _type: "Direct" },
+		});
+		frappe.require("list_settings.bundle.js").then(() => {
+			let d = new frappe.ui.SVAListSettings({
+				doctype: row.vdr_doctype,
+				meta: dtmeta.message,
+				connection_type: "Direct",
+				settings: row,
+				dialog_primary_action: async (listview_settings) => {
+					// listview_settings is an array of {fieldname, label, ...}
+					// extract ordered fieldnames for vdr_fields_config
+					const fieldsConfig = listview_settings.map((f) => f.fieldname || f.field);
+					dialog.set_value("vdr_fields_config", JSON.stringify(fieldsConfig));
+					frappe.show_alert({ message: __("Row settings updated"), indicator: "green" });
+				},
+			});
+			dialog.wrapper.append(`<div class="modal-backdrop fade show"></div>`);
+			d.dialog.on_hide = () => {
+				dialog.wrapper.find(".modal-backdrop").remove();
+			};
+		});
+		return;
+	}
+
 	let dtmeta = await frappe.call({
 		method: "frappe_theme.dt_api.get_meta_fields",
 		args: {

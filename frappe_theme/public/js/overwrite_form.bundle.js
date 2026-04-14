@@ -27,7 +27,7 @@
 						}
 					});
 				});
-				observer.observe(this.dialog.$wrapper[0], { childList: true, subtree: true })
+				observer.observe(this.dialog.$wrapper[0], { childList: true, subtree: true });
 			}
 		}
 		CustomFileUploader.__patched_for_mgrant = true;
@@ -59,7 +59,6 @@
 		});
 	}
 })();
-
 
 import { get_parent_section_field_by_fieldname } from "./utils.bundle.js";
 import Loader from "./loader-element.js";
@@ -1096,24 +1095,57 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			}
 			case "Vertical Doc Renderer": {
 				let conf = field.sva_ft;
-				frm.sva_ft_instances[field.fieldname] = new SVAVerticalDocRenderer({
+
+				// Determine doc source: link-field-based (dynamic filter) or static docs list
+				let vdrDocs = null;
+				let vdrFilters = [];
+				if (conf.vdr_link_fieldname && frm.doc[conf.vdr_link_fieldname]) {
+					// Foreign key mode: fetch docs where foreignField = frm.doc[linkField]
+					const foreignField = conf.vdr_foreign_field || "name";
+					vdrFilters = [[foreignField, "=", frm.doc[conf.vdr_link_fieldname]]];
+					vdrDocs = null; // use paginated server-side mode with filters
+				} else if (!conf.vdr_link_fieldname && conf.vdr_docs) {
+					vdrDocs = JSON.parse(conf.vdr_docs);
+				}
+				// else: vdrDocs = null, vdrFilters = [] → paginated without filters
+
+				const instance = new SVAVerticalDocRenderer({
 					wrapper,
 					frm,
 					doctype: conf.vdr_doctype,
-					docs: conf.vdr_docs ? JSON.parse(conf.vdr_docs) : [],
-					column_configs: conf.vdr_column_configs ? JSON.parse(conf.vdr_column_configs) : [],
-					fields_to_show: conf.vdr_fields_to_show ? JSON.parse(conf.vdr_fields_to_show) : null,
-					fields_to_hide: conf.vdr_fields_to_hide ? JSON.parse(conf.vdr_fields_to_hide) : [],
+					docs: vdrDocs,
+					filters: vdrFilters,
+					column_configs: conf.vdr_column_configs
+						? JSON.parse(conf.vdr_column_configs)
+						: [],
+					fields_to_show: conf.vdr_fields_to_show
+						? JSON.parse(conf.vdr_fields_to_show)
+						: null,
+					fields_to_hide: conf.vdr_fields_to_hide
+						? JSON.parse(conf.vdr_fields_to_hide)
+						: [],
 					show_section_headers: conf.vdr_show_sections !== 0,
 					show_unit: !!conf.vdr_show_unit,
 					hide_empty_rows: !!conf.vdr_hide_empty_rows,
 					title: conf.vdr_title || null,
 					show_legend: !!conf.vdr_show_legend,
 					legend_items: conf.vdr_legend_items ? JSON.parse(conf.vdr_legend_items) : [],
-					crud_permissions: conf.crud_permissions ? JSON.parse(conf.crud_permissions) : ["read"],
+					crud_permissions: conf.crud_permissions
+						? JSON.parse(conf.crud_permissions)
+						: ["read"],
 					max_height: conf.vdr_max_height != null ? Number(conf.vdr_max_height) : 600,
 					signal,
+					vdr_field_name: field.fieldname,
+					fields_config: conf.vdr_fields_config
+						? JSON.parse(conf.vdr_fields_config)
+						: null,
 				});
+
+				// Store link field config on the instance for filter ribbon integration
+				instance._vdr_link_fieldname = conf.vdr_link_fieldname || null;
+				instance._vdr_foreign_field = conf.vdr_foreign_field || "name";
+
+				frm.sva_ft_instances[field.fieldname] = instance;
 				break;
 			}
 		}
@@ -1187,8 +1219,8 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					field?.connection_type === "Is Custom Design"
 						? field?.template
 						: ["Direct", "Unfiltered", "Indirect"].includes(field.connection_type)
-							? field.link_doctype
-							: field.referenced_link_doctype
+						? field.link_doctype
+						: field.referenced_link_doctype
 				)} items`
 			);
 			element.innerHTML = `

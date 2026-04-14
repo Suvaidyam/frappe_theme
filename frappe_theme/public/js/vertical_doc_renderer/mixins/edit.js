@@ -20,8 +20,17 @@ const EditMixin = {
 	 */
 	getEditableCellTypes() {
 		return [
-			"Data", "Int", "Float", "Currency", "Percent",
-			"Date", "Datetime", "Time", "Check", "Select", "Small Text",
+			"Data",
+			"Int",
+			"Float",
+			"Currency",
+			"Percent",
+			"Date",
+			"Datetime",
+			"Time",
+			"Check",
+			"Select",
+			"Small Text",
 		];
 	},
 
@@ -190,9 +199,10 @@ const EditMixin = {
 				if (cell) {
 					// Revert immediately — don't make the API call
 					const orig = cell.dataset.originalContent;
-					cell.innerHTML = orig !== undefined
-						? orig
-						: this.formatCellValue(doc[df.fieldname], df, doc, colIndex);
+					cell.innerHTML =
+						orig !== undefined
+							? orig
+							: this.formatCellValue(doc[df.fieldname], df, doc, colIndex);
 					delete cell.dataset.editing;
 					delete cell.dataset.originalContent;
 					this.attachEditListener(cell, df, doc, colIndex);
@@ -215,7 +225,9 @@ const EditMixin = {
 
 		// ── persist ─────────────────────────────────────────────────────────
 		try {
-			await frappe.db.set_value(this.doctype, doc.name, df.fieldname, newValue);
+			const dt = doc.doctype || this.doctype;
+			await frappe.db.set_value(dt, doc.name, df.fieldname, newValue);
+			// await frappe.db.set_value(this.doctype, doc.name, df.fieldname, newValue);
 			doc[df.fieldname] = newValue;
 
 			if (cell) {
@@ -243,9 +255,7 @@ const EditMixin = {
 			}
 		} catch (err) {
 			// ── failure: revert + show banner ───────────────────────────────
-			const errMsg =
-				(err && (err.message || err.exc_type)) ||
-				__("Could not save value");
+			const errMsg = (err && (err.message || err.exc_type)) || __("Could not save value");
 			const label = __(df.label || df.fieldname);
 			if (typeof this.showErrorBanner === "function") {
 				this.showErrorBanner([`${label}: ${errMsg}`]);
@@ -254,9 +264,10 @@ const EditMixin = {
 			if (cell) {
 				// Revert to original HTML (preserves resolved link titles etc.)
 				const orig = cell.dataset.originalContent;
-				cell.innerHTML = orig !== undefined
-					? orig
-					: this.formatCellValue(doc[df.fieldname], df, doc, colIndex);
+				cell.innerHTML =
+					orig !== undefined
+						? orig
+						: this.formatCellValue(doc[df.fieldname], df, doc, colIndex);
 				delete cell.dataset.editing;
 				delete cell.dataset.originalContent;
 				this.attachEditListener(cell, df, doc, colIndex);

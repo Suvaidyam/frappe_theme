@@ -33,7 +33,10 @@ vertical_doc_renderer/
     ├── helpers.js      ← getColumnCount, isEmptyRow, getFieldUnit, getVisibleFields
     ├── viewport.js     ← IntersectionObserver sentinel; lazy column loading on scroll;
     │                      calls resolveLinkTitles() + _appendDeleteCell() per batch
-    ├── create.js       ← "+" column header; openCreateDialog(); beforeCreate/afterCreate hooks
+    ├── create.js       ← "+" column header; openCreateDialog() adds a draft column inline
+    │                      (no dialog); _buildDraftHeaderCell/_buildDraftValueCell;
+    │                      _commitDraftColumn(frappe.db.insert); _removeDraftColumn;
+    │                      beforeCreate/afterCreate hooks
     ├── validation.js   ← _evaluateDepends(), isFieldHidden/ReadOnly/Required(),
     │                      validateBeforeSave(), showErrorBanner(), clearErrorBanner()
     ├── link_titles.js  ← resolveLinkTitles() batch-fetch (one get_list per link-doctype),
@@ -228,7 +231,7 @@ this.meta = { ...(response.meta || {}), name: this.doctype, fields: response.fie
 
 ## Known gaps
 
-- **Refresh method**: no public `refresh()` — re-instantiate to reload
+- **Refresh method**: `reloadTable()` is available; `refresh()` falls back to `reloadTable()` in overwrite_form.bundle.js
 - **Child table fields**: skipped during fetch (only scalar fields fetched)
 - **doctype.name not validated**: when `doctype` is an object, `doctype.name` is never checked against the server — any string works (intentional for mimicked meta)
 - **docs: null + mimicked meta**: unsupported — warns and renders empty (no real DB table to query)
