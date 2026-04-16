@@ -23,7 +23,11 @@ frappe.ui.form.on("Copy Role Perms", {
 		// Ctrl+S → trigger Create/Update Permissions
 		$(document).off("keydown.copy_role_perms");
 		$(document).on("keydown.copy_role_perms", function (e) {
-			if (e.ctrlKey && (e.key === "s" || e.key === "S") && cur_frm?.doctype === "Copy Role Perms") {
+			if (
+				e.ctrlKey &&
+				(e.key === "s" || e.key === "S") &&
+				cur_frm?.doctype === "Copy Role Perms"
+			) {
 				e.preventDefault();
 				frm.custom_btn?.click();
 			}
@@ -31,9 +35,9 @@ frappe.ui.form.on("Copy Role Perms", {
 
 		// Force Reference Doctype column to be wider
 		frappe.after_ajax(() => {
-			frm.fields_dict.permissions?.grid?.header_row?.find(
-				'.col[data-fieldname="reference_doctype"]'
-			).css({ "min-width": "220px", "width": "220px" });
+			frm.fields_dict.permissions?.grid?.header_row
+				?.find('.col[data-fieldname="reference_doctype"]')
+				.css({ "min-width": "220px", width: "220px" });
 		});
 
 		// Navigation
@@ -46,11 +50,11 @@ frappe.ui.form.on("Copy Role Perms", {
 
 		// Bulk Actions
 		[
-			["Select All",         () => toggle_all_perms(frm, true)],
-			["Deselect All",       () => toggle_all_perms(frm, false)],
-			["Enable Read",        () => apply_bulk(frm, { read: 1 })],
-			["Enable Write",       () => apply_bulk(frm, { write: 1 })],
-			["Enable Read & Write",  () => apply_bulk(frm, { read: 1, write: 1 })],
+			["Select All", () => toggle_all_perms(frm, true)],
+			["Deselect All", () => toggle_all_perms(frm, false)],
+			["Enable Read", () => apply_bulk(frm, { read: 1 })],
+			["Enable Write", () => apply_bulk(frm, { write: 1 })],
+			["Enable Read & Write", () => apply_bulk(frm, { read: 1, write: 1 })],
 			["Enable Read & Select", () => apply_bulk(frm, { read: 1, select: 1 })],
 		].forEach(([label, action]) => {
 			frm.add_custom_button(__(label), action, __("Bulk Actions"));
@@ -58,20 +62,32 @@ frappe.ui.form.on("Copy Role Perms", {
 
 		// Quick Presets — confirm before overwriting existing data
 		[
-			["Read Only",   "read_only"],
+			["Read Only", "read_only"],
 			["Full Access", "full_access"],
 			["Report Only", "report_only"],
-			["Data Entry",  "data_entry"],
+			["Data Entry", "data_entry"],
 		].forEach(([label, key]) => {
-			frm.add_custom_button(__(label), () => {
-				apply_preset_with_confirm(frm, key, label);
-			}, __("Quick Presets"));
+			frm.add_custom_button(
+				__(label),
+				() => {
+					apply_preset_with_confirm(frm, key, label);
+				},
+				__("Quick Presets")
+			);
 		});
 
 		// Tools
-		frm.add_custom_button(__("Export Permissions"), () => export_permissions(frm), __("Tools"));
-		frm.add_custom_button(__("Import Permissions"), () => import_permissions(frm), __("Tools"));
-		frm.add_custom_button(__("Undo Last Action"),   () => undo_last_action(frm),   __("Tools"));
+		frm.add_custom_button(
+			__("Export Permissions"),
+			() => export_permissions(frm),
+			__("Tools")
+		);
+		frm.add_custom_button(
+			__("Import Permissions"),
+			() => import_permissions(frm),
+			__("Tools")
+		);
+		frm.add_custom_button(__("Undo Last Action"), () => undo_last_action(frm), __("Tools"));
 
 		frm.trigger("set_button_label");
 
@@ -131,21 +147,21 @@ frappe.ui.form.on("Copy Role Perms", {
 					let row = frm.add_child("permissions");
 					Object.assign(row, {
 						reference_doctype: perm.parent,
-						permlevel:  perm.permlevel,
-						select:     perm.select,
-						read:       perm.read,
-						write:      perm.write,
-						create:     perm.create,
-						delete_to:  perm.delete,
-						submit_to:  perm.submit,
-						cancel_to:  perm.cancel,
-						amend:      perm.amend,
-						report:     perm.report,
-						export:     perm.export,
-						import_to:  perm.import,
-						share:      perm.share,
-						print:      perm.print,
-						email:      perm.email,
+						permlevel: perm.permlevel,
+						select: perm.select,
+						read: perm.read,
+						write: perm.write,
+						create: perm.create,
+						delete_to: perm.delete,
+						submit_to: perm.submit,
+						cancel_to: perm.cancel,
+						amend: perm.amend,
+						report: perm.report,
+						export: perm.export,
+						import_to: perm.import,
+						share: perm.share,
+						print: perm.print,
+						email: perm.email,
 					});
 				});
 				frm.refresh_field("permissions");
@@ -247,7 +263,8 @@ function check_duplicate_perms(frm) {
 		frappe.throw({
 			title: __("Duplicate Permissions Found"),
 			indicator: "red",
-			message: __("The following permissions are duplicated:") + "<br>" + duplicates.join("<br>"),
+			message:
+				__("The following permissions are duplicated:") + "<br>" + duplicates.join("<br>"),
 		});
 	}
 }
@@ -293,11 +310,22 @@ function warn_if_duplicate(frm, current_row) {
 function toggle_all_perms(frm, enable) {
 	save_snapshot(frm);
 	frm.doc.permissions.forEach((row) => {
-		row.read  = enable ? 1 : 0;
+		row.read = enable ? 1 : 0;
 		row.write = enable ? 1 : 0;
 		if (row.permlevel === 0) {
-			["select", "create", "delete_to", "submit_to", "cancel_to",
-			 "amend", "report", "export", "import_to", "share", "print", "email",
+			[
+				"select",
+				"create",
+				"delete_to",
+				"submit_to",
+				"cancel_to",
+				"amend",
+				"report",
+				"export",
+				"import_to",
+				"share",
+				"print",
+				"email",
 			].forEach((f) => (row[f] = enable ? 1 : 0));
 		}
 	});
@@ -315,24 +343,68 @@ const set_bulk_perms = apply_bulk;
 
 const PRESETS = {
 	read_only: {
-		read: 1, write: 0, create: 0, delete_to: 0, submit_to: 0,
-		cancel_to: 0, amend: 0, report: 1, export: 0, share: 0,
-		print: 0, email: 0, select: 1, import_to: 0,
+		read: 1,
+		write: 0,
+		create: 0,
+		delete_to: 0,
+		submit_to: 0,
+		cancel_to: 0,
+		amend: 0,
+		report: 1,
+		export: 0,
+		share: 0,
+		print: 0,
+		email: 0,
+		select: 1,
+		import_to: 0,
 	},
 	full_access: {
-		read: 1, write: 1, create: 1, delete_to: 1, submit_to: 1,
-		cancel_to: 1, amend: 1, report: 1, export: 1, share: 1,
-		print: 1, email: 1, select: 1, import_to: 1,
+		read: 1,
+		write: 1,
+		create: 1,
+		delete_to: 1,
+		submit_to: 1,
+		cancel_to: 1,
+		amend: 1,
+		report: 1,
+		export: 1,
+		share: 1,
+		print: 1,
+		email: 1,
+		select: 1,
+		import_to: 1,
 	},
 	report_only: {
-		read: 1, write: 0, create: 0, delete_to: 0, submit_to: 0,
-		cancel_to: 0, amend: 0, report: 1, export: 1, share: 0,
-		print: 1, email: 0, select: 0, import_to: 0,
+		read: 1,
+		write: 0,
+		create: 0,
+		delete_to: 0,
+		submit_to: 0,
+		cancel_to: 0,
+		amend: 0,
+		report: 1,
+		export: 1,
+		share: 0,
+		print: 1,
+		email: 0,
+		select: 0,
+		import_to: 0,
 	},
 	data_entry: {
-		read: 1, write: 1, create: 1, delete_to: 0, submit_to: 0,
-		cancel_to: 0, amend: 0, report: 1, export: 1, share: 0,
-		print: 1, email: 1, select: 0, import_to: 0,
+		read: 1,
+		write: 1,
+		create: 1,
+		delete_to: 0,
+		submit_to: 0,
+		cancel_to: 0,
+		amend: 0,
+		report: 1,
+		export: 1,
+		share: 0,
+		print: 1,
+		email: 1,
+		select: 0,
+		import_to: 0,
 	},
 };
 

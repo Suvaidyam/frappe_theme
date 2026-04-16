@@ -47,14 +47,16 @@ function register_buttons(frm) {
 	frappe.after_ajax(() => {
 		const header = frm.fields_dict.role_profiles?.grid?.header_row;
 		if (!header) return;
-		header.find('.col[data-fieldname="role_profile"]').css({ "min-width": "250px", "width": "250px" });
-		header.find('.col[data-fieldname="role"]').css({ "min-width": "250px", "width": "250px" });
+		header
+			.find('.col[data-fieldname="role_profile"]')
+			.css({ "min-width": "250px", width: "250px" });
+		header.find('.col[data-fieldname="role"]').css({ "min-width": "250px", width: "250px" });
 	});
 
 	if (frm.doc.workspace) {
 		// Bulk Actions
 		[
-			["Grant All",  () => toggle_all_perms(frm, true)],
+			["Grant All", () => toggle_all_perms(frm, true)],
 			["Revoke All", () => toggle_all_perms(frm, false)],
 		].forEach(([label, action]) => {
 			frm.add_custom_button(__(label), action, __("Bulk Actions"));
@@ -69,7 +71,11 @@ function register_buttons(frm) {
 	// Ctrl+S → trigger Apply Permissions
 	$(document).off("keydown.bulk_workspace_perms");
 	$(document).on("keydown.bulk_workspace_perms", function (e) {
-		if (e.ctrlKey && (e.key === "s" || e.key === "S") && cur_frm?.doctype === "Bulk Workspace Permissions") {
+		if (
+			e.ctrlKey &&
+			(e.key === "s" || e.key === "S") &&
+			cur_frm?.doctype === "Bulk Workspace Permissions"
+		) {
 			e.preventDefault();
 			frm.custom_btn?.click();
 		}
@@ -144,8 +150,8 @@ function load_role_profiles(frm) {
 				let row = frm.add_child("role_profiles");
 				Object.assign(row, {
 					role_profile: item.role_profile,
-					role:         item.role,
-					has_access:   item.has_access || 0,
+					role: item.role,
+					has_access: item.has_access || 0,
 				});
 			});
 			frm.refresh_field("role_profiles");

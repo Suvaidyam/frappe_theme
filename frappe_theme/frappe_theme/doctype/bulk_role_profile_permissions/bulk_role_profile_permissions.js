@@ -34,8 +34,10 @@ function register_buttons(frm) {
 	frappe.after_ajax(() => {
 		const header = frm.fields_dict.role_profiles?.grid?.header_row;
 		if (!header) return;
-		header.find('.col[data-fieldname="role_profile"]').css({ "min-width": "250px", "width": "250px" });
-		header.find('.col[data-fieldname="role"]').css({ "min-width": "250px", "width": "250px" });
+		header
+			.find('.col[data-fieldname="role_profile"]')
+			.css({ "min-width": "250px", width: "250px" });
+		header.find('.col[data-fieldname="role"]').css({ "min-width": "250px", width: "250px" });
 	});
 
 	if (
@@ -45,13 +47,13 @@ function register_buttons(frm) {
 	) {
 		// Bulk Actions
 		[
-			["Select All",           () => toggle_all_perms(frm, true)],
-			["Deselect All",         () => toggle_all_perms(frm, false)],
-			["Enable Read",          () => apply_bulk(frm, { read: 1 })],
-			["Enable Write",         () => apply_bulk(frm, { write: 1 })],
-			["Enable Read & Write",  () => apply_bulk(frm, { read: 1, write: 1 })],
-			["Disable Read",         () => apply_bulk(frm, { read: 0 })],
-			["Disable Write",        () => apply_bulk(frm, { write: 0 })],
+			["Select All", () => toggle_all_perms(frm, true)],
+			["Deselect All", () => toggle_all_perms(frm, false)],
+			["Enable Read", () => apply_bulk(frm, { read: 1 })],
+			["Enable Write", () => apply_bulk(frm, { write: 1 })],
+			["Enable Read & Write", () => apply_bulk(frm, { read: 1, write: 1 })],
+			["Disable Read", () => apply_bulk(frm, { read: 0 })],
+			["Disable Write", () => apply_bulk(frm, { write: 0 })],
 			["Disable Read & Write", () => apply_bulk(frm, { read: 0, write: 0 })],
 		].forEach(([label, action]) => {
 			frm.add_custom_button(__(label), action, __("Bulk Actions"));
@@ -59,14 +61,18 @@ function register_buttons(frm) {
 
 		// Quick Presets — confirm before overwriting existing data
 		[
-			["Read Only",   "read_only"],
+			["Read Only", "read_only"],
 			["Full Access", "full_access"],
 			["Report Only", "report_only"],
-			["Data Entry",  "data_entry"],
+			["Data Entry", "data_entry"],
 		].forEach(([label, key]) => {
-			frm.add_custom_button(__(label), () => {
-				apply_preset_with_confirm(frm, key, label);
-			}, __("Quick Presets"));
+			frm.add_custom_button(
+				__(label),
+				() => {
+					apply_preset_with_confirm(frm, key, label);
+				},
+				__("Quick Presets")
+			);
 		});
 
 		// Tools
@@ -78,7 +84,11 @@ function register_buttons(frm) {
 	// Ctrl+S → trigger Apply Permissions
 	$(document).off("keydown.bulk_role_profile_perms");
 	$(document).on("keydown.bulk_role_profile_perms", function (e) {
-		if (e.ctrlKey && (e.key === "s" || e.key === "S") && cur_frm?.doctype === "Bulk Role Profile Permissions") {
+		if (
+			e.ctrlKey &&
+			(e.key === "s" || e.key === "S") &&
+			cur_frm?.doctype === "Bulk Role Profile Permissions"
+		) {
 			e.preventDefault();
 			frm.custom_btn?.click();
 		}
@@ -150,22 +160,22 @@ function load_role_profiles(frm) {
 				let row = frm.add_child("role_profiles");
 				Object.assign(row, {
 					role_profile: item.role_profile,
-					role:         item.role,
-					permlevel:    item.permlevel || 0,
-					select:       item.select || 0,
-					read:         item.read   || 0,
-					write:        item.write  || 0,
-					create:       item.create || 0,
-					delete:       item.delete || 0,
-					submit:       item.submit || 0,
-					cancel:       item.cancel || 0,
-					amend:        item.amend  || 0,
-					report:       item.report || 0,
-					export:       item.export || 0,
-					import:       item.import || 0,
-					share:        item.share  || 0,
-					print:        item.print  || 0,
-					email:        item.email  || 0,
+					role: item.role,
+					permlevel: item.permlevel || 0,
+					select: item.select || 0,
+					read: item.read || 0,
+					write: item.write || 0,
+					create: item.create || 0,
+					delete: item.delete || 0,
+					submit: item.submit || 0,
+					cancel: item.cancel || 0,
+					amend: item.amend || 0,
+					report: item.report || 0,
+					export: item.export || 0,
+					import: item.import || 0,
+					share: item.share || 0,
+					print: item.print || 0,
+					email: item.email || 0,
 				});
 			});
 			frm.refresh_field("role_profiles");
@@ -186,11 +196,22 @@ function load_role_profiles(frm) {
 function toggle_all_perms(frm, enable) {
 	save_snapshot(frm);
 	frm.doc.role_profiles.forEach((row) => {
-		row.read  = enable ? 1 : 0;
+		row.read = enable ? 1 : 0;
 		row.write = enable ? 1 : 0;
 		if (row.permlevel === 0) {
-			["select", "create", "delete", "submit", "cancel",
-			 "amend", "report", "export", "import", "share", "print", "email",
+			[
+				"select",
+				"create",
+				"delete",
+				"submit",
+				"cancel",
+				"amend",
+				"report",
+				"export",
+				"import",
+				"share",
+				"print",
+				"email",
 			].forEach((f) => (row[f] = enable ? 1 : 0));
 		}
 	});
@@ -205,24 +226,68 @@ function apply_bulk(frm, perms) {
 
 const PRESETS = {
 	read_only: {
-		read: 1, write: 0, create: 0, delete: 0, submit: 0,
-		cancel: 0, amend: 0, report: 1, export: 0, share: 0,
-		print: 0, email: 0, select: 1, import: 0,
+		read: 1,
+		write: 0,
+		create: 0,
+		delete: 0,
+		submit: 0,
+		cancel: 0,
+		amend: 0,
+		report: 1,
+		export: 0,
+		share: 0,
+		print: 0,
+		email: 0,
+		select: 1,
+		import: 0,
 	},
 	full_access: {
-		read: 1, write: 1, create: 1, delete: 1, submit: 1,
-		cancel: 1, amend: 1, report: 1, export: 1, share: 1,
-		print: 1, email: 1, select: 1, import: 1,
+		read: 1,
+		write: 1,
+		create: 1,
+		delete: 1,
+		submit: 1,
+		cancel: 1,
+		amend: 1,
+		report: 1,
+		export: 1,
+		share: 1,
+		print: 1,
+		email: 1,
+		select: 1,
+		import: 1,
 	},
 	report_only: {
-		read: 1, write: 0, create: 0, delete: 0, submit: 0,
-		cancel: 0, amend: 0, report: 1, export: 1, share: 0,
-		print: 1, email: 0, select: 0, import: 0,
+		read: 1,
+		write: 0,
+		create: 0,
+		delete: 0,
+		submit: 0,
+		cancel: 0,
+		amend: 0,
+		report: 1,
+		export: 1,
+		share: 0,
+		print: 1,
+		email: 0,
+		select: 0,
+		import: 0,
 	},
 	data_entry: {
-		read: 1, write: 1, create: 1, delete: 0, submit: 0,
-		cancel: 0, amend: 0, report: 1, export: 1, share: 0,
-		print: 1, email: 1, select: 0, import: 0,
+		read: 1,
+		write: 1,
+		create: 1,
+		delete: 0,
+		submit: 0,
+		cancel: 0,
+		amend: 0,
+		report: 1,
+		export: 1,
+		share: 0,
+		print: 1,
+		email: 1,
+		select: 0,
+		import: 0,
 	},
 };
 
