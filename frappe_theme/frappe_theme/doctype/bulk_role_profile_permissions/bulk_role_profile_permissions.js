@@ -76,6 +76,7 @@ function register_buttons(frm) {
 		});
 
 		// Tools
+		frm.add_custom_button(__("Copy from DocType"), () => copy_from_doctype(frm), __("Tools"));
 		frm.add_custom_button(__("Undo Last Action"), () => undo_last_action(frm), __("Tools"));
 
 		add_apply_button(frm);
@@ -315,4 +316,96 @@ function apply_preset(frm, preset, label) {
 		message: __(`"${label || preset}" preset applied`),
 		indicator: "green",
 	});
+}
+
+// ── Copy from DocType ─────────────────────────────────────────────────────────
+
+function copy_from_doctype(frm) {
+	if (!frm.doc.role_profiles?.length) {
+		frappe.msgprint(__("Load Role Profiles first before copying permissions."));
+		return;
+	}
+
+	frappe.prompt(
+		[
+			{
+				fieldname: "source_doctype",
+				fieldtype: "Link",
+				options: "DocType",
+				label: __("Copy Permissions From"),
+				reqd: 1,
+				description: __(
+					"Permissions of this DocType will be applied to all matching roles."
+				),
+			},
+		],
+		(values) => {
+			if (values.source_doctype === frm.doc.doctype_name) {
+				frappe.msgprint(__("Source and target DocType cannot be the same."));
+				return;
+			}
+
+			frappe.call({
+				method: "frappe_theme.frappe_theme.doctype.bulk_role_profile_permissions.bulk_role_profile_permissions.get_permissions_for_doctype",
+				args: { doctype_name: values.source_doctype },
+				freeze: true,
+				freeze_message: __("Fetching permissions..."),
+				callback(r) {
+					const perm_map = r.message;
+					if (!perm_map || !Object.keys(perm_map).length) {
+						frappe.msgprint(
+							__(`No permissions found for "{0}".`, [values.source_doctype])
+						);
+						return;
+					}
+
+					save_snapshot(frm);
+					let applied = 0;
+
+					frm.doc.role_profiles.forEach((row) => {
+						// Try exact permlevel match first, then fallback to level 0
+						const perm =
+							perm_map[`${row.role}::${row.permlevel}`] ||
+							perm_map[`${row.role}::0`];
+
+						if (!perm) return;
+
+						if (row.permlevel === 0) {
+							Object.assign(row, {
+								select: perm.select || 0,
+								read: perm.read || 0,
+								write: perm.write || 0,
+								create: perm.create || 0,
+								delete: perm.delete || 0,
+								submit: perm.submit || 0,
+								cancel: perm.cancel || 0,
+								amend: perm.amend || 0,
+								report: perm.report || 0,
+								export: perm.export || 0,
+								import: perm.import || 0,
+								share: perm.share || 0,
+								print: perm.print || 0,
+								email: perm.email || 0,
+							});
+						} else {
+							// Higher permlevels: only read/write
+							row.read = perm.read || 0;
+							row.write = perm.write || 0;
+						}
+						applied++;
+					});
+
+					frm.refresh_field("role_profiles");
+					frappe.show_alert({
+						message: __(
+							`Permissions copied from "${values.source_doctype}" to ${applied} rows.`
+						),
+						indicator: "green",
+					});
+				},
+			});
+		},
+		__("Copy Permissions from DocType"),
+		__("Copy")
+	);
 }

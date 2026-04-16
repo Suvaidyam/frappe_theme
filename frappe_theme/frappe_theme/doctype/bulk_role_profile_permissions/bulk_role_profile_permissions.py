@@ -139,6 +139,40 @@ def get_role_profiles_with_roles(doctype_name=None):
 
 
 @frappe.whitelist()
+def get_permissions_for_doctype(doctype_name):
+	"""
+	Return a role→permissions mapping for a given DocType.
+	Checks Custom DocPerm first, falls back to standard DocPerm.
+	Key format: "role::permlevel"
+	"""
+	perm_fields = [
+		"role",
+		"permlevel",
+		"select",
+		"read",
+		"write",
+		"create",
+		"delete",
+		"submit",
+		"cancel",
+		"amend",
+		"report",
+		"export",
+		"import",
+		"share",
+		"print",
+		"email",
+	]
+
+	perms = frappe.get_all("Custom DocPerm", filters={"parent": doctype_name}, fields=perm_fields)
+
+	if not perms:
+		perms = frappe.get_all("DocPerm", filters={"parent": doctype_name}, fields=perm_fields)
+
+	return {f"{p.role}::{p.permlevel}": p for p in perms}
+
+
+@frappe.whitelist()
 def apply_bulk_permissions(doc):
 	"""
 	Apply permissions to the selected DocType for all role profiles and roles
