@@ -30,6 +30,7 @@
     ],
     "fields": [
         {
+            "columns": 5,
             "fieldname": "role_profile",
             "fieldtype": "Link",
             "in_list_view": 1,
@@ -38,6 +39,7 @@
             "reqd": 1
         },
         {
+            "columns": 4,
             "fieldname": "role",
             "fieldtype": "Link",
             "in_list_view": 1,
@@ -50,6 +52,7 @@
             "fieldtype": "Column Break"
         },
         {
+            "columns": 1,
             "default": "0",
             "fieldname": "permlevel",
             "fieldtype": "Int",
@@ -63,6 +66,7 @@
             "label": "Permissions"
         },
         {
+            "columns": 1,
             "default": "0",
             "depends_on": "eval:doc.permlevel == 0",
             "fieldname": "select",
@@ -71,6 +75,7 @@
             "label": "Select"
         },
         {
+            "columns": 1,
             "default": "0",
             "fieldname": "read",
             "fieldtype": "Check",
@@ -78,6 +83,7 @@
             "label": "Read"
         },
         {
+            "columns": 1,
             "default": "0",
             "fieldname": "write",
             "fieldtype": "Check",
@@ -85,6 +91,7 @@
             "label": "Write"
         },
         {
+            "columns": 1,
             "default": "0",
             "depends_on": "eval:doc.permlevel == 0",
             "fieldname": "create",
@@ -93,6 +100,7 @@
             "label": "Create"
         },
         {
+            "columns": 1,
             "default": "0",
             "depends_on": "eval:doc.permlevel == 0",
             "fieldname": "delete",
@@ -105,6 +113,7 @@
             "fieldtype": "Column Break"
         },
         {
+            "columns": 1,
             "default": "0",
             "depends_on": "eval:doc.permlevel == 0",
             "fieldname": "submit",
@@ -113,6 +122,7 @@
             "label": "Submit"
         },
         {
+            "columns": 1,
             "default": "0",
             "depends_on": "eval:doc.permlevel == 0",
             "fieldname": "cancel",
@@ -121,6 +131,7 @@
             "label": "Cancel"
         },
         {
+            "columns": 1,
             "default": "0",
             "depends_on": "eval:doc.permlevel == 0",
             "fieldname": "amend",
@@ -134,6 +145,7 @@
             "label": "Additional Permissions"
         },
         {
+            "columns": 1,
             "default": "0",
             "depends_on": "eval:doc.permlevel == 0",
             "fieldname": "report",
@@ -142,6 +154,7 @@
             "label": "Report"
         },
         {
+            "columns": 1,
             "default": "0",
             "depends_on": "eval:doc.permlevel == 0",
             "fieldname": "export",
@@ -150,6 +163,7 @@
             "label": "Export"
         },
         {
+            "columns": 1,
             "default": "0",
             "depends_on": "eval:doc.permlevel == 0",
             "fieldname": "import",
@@ -162,6 +176,7 @@
             "fieldtype": "Column Break"
         },
         {
+            "columns": 1,
             "default": "0",
             "depends_on": "eval:doc.permlevel == 0",
             "fieldname": "share",
@@ -170,6 +185,7 @@
             "label": "Share"
         },
         {
+            "columns": 1,
             "default": "0",
             "depends_on": "eval:doc.permlevel == 0",
             "fieldname": "print",
@@ -178,6 +194,7 @@
             "label": "Print"
         },
         {
+            "columns": 1,
             "default": "0",
             "depends_on": "eval:doc.permlevel == 0",
             "fieldname": "email",
