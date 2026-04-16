@@ -84,7 +84,12 @@ def get_role_profiles_with_roles(doctype_name=None):
 	# Roles to skip
 	skip_roles = ["Donor Observer"]
 
+	# Role Profiles to skip entirely
+	skip_profiles = ["Admin & Support Manager", "Partnerships Team", "NGO Compliance Auditor"]
+
 	for rp in role_profiles:
+		if rp.name in skip_profiles:
+			continue
 		# Get all roles assigned to this role profile
 		roles = frappe.get_all(
 			"Has Role",
