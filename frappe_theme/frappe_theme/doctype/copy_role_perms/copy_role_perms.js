@@ -20,6 +20,15 @@ frappe.ui.form.on("Copy Role Perms", {
 		frm._perm_snapshot = null;
 		frm.custom_btn = null; // reset stale ref so button is always re-added
 
+		// Ctrl+S → trigger Create/Update Permissions
+		$(document).off("keydown.copy_role_perms");
+		$(document).on("keydown.copy_role_perms", function (e) {
+			if (e.ctrlKey && (e.key === "s" || e.key === "S") && cur_frm?.doctype === "Copy Role Perms") {
+				e.preventDefault();
+				frm.custom_btn?.click();
+			}
+		});
+
 		// Force Reference Doctype column to be wider
 		frappe.after_ajax(() => {
 			frm.fields_dict.permissions?.grid?.header_row?.find(

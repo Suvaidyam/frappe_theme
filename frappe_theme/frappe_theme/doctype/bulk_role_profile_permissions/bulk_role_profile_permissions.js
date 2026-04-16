@@ -74,6 +74,15 @@ function register_buttons(frm) {
 
 		add_apply_button(frm);
 	}
+
+	// Ctrl+S → trigger Apply Permissions
+	$(document).off("keydown.bulk_role_profile_perms");
+	$(document).on("keydown.bulk_role_profile_perms", function (e) {
+		if (e.ctrlKey && (e.key === "s" || e.key === "S") && cur_frm?.doctype === "Bulk Role Profile Permissions") {
+			e.preventDefault();
+			frm.custom_btn?.click();
+		}
+	});
 }
 
 // ── Undo ─────────────────────────────────────────────────────────────────────
