@@ -4,9 +4,8 @@
 frappe.ui.form.on("Copy Role Perms", {
 	refresh(frm) {
 		const toggleBtn = document.querySelector(".btn.btn-default.icon-btn");
-		if (toggleBtn) {
-			toggleBtn.style.display = "none";
-		}
+		if (toggleBtn) toggleBtn.style.display = "none";
+
 		set_app_select_options(frm);
 		frm.disable_save();
 		frappe.after_ajax(() => {
@@ -18,86 +17,55 @@ frappe.ui.form.on("Copy Role Perms", {
 		});
 
 		frm.set_value("perms_type", "Get & Update Perms");
+		frm._perm_snapshot = null;
+		frm.custom_btn = null; // reset stale ref so button is always re-added
 
-		// Redirect to Bulk Role Profile Permissions
+		// Force Reference Doctype column to be wider
+		frappe.after_ajax(() => {
+			frm.fields_dict.permissions?.grid?.header_row?.find(
+				'.col[data-fieldname="reference_doctype"]'
+			).css({ "min-width": "220px", "width": "220px" });
+		});
+
+		// Navigation
 		frm.add_custom_button(__("Bulk Role Profile Permissions"), () => {
 			frappe.set_route("Form", "Bulk Role Profile Permissions");
 		});
-
-		// Redirect to Bulk Workspace Permissions
 		frm.add_custom_button(__("Bulk Workspace Permissions"), () => {
 			frappe.set_route("Form", "Bulk Workspace Permissions");
 		});
 
-		// Bulk operations
-		frm.add_custom_button(
-			__("Select All"),
-			() => toggle_all_perms(frm, true),
-			__("Bulk Actions")
-		);
-		frm.add_custom_button(
-			__("Deselect All"),
-			() => toggle_all_perms(frm, false),
-			__("Bulk Actions")
-		);
-		frm.add_custom_button(
-			__("Enable Read"),
-			() => set_bulk_perms(frm, { read: 1 }),
-			__("Bulk Actions")
-		);
-		frm.add_custom_button(
-			__("Enable Write"),
-			() => set_bulk_perms(frm, { write: 1 }),
-			__("Bulk Actions")
-		);
-		frm.add_custom_button(
-			__("Enable Read & Write"),
-			() => set_bulk_perms(frm, { read: 1, write: 1 }),
-			__("Bulk Actions")
-		);
-		frm.add_custom_button(
-			__("Enable Read & Select"),
-			() => set_bulk_perms(frm, { read: 1, select: 1 }),
-			__("Bulk Actions")
-		);
+		// Bulk Actions
+		[
+			["Select All",         () => toggle_all_perms(frm, true)],
+			["Deselect All",       () => toggle_all_perms(frm, false)],
+			["Enable Read",        () => apply_bulk(frm, { read: 1 })],
+			["Enable Write",       () => apply_bulk(frm, { write: 1 })],
+			["Enable Read & Write",  () => apply_bulk(frm, { read: 1, write: 1 })],
+			["Enable Read & Select", () => apply_bulk(frm, { read: 1, select: 1 })],
+		].forEach(([label, action]) => {
+			frm.add_custom_button(__(label), action, __("Bulk Actions"));
+		});
 
-		// Quick Presets
-		frm.add_custom_button(
-			__("Read Only"),
-			() => apply_preset(frm, "read_only"),
-			__("Quick Presets")
-		);
-		frm.add_custom_button(
-			__("Full Access"),
-			() => apply_preset(frm, "full_access"),
-			__("Quick Presets")
-		);
-		frm.add_custom_button(
-			__("Report Only"),
-			() => apply_preset(frm, "report_only"),
-			__("Quick Presets")
-		);
-		frm.add_custom_button(
-			__("Data Entry"),
-			() => apply_preset(frm, "data_entry"),
-			__("Quick Presets")
-		);
+		// Quick Presets — confirm before overwriting existing data
+		[
+			["Read Only",   "read_only"],
+			["Full Access", "full_access"],
+			["Report Only", "report_only"],
+			["Data Entry",  "data_entry"],
+		].forEach(([label, key]) => {
+			frm.add_custom_button(__(label), () => {
+				apply_preset_with_confirm(frm, key, label);
+			}, __("Quick Presets"));
+		});
 
-		// Export/Import
-		frm.add_custom_button(
-			__("Export Permissions"),
-			() => export_permissions(frm),
-			__("Tools")
-		);
-		frm.add_custom_button(
-			__("Import Permissions"),
-			() => import_permissions(frm),
-			__("Tools")
-		);
+		// Tools
+		frm.add_custom_button(__("Export Permissions"), () => export_permissions(frm), __("Tools"));
+		frm.add_custom_button(__("Import Permissions"), () => import_permissions(frm), __("Tools"));
+		frm.add_custom_button(__("Undo Last Action"),   () => undo_last_action(frm),   __("Tools"));
 
 		frm.trigger("set_button_label");
 
-		// Main action button
 		if (!frm.custom_btn) {
 			frm.custom_btn = frm.add_custom_button(__("Create Permissions"), function () {
 				if (!frm.doc.role_to || !frm.doc.permissions || frm.doc.permissions.length === 0) {
@@ -112,14 +80,12 @@ frappe.ui.form.on("Copy Role Perms", {
 						: "Updating Permissions...";
 				frappe.call({
 					method: "frappe_theme.controllers.copy_role_perms.copy_role_perms.copy_all_permissions",
-					args: {
-						doc: frm.doc,
-					},
-					callback: function (r) {
+					args: { doc: frm.doc },
+					callback(r) {
 						if (r.message) {
 							frappe.show_alert({
 								message: __(
-									`Permissions  Created: ${r.message.message.Created}, Updated: ${r.message.message.Updated}`
+									`Permissions Created: ${r.message.message.Created}, Updated: ${r.message.message.Updated}`
 								),
 								indicator: "green",
 							});
@@ -132,73 +98,92 @@ frappe.ui.form.on("Copy Role Perms", {
 			frm.custom_btn.addClass("btn-primary");
 		}
 	},
-	perms_type: function (frm) {
+
+	perms_type(frm) {
 		frm.set_value("role_from", null);
 		frm.trigger("set_button_label");
-
-		if (frm.doc.perms_type === "Create Perms") {
-			frm.set_df_property("role_to", "label", "Role");
-		} else {
-			frm.set_df_property("role_to", "label", "Role To");
-		}
+		frm.set_df_property(
+			"role_to",
+			"label",
+			frm.doc.perms_type === "Create Perms" ? "Role" : "Role To"
+		);
 	},
-	role_from: function (frm) {
+
+	role_from(frm) {
 		frappe.call({
 			method: "frappe_theme.controllers.copy_role_perms.copy_role_perms.get_all_permissions",
-			args: {
-				role_from: frm.doc.role_from,
-			},
+			args: { role_from: frm.doc.role_from },
 			freeze: true,
 			freeze_message: __("Getting Permissions..."),
-			callback: function (r) {
-				if (r.message && r.message.permissions) {
-					frm.clear_table("permissions");
-
-					r.message.permissions.forEach((perm) => {
-						let row = frm.add_child("permissions");
-						row.reference_doctype = perm.parent;
-						row.permlevel = perm.permlevel;
-						row.select = perm.select;
-						row.read = perm.read;
-						row.write = perm.write;
-						row.create = perm.create;
-						row.delete_to = perm.delete;
-						row.submit_to = perm.submit;
-						row.cancel_to = perm.cancel;
-						row.amend = perm.amend;
-						row.report = perm.report;
-						row.export = perm.export;
-						row.import_to = perm.import;
-						row.share = perm.share;
-						row.print = perm.print;
-						row.email = perm.email;
+			callback(r) {
+				if (!r.message?.permissions) return;
+				frm.clear_table("permissions");
+				r.message.permissions.forEach((perm) => {
+					let row = frm.add_child("permissions");
+					Object.assign(row, {
+						reference_doctype: perm.parent,
+						permlevel:  perm.permlevel,
+						select:     perm.select,
+						read:       perm.read,
+						write:      perm.write,
+						create:     perm.create,
+						delete_to:  perm.delete,
+						submit_to:  perm.submit,
+						cancel_to:  perm.cancel,
+						amend:      perm.amend,
+						report:     perm.report,
+						export:     perm.export,
+						import_to:  perm.import,
+						share:      perm.share,
+						print:      perm.print,
+						email:      perm.email,
 					});
-					frm.refresh_field("permissions");
-				}
+				});
+				frm.refresh_field("permissions");
 			},
 		});
 	},
+
 	set_button_label(frm) {
 		if (frm.custom_btn) {
-			let label =
+			frm.custom_btn.html(
 				frm.doc.perms_type === "Get & Update Perms"
 					? __("Update Permissions")
-					: __("Create Permissions");
-			frm.custom_btn.html(label);
+					: __("Create Permissions")
+			);
 		}
 	},
-	apps: function (frm) {
+
+	apps(frm) {
 		set_all_doctypes_in_permissions(frm);
 	},
 });
 
+// ── Undo ─────────────────────────────────────────────────────────────────────
+
+function save_snapshot(frm) {
+	frm._perm_snapshot = frm.doc.permissions.map((row) => ({ ...row }));
+}
+
+function undo_last_action(frm) {
+	if (!frm._perm_snapshot) {
+		frappe.show_alert({ message: __("Nothing to undo"), indicator: "orange" });
+		return;
+	}
+	frm.clear_table("permissions");
+	frm._perm_snapshot.forEach((snap) => frm.add_child("permissions", snap));
+	frm.refresh_field("permissions");
+	frm._perm_snapshot = null;
+	frappe.show_alert({ message: __("Last action undone"), indicator: "blue" });
+}
+
+// ── App / DocType helpers ─────────────────────────────────────────────────────
+
 function set_app_select_options(frm) {
 	frappe.call({
 		method: "frappe_theme.controllers.copy_role_perms.copy_role_perms.get_app_list",
-		callback: function (r) {
-			if (r.message) {
-				frm.set_df_property("apps", "options", r.message);
-			}
+		callback(r) {
+			if (r.message) frm.set_df_property("apps", "options", r.message);
 		},
 	});
 }
@@ -207,51 +192,44 @@ function set_all_doctypes_in_permissions(frm) {
 	frappe.call({
 		method: "frappe_theme.controllers.copy_role_perms.copy_role_perms.get_all_doctypes",
 		args: { app: frm.doc.apps },
-		callback: function (r) {
+		callback(r) {
 			if (!r.message) return;
 			frm.clear_table("permissions");
 			r.message.forEach((doc) => {
-				frm.add_child(
-					"permissions",
-					Object.assign(
-						{
-							reference_doctype: doc.name,
-						},
-						{
-							permlevel: 0,
-							select: 0,
-							read: 1,
-							write: 1,
-							create: 0,
-							delete_to: 0,
-							submit_to: 0,
-							cancel_to: 0,
-							amend: 0,
-							report: 1,
-							export: 1,
-							import_to: 0,
-							share: 0,
-							print: 0,
-							email: 1,
-						}
-					)
-				);
+				frm.add_child("permissions", {
+					reference_doctype: doc.name,
+					permlevel: 0,
+					select: 0,
+					read: 1,
+					write: 1,
+					create: 0,
+					delete_to: 0,
+					submit_to: 0,
+					cancel_to: 0,
+					amend: 0,
+					report: 1,
+					export: 1,
+					import_to: 0,
+					share: 0,
+					print: 0,
+					email: 1,
+				});
 			});
-
 			frm.refresh_field("permissions");
 		},
 	});
 }
 
+// ── Duplicate check ───────────────────────────────────────────────────────────
+
 function check_duplicate_perms(frm) {
-	if (!frm.doc.permissions?.length) return false;
+	if (!frm.doc.permissions?.length) return;
 	const seen = new Set();
 	const duplicates = frm.doc.permissions
 		.map((row) => {
 			const key = `${row.reference_doctype}::${row.permlevel}`;
-			if (seen.has(key)) {
+			if (seen.has(key))
 				return `Row ${row.idx}: ${row.reference_doctype} (Level ${row.permlevel})`;
-			}
 			seen.add(key);
 		})
 		.filter(Boolean);
@@ -260,132 +238,125 @@ function check_duplicate_perms(frm) {
 		frappe.throw({
 			title: __("Duplicate Permissions Found"),
 			indicator: "red",
-			message: __("The following permissions are duplicated:") + " " + duplicates.join(""),
+			message: __("The following permissions are duplicated:") + "<br>" + duplicates.join("<br>"),
 		});
 	}
 }
 
+// ── Child table events ────────────────────────────────────────────────────────
+
 frappe.ui.form.on("Copy Role Perms Child", {
-	permlevel: function (frm, cdt, cdn) {
+	permlevel(frm, cdt, cdn) {
 		let row = frappe.get_doc(cdt, cdn);
 		frappe.meta.get_docfield(cdt, "select", cdn).read_only = 1;
 		if (row.permlevel > 9) {
 			row.permlevel = null;
-			frappe.throw(__(`Value of Level cannot exceed 9 in  row ${row.idx}`));
+			frappe.throw(__(`Value of Level cannot exceed 9 in row ${row.idx}`));
 		}
+		warn_if_duplicate(frm, row);
+	},
+
+	reference_doctype(frm, cdt, cdn) {
+		warn_if_duplicate(frm, frappe.get_doc(cdt, cdn));
 	},
 });
 
+function warn_if_duplicate(frm, current_row) {
+	if (!frm?.doc?.permissions || !current_row?.reference_doctype) return;
+	const is_dup = frm.doc.permissions.some(
+		(row) =>
+			row.name !== current_row.name &&
+			row.reference_doctype === current_row.reference_doctype &&
+			row.permlevel === current_row.permlevel
+	);
+	if (is_dup) {
+		frappe.show_alert({
+			message: __(
+				`Duplicate: "${current_row.reference_doctype}" at Level ${current_row.permlevel} already exists.`
+			),
+			indicator: "red",
+		});
+	}
+}
+
+// ── Bulk / Preset operations ──────────────────────────────────────────────────
+
 function toggle_all_perms(frm, enable) {
+	save_snapshot(frm);
 	frm.doc.permissions.forEach((row) => {
-		if (row.permlevel === 0) {
-			row.select = enable ? 1 : 0;
-			row.create = enable ? 1 : 0;
-			row.delete_to = enable ? 1 : 0;
-			row.submit_to = enable ? 1 : 0;
-			row.cancel_to = enable ? 1 : 0;
-			row.amend = enable ? 1 : 0;
-			row.report = enable ? 1 : 0;
-			row.export = enable ? 1 : 0;
-			row.import_to = enable ? 1 : 0;
-			row.share = enable ? 1 : 0;
-			row.print = enable ? 1 : 0;
-			row.email = enable ? 1 : 0;
-		}
-		row.read = enable ? 1 : 0;
+		row.read  = enable ? 1 : 0;
 		row.write = enable ? 1 : 0;
+		if (row.permlevel === 0) {
+			["select", "create", "delete_to", "submit_to", "cancel_to",
+			 "amend", "report", "export", "import_to", "share", "print", "email",
+			].forEach((f) => (row[f] = enable ? 1 : 0));
+		}
 	});
 	frm.refresh_field("permissions");
 }
 
-function set_bulk_perms(frm, perms) {
-	frm.doc.permissions.forEach((row) => {
-		Object.assign(row, perms);
-	});
+function apply_bulk(frm, perms) {
+	save_snapshot(frm);
+	frm.doc.permissions.forEach((row) => Object.assign(row, perms));
 	frm.refresh_field("permissions");
 }
 
-function apply_preset(frm, preset) {
-	const presets = {
-		read_only: {
-			read: 1,
-			write: 0,
-			create: 0,
-			delete_to: 0,
-			submit_to: 0,
-			cancel_to: 0,
-			amend: 0,
-			report: 0,
-			export: 0,
-			share: 0,
-			print: 0,
-			email: 0,
-			select: 0,
-			import_to: 0,
-		},
-		full_access: {
-			read: 1,
-			write: 1,
-			create: 1,
-			delete_to: 1,
-			submit_to: 1,
-			cancel_to: 1,
-			amend: 1,
-			report: 1,
-			export: 1,
-			share: 1,
-			print: 1,
-			email: 1,
-			select: 1,
-			import_to: 1,
-		},
-		report_only: {
-			read: 1,
-			write: 0,
-			create: 0,
-			delete_to: 0,
-			submit_to: 0,
-			cancel_to: 0,
-			amend: 0,
-			report: 1,
-			export: 1,
-			share: 0,
-			print: 1,
-			email: 0,
-			select: 0,
-			import_to: 0,
-		},
-		data_entry: {
-			read: 1,
-			write: 1,
-			create: 1,
-			delete_to: 0,
-			submit_to: 0,
-			cancel_to: 0,
-			amend: 0,
-			report: 1,
-			export: 1,
-			share: 0,
-			print: 1,
-			email: 1,
-			select: 0,
-			import_to: 0,
-		},
-	};
+// Backwards-compatible alias
+const set_bulk_perms = apply_bulk;
 
+const PRESETS = {
+	read_only: {
+		read: 1, write: 0, create: 0, delete_to: 0, submit_to: 0,
+		cancel_to: 0, amend: 0, report: 1, export: 0, share: 0,
+		print: 0, email: 0, select: 1, import_to: 0,
+	},
+	full_access: {
+		read: 1, write: 1, create: 1, delete_to: 1, submit_to: 1,
+		cancel_to: 1, amend: 1, report: 1, export: 1, share: 1,
+		print: 1, email: 1, select: 1, import_to: 1,
+	},
+	report_only: {
+		read: 1, write: 0, create: 0, delete_to: 0, submit_to: 0,
+		cancel_to: 0, amend: 0, report: 1, export: 1, share: 0,
+		print: 1, email: 0, select: 0, import_to: 0,
+	},
+	data_entry: {
+		read: 1, write: 1, create: 1, delete_to: 0, submit_to: 0,
+		cancel_to: 0, amend: 0, report: 1, export: 1, share: 0,
+		print: 1, email: 1, select: 0, import_to: 0,
+	},
+};
+
+function apply_preset_with_confirm(frm, preset, label) {
+	const run = () => apply_preset(frm, preset, label);
+	if (frm.doc.permissions?.length) {
+		frappe.confirm(__("This will overwrite existing permissions. Continue?"), run);
+	} else {
+		run();
+	}
+}
+
+function apply_preset(frm, preset, label) {
+	save_snapshot(frm);
+	const config = PRESETS[preset];
 	frm.doc.permissions.forEach((row) => {
-		Object.keys(presets[preset]).forEach((key) => {
+		Object.keys(config).forEach((key) => {
 			if (row.permlevel === 0 || key === "read" || key === "write") {
-				row[key] = presets[preset][key];
+				row[key] = config[key];
 			}
 		});
 	});
 	frm.refresh_field("permissions");
-	frappe.show_alert({ message: __("Preset applied"), indicator: "green" });
+	frappe.show_alert({
+		message: __(`"${label || preset}" preset applied`),
+		indicator: "green",
+	});
 }
 
+// ── Export / Import ───────────────────────────────────────────────────────────
+
 function export_permissions(frm) {
-	if (!frm.doc.permissions || !frm.doc.permissions.length) {
+	if (!frm.doc.permissions?.length) {
 		frappe.msgprint(__("No permissions to export"));
 		return;
 	}
@@ -401,6 +372,7 @@ function export_permissions(frm) {
 	a.href = url;
 	a.download = `permissions_${frm.doc.role_to}_${frappe.datetime.now_date()}.json`;
 	a.click();
+	URL.revokeObjectURL(url);
 	frappe.show_alert({ message: __("Permissions exported"), indicator: "green" });
 }
 
@@ -415,6 +387,7 @@ function import_permissions(frm) {
 			try {
 				const data = JSON.parse(event.target.result);
 				if (data.permissions) {
+					save_snapshot(frm);
 					frm.clear_table("permissions");
 					const seen = new Set();
 					data.permissions.forEach((perm) => {
