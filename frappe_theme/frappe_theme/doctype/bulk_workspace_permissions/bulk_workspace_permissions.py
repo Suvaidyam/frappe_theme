@@ -31,7 +31,12 @@ def get_role_profiles_with_workspace_access(workspace=None):
 	skip_roles = ["Donor Observer"]
 
 	# Role Profiles to skip entirely
-	skip_profiles = ["Admin & Support Manager", "Partnerships Team", "NGO Compliance Auditor"]
+	skip_profiles = [
+		"Admin & Support Manager",
+		"Partnerships Team",
+		"NGO Compliance Auditor",
+		"Platform Engineer",
+	]
 
 	for rp in role_profiles:
 		if rp.name in skip_profiles:
