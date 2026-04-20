@@ -111,7 +111,6 @@ const show_table = async (frm, document_type) => {
 			"frappe_theme.dt_api.get_approval_tracker_listview_setting",
 			{ doctype_name: document_type }
 		);
-		console.log(saved_listview_settings, "saved_listview_settings");
 	} catch (e) {
 		console.warn("Could not load Approval Tracker listview settings:", e);
 	}
