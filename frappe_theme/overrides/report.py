@@ -89,7 +89,6 @@ class CustomReport(Report):
 			limit_page_length,
 			limit_start,
 		)
-
 		if return_query:
 			return sql_with_applied_filters
 

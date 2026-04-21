@@ -44,6 +44,7 @@ frappe.ui.form.on("Workflow", {
 		});
 	},
 });
+
 frappe.ui.form.on("Workflow Transition", {
 	custom_setup_fields: function (frm, cdt, cdn) {
 		const child = locals[cdt][cdn];
@@ -81,24 +82,109 @@ frappe.ui.form.on("Workflow Transition", {
 				console.warn("Invalid JSON in custom_selected_fields");
 			}
 
-			// Create a map for quick access
+			// Create a map for quick access (regular fields only)
 			const pre_selected_map = {};
-			pre_selected_fields.forEach((field) => {
-				pre_selected_map[field.fieldname] = field;
+			pre_selected_fields.forEach((item) => {
+				if (item.fieldname) {
+					pre_selected_map[item.fieldname] = item;
+				}
 			});
 
-			// Reorder fields: selected fields at top in saved order, then unselected
-			const selected_fieldnames = pre_selected_fields.map((f) => f.fieldname);
-			const selectedFields = [];
-			const unselectedFields = [];
-			selected_fieldnames.forEach((fname) => {
-				const found = fields.find((f) => f.fieldname === fname);
-				if (found) selectedFields.push(found);
+			// Build ordered list: saved items (fields + layout breaks) in order, then unselected fields
+			const selected_fieldnames = pre_selected_fields
+				.filter((i) => i.fieldname)
+				.map((i) => i.fieldname);
+
+			// orderedItems = interleaved list of {type: "field"|"layout", ...}
+			const orderedItems = [];
+			pre_selected_fields.forEach((item) => {
+				if (item.fieldtype === "Section Break" || item.fieldtype === "Column Break") {
+					orderedItems.push({
+						type: "layout",
+						fieldtype: item.fieldtype,
+						label: item.label || "",
+						hide_border: item.hide_border || false,
+					});
+				} else if (item.fieldname) {
+					const found = fields.find((f) => f.fieldname === item.fieldname);
+					if (found) orderedItems.push({ type: "field", ...found });
+				}
 			});
+			// Append unselected regular fields at the end
 			fields.forEach((f) => {
-				if (!selected_fieldnames.includes(f.fieldname)) unselectedFields.push(f);
+				if (!selected_fieldnames.includes(f.fieldname)) {
+					orderedItems.push({ type: "field", ...f });
+				}
 			});
-			const orderedFields = [...selectedFields, ...unselectedFields];
+
+			// Helper: build layout break row HTML
+			function layoutBreakRowHtml(fieldtype, label, idx, hide_border) {
+				const row_bg = idx % 2 === 0 ? "var(--control-bg)" : "var(--bg-light-gray)";
+				const isSection = fieldtype === "Section Break";
+				const badge_color = isSection ? "var(--blue-100)" : "var(--gray-200)";
+				const badge_text_color = isSection ? "var(--blue-700)" : "var(--gray-700)";
+				return `
+                    <div class="field-row layout-break-row" data-fieldtype="${fieldtype}" style="
+                        display: grid;
+                        grid-template-columns: 24px 1fr 70px 70px 70px 28px;
+                        gap: 0;
+                        align-items: center;
+                        padding: 4px 12px;
+                        background: ${row_bg};
+                        border-bottom: 1px solid var(--border-color);
+                        font-size: 13px;
+                    ">
+                        <span class="drag-handle" style="cursor: grab; color: var(--gray-500); display: flex; align-items: center; justify-content: center;">
+                            ${frappe.utils.icon("drag", "xs", "", "", "sortable-handle ")}
+                        </span>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="
+                                background: ${badge_color};
+                                color: ${badge_text_color};
+                                font-size: 11px;
+                                font-weight: 600;
+                                padding: 2px 8px;
+                                border-radius: 10px;
+                                white-space: nowrap;
+                            ">${fieldtype}</span>
+                            ${
+								isSection
+									? `<input type="text" class="section-label-input" placeholder="Label (optional)" value="${frappe.utils.escape_html(
+											label
+									  )}" style="
+                                border: 1px solid var(--border-color);
+                                border-radius: 3px;
+                                padding: 2px 6px;
+                                font-size: 12px;
+                                background: var(--control-bg);
+                                color: var(--text-color);
+                                flex: 1;
+                                min-width: 0;
+                            ">
+                            <label style="display:flex; align-items:center; gap:4px; margin-bottom:0; font-size:12px; color:var(--text-muted); white-space:nowrap; cursor:pointer;">
+                                <input type="checkbox" class="section-hide-border" ${
+									hide_border ? "checked" : ""
+								} style="width:13px; height:13px; margin:0;">
+                                Hide Border
+                            </label>`
+									: ""
+							}
+                        </div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <button type="button" class="remove-layout-row btn btn-xs" title="Remove" style="
+                            padding: 0 4px;
+                            line-height: 1.4;
+                            font-size: 14px;
+                            color: var(--gray-600);
+                            background: transparent;
+                            border: none;
+                            cursor: pointer;
+                        ">×</button>
+                    </div>
+                `;
+			}
 
 			// Build compact, Frappe-style layout
 			let html = `
@@ -112,7 +198,7 @@ frappe.ui.form.on("Workflow Transition", {
                 ">
                     <div style="
                         display: grid;
-                        grid-template-columns: 24px 1fr 70px 70px 70px;
+                        grid-template-columns: 24px 1fr 70px 70px 70px 28px;
                         gap: 0;
                         align-items: center;
                         padding: 6px 12px;
@@ -127,25 +213,32 @@ frappe.ui.form.on("Workflow Transition", {
                         <div style="text-align: center;">Read Only</div>
                         <div style="text-align: center;">Required</div>
                         <div style="text-align: center;">Fetch If Exists</div>
+                        <div></div>
                     </div>
                     <div id="sortable-fields">
             `;
 
-			orderedFields.forEach((field, idx) => {
-				const saved = pre_selected_map[field.fieldname];
+			orderedItems.forEach((item, idx) => {
+				const row_bg = idx % 2 === 0 ? "var(--control-bg)" : "var(--bg-light-gray)";
+
+				if (item.type === "layout") {
+					html += layoutBreakRowHtml(item.fieldtype, item.label, idx, item.hide_border);
+					return;
+				}
+
+				// Regular field row
+				const saved = pre_selected_map[item.fieldname];
 				const is_included = !!saved;
 				const is_read_only = saved?.read_only ? "checked" : "";
 				const is_required = saved?.reqd ? "checked" : "";
 				const is_fetch_if_exists = saved?.fetch_if_exists ? "checked" : "";
-				const row_bg = idx % 2 === 0 ? "var(--control-bg)" : "var(--bg-light-gray)";
 				const disabled = is_included ? "" : "disabled";
-				// Fix: fetch_if_exists should be disabled if field is not included OR if it's read-only
 				const fetch_disabled = is_included && !saved?.read_only ? "" : "disabled";
 
 				html += `
-                    <div class="field-row" data-fieldname="${field.fieldname}" style="
+                    <div class="field-row" data-fieldname="${item.fieldname}" style="
                         display: grid;
-                        grid-template-columns: 24px 1fr 70px 70px 70px;
+                        grid-template-columns: 24px 1fr 70px 70px 70px 28px;
                         gap: 0;
                         align-items: center;
                         padding: 4px 12px;
@@ -167,19 +260,19 @@ frappe.ui.form.on("Workflow Transition", {
                         ">
                             <input type="checkbox"
                                 class="field-include"
-                                data-fieldname="${field.fieldname}"
+                                data-fieldname="${item.fieldname}"
                                 ${is_included ? "checked" : ""}
                                 style="width: 14px; height: 14px; margin: 0;"
                             >
-                            <span class="field-label" style="font-size: 13px;">${
-								field.label
-							}</span>
+                            <span class="field-label" style="font-size: 13px;">${frappe.utils.escape_html(
+								item.label || ""
+							)}</span>
                         </label>
                         <div style="text-align: center;">
                             <label style="display: flex; align-items: center; justify-content: center; cursor: pointer; margin-bottom: 0;">
                                 <input type="checkbox"
                                     class="field-readonly"
-                                    data-fieldname="${field.fieldname}"
+                                    data-fieldname="${item.fieldname}"
                                     ${is_read_only}
                                     ${disabled}
                                     style="width: 14px; height: 14px; margin: 0;"
@@ -190,7 +283,7 @@ frappe.ui.form.on("Workflow Transition", {
                             <label style="display: flex; align-items: center; justify-content: center; cursor: pointer; margin-bottom: 0;">
                                 <input type="checkbox"
                                     class="field-required"
-                                    data-fieldname="${field.fieldname}"
+                                    data-fieldname="${item.fieldname}"
                                     ${is_required}
                                     ${disabled}
                                     style="width: 14px; height: 14px; margin: 0;"
@@ -201,13 +294,14 @@ frappe.ui.form.on("Workflow Transition", {
                             <label style="display: flex; align-items: center; justify-content: center; cursor: pointer; margin-bottom: 0;">
                                 <input type="checkbox"
                                     class="field-fetch-if-exists"
-                                    data-fieldname="${field.fieldname}"
+                                    data-fieldname="${item.fieldname}"
                                     ${is_fetch_if_exists}
                                     ${fetch_disabled}
                                     style="width: 14px; height: 14px; margin: 0;"
                                 >
                             </label>
                         </div>
+                        <div></div>
                     </div>
                 `;
 			});
@@ -228,6 +322,11 @@ frappe.ui.form.on("Workflow Transition", {
 							$(dialog.fields_dict.field_checkboxes.wrapper)
 								.find(".field-row")
 								.each(function () {
+									// Always show layout break rows during search
+									if ($(this).hasClass("layout-break-row")) {
+										$(this).show();
+										return;
+									}
 									const fieldLabel = $(this)
 										.find(".field-label")
 										.text()
@@ -243,6 +342,14 @@ frappe.ui.form.on("Workflow Transition", {
 						input_class: "search-input-left",
 					},
 					{ fieldtype: "Column Break" },
+					{
+						fieldname: "layout_buttons",
+						fieldtype: "HTML",
+						options: `<div style="display:flex; gap:8px; justify-content:flex-end; padding-top:20px;">
+							<button type="button" class="btn btn-sm btn-default add-section-break-btn" style="font-size:12px;">+ Section Break</button>
+							<button type="button" class="btn btn-xs btn-default add-column-break-btn" style="font-size:12px;">+ Column Break</button>
+						</div>`,
+					},
 					{ fieldtype: "Column Break" },
 					{ fieldtype: "Section Break" },
 					{
@@ -257,6 +364,23 @@ frappe.ui.form.on("Workflow Transition", {
 					$(dialog.fields_dict.field_checkboxes.wrapper)
 						.find("#sortable-fields .field-row")
 						.each(function () {
+							const fieldtype = $(this).data("fieldtype");
+
+							// Layout break row
+							if (fieldtype === "Section Break" || fieldtype === "Column Break") {
+								const label = $(this).find(".section-label-input").val() || "";
+								const hide_border = $(this)
+									.find(".section-hide-border")
+									.is(":checked");
+								selected_fields.push({
+									fieldtype,
+									...(label ? { label } : {}),
+									...(hide_border ? { hide_border: true } : {}),
+								});
+								return;
+							}
+
+							// Regular field row
 							const fieldname = $(this).data("fieldname");
 							const label =
 								fields.find((f) => f.fieldname === fieldname)?.label || fieldname;
@@ -307,10 +431,31 @@ frappe.ui.form.on("Workflow Transition", {
 				);
 			});
 
-			// On open: ensure required and fetch_if_exists are disabled if readonly is checked
-			$(dialog.fields_dict.field_checkboxes.wrapper)
-				.find(".field-row")
-				.each(function () {
+			// Add Section Break / Column Break buttons
+			setTimeout(() => {
+				const $wrapper = $(dialog.fields_dict.field_checkboxes.wrapper);
+				const $sortable = $wrapper.find("#sortable-fields");
+
+				$(dialog.body)
+					.find(".add-section-break-btn")
+					.on("click", function () {
+						const idx = $sortable.find(".field-row").length;
+						$sortable.prepend(layoutBreakRowHtml("Section Break", "", idx));
+					});
+				$(dialog.body)
+					.find(".add-column-break-btn")
+					.on("click", function () {
+						const idx = $sortable.find(".field-row").length;
+						$sortable.prepend(layoutBreakRowHtml("Column Break", "", idx));
+					});
+
+				// Remove layout row
+				$sortable.on("click", ".remove-layout-row", function () {
+					$(this).closest(".field-row").remove();
+				});
+
+				// On open: ensure required and fetch_if_exists are disabled if readonly is checked
+				$wrapper.find(".field-row:not(.layout-break-row)").each(function () {
 					const $readonly = $(this).find(".field-readonly");
 					const $required = $(this).find(".field-required");
 					const $fetchIfExists = $(this).find(".field-fetch-if-exists");
@@ -322,56 +467,50 @@ frappe.ui.form.on("Workflow Transition", {
 					}
 				});
 
-			// Add event listener to enable/disable read_only and required checkboxes
-			setTimeout(() => {
-				$(dialog.fields_dict.field_checkboxes.wrapper)
-					.find(".field-include")
-					.on("change", function () {
-						const fieldname = $(this).data("fieldname");
-						const checked = $(this).is(":checked");
-						const $readonly = $(dialog.fields_dict.field_checkboxes.wrapper).find(
-							`.field-readonly[data-fieldname='${fieldname}']`
+				// Add event listener to enable/disable read_only and required checkboxes
+				$wrapper.find(".field-include").on("change", function () {
+					const fieldname = $(this).data("fieldname");
+					const checked = $(this).is(":checked");
+					const $readonly = $wrapper.find(
+						`.field-readonly[data-fieldname='${fieldname}']`
+					);
+					const $required = $wrapper.find(
+						`.field-required[data-fieldname='${fieldname}']`
+					);
+					const $fetchIfExists = $wrapper.find(
+						`.field-fetch-if-exists[data-fieldname='${fieldname}']`
+					);
+					$readonly.prop("disabled", !checked);
+					$required.prop("disabled", !checked || $readonly.is(":checked"));
+					$fetchIfExists.prop("disabled", !checked || $readonly.is(":checked"));
+					if (!checked) {
+						$required.prop("checked", false);
+						$readonly.prop("checked", false);
+						$fetchIfExists.prop("checked", false);
+					}
+				});
+				$wrapper.find(".field-readonly").on("change", function () {
+					const fieldname = $(this).data("fieldname");
+					const checked = $(this).is(":checked");
+					const $required = $wrapper.find(
+						`.field-required[data-fieldname='${fieldname}']`
+					);
+					const $fetchIfExists = $wrapper.find(
+						`.field-fetch-if-exists[data-fieldname='${fieldname}']`
+					);
+					if (checked) {
+						$required.prop("checked", false);
+						$required.prop("disabled", true);
+						$fetchIfExists.prop("checked", false);
+						$fetchIfExists.prop("disabled", true);
+					} else {
+						const $include = $wrapper.find(
+							`.field-include[data-fieldname='${fieldname}']`
 						);
-						const $required = $(dialog.fields_dict.field_checkboxes.wrapper).find(
-							`.field-required[data-fieldname='${fieldname}']`
-						);
-						const $fetchIfExists = $(dialog.fields_dict.field_checkboxes.wrapper).find(
-							`.field-fetch-if-exists[data-fieldname='${fieldname}']`
-						);
-						$readonly.prop("disabled", !checked);
-						$required.prop("disabled", !checked || $readonly.is(":checked"));
-						$fetchIfExists.prop("disabled", !checked || $readonly.is(":checked"));
-						if (!checked) {
-							$required.prop("checked", false);
-							$readonly.prop("checked", false);
-							$fetchIfExists.prop("checked", false);
-						}
-					});
-				$(dialog.fields_dict.field_checkboxes.wrapper)
-					.find(".field-readonly")
-					.on("change", function () {
-						const fieldname = $(this).data("fieldname");
-						const checked = $(this).is(":checked");
-						const $required = $(dialog.fields_dict.field_checkboxes.wrapper).find(
-							`.field-required[data-fieldname='${fieldname}']`
-						);
-						const $fetchIfExists = $(dialog.fields_dict.field_checkboxes.wrapper).find(
-							`.field-fetch-if-exists[data-fieldname='${fieldname}']`
-						);
-						if (checked) {
-							$required.prop("checked", false);
-							$required.prop("disabled", true);
-							$fetchIfExists.prop("checked", false);
-							$fetchIfExists.prop("disabled", true);
-						} else {
-							// Only enable if the field is included
-							const $include = $(dialog.fields_dict.field_checkboxes.wrapper).find(
-								`.field-include[data-fieldname='${fieldname}']`
-							);
-							$required.prop("disabled", !$include.is(":checked"));
-							$fetchIfExists.prop("disabled", !$include.is(":checked"));
-						}
-					});
+						$required.prop("disabled", !$include.is(":checked"));
+						$fetchIfExists.prop("disabled", !$include.is(":checked"));
+					}
+				});
 			}, 0);
 		});
 	},

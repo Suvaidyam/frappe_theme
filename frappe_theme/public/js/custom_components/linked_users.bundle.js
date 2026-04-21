@@ -1,8 +1,9 @@
 class SVALinkedUser {
-	constructor(frm, wrapper) {
+	constructor(frm, wrapper, connection) {
 		this.frm = frm;
 		this.wrapper = wrapper;
 		this.user_list = [];
+		this.connection = connection;
 		this.permissions = [];
 		this.total_pages = 1;
 		this.currentPage = 1;
@@ -36,7 +37,6 @@ class SVALinkedUser {
 		let el = document.createElement("div");
 		el.style = "overflow-y:auto;";
 		el.className = "form-grid-container form-grid";
-
 		const canWrite = this.permissions.includes("write");
 		const canDelete = this.permissions.includes("delete");
 
@@ -272,7 +272,9 @@ class SVALinkedUser {
 	}
 	async render_user() {
 		try {
-			this.permissions = await this.getPermissions();
+			let role_permissions = await this.getPermissions();
+			let crud_permissions = JSON.parse(this?.connection?.crud_permissions ?? "[]");
+			this.permissions = role_permissions.filter((p) => crud_permissions.includes(p));
 			// Check if user has at least read permission
 			if (!this.permissions.includes("read")) {
 				const noPermissionDiv = document.createElement("div");
