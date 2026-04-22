@@ -132,6 +132,7 @@ frappe.ui.form.on("*", {
 					.join(", ");
 				const parentLabel =
 					is_configured_as_dt.parents.length > 1 ? "parent records" : "parent record";
+				frm.set_intro("");
 				frm.set_intro(
 					__(
 						"This form is read-only because it is managed as a child table. To make any changes, please open it from the {0}: {1}.",

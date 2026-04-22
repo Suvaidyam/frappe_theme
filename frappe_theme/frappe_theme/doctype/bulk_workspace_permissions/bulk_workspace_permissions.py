@@ -27,10 +27,20 @@ def get_role_profiles_with_workspace_access(workspace=None):
 		for r in ws.roles:
 			existing_roles.add(r.role)
 
-	# Roles to skip (copying logic from bulk_role_profile_permissions)
+	# Roles to skip
 	skip_roles = ["Donor Observer"]
 
+	# Role Profiles to skip entirely
+	skip_profiles = [
+		"Admin & Support Manager",
+		"Partnerships Team",
+		"NGO Compliance Auditor",
+		"Platform Engineer",
+	]
+
 	for rp in role_profiles:
+		if rp.name in skip_profiles:
+			continue
 		# Get all roles assigned to this role profile
 		roles = frappe.get_all(
 			"Has Role",

@@ -104,6 +104,17 @@ const show_table = async (frm, document_type) => {
 	wf_field = wf_field?.message?.workflow_state_field;
 
 	await frappe.require("sva_datatable.bundle.js");
+
+	let saved_listview_settings = null;
+	try {
+		saved_listview_settings = await frappe.xcall(
+			"frappe_theme.dt_api.get_approval_tracker_listview_setting",
+			{ doctype_name: document_type }
+		);
+	} catch (e) {
+		console.warn("Could not load Approval Tracker listview settings:", e);
+	}
+
 	frm["sva_dt_instance"] = new frappe.ui.SvaDataTable({
 		wrapper: wrapper,
 		frm: Object.assign(frm, {
@@ -161,8 +172,27 @@ const show_table = async (frm, document_type) => {
 			connection_type: "Unfiltered",
 			unfiltered: 1,
 			crud_permissions: '["read"]',
+			listview_settings: saved_listview_settings || "[]",
 		},
 	});
+
+	frm["sva_dt_instance"].on_listview_settings_saved = async (listview_settings, reset) => {
+		try {
+			if (reset) {
+				await frappe.xcall(
+					"frappe_theme.dt_api.delete_approval_tracker_listview_setting",
+					{ doctype_name: document_type }
+				);
+			} else {
+				await frappe.xcall("frappe_theme.dt_api.save_approval_tracker_listview_setting", {
+					doctype_name: document_type,
+					listview_json: JSON.stringify(listview_settings ?? []),
+				});
+			}
+		} catch (err) {
+			console.error("Failed to persist Approval Tracker listview settings:", err);
+		}
+	};
 
 	window.addEventListener("message", async function (event) {
 		if (event.data?.type === "FILTER_BY_STATE") {

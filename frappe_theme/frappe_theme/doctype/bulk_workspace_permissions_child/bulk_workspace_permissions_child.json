@@ -11,6 +11,7 @@
     ],
     "fields": [
         {
+            "columns": 5,
             "fieldname": "role_profile",
             "fieldtype": "Link",
             "in_list_view": 1,
@@ -19,6 +20,7 @@
             "read_only": 1
         },
         {
+            "columns": 4,
             "fieldname": "role",
             "fieldtype": "Link",
             "in_list_view": 1,
@@ -27,6 +29,7 @@
             "read_only": 1
         },
         {
+            "columns": 1,
             "default": "0",
             "fieldname": "has_access",
             "fieldtype": "Check",

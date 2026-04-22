@@ -206,13 +206,9 @@ class VersionUtils:
 		}
 
 		results = frappe.db.sql(sql, params, as_dict=True)
-		# Apply field-level permissions filtering
+		# Apply field-level permissions filtering and strip hidden fields from display
 		if results:
-			if frappe.session.user != "Administrator":
-				results = VersionUtils._apply_field_level_permissions(results, dt)
-			else:
-				# For Administrator, still filter out entries with empty changed arrays
-				results = VersionUtils._filter_empty_changed_arrays(results)
+			results = VersionUtils._apply_field_level_permissions(results, dt)
 
 		return results
 
@@ -252,10 +248,13 @@ class VersionUtils:
 	def _apply_field_level_permissions(results, parent_doctype):
 		"""
 		Filter field changes based on user's field-level permissions.
+		Hidden fields are stored in version history but excluded from the UI display.
 		Uses caching to optimize performance.
 		"""
 		# Cache for permitted fields per doctype
 		permitted_fields_cache = {}
+		# Cache for hidden fields per doctype
+		hidden_fields_cache = {}
 		# Cache for child table doctype resolution
 		child_table_doctype_cache = {}
 
@@ -271,6 +270,16 @@ class VersionUtils:
 					)
 				)
 			return permitted_fields_cache[cache_key]
+
+		def get_cached_hidden_fields(doctype):
+			"""Get hidden fields with caching. Hidden fields are excluded from display."""
+			if doctype not in hidden_fields_cache:
+				try:
+					meta = frappe.get_meta(doctype)
+					hidden_fields_cache[doctype] = {df.fieldname for df in meta.fields if df.hidden}
+				except Exception:
+					hidden_fields_cache[doctype] = set()
+			return hidden_fields_cache[doctype]
 
 		def get_child_table_doctype(parent_doctype, child_table_field):
 			"""Get child table doctype from parent doctype and fieldname."""
@@ -367,9 +376,14 @@ class VersionUtils:
 				# Get permitted fields for this doctype
 				permitted_fields = get_cached_permitted_fields(doctype_to_check, parenttype_for_check)
 
-				# Check if field is permitted
-				if field_name in permitted_fields:
-					# Remove field_name from the array before adding (to maintain original format)
+				# Hidden fields are stored but must not be shown in the UI
+				hidden_fields = get_cached_hidden_fields(doctype_to_check)
+				if field_name in hidden_fields:
+					continue
+
+				# Check field-level permissions (skip for Administrator)
+				is_admin = frappe.session.user == "Administrator"
+				if is_admin or field_name in permitted_fields:
 					# Keep only first 6 elements: [field_label, old_value, new_value, is_child_table, child_table_field, row_name]
 					filtered_changes.append(change_item[:6])
 

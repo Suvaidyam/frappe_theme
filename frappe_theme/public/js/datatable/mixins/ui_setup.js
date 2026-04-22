@@ -346,6 +346,13 @@ const UISetupMixin = {
 							);
 						}
 					}
+					if (typeof this.on_listview_settings_saved === "function") {
+						try {
+							await this.on_listview_settings_saved(listview_settings, reset);
+						} catch (cb_err) {
+							console.error("on_listview_settings_saved callback error:", cb_err);
+						}
+					}
 					this.reloadTable(true);
 				}
 			},
