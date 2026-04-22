@@ -36,7 +36,6 @@ def patch_db_query_permissions_operator() -> None:
 
 				if script.custom_apply_as_or:
 					or_conditions.append(condition)
-					has_or_connector = True
 				else:
 					and_conditions.append(condition)
 
@@ -48,7 +47,7 @@ def patch_db_query_permissions_operator() -> None:
 
 		if or_conditions:
 			or_block = " OR ".join(or_conditions)
-
+			has_or_connector = True
 			if final_query:
 				final_query = f"({final_query}) OR ({or_block})"
 			else:
