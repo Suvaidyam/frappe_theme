@@ -175,3 +175,52 @@ def get_workflow_transitions_for_table(doctype, docnames):
 		transitions = get_custom_transitions(doc)
 		result[docname] = transitions
 	return result
+
+
+@frappe.whitelist()
+def get_approval_tracker_listview_setting(doctype_name):
+	if not doctype_name:
+		return None
+	cache_key = f"approval_tracker_listview_{doctype_name}"
+	cached = frappe.cache.get_value(cache_key)
+	if cached is not None:
+		return cached
+	if frappe.db.exists("Approval Tracker ListView Setting", doctype_name):
+		value = frappe.db.get_value("Approval Tracker ListView Setting", doctype_name, "listview_json")
+		if value:
+			frappe.cache.set_value(cache_key, value)
+		return value
+	return None
+
+
+@frappe.whitelist()
+def save_approval_tracker_listview_setting(doctype_name, listview_json):
+	if not doctype_name:
+		frappe.throw(frappe._("Module is required"))
+
+	cache_key = f"approval_tracker_listview_{doctype_name}"
+
+	if frappe.db.exists("Approval Tracker ListView Setting", doctype_name):
+		doc = frappe.get_doc("Approval Tracker ListView Setting", doctype_name)
+		doc.listview_json = listview_json
+		doc.save(ignore_permissions=True)
+	else:
+		frappe.get_doc(
+			{
+				"doctype": "Approval Tracker ListView Setting",
+				"doctype_name": doctype_name,
+				"listview_json": listview_json,
+			}
+		).insert(ignore_permissions=True)
+	frappe.cache.set_value(cache_key, listview_json)
+	return True
+
+
+@frappe.whitelist()
+def delete_approval_tracker_listview_setting(doctype_name):
+	if not doctype_name:
+		return None
+	if frappe.db.exists("Approval Tracker ListView Setting", doctype_name):
+		frappe.delete_doc("Approval Tracker ListView Setting", doctype_name, ignore_permissions=True)
+		frappe.cache.delete_value(f"approval_tracker_listview_{doctype_name}")
+	return True
