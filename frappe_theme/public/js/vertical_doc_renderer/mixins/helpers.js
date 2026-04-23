@@ -83,6 +83,23 @@ const HelpersMixin = {
 	},
 
 	/**
+	 * Resolve the section_configs entry for a given Section/Tab Break field.
+	 * Looks up by fieldname first, then by label (case-sensitive).
+	 * Returns null when no config exists for this section.
+	 *
+	 * @param {Object} df — Section Break or Tab Break field descriptor
+	 * @returns {Object|null}
+	 */
+	_getSectionConfig(df) {
+		if (!this.section_configs || typeof this.section_configs !== "object") return null;
+		return (
+			this.section_configs[df.fieldname] ||
+			(df.label ? this.section_configs[df.label] : null) ||
+			null
+		);
+	},
+
+	/**
 	 * Return the list of field descriptors that should be rendered as data rows.
 	 *
 	 * When this.fields_config is set (row settings saved by user or admin), it is

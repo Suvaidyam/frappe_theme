@@ -117,22 +117,27 @@ const RenderingMixin = {
 			"Barcode",
 		]);
 
+		// Section-level config state — reset at each Section/Tab Break
+		let sectionHidden = false;
+		let currentSectionConfig = null;
+
 		fields.forEach((df) => {
 			if (SKIP_TYPES.has(df.fieldtype)) return;
 
-			if (df.fieldtype === "Section Break") {
-				if (this.show_section_headers && df.label) {
-					tbody.appendChild(this._buildSectionRow(df.label));
+			if (df.fieldtype === "Section Break" || df.fieldtype === "Tab Break") {
+				// Resolve config for this section (by fieldname, then by label)
+				currentSectionConfig = this._getSectionConfig(df);
+				sectionHidden = !!(currentSectionConfig && currentSectionConfig.hidden);
+
+				// Render section header only when not hidden
+				if (this.show_section_headers && df.label && !sectionHidden) {
+					tbody.appendChild(this._buildSectionRow(df.label, currentSectionConfig));
 				}
 				return;
 			}
 
-			if (df.fieldtype === "Tab Break") {
-				if (this.show_section_headers && df.label) {
-					tbody.appendChild(this._buildSectionRow(df.label));
-				}
-				return;
-			}
+			// Skip fields that belong to a hidden section
+			if (sectionHidden) return;
 
 			// Regular field row — only if it passes visibility filters
 			if (!visibleFieldNames.has(df.fieldname)) return;
@@ -140,7 +145,14 @@ const RenderingMixin = {
 			// Skip empty rows when requested
 			if (this.hide_empty_rows && this.isEmptyRow(df)) return;
 
-			tbody.appendChild(this._buildFieldRow(df));
+			const fieldRow = this._buildFieldRow(df);
+
+			// Start collapsed when the current section has collapsed: true
+			if (currentSectionConfig && currentSectionConfig.collapsed) {
+				fieldRow.style.display = "none";
+			}
+
+			tbody.appendChild(fieldRow);
 		});
 
 		return tbody;
@@ -148,31 +160,95 @@ const RenderingMixin = {
 
 	// ─── Section header row ──────────────────────────────────────────────────
 
-	_buildSectionRow(label) {
+	/**
+	 * Build a section header <tr>.
+	 *
+	 * @param {string} label        — field label from meta
+	 * @param {object|null} conf    — section_configs entry (may contain label, bg_color,
+	 *                                text_color, collapsed, hidden)
+	 */
+	_buildSectionRow(label, conf = null) {
 		const tr = document.createElement("tr");
 		tr.className = "sva-vdr-section-row";
 		const colCount = this.getColumnCount();
 
+		const isCollapsible = conf !== null && conf.collapsed !== undefined;
+		const initiallyCollapsed = !!(conf && conf.collapsed);
+
+		// Track collapsed state on the element for _toggleSection
+		tr.dataset.collapsed = initiallyCollapsed ? "true" : "false";
+
+		// Developer override — fires first so the hook can replace the entire row.
+		// Collapse toggling is still wired below even when the hook takes over.
+		if (typeof this.events.renderSectionHeader === "function") {
+			const result = this.events.renderSectionHeader(label, colCount, tr);
+			if (result === true) {
+				if (isCollapsible) {
+					tr.style.cursor = "pointer";
+					tr.addEventListener("click", () => this._toggleSection(tr));
+				}
+				return tr;
+			}
+		}
+
+		// Default rendering
+		const displayLabel = (conf && conf.label) || label;
+		const bgColor = conf && conf.bg_color;
+		const textColor = conf && conf.text_color;
+
 		const td = document.createElement("td");
 		td.colSpan = colCount;
 		td.style.cssText = `
-			background: var(--sva-vdr-section-bg, #1a3a5c);
-			color: var(--sva-vdr-section-text, #fff);
+			background: ${bgColor || "var(--sva-vdr-section-bg, #1a3a5c)"};
+			color: ${textColor || "var(--sva-vdr-section-text, #fff)"};
 			font-weight: 600;
 			padding: 5px 10px;
 			font-size: 13px;
 			letter-spacing: 0.3px;
+			${isCollapsible ? "cursor: pointer; user-select: none;" : ""}
 		`;
-		td.textContent = label;
 
-		// Developer override
-		if (typeof this.events.renderSectionHeader === "function") {
-			const result = this.events.renderSectionHeader(label, colCount, tr);
-			if (result === true) return tr;
+		if (isCollapsible) {
+			// Toggle arrow prefix
+			const arrow = document.createElement("span");
+			arrow.className = "sva-vdr-section-arrow";
+			arrow.style.cssText =
+				"display:inline-block;margin-right:6px;font-size:10px;vertical-align:middle;";
+			arrow.textContent = initiallyCollapsed ? "▶" : "▼";
+			td.appendChild(arrow);
+			td.appendChild(document.createTextNode(displayLabel));
+			tr.addEventListener("click", () => this._toggleSection(tr));
+		} else {
+			td.textContent = displayLabel;
 		}
 
 		tr.appendChild(td);
 		return tr;
+	},
+
+	/**
+	 * Toggle the collapsed state of a section header row.
+	 * Shows/hides all sibling field rows until the next section row.
+	 *
+	 * @param {HTMLElement} sectionTr — the section header <tr>
+	 */
+	_toggleSection(sectionTr) {
+		const nowCollapsed = sectionTr.dataset.collapsed === "true";
+		const willCollapse = !nowCollapsed;
+		sectionTr.dataset.collapsed = willCollapse ? "true" : "false";
+
+		// Update the arrow indicator (if present)
+		const arrow = sectionTr.querySelector(".sva-vdr-section-arrow");
+		if (arrow) arrow.textContent = willCollapse ? "▶" : "▼";
+
+		// Walk subsequent siblings — toggle field rows; stop at next section row
+		let next = sectionTr.nextElementSibling;
+		while (next && !next.classList.contains("sva-vdr-section-row")) {
+			if (next.classList.contains("sva-vdr-field-row")) {
+				next.style.display = willCollapse ? "none" : "";
+			}
+			next = next.nextElementSibling;
+		}
 	},
 
 	// ─── Field data row ──────────────────────────────────────────────────────

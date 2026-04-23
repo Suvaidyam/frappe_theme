@@ -76,6 +76,12 @@ new SVAVerticalDocRenderer({
   show_legend,          // boolean
   legend_items,         // [{label, bg_color, text_color, description}]
 
+  section_configs,      // object (default {}) — keyed by Section Break fieldname or label
+                        //   Values: { label, bg_color, text_color, collapsed, hidden }
+                        //   collapsed: true → section starts folded; click header to toggle
+                        //   hidden:    true → section header + all fields not rendered
+                        //   Fieldname key wins over label key when both match.
+
   crud_permissions,     // string[] — ["read"] | ["read","write"] | ["read","write","create","delete"]
                         //   "write"  → inline cell auto-sync editing (blur/change)
                         //   "create" → "+" column header opens create dialog

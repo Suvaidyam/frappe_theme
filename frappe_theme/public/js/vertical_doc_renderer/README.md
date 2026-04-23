@@ -199,6 +199,25 @@ new SVAVerticalDocRenderer({
                           //     { label: "CF",   bg_color: "#ED7D31", text_color: "#fff" },
                           //   ]
 
+    // ── Section-level configuration ─────────────────────────────────────────
+    section_configs,      // object (default {}) — keyed by Section Break fieldname or label
+                          //   Each value is an object with any of:
+                          //     label      — override the displayed section heading
+                          //     bg_color   — section header background (overrides CSS var)
+                          //     text_color — section header text color (overrides CSS var)
+                          //     collapsed  — boolean; true = start collapsed, click to expand
+                          //     hidden     — boolean; true = hide section + all its fields
+                          //   Key priority: fieldname wins over label when both match.
+                          //   e.g. {
+                          //     "section_break_contact": {
+                          //       label: "Contact Info",
+                          //       bg_color: "#2c3e50",
+                          //       text_color: "#ecf0f1",
+                          //       collapsed: true,
+                          //     },
+                          //     "Address": { hidden: true },
+                          //   }
+
     // ── Field visibility ────────────────────────────────────────────────────
     fields_to_show,       // string[] | null (default null = show all non-hidden fields)
                           //   e.g. ["first_name", "last_name", "mobile_number"]
@@ -380,6 +399,85 @@ frm.vdr_events = {
 > const fakefrm = { vdr_events: { formatCell(v, df) { ... } } };
 > new SVAVerticalDocRenderer({ wrapper, frm: fakefrm, doctype, docs });
 > ```
+
+---
+
+## Section-level configuration
+
+Use `section_configs` to customise individual sections without touching `vdr_events`.  
+Keys are the Section Break **fieldname** (preferred) or its **label** (fallback).
+
+### Custom colours
+
+```js
+new SVAVerticalDocRenderer({
+    wrapper,
+    doctype: "Employee",
+    docs: ["EMP-0001", "EMP-0002"],
+    section_configs: {
+        "section_break_contact": {
+            label: "Contact Details",   // override displayed heading
+            bg_color: "#2c3e50",
+            text_color: "#ecf0f1",
+        },
+        "Address": {                    // matched by label when fieldname not found
+            bg_color: "#1a6b3a",
+            text_color: "#fff",
+        },
+    },
+});
+```
+
+### Collapsible sections
+
+Set `collapsed: true` to start a section folded. A ▶/▼ arrow appears; clicking the header row expands or collapses it.
+
+```js
+new SVAVerticalDocRenderer({
+    wrapper,
+    doctype: "Employee",
+    docs: ["EMP-0001", "EMP-0002"],
+    section_configs: {
+        "section_break_contact": { collapsed: false },   // expanded by default (arrow shown)
+        "section_break_address": { collapsed: true },    // starts collapsed
+    },
+});
+```
+
+### Hiding an entire section
+
+Set `hidden: true` to suppress both the section header and all fields belonging to it.
+
+```js
+new SVAVerticalDocRenderer({
+    wrapper,
+    doctype: "Employee",
+    docs: ["EMP-0001", "EMP-0002"],
+    section_configs: {
+        "section_break_internal": { hidden: true },   // header + fields not rendered
+    },
+});
+```
+
+### Combining all options
+
+```js
+section_configs: {
+    "section_break_contact": {
+        label: "Contact Info",
+        bg_color: "#2c3e50",
+        text_color: "#ecf0f1",
+        collapsed: true,
+    },
+    "section_break_address": {
+        bg_color: "#1a6b3a",
+        text_color: "#fff",
+    },
+    "section_break_internal": { hidden: true },
+}
+```
+
+> **vdr_events compatibility** — `vdr_events.renderSectionHeader` still fires for sections that are not hidden. When it returns `true` (custom row), the collapse toggle is wired automatically so collapsible behaviour still works.
 
 ---
 

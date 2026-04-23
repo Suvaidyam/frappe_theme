@@ -103,6 +103,10 @@ class SVAVerticalDocRenderer {
 		signal = null,
 		vdr_field_name = null, // HTML field name hosting this VDR — enables server-side settings save
 		fields_config = null, // string[] of fieldnames in display order, or null for default
+		section_configs = {}, // object keyed by section fieldname or label:
+		//   { [fieldname|label]: { label, bg_color, text_color, collapsed, hidden } }
+		//   collapsed: true  → section starts collapsed; click header to toggle
+		//   hidden:    true  → entire section (header + fields) is not rendered
 	}) {
 		// Branch on doctype type: string = name to fetch, object = pre-built/mimicked meta
 		const isMetaObj = doctype && typeof doctype === "object";
@@ -134,6 +138,7 @@ class SVAVerticalDocRenderer {
 			signal,
 			vdr_field_name,
 			fields_config,
+			section_configs,
 			_initial_fields_config: fields_config ? [...fields_config] : null,
 			_has_user_settings: false,
 		});
