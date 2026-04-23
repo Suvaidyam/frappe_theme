@@ -243,6 +243,26 @@ const EditMixin = {
 				if (df.fieldtype === "Link" && typeof this.resolveLinkTitles === "function") {
 					this.resolveLinkTitles();
 				}
+			} else {
+				// Dialog path (cell === null): find the cell and refresh it
+				const savedCell = this._table?.querySelector(
+					`td.sva-vdr-value-cell[data-fieldname="${CSS.escape(
+						df.fieldname
+					)}"][data-docname="${CSS.escape(doc.name)}"]`
+				);
+				if (savedCell) {
+					savedCell.dataset.rawValue = String(newValue ?? "");
+					// Invalidate cache so resolveLinkTitles re-fetches the new value's display name
+					if (df.fieldtype === "Link" && this._linkTitles?.[df.options]) {
+						delete this._linkTitles[df.options][String(newValue ?? "")];
+					}
+					const formatted = this.formatCellValue(newValue, df, doc, colIndex);
+					savedCell.innerHTML = formatted;
+					this.attachEditListener(savedCell, df, doc, colIndex);
+					if (df.fieldtype === "Link" && typeof this.resolveLinkTitles === "function") {
+						this.resolveLinkTitles();
+					}
+				}
 			}
 
 			// Clear any error banner on success

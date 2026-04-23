@@ -59,7 +59,8 @@ const LinkTitlesMixin = {
 			Object.entries(toFetch).map(async ([ldt, namesSet]) => {
 				// Primary: frappe.boot.link_title_doctypes (set when show_title_field_in_link = 1)
 				// Fallback: frappe.get_meta() in-memory cache (available if meta was loaded this session)
-				let titleField = linkTitleMap[ldt];
+				let titleField =
+					(this.link_title_fields && this.link_title_fields[ldt]) || linkTitleMap[ldt];
 				if (!titleField) {
 					try {
 						const cachedMeta = frappe.get_meta(ldt);
@@ -81,8 +82,7 @@ const LinkTitlesMixin = {
 					});
 
 					records.forEach((r) => {
-						this._linkTitles[ldt][r.name] =
-							(titleField && r[titleField]) || r.name;
+						this._linkTitles[ldt][r.name] = (titleField && r[titleField]) || r.name;
 					});
 
 					// Mark any names the server didn't return (deleted/permissioned out)
@@ -92,11 +92,7 @@ const LinkTitlesMixin = {
 						}
 					});
 				} catch (e) {
-					console.error(
-						"SVAVerticalDocRenderer: link title fetch failed for",
-						ldt,
-						e
-					);
+					console.error("SVAVerticalDocRenderer: link title fetch failed for", ldt, e);
 					// Fall back: use raw names so cells aren't left blank
 					names.forEach((n) => {
 						this._linkTitles[ldt][n] = n;
@@ -126,9 +122,7 @@ const LinkTitlesMixin = {
 			if (!cache) return;
 
 			this._table
-				.querySelectorAll(
-					`td.sva-vdr-value-cell[data-fieldname="${df.fieldname}"]`
-				)
+				.querySelectorAll(`td.sva-vdr-value-cell[data-fieldname="${df.fieldname}"]`)
 				.forEach((td) => {
 					const rawName = td.dataset.rawValue;
 					if (!rawName) return;

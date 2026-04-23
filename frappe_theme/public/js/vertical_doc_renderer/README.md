@@ -250,6 +250,17 @@ new SVAVerticalDocRenderer({
                           //   "delete" → 🗑 icon row (frappe.model.can_delete() also checked)
                           //   e.g. ["read", "write", "create", "delete"]
 
+    // ── Link title overrides ────────────────────────────────────────────────
+    link_title_fields,    // object (default {}) — { [LinkedDocType]: fieldname }
+                          //   Highest-priority override for link display-name resolution.
+                          //   Use when the linked DocType has no title_field configured in Frappe.
+                          //   e.g. {
+                          //     "District":  "district_name",
+                          //     "Mandal":    "mandal_name",
+                          //     "Village":   "village_name",
+                          //     "State":     "state_name",
+                          //   }
+
     // ── Pagination / lazy loading ───────────────────────────────────────────
     filters,              // frappe filter array — used when docs: null
                           //   e.g. [["department", "=", "IT"]]
@@ -506,9 +517,10 @@ new SVAVerticalDocRenderer({
 - Click a cell to open the editor — no separate Edit button needed.
 - **ESC** while editing reverts the cell to its original content without saving.
 - While saving: cell opacity drops to 0.5 and a spinner (↻) appears.
-- **On success**: error banner (if any) is cleared; in-memory `doc[fieldname]` is updated.
+- **On success**: error banner (if any) is cleared; in-memory `doc[fieldname]` is updated; the cell immediately reflects the new value.
 - **On failure**: cell reverts to original content; a red error banner appears above the table.
 - Read-only fields (`df.read_only = 1` or `read_only_depends_on` evaluated true) are never editable.
+- **Dialog fields (Link, Text, Attach, etc.)**: after the Save button is clicked and the DB write succeeds, the table cell is refreshed in-place — no full reload required. For Link fields, the display name is re-resolved immediately.
 
 ---
 
@@ -542,12 +554,35 @@ Item     ITEM-001 → "Steel Bolt 5mm"   (item_name field)
 ```
 
 **How title fields are discovered (in priority order):**
-1. `frappe.boot.link_title_doctypes` — Frappe populates this at boot for DocTypes with `show_title_field_in_link = 1`
-2. `frappe.get_meta(linkedDoctype)?.title_field` — in-memory fallback; available if the linked DocType's form was opened during the same session (zero extra API calls)
+1. `link_title_fields[linkedDoctype]` — explicit override passed to the constructor (highest priority)
+2. `frappe.boot.link_title_doctypes` — Frappe populates this at boot for DocTypes with `show_title_field_in_link = 1`
+3. `frappe.get_meta(linkedDoctype)?.title_field` — in-memory fallback; available if the linked DocType's form was opened during the same session (zero extra API calls)
 
-If neither source has a title field, the raw document name is shown (correct default).
+If no source has a title field, the raw document name is shown (correct default).
 
-To enable display titles for a custom DocType: open **Customize Form** → the DocType → check **Show Title in Link** and set the **Title Field**.
+### Using `link_title_fields`
+
+Use this when the linked DocType stores human-readable names in a separate field but doesn't have `title_field` configured in Frappe:
+
+```js
+new SVAVerticalDocRenderer({
+    wrapper,
+    doctype: "IGGAARL Farmer",
+    docs: [...],
+    link_title_fields: {
+        "State":     "state_name",
+        "District":  "district_name",
+        "Mandal":    "mandal_name",
+        "Village":   "village_name",
+        "Panchayat": "panchayat_name",
+        "RBK":       "rbk_name",
+    },
+});
+```
+
+Keys are the linked DocType names (the `options` value on the Link field definition). Values are the field on that DocType to use as the display label.
+
+To enable display titles via Frappe config instead: open **Customize Form** → the DocType → check **Show Title in Link** and set the **Title Field**.
 
 ---
 

@@ -107,6 +107,9 @@ class SVAVerticalDocRenderer {
 		//   { [fieldname|label]: { label, bg_color, text_color, collapsed, hidden } }
 		//   collapsed: true  → section starts collapsed; click header to toggle
 		//   hidden:    true  → entire section (header + fields) is not rendered
+		link_title_fields = {}, // { [LinkedDocType]: fieldname } — explicit display-field override
+		//   e.g. { "Block": "block_name", "District": "district_name" }
+		//   Takes priority over frappe.boot.link_title_doctypes and title_field meta
 	}) {
 		// Branch on doctype type: string = name to fetch, object = pre-built/mimicked meta
 		const isMetaObj = doctype && typeof doctype === "object";
@@ -139,6 +142,7 @@ class SVAVerticalDocRenderer {
 			vdr_field_name,
 			fields_config,
 			section_configs,
+			link_title_fields,
 			_initial_fields_config: fields_config ? [...fields_config] : null,
 			_has_user_settings: false,
 		});

@@ -87,6 +87,11 @@ new SVAVerticalDocRenderer({
                         //   "create" → "+" column header opens create dialog
                         //   "delete" → 🗑 icon row; frappe.model.can_delete() also checked
 
+  link_title_fields,    // object (default {}) — { [LinkedDocType]: fieldname }
+                        //   Highest-priority override for link title resolution.
+                        //   Use when the linked DocType has no title_field configured.
+                        //   e.g. { "District": "district_name", "Mandal": "mandal_name" }
+
   filters,              // frappe filter array — used when docs: null
   order_by,             // string — used when docs: null
   column_batch_size,    // number (0 = auto from viewport width)
@@ -166,11 +171,43 @@ After render (and after each viewport batch), `resolveLinkTitles()`:
 1. Collects all unique Link field values across `this.data`, grouped by linked DocType
 2. Skips already-cached values (`this._linkTitles`)
 3. Issues **one `frappe.db.get_list` per linked DocType** (never one per cell)
-4. **Title field discovery** (two sources, in priority order):
+4. **Title field discovery** (three sources, in priority order):
+   - `this.link_title_fields[ldt]` — explicit per-DocType override passed in the constructor
    - `frappe.boot.link_title_doctypes[ldt]` — populated by Frappe when `show_title_field_in_link = 1` on the DocType
    - `frappe.get_meta(ldt)?.title_field` — in-memory fallback; works if the linked DocType's form was opened earlier in the session (zero extra API calls)
 5. Updates cell `textContent` with the resolved title; cell `title` attribute shows raw name
 6. Cells where `title === rawName` (no separate display title exists) are left unchanged
+
+### `link_title_fields` constructor option
+
+Use this when the linked DocType has no `title_field` configured in Frappe but you know which field holds the display name:
+
+```js
+new SVAVerticalDocRenderer({
+    wrapper,
+    doctype: "IGGAARL Farmer",
+    docs: [...],
+    link_title_fields: {
+        "State":     "state_name",
+        "District":  "district_name",
+        "Mandal":    "mandal_name",
+        "Village":   "village_name",
+        "Panchayat": "panchayat_name",
+        "RBK":       "rbk_name",
+    },
+});
+```
+
+Keys are the linked DocType names (the `options` value on the Link field). Values are the field to fetch and display from that DocType.
+
+### Dialog-edit cell refresh (fix)
+
+After a Link/complex field is saved via the `frappe.ui.Dialog` popup (`cell = null` path), `saveValue()` now:
+1. Finds the target cell via `[data-fieldname][data-docname]`
+2. Updates `data-raw-value`, re-renders cell HTML, re-attaches click listener
+3. Invalidates the `_linkTitles` cache entry for the new value, then calls `resolveLinkTitles()`
+
+This ensures the cell displays the new value (and its resolved display name) immediately after the dialog closes — without a full table reload.
 
 ---
 
@@ -242,7 +279,7 @@ this.meta = { ...(response.meta || {}), name: this.doctype, fields: response.fie
 - **doctype.name not validated**: when `doctype` is an object, `doctype.name` is never checked against the server — any string works (intentional for mimicked meta)
 - **docs: null + mimicked meta**: unsupported — warns and renders empty (no real DB table to query)
 - **Section row colSpan**: does not include the "+" create column (cosmetic; section headers span data columns only)
-- **Link titles without title_field config**: if neither `frappe.boot.link_title_doctypes` nor the in-memory meta cache has a title field for a linked DocType, the raw document name is shown (correct fallback — configure `show_title_field_in_link = 1` and `title_field` on the linked DocType to enable display titles)
+- **Link titles without title_field config**: if none of the three sources (`link_title_fields`, `frappe.boot.link_title_doctypes`, `frappe.get_meta()`) has a title field for a linked DocType, the raw document name is shown (correct fallback). Use the `link_title_fields` constructor option to override without touching the DocType config.
 
 ---
 
