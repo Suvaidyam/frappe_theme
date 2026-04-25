@@ -60,7 +60,6 @@
 	}
 })();
 
-
 import { get_parent_section_field_by_fieldname } from "./utils.bundle.js";
 import Loader from "./loader-element.js";
 import SvaDataTable from "./datatable/sva_datatable.bundle.js";
