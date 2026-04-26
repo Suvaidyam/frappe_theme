@@ -86,6 +86,9 @@ class SVAVerticalDocRenderer {
 		doctype,
 		docs = null,
 		column_configs = [],
+		column_label_field = null, // fieldname on source DocType to use as column header label
+		column_default_bg = null, // default bg_color for all columns (overridden by column_configs[i].bg_color)
+		column_default_text = null, // default text_color for all columns (overridden by column_configs[i].text_color)
 		fields_to_show = null,
 		fields_to_hide = [],
 		show_section_headers = true,
@@ -122,6 +125,9 @@ class SVAVerticalDocRenderer {
 			_docs_input: docs, // raw input — data.js and viewport.js branch on this
 			docs: [], // names of currently rendered columns (grows as batches load)
 			column_configs,
+			column_label_field,
+			column_default_bg,
+			column_default_text,
 			fields_to_show,
 			fields_to_hide,
 			show_section_headers,

@@ -1096,55 +1096,94 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			case "Vertical Doc Renderer": {
 				let conf = field.sva_ft;
 
-				// Determine doc source: link-field-based (dynamic filter) or static docs list
+				// Determine doc source
 				let vdrDocs = null;
 				let vdrFilters = [];
-				if (conf.vdr_link_fieldname && frm.doc[conf.vdr_link_fieldname]) {
+				let vdrColumnConfigs = conf.vdr_column_configs
+					? JSON.parse(conf.vdr_column_configs)
+					: [];
+
+				if (conf.vdr_use_custom_script && conf.vdr_custom_docs_script) {
+					// Run the user's async script with frm in scope.
+					// Script must return { docs, column_configs? } where:
+					//   docs         — string[] | object[] | null
+					//   column_configs — [{label, bg_color, text_color}] index-aligned to docs
+					try {
+						const _AsyncFn = Object.getPrototypeOf(async function () {}).constructor;
+						const _scriptFn = new _AsyncFn("frm", conf.vdr_custom_docs_script);
+						const _result = await _scriptFn(frm);
+						if (_result) {
+							if (_result.docs !== undefined) vdrDocs = _result.docs;
+							if (_result.column_configs) vdrColumnConfigs = _result.column_configs;
+						}
+					} catch (_err) {
+						console.error("SVAVerticalDocRenderer: custom script error", _err);
+						frappe.show_alert({
+							message: __("VDR custom script error: ") + _err.message,
+							indicator: "red",
+						});
+					}
+				} else if (conf.vdr_link_fieldname && frm.doc[conf.vdr_link_fieldname]) {
 					// Foreign key mode: fetch docs where foreignField = frm.doc[linkField]
 					const foreignField = conf.vdr_foreign_field || "name";
 					vdrFilters = [[foreignField, "=", frm.doc[conf.vdr_link_fieldname]]];
-					vdrDocs = null; // use paginated server-side mode with filters
+					vdrDocs = null;
 				} else if (!conf.vdr_link_fieldname && conf.vdr_docs) {
 					vdrDocs = JSON.parse(conf.vdr_docs);
 				}
 				// else: vdrDocs = null, vdrFilters = [] → paginated without filters
 
-				const instance = new SVAVerticalDocRenderer({
-					wrapper,
+				// Shared options for every VDR instance (single or multi-table)
+				const _vdrShared = {
 					frm,
 					doctype: conf.vdr_doctype,
 					docs: vdrDocs,
 					filters: vdrFilters,
-					column_configs: conf.vdr_column_configs
-						? JSON.parse(conf.vdr_column_configs)
-						: [],
+					order_by: conf.vdr_order_by || undefined,
+					column_configs: vdrColumnConfigs,
+					column_label_field: conf.vdr_column_label_field || null,
+					column_default_bg: conf.vdr_column_bg_color || null,
+					column_default_text: conf.vdr_column_text_color || null,
 					fields_to_show: conf.vdr_fields_to_show
 						? JSON.parse(conf.vdr_fields_to_show)
 						: null,
 					fields_to_hide: conf.vdr_fields_to_hide
 						? JSON.parse(conf.vdr_fields_to_hide)
 						: [],
+					link_title_fields: conf.vdr_link_title_fields
+						? JSON.parse(conf.vdr_link_title_fields)
+						: {},
 					show_section_headers: conf.vdr_show_sections !== 0,
+					section_configs: conf.vdr_section_configs
+						? JSON.parse(conf.vdr_section_configs)
+						: {},
 					show_unit: !!conf.vdr_show_unit,
 					hide_empty_rows: !!conf.vdr_hide_empty_rows,
-					title: conf.vdr_title || null,
 					show_legend: !!conf.vdr_show_legend,
 					legend_items: conf.vdr_legend_items ? JSON.parse(conf.vdr_legend_items) : [],
 					crud_permissions: conf.crud_permissions
 						? JSON.parse(conf.crud_permissions)
 						: ["read"],
 					max_height: conf.vdr_max_height != null ? Number(conf.vdr_max_height) : 600,
+					column_batch_size: conf.vdr_column_batch_size
+						? Number(conf.vdr_column_batch_size)
+						: 0,
+					column_width: conf.vdr_column_width ? Number(conf.vdr_column_width) : 150,
 					signal,
 					vdr_field_name: field.fieldname,
+				};
+
+				const instance = new SVAVerticalDocRenderer({
+					..._vdrShared,
+					wrapper,
+					title: conf.vdr_title || null,
 					fields_config: conf.vdr_fields_config
 						? JSON.parse(conf.vdr_fields_config)
 						: null,
 				});
 
-				// Store link field config on the instance for filter ribbon integration
 				instance._vdr_link_fieldname = conf.vdr_link_fieldname || null;
 				instance._vdr_foreign_field = conf.vdr_foreign_field || "name";
-
 				frm.sva_ft_instances[field.fieldname] = instance;
 				break;
 			}

@@ -25,19 +25,32 @@
   "vdr_doctype",
   "vdr_docs",
   "vdr_column_configs",
+  "setup_vdr_column_configs",
   "column_break_vdr",
   "vdr_title",
+  "vdr_column_label_field",
+  "vdr_column_bg_color",
+  "vdr_column_text_color",
   "vdr_fields_to_show",
   "vdr_fields_to_hide",
+  "vdr_link_title_fields",
   "vdr_show_sections",
+  "vdr_section_configs",
   "vdr_show_unit",
   "vdr_hide_empty_rows",
   "vdr_show_legend",
   "vdr_legend_items",
   "vdr_max_height",
+  "vdr_column_batch_size",
+  "vdr_column_width",
   "vdr_link_fieldname",
   "vdr_foreign_field",
+  "vdr_order_by",
+  "vdr_use_custom_script",
+  "vdr_custom_docs_script",
   "vdr_fields_config",
+  "setup_vdr_sub_tables",
+  "vdr_sub_tables",
   "column_break_fwyn",
   "section_break_ylfd",
   "sdg_report",
@@ -378,7 +391,7 @@
    "options": "Tasks\nEmail\nTimeline\nGallery\nNotes\nLinked Users\nApproval Request\nHTML View From API"
   },
   {
-   "depends_on": "eval:doc.property_type != \"Is Custom Design\"",
+   "depends_on": "eval:doc.property_type != \"Is Custom Design\" && doc.property_type != \"Vertical Doc Renderer\"",
    "fieldname": "listview_settings",
    "fieldtype": "Code",
    "label": "Listview Settings",
@@ -387,7 +400,7 @@
   },
   {
    "default": "[]",
-   "depends_on": "eval:doc.extend_condition == true",
+   "depends_on": "eval:doc.extend_condition == true && doc.property_type != \"Vertical Doc Renderer\"",
    "description": "Only Double Quote (\") is allowed in the conditions,\ne.g. [[\"dt\",\"fieldname\",\"operator\",\"value\"],[\"dt\",\"fieldname\",\"operator\",\"value\"]]",
    "fieldname": "extended_condition",
    "fieldtype": "Code",
@@ -396,7 +409,7 @@
   },
   {
    "default": "0",
-   "depends_on": "eval:![\"Report\", \"Is Custom Design\"].includes(doc.property_type)",
+   "depends_on": "eval:![\"Report\", \"Is Custom Design\", \"Vertical Doc Renderer\"].includes(doc.property_type)",
    "fieldname": "extend_condition",
    "fieldtype": "Check",
    "label": "Extend Condition"
@@ -879,11 +892,17 @@
    "label": "Document Names"
   },
   {
-   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
-   "description": "JSON array of {label, bg_color, text_color} — index-aligned to Document Names",
+   "depends_on": "eval:false",
+   "description": "JSON array of {label, bg_color, text_color} — index-aligned to Document Names. Managed by Setup Column Configs button.",
    "fieldname": "vdr_column_configs",
    "fieldtype": "Code",
    "label": "Column Configs"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
+   "fieldname": "setup_vdr_column_configs",
+   "fieldtype": "Button",
+   "label": "Setup Column Configs"
   },
   {
    "fieldname": "column_break_vdr",
@@ -894,6 +913,28 @@
    "fieldname": "vdr_title",
    "fieldtype": "Data",
    "label": "Title"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
+   "description": "Field from the source DocType whose value is used as each column header label (e.g. \"farmer_name\"). Leave empty to use the document name.",
+   "fieldname": "vdr_column_label_field",
+   "fieldtype": "Data",
+   "label": "Column Label Field",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
+   "description": "Default background color for all column headers (overridden per-column by Column Configs).",
+   "fieldname": "vdr_column_bg_color",
+   "fieldtype": "Color",
+   "label": "Column Background Color"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
+   "description": "Default text color for all column headers (overridden per-column by Column Configs).",
+   "fieldname": "vdr_column_text_color",
+   "fieldtype": "Color",
+   "label": "Column Text Color"
   },
   {
    "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
@@ -966,11 +1007,76 @@
    "label": "Foreign Field"
   },
   {
+   "default": "0",
+   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
+   "fieldname": "vdr_use_custom_script",
+   "fieldtype": "Check",
+   "label": "Use Custom Script for Docs"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\" && doc.vdr_use_custom_script",
+   "description": "Async JS with access to `frm`. Must return `{ docs, column_configs }`. `docs` can be string[] (names), object[] (inline data), or null (auto-paginate). `column_configs` is [{label, bg_color, text_color}] index-aligned to docs.",
+   "fieldname": "vdr_custom_docs_script",
+   "fieldtype": "Code",
+   "label": "Custom Docs Script",
+   "options": "JS"
+  },
+  {
    "depends_on": "eval:false",
    "description": "JSON array of fieldnames in display order (managed by Setup Listview Setting button and in-table gear icon)",
    "fieldname": "vdr_fields_config",
    "fieldtype": "Code",
    "label": "Fields Config"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
+   "fieldname": "setup_vdr_sub_tables",
+   "fieldtype": "Button",
+   "label": "Setup Sub-tables"
+  },
+  {
+   "depends_on": "eval:false",
+   "description": "JSON array of sub-table configs [{title, fields_config, collapsed}] (managed by Setup Sub-tables button)",
+   "fieldname": "vdr_sub_tables",
+   "fieldtype": "Code",
+   "label": "Sub-tables Config"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
+   "description": "JSON object keyed by Section Break fieldname or label. Values: {label, bg_color, text_color, collapsed, hidden}. e.g. {\"section_break_contact\": {\"label\": \"Contact Info\", \"collapsed\": true}}",
+   "fieldname": "vdr_section_configs",
+   "fieldtype": "Code",
+   "label": "Section Configs",
+   "max_height": "8rem"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
+   "description": "JSON object to override link field display names. Keys are linked DocType names, values are the field to use as display label. e.g. {\"District\": \"district_name\", \"Mandal\": \"mandal_name\"}",
+   "fieldname": "vdr_link_title_fields",
+   "fieldtype": "Code",
+   "label": "Link Title Fields",
+   "max_height": "6rem"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
+   "description": "Sort order when fetching documents from the server, e.g. \"creation desc\" or \"employee_name asc\". Used when no static doc list is set.",
+   "fieldname": "vdr_order_by",
+   "fieldtype": "Data",
+   "label": "Order By"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
+   "description": "Number of columns to render per scroll batch. 0 = auto-calculate from viewport width.",
+   "fieldname": "vdr_column_batch_size",
+   "fieldtype": "Int",
+   "label": "Column Batch Size"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
+   "description": "Column width in px used for auto batch size calculation. Default: 150.",
+   "fieldname": "vdr_column_width",
+   "fieldtype": "Int",
+   "label": "Column Width (px)"
   }
  ],
  "grid_page_length": 50,

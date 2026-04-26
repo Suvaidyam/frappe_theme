@@ -64,8 +64,10 @@ class MyTheme(Document):
 		else:
 			return False
 
-	def get_request_post(self, url, data=None, headers=None, json=None, params=None, timeout=None):
-		return requests.post(url, data=data, headers=headers, json=json, params=params, timeout=timeout)
+	def get_request_post(self, url, data=None, headers=None, json=None, params=None, timeout=None, auth=None):
+		return requests.post(
+			url, data=data, headers=headers, json=json, params=params, timeout=timeout, auth=auth
+		)
 
 	def get_request_get(self, url, headers=None, params=None, timeout=None):
 		return requests.get(url, headers=headers, params=params, timeout=timeout)

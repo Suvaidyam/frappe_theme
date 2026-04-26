@@ -95,6 +95,7 @@ const HelpersMixin = {
 		return (
 			this.section_configs[df.fieldname] ||
 			(df.label ? this.section_configs[df.label] : null) ||
+			this.section_configs["*"] ||
 			null
 		);
 	},

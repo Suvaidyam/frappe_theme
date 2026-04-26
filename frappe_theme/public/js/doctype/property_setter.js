@@ -279,18 +279,29 @@ const field_changes = {
 			{ fn: "vdr_doctype", ft: "Link" },
 			{ fn: "vdr_docs", ft: "Code" },
 			{ fn: "vdr_column_configs", ft: "Code" },
+			{ fn: "vdr_column_label_field", ft: "Data" },
+			{ fn: "vdr_column_bg_color", ft: "Color" },
+			{ fn: "vdr_column_text_color", ft: "Color" },
 			{ fn: "vdr_title", ft: "Data" },
 			{ fn: "vdr_fields_to_show", ft: "Code" },
 			{ fn: "vdr_fields_to_hide", ft: "Code" },
+			{ fn: "vdr_link_title_fields", ft: "Code" },
 			{ fn: "vdr_show_sections", ft: "Check" },
+			{ fn: "vdr_section_configs", ft: "Code" },
 			{ fn: "vdr_show_unit", ft: "Check" },
 			{ fn: "vdr_hide_empty_rows", ft: "Check" },
 			{ fn: "vdr_show_legend", ft: "Check" },
 			{ fn: "vdr_legend_items", ft: "Code" },
 			{ fn: "vdr_max_height", ft: "Int" },
+			{ fn: "vdr_column_batch_size", ft: "Int" },
+			{ fn: "vdr_column_width", ft: "Int" },
 			{ fn: "vdr_link_fieldname", ft: "Data" },
 			{ fn: "vdr_foreign_field", ft: "Data" },
+			{ fn: "vdr_order_by", ft: "Data" },
+			{ fn: "vdr_use_custom_script", ft: "Check" },
+			{ fn: "vdr_custom_docs_script", ft: "Code" },
 			{ fn: "vdr_fields_config", ft: "Code" },
+			{ fn: "vdr_sub_tables", ft: "Code" },
 			{ fn: "crud_permissions", ft: "Code" },
 		];
 
@@ -453,8 +464,92 @@ const field_changes = {
 	setup_list_settings: function (frm) {
 		set_list_settings(frm.config_dialog);
 	},
+	setup_vdr_sub_tables: function (frm) {
+		set_vdr_sub_tables(frm.config_dialog);
+	},
 	setup_crud_permissions: function (frm) {
 		set_crud_permissiions(frm.config_dialog);
+	},
+	setup_vdr_column_configs: async function (frm) {
+		const row = frm.config_dialog.get_values(true, false);
+		if (!row.vdr_doctype) {
+			frappe.msgprint({
+				message: __("Please set the Source DocType first."),
+				indicator: "orange",
+			});
+			return;
+		}
+		const dtmeta = await frappe.call({
+			method: "frappe_theme.dt_api.get_meta_fields",
+			args: { doctype: row.vdr_doctype, _type: "Direct" },
+		});
+		const SKIP = new Set([
+			"Section Break",
+			"Column Break",
+			"Tab Break",
+			"HTML",
+			"Button",
+			"Fold",
+			"Image",
+			"Signature",
+			"Geolocation",
+			"Barcode",
+			"Table",
+		]);
+		const field_options = [{ label: __("— document name —"), value: "" }].concat(
+			(dtmeta.message || [])
+				.filter((f) => !SKIP.has(f.fieldtype))
+				.map((f) => ({
+					label: `${f.label || f.fieldname} (${f.fieldname})`,
+					value: f.fieldname,
+				}))
+		);
+		const dialog = new frappe.ui.Dialog({
+			title: __("Setup Column Configs"),
+			fields: [
+				{
+					label: __("Column Label Field"),
+					fieldname: "column_label_field",
+					fieldtype: "Select",
+					options: field_options,
+					default: row.vdr_column_label_field || "",
+					description: __(
+						"Field from the source DocType to use as each column header label. Leave blank to use the document name."
+					),
+				},
+				{ fieldtype: "Column Break" },
+				{
+					label: __("Column Background Color"),
+					fieldname: "column_bg_color",
+					fieldtype: "Color",
+					default: row.vdr_column_bg_color || "#4472C4",
+				},
+				{
+					label: __("Column Text Color"),
+					fieldname: "column_text_color",
+					fieldtype: "Color",
+					default: row.vdr_column_text_color || "#ffffff",
+				},
+			],
+			primary_action_label: __("Save"),
+			primary_action: async (values) => {
+				frm.config_dialog.set_value(
+					"vdr_column_label_field",
+					values.column_label_field || ""
+				);
+				frm.config_dialog.set_value("vdr_column_bg_color", values.column_bg_color || "");
+				frm.config_dialog.set_value(
+					"vdr_column_text_color",
+					values.column_text_color || ""
+				);
+				dialog.hide();
+			},
+		});
+		dialog.show();
+		frm.config_dialog.wrapper.append(`<div class="modal-backdrop fade show"></div>`);
+		dialog.on_hide = () => {
+			frm.config_dialog.wrapper.find(".modal-backdrop").remove();
+		};
 	},
 	setup_action_list: function (frm) {
 		let row = frm.config_dialog.get_values(true, false);
@@ -753,6 +848,9 @@ const child_table_field_changes = {
 	setup_list_settings: function (frm) {
 		set_list_settings(frm.child_dialog);
 	},
+	setup_vdr_sub_tables: function (frm) {
+		set_vdr_sub_tables(frm.child_dialog);
+	},
 	setup_crud_permissions: function (frm) {
 		set_crud_permissiions(frm.child_dialog);
 	},
@@ -764,7 +862,7 @@ const child_table_field_changes = {
 const set_list_settings = async (dialog) => {
 	let row = dialog.get_values(true, false);
 
-	// VDR: use vdr_doctype; store result in vdr_fields_config
+	// VDR: custom field-row picker (not SVAListSettings which is for Datatable columns)
 	if (row.property_type === "Vertical Doc Renderer") {
 		if (!row.vdr_doctype) {
 			frappe.msgprint({
@@ -773,29 +871,185 @@ const set_list_settings = async (dialog) => {
 			});
 			return;
 		}
-		let dtmeta = await frappe.call({
+
+		const dtmeta = await frappe.call({
 			method: "frappe_theme.dt_api.get_meta_fields",
 			args: { doctype: row.vdr_doctype, _type: "Direct" },
 		});
-		frappe.require("list_settings.bundle.js").then(() => {
-			let d = new frappe.ui.SVAListSettings({
-				doctype: row.vdr_doctype,
-				meta: dtmeta.message,
-				connection_type: "Direct",
-				settings: row,
-				dialog_primary_action: async (listview_settings) => {
-					// listview_settings is an array of {fieldname, label, ...}
-					// extract ordered fieldnames for vdr_fields_config
-					const fieldsConfig = listview_settings.map((f) => f.fieldname || f.field);
-					dialog.set_value("vdr_fields_config", JSON.stringify(fieldsConfig));
-					frappe.show_alert({ message: __("Row settings updated"), indicator: "green" });
-				},
+
+		// get_meta_fields without meta_attached returns a flat fields array
+		const SKIP_TYPES = new Set([
+			"Column Break",
+			"HTML",
+			"Button",
+			"Fold",
+			"Image",
+			"Signature",
+			"Geolocation",
+			"Barcode",
+			"Tab Break",
+			"Section Break",
+		]);
+		const allFields = (dtmeta.message || []).filter(
+			(f) => !SKIP_TYPES.has(f.fieldtype) && !f.hidden
+		);
+
+		if (!allFields.length) {
+			frappe.msgprint({
+				message: __("No configurable fields found for the selected DocType."),
+				indicator: "orange",
 			});
-			dialog.wrapper.append(`<div class="modal-backdrop fade show"></div>`);
-			d.dialog.on_hide = () => {
-				dialog.wrapper.find(".modal-backdrop").remove();
-			};
+			return;
+		}
+
+		// Pre-populate from existing vdr_fields_config
+		let existingConfig = [];
+		try {
+			existingConfig = JSON.parse(row.vdr_fields_config || "[]");
+		} catch {
+			existingConfig = [];
+		}
+
+		let orderedFields;
+		if (existingConfig.length) {
+			const fieldMap = new Map(allFields.map((f) => [f.fieldname, f]));
+			const configSet = new Set(existingConfig);
+			orderedFields = [
+				...existingConfig
+					.map((fn) => fieldMap.get(fn))
+					.filter(Boolean)
+					.map((f) => ({ f, checked: true })),
+				...allFields
+					.filter((f) => !configSet.has(f.fieldname))
+					.map((f) => ({ f, checked: false })),
+			];
+		} else {
+			orderedFields = allFields.map((f) => ({ f, checked: true }));
+		}
+
+		const listHtml = orderedFields
+			.map(
+				({ f, checked }) => `
+			<div class="sva-vdr-ls-item" data-fieldname="${f.fieldname}" style="
+				display:flex;align-items:center;gap:8px;padding:6px 10px;margin-bottom:2px;
+				background:var(--control-bg,#f8f9fa);border:1px solid var(--border-color,#d1d8dd);
+				border-radius:4px;cursor:grab;user-select:none;
+			">
+				<span class="sva-vdr-ls-handle" style="color:var(--text-muted,#888);font-size:16px;line-height:1;flex-shrink:0;">≡</span>
+				<input type="checkbox" class="sva-vdr-ls-check" ${checked ? "checked" : ""}
+					style="margin:0;cursor:pointer;width:14px;height:14px;flex-shrink:0;" />
+				<span style="font-size:13px;color:var(--text-color,#333);flex:1;">${__(
+					f.label || f.fieldname
+				)}</span>
+				<span style="font-size:11px;color:var(--text-muted,#888);">${f.fieldtype}</span>
+			</div>`
+			)
+			.join("");
+
+		const vdr_ls_dialog = new frappe.ui.Dialog({
+			title: __("Configure Field Rows — {0}", [row.vdr_doctype]),
+			fields: [
+				{
+					fieldname: "hint",
+					fieldtype: "HTML",
+					options: `<p style="color:var(--text-muted,#888);font-size:12px;margin:0 0 10px 0;">
+						${__("Drag ≡ to reorder. Uncheck to hide a row.")}
+					</p>`,
+				},
+				{
+					fieldname: "field_list",
+					fieldtype: "HTML",
+					options: `<div class="sva-vdr-ls-list" style="max-height:460px;overflow-y:auto;padding:2px 0;">${listHtml}</div>`,
+				},
+			],
+			primary_action_label: __("Save"),
+			primary_action() {
+				const listEl = vdr_ls_dialog.$wrapper[0].querySelector(".sva-vdr-ls-list");
+				if (!listEl) return;
+
+				const newConfig = [];
+				listEl.querySelectorAll(".sva-vdr-ls-item").forEach((item) => {
+					const cb = item.querySelector(".sva-vdr-ls-check");
+					if (cb && cb.checked) newConfig.push(item.dataset.fieldname);
+				});
+
+				if (!newConfig.length) {
+					frappe.msgprint({
+						message: __("Select at least one field to display."),
+						indicator: "red",
+					});
+					return;
+				}
+
+				dialog.set_value("vdr_fields_config", JSON.stringify(newConfig));
+				frappe.show_alert({ message: __("Row settings updated"), indicator: "green" });
+				vdr_ls_dialog.hide();
+			},
+			secondary_action_label: __("Select All"),
+			secondary_action() {
+				const listEl = vdr_ls_dialog.$wrapper[0].querySelector(".sva-vdr-ls-list");
+				if (!listEl) return;
+				listEl.querySelectorAll(".sva-vdr-ls-check").forEach((cb) => {
+					cb.checked = true;
+				});
+			},
 		});
+
+		vdr_ls_dialog.show();
+		dialog.wrapper.append(`<div class="modal-backdrop fade show"></div>`);
+		vdr_ls_dialog.on_hide = () => {
+			dialog.wrapper.find(".modal-backdrop").remove();
+		};
+
+		// Frappe HTML fields render synchronously before show() returns — init DnD immediately
+		const _vdrListEl = vdr_ls_dialog.$wrapper[0].querySelector(".sva-vdr-ls-list");
+		if (_vdrListEl) {
+			if (typeof Sortable !== "undefined") {
+				new Sortable(_vdrListEl, {
+					handle: ".sva-vdr-ls-handle",
+					draggable: ".sva-vdr-ls-item",
+					animation: 120,
+				});
+			} else {
+				// Native HTML5 DnD fallback when Sortable.js is not available
+				let _dragSrc = null;
+				_vdrListEl.querySelectorAll(".sva-vdr-ls-item").forEach((item) => {
+					item.setAttribute("draggable", "true");
+					item.addEventListener("dragstart", (e) => {
+						_dragSrc = item;
+						e.dataTransfer.effectAllowed = "move";
+						item.style.opacity = "0.4";
+					});
+					item.addEventListener("dragend", () => {
+						item.style.opacity = "";
+						_vdrListEl
+							.querySelectorAll(".sva-vdr-ls-item")
+							.forEach((i) => (i.style.outline = ""));
+					});
+					item.addEventListener("dragover", (e) => {
+						e.preventDefault();
+						e.dataTransfer.dropEffect = "move";
+						_vdrListEl
+							.querySelectorAll(".sva-vdr-ls-item")
+							.forEach((i) => (i.style.outline = ""));
+						item.style.outline = "2px solid var(--primary,#2490ef)";
+					});
+					item.addEventListener("drop", (e) => {
+						e.preventDefault();
+						item.style.outline = "";
+						if (_dragSrc && _dragSrc !== item) {
+							const allItems = [..._vdrListEl.querySelectorAll(".sva-vdr-ls-item")];
+							if (allItems.indexOf(_dragSrc) < allItems.indexOf(item)) {
+								item.after(_dragSrc);
+							} else {
+								item.before(_dragSrc);
+							}
+						}
+					});
+				});
+			}
+		}
+
 		return;
 	}
 
@@ -838,6 +1092,368 @@ const set_list_settings = async (dialog) => {
 		};
 	});
 };
+// ─── VDR Sub-tables Setup ─────────────────────────────────────────────────────
+
+const set_vdr_sub_tables = async (dialog) => {
+	const row = dialog.get_values(true, false);
+
+	if (!row.vdr_doctype) {
+		frappe.msgprint({
+			message: __("Please set the Source DocType first."),
+			indicator: "orange",
+		});
+		return;
+	}
+
+	const dtmeta = await frappe.call({
+		method: "frappe_theme.dt_api.get_meta_fields",
+		args: { doctype: row.vdr_doctype, _type: "Direct" },
+	});
+
+	const SKIP_TYPES = new Set([
+		"Column Break",
+		"HTML",
+		"Button",
+		"Fold",
+		"Image",
+		"Signature",
+		"Geolocation",
+		"Barcode",
+		"Tab Break",
+		"Section Break",
+	]);
+	const allFields = (dtmeta.message || []).filter(
+		(f) => !SKIP_TYPES.has(f.fieldtype) && !f.hidden
+	);
+
+	if (!allFields.length) {
+		frappe.msgprint({ message: __("No configurable fields found."), indicator: "orange" });
+		return;
+	}
+
+	// Parse existing sub-tables config
+	let stConfigs = [];
+	try {
+		stConfigs = JSON.parse(row.vdr_sub_tables || "[]");
+	} catch {
+		stConfigs = [];
+	}
+	if (!stConfigs.length) {
+		stConfigs = [{ title: __("Table 1"), fields_config: [], collapsed: false }];
+	}
+	stConfigs = stConfigs.map((st) => ({
+		title: st.title || "",
+		fields_config: Array.isArray(st.fields_config) ? st.fields_config : [],
+		collapsed: !!st.collapsed,
+	}));
+
+	// ── Shared DnD helper ──────────────────────────────────────────────────────
+	function _attachNativeDnD(listEl, itemSelector) {
+		let _dragSrc = null;
+		listEl.querySelectorAll(itemSelector).forEach((item) => {
+			item.setAttribute("draggable", "true");
+			item.addEventListener("dragstart", (e) => {
+				_dragSrc = item;
+				e.dataTransfer.effectAllowed = "move";
+				item.style.opacity = "0.4";
+			});
+			item.addEventListener("dragend", () => {
+				item.style.opacity = "";
+				listEl.querySelectorAll(itemSelector).forEach((i) => (i.style.outline = ""));
+			});
+			item.addEventListener("dragover", (e) => {
+				e.preventDefault();
+				e.dataTransfer.dropEffect = "move";
+				listEl.querySelectorAll(itemSelector).forEach((i) => (i.style.outline = ""));
+				item.style.outline = "2px solid var(--primary,#2490ef)";
+			});
+			item.addEventListener("drop", (e) => {
+				e.preventDefault();
+				item.style.outline = "";
+				if (_dragSrc && _dragSrc !== item) {
+					const all = [...listEl.querySelectorAll(itemSelector)];
+					if (all.indexOf(_dragSrc) < all.indexOf(item)) item.after(_dragSrc);
+					else item.before(_dragSrc);
+				}
+			});
+		});
+	}
+
+	// ── Field-picker sub-dialog ────────────────────────────────────────────────
+	function openFieldPicker(idx, parentDialog) {
+		const st = stConfigs[idx];
+		const existing = st.fields_config || [];
+
+		let orderedFields;
+		if (existing.length) {
+			const fieldMap = new Map(allFields.map((f) => [f.fieldname, f]));
+			const existSet = new Set(existing);
+			orderedFields = [
+				...existing
+					.map((fn) => fieldMap.get(fn))
+					.filter(Boolean)
+					.map((f) => ({ f, checked: true })),
+				...allFields
+					.filter((f) => !existSet.has(f.fieldname))
+					.map((f) => ({ f, checked: false })),
+			];
+		} else {
+			orderedFields = allFields.map((f) => ({ f, checked: true }));
+		}
+
+		const fpListHtml = orderedFields
+			.map(
+				({ f, checked }) => `
+			<div class="sva-vdr-ls-item" data-fieldname="${f.fieldname}" style="
+				display:flex;align-items:center;gap:8px;padding:6px 10px;margin-bottom:2px;
+				background:var(--control-bg,#f8f9fa);border:1px solid var(--border-color,#d1d8dd);
+				border-radius:4px;cursor:grab;user-select:none;">
+				<span class="sva-vdr-ls-handle" style="color:var(--text-muted,#888);font-size:16px;line-height:1;flex-shrink:0;">≡</span>
+				<input type="checkbox" class="sva-vdr-ls-check" ${checked ? "checked" : ""}
+					style="margin:0;cursor:pointer;width:14px;height:14px;flex-shrink:0;" />
+				<span style="font-size:13px;color:var(--text-color,#333);flex:1;">${__(
+					f.label || f.fieldname
+				)}</span>
+				<span style="font-size:11px;color:var(--text-muted,#888);">${f.fieldtype}</span>
+			</div>`
+			)
+			.join("");
+
+		const fpDialog = new frappe.ui.Dialog({
+			title: __("Configure Fields — {0}", [st.title || __("Table")]),
+			fields: [
+				{
+					fieldname: "hint",
+					fieldtype: "HTML",
+					options: `<p style="color:var(--text-muted,#888);font-size:12px;margin:0 0 8px 0;">
+						${__("Drag ≡ to reorder. Uncheck to hide a field row.")}
+					</p>`,
+				},
+				{
+					fieldname: "fp_list",
+					fieldtype: "HTML",
+					options: `<div class="sva-vdr-ls-list" style="max-height:420px;overflow-y:auto;padding:2px 0;">${fpListHtml}</div>`,
+				},
+			],
+			primary_action_label: __("Apply"),
+			primary_action() {
+				const listEl = fpDialog.$wrapper[0].querySelector(".sva-vdr-ls-list");
+				if (!listEl) return;
+				const newConfig = [];
+				listEl.querySelectorAll(".sva-vdr-ls-item").forEach((item) => {
+					const cb = item.querySelector(".sva-vdr-ls-check");
+					if (cb && cb.checked) newConfig.push(item.dataset.fieldname);
+				});
+				if (!newConfig.length) {
+					frappe.msgprint({
+						message: __("Select at least one field."),
+						indicator: "red",
+					});
+					return;
+				}
+				// Update stConfigs and the DOM item's data attribute
+				stConfigs[idx].fields_config = newConfig;
+				const stItem = parentDialog.$wrapper[0].querySelector(
+					`.sva-vdr-st-item[data-index="${idx}"]`
+				);
+				if (stItem) {
+					stItem.dataset.fieldsConfig = JSON.stringify(newConfig);
+					const btn = stItem.querySelector(".sva-vdr-st-fields-btn");
+					if (btn) btn.textContent = __("Fields ({0})", [newConfig.length]);
+				}
+				fpDialog.hide();
+			},
+			secondary_action_label: __("Select All"),
+			secondary_action() {
+				const listEl = fpDialog.$wrapper[0].querySelector(".sva-vdr-ls-list");
+				if (listEl)
+					listEl.querySelectorAll(".sva-vdr-ls-check").forEach((cb) => {
+						cb.checked = true;
+					});
+			},
+		});
+
+		fpDialog.show();
+		parentDialog.wrapper.append(`<div class="modal-backdrop fade show sva-fp-bd"></div>`);
+		fpDialog.on_hide = () => parentDialog.wrapper.find(".sva-fp-bd").remove();
+
+		// Init DnD on field picker list
+		const fpListEl = fpDialog.$wrapper[0].querySelector(".sva-vdr-ls-list");
+		if (fpListEl) {
+			if (typeof Sortable !== "undefined") {
+				new Sortable(fpListEl, {
+					handle: ".sva-vdr-ls-handle",
+					draggable: ".sva-vdr-ls-item",
+					animation: 120,
+				});
+			} else {
+				_attachNativeDnD(fpListEl, ".sva-vdr-ls-item");
+			}
+		}
+	}
+
+	// ── Sub-table list builder ──────────────────────────────────────────────────
+	function buildStListHtml() {
+		return stConfigs
+			.map(
+				(st, i) => `
+			<div class="sva-vdr-st-item" data-index="${i}" data-fields-config='${frappe.utils.escape_html(
+					JSON.stringify(st.fields_config || [])
+				)}' style="
+				display:flex;flex-direction:column;gap:6px;padding:10px;margin-bottom:6px;
+				background:var(--control-bg,#f8f9fa);border:1px solid var(--border-color,#d1d8dd);
+				border-radius:4px;">
+				<div style="display:flex;align-items:center;gap:8px;">
+					<span class="sva-vdr-st-handle" style="color:var(--text-muted,#888);font-size:18px;cursor:grab;flex-shrink:0;">≡</span>
+					<input class="sva-vdr-st-title form-control form-control-sm" value="${frappe.utils.escape_html(
+						st.title || ""
+					)}"
+						placeholder="${__("Table title...")}" style="flex:1;min-width:0;" />
+					<label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text-muted,#888);white-space:nowrap;cursor:pointer;flex-shrink:0;margin:0;">
+						<input type="checkbox" class="sva-vdr-st-collapsed" ${
+							st.collapsed ? "checked" : ""
+						} style="margin:0;" />
+						${__("Collapsed")}
+					</label>
+					<button class="btn btn-xs btn-default sva-vdr-st-fields-btn" style="flex-shrink:0;white-space:nowrap;">
+						${__("Fields ({0})", [(st.fields_config || []).length])}
+					</button>
+					<button class="btn btn-xs btn-danger sva-vdr-st-delete" style="flex-shrink:0;" title="${__(
+						"Remove sub-table"
+					)}">×</button>
+				</div>
+			</div>`
+			)
+			.join("");
+	}
+
+	// Read current DOM state into stConfigs (handles Sortable drag reorder)
+	function syncFromDom(listEl) {
+		const newConfigs = [];
+		listEl.querySelectorAll(".sva-vdr-st-item").forEach((item) => {
+			const origIdx = parseInt(item.dataset.index, 10);
+			const titleInput = item.querySelector(".sva-vdr-st-title");
+			const collapsedCb = item.querySelector(".sva-vdr-st-collapsed");
+			let fc = [];
+			try {
+				fc = JSON.parse(item.dataset.fieldsConfig || "[]");
+			} catch {
+				fc = [];
+			}
+			const orig = stConfigs[origIdx] || { fields_config: [] };
+			newConfigs.push({
+				title: titleInput ? titleInput.value : orig.title || "",
+				fields_config: fc.length ? fc : orig.fields_config || [],
+				collapsed: collapsedCb ? collapsedCb.checked : !!orig.collapsed,
+			});
+		});
+		stConfigs.length = 0;
+		newConfigs.forEach((s) => stConfigs.push(s));
+	}
+
+	function reRenderList(listEl) {
+		listEl.innerHTML = buildStListHtml();
+		attachListeners(listEl);
+		initDnD(listEl);
+	}
+
+	function attachListeners(listEl) {
+		listEl.querySelectorAll(".sva-vdr-st-fields-btn").forEach((btn) => {
+			btn.addEventListener("click", () => {
+				syncFromDom(listEl);
+				const idx = parseInt(btn.closest(".sva-vdr-st-item").dataset.index, 10);
+				openFieldPicker(idx, stDialog);
+			});
+		});
+		listEl.querySelectorAll(".sva-vdr-st-delete").forEach((btn) => {
+			btn.addEventListener("click", () => {
+				syncFromDom(listEl);
+				const idx = parseInt(btn.closest(".sva-vdr-st-item").dataset.index, 10);
+				stConfigs.splice(idx, 1);
+				reRenderList(listEl);
+			});
+		});
+	}
+
+	function initDnD(listEl) {
+		if (typeof Sortable !== "undefined") {
+			new Sortable(listEl, {
+				handle: ".sva-vdr-st-handle",
+				draggable: ".sva-vdr-st-item",
+				animation: 120,
+			});
+		} else {
+			_attachNativeDnD(listEl, ".sva-vdr-st-item");
+		}
+	}
+
+	// ── Main sub-tables dialog ─────────────────────────────────────────────────
+	const stDialog = new frappe.ui.Dialog({
+		title: __("Setup Sub-tables — {0}", [row.vdr_doctype]),
+		fields: [
+			{
+				fieldname: "hint",
+				fieldtype: "HTML",
+				options: `<p style="color:var(--text-muted,#888);font-size:12px;margin:0 0 6px 0;">
+					${__("Each sub-table shows the same columns but different field rows. Drag ≡ to reorder tables.")}
+				</p>`,
+			},
+			{
+				fieldname: "st_list",
+				fieldtype: "HTML",
+				options: `<div class="sva-vdr-st-list" style="max-height:440px;overflow-y:auto;padding:2px 0;">
+					${buildStListHtml()}
+				</div>`,
+			},
+			{
+				fieldname: "add_row",
+				fieldtype: "HTML",
+				options: `<div style="margin-top:6px;">
+					<button class="btn btn-xs btn-default sva-vdr-st-add">+ ${__("Add Sub-table")}</button>
+				</div>`,
+			},
+		],
+		primary_action_label: __("Save"),
+		primary_action() {
+			const listEl = stDialog.$wrapper[0].querySelector(".sva-vdr-st-list");
+			if (listEl) syncFromDom(listEl);
+			if (!stConfigs.length) {
+				frappe.msgprint({ message: __("Add at least one sub-table."), indicator: "red" });
+				return;
+			}
+			dialog.set_value("vdr_sub_tables", JSON.stringify(stConfigs));
+			frappe.show_alert({ message: __("Sub-tables saved"), indicator: "green" });
+			stDialog.hide();
+		},
+	});
+
+	stDialog.show();
+	dialog.wrapper.append(`<div class="modal-backdrop fade show sva-st-bd"></div>`);
+	stDialog.on_hide = () => dialog.wrapper.find(".sva-st-bd").remove();
+
+	// Wire up list interactions
+	const stListEl = stDialog.$wrapper[0].querySelector(".sva-vdr-st-list");
+	if (stListEl) {
+		attachListeners(stListEl);
+		initDnD(stListEl);
+	}
+
+	// "Add Sub-table" button
+	const addBtn = stDialog.$wrapper[0].querySelector(".sva-vdr-st-add");
+	if (addBtn) {
+		addBtn.addEventListener("click", () => {
+			if (stListEl) syncFromDom(stListEl);
+			stConfigs.push({
+				title: __("Table {0}", [stConfigs.length + 1]),
+				fields_config: [],
+				collapsed: false,
+			});
+			if (stListEl) reRenderList(stListEl);
+		});
+	}
+};
+
+// ─── List Filters ─────────────────────────────────────────────────────────────
 const set_list_filters = async (dialog) => {
 	let row = dialog.get_values(true, false);
 	let dtmeta = await frappe.call({

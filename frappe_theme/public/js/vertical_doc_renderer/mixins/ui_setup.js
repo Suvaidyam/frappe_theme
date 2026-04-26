@@ -22,6 +22,7 @@ const UISetupMixin = {
 			width: 100%;
 			overflow: visible;
 			font-size: 13px;
+			margin-bottom: 24px;
 		`;
 		this.container = container;
 

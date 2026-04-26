@@ -98,13 +98,13 @@ const RenderingMixin = {
 	_buildTbody() {
 		const tbody = document.createElement("tbody");
 
-		// Delete row — prepended as first row when delete permission is granted
 		if (this._canDelete && this._canDelete()) {
 			tbody.appendChild(this._buildDeleteRow());
 		}
 
-		const fields = this.meta.fields || [];
-		const visibleFieldNames = new Set(this.getVisibleFields().map((df) => df.fieldname));
+		const allMetaFields = this.meta.fields || [];
+		const visibleFields = this.getVisibleFields();
+		const visibleFieldNames = new Set(visibleFields.map((df) => df.fieldname));
 
 		const SKIP_TYPES = new Set([
 			"Column Break",
@@ -117,41 +117,77 @@ const RenderingMixin = {
 			"Barcode",
 		]);
 
-		// Section-level config state — reset at each Section/Tab Break
+		if (this.fields_config && this.fields_config.length > 0) {
+			// fields_config is active — render in user-defined order.
+			// Build a map of fieldname → owning section break from meta so we can
+			// still emit section headers in the right place.
+			const fieldToSection = new Map();
+			let curSection = null;
+			allMetaFields.forEach((df) => {
+				if (df.fieldtype === "Section Break" || df.fieldtype === "Tab Break") {
+					curSection = df;
+				} else if (!SKIP_TYPES.has(df.fieldtype)) {
+					fieldToSection.set(df.fieldname, curSection);
+				}
+			});
+
+			let lastSectionDf = undefined; // undefined = "not yet seen any section"
+			visibleFields.forEach((df) => {
+				if (this.hide_empty_rows && this.isEmptyRow(df)) return;
+
+				const sectionDf = fieldToSection.get(df.fieldname) || null;
+
+				// Emit a section header when we cross into a new section
+				if (sectionDf !== lastSectionDf) {
+					lastSectionDf = sectionDf;
+					if (sectionDf) {
+						const sconf = this._getSectionConfig(sectionDf);
+						if (
+							!(sconf && sconf.hidden) &&
+							this.show_section_headers &&
+							sectionDf.label
+						) {
+							tbody.appendChild(this._buildSectionRow(sectionDf.label, sconf));
+						}
+					}
+				}
+
+				const sectionConf = sectionDf ? this._getSectionConfig(sectionDf) : null;
+				if (sectionConf && sectionConf.hidden) return;
+
+				const fieldRow = this._buildFieldRow(df);
+				if (sectionConf && sectionConf.collapsed) fieldRow.style.display = "none";
+				tbody.appendChild(fieldRow);
+			});
+
+			return tbody;
+		}
+
+		// Default path: meta order with section tracking
 		let sectionHidden = false;
 		let currentSectionConfig = null;
 
-		fields.forEach((df) => {
+		allMetaFields.forEach((df) => {
 			if (SKIP_TYPES.has(df.fieldtype)) return;
 
 			if (df.fieldtype === "Section Break" || df.fieldtype === "Tab Break") {
-				// Resolve config for this section (by fieldname, then by label)
 				currentSectionConfig = this._getSectionConfig(df);
 				sectionHidden = !!(currentSectionConfig && currentSectionConfig.hidden);
 
-				// Render section header only when not hidden
 				if (this.show_section_headers && df.label && !sectionHidden) {
 					tbody.appendChild(this._buildSectionRow(df.label, currentSectionConfig));
 				}
 				return;
 			}
 
-			// Skip fields that belong to a hidden section
 			if (sectionHidden) return;
-
-			// Regular field row — only if it passes visibility filters
 			if (!visibleFieldNames.has(df.fieldname)) return;
-
-			// Skip empty rows when requested
 			if (this.hide_empty_rows && this.isEmptyRow(df)) return;
 
 			const fieldRow = this._buildFieldRow(df);
-
-			// Start collapsed when the current section has collapsed: true
 			if (currentSectionConfig && currentSectionConfig.collapsed) {
 				fieldRow.style.display = "none";
 			}
-
 			tbody.appendChild(fieldRow);
 		});
 
@@ -326,9 +362,10 @@ const RenderingMixin = {
 	 * @returns {HTMLElement}
 	 */
 	_buildDocHeaderCell(doc, colIndex, conf) {
-		const bgColor = conf.bg_color || "#4472C4";
-		const textColor = conf.text_color || "#fff";
-		const label = conf.label || doc.name;
+		const bgColor = conf.bg_color || this.column_default_bg || "#4472C4";
+		const textColor = conf.text_color || this.column_default_text || "#fff";
+		const label =
+			(this.column_label_field && doc[this.column_label_field]) || conf.label || doc.name;
 
 		const th = document.createElement("th");
 		th.className = "sva-vdr-header-cell sva-vdr-doc-header";
