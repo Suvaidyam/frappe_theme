@@ -489,6 +489,8 @@ class Chart:
 
 		labels = []
 
+		show_zero_rows = chart_doc.get("custom_show_label_with_zero")
+
 		# Loop rows
 		for row in data:
 			row_has_value = False
@@ -512,7 +514,7 @@ class Chart:
 				if value:
 					row_has_value = True
 
-			if not row_has_value:
+			if not show_zero_rows and not row_has_value:
 				continue
 
 			if isinstance(row, dict):
