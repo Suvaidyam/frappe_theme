@@ -100,6 +100,80 @@ class VersionUtils:
 
 				UNION ALL
 
+				-- Table MultiSelect rows added
+				SELECT
+					ver.name AS name,
+					ver.owner AS owner,
+					ver.creation AS creation,
+					ver.custom_actual_doctype,
+					ver.custom_actual_document_name,
+					ver.ref_doctype,
+					ver.docname,
+					ja.elem AS changed_elem,
+					JSON_UNQUOTE(JSON_EXTRACT(ja.elem, '$[0]')) AS field_name,
+					NULL AS old_value,
+					JSON_UNQUOTE(JSON_EXTRACT(ja.elem, '$[1]')) AS new_value,
+					NULL AS child_table_field,
+					NULL AS row_name,
+					0 AS is_child_table
+				FROM `tabVersion` AS ver
+				CROSS JOIN JSON_TABLE(
+					JSON_EXTRACT(ver.data, '$.added'),
+					'$[*]' COLUMNS (elem JSON PATH '$')
+				) ja
+				WHERE {where_clause}
+				AND JSON_EXTRACT(ver.data, '$.added') IS NOT NULL
+				AND JSON_UNQUOTE(JSON_EXTRACT(ja.elem, '$[0]')) IN (
+					SELECT df.fieldname
+					FROM `tabDocField` df
+					WHERE df.parent = COALESCE(ver.custom_actual_doctype, ver.ref_doctype)
+					AND df.fieldtype = 'Table MultiSelect'
+					UNION
+					SELECT cdf.fieldname
+					FROM `tabCustom Field` cdf
+					WHERE cdf.dt = COALESCE(ver.custom_actual_doctype, ver.ref_doctype)
+					AND cdf.fieldtype = 'Table MultiSelect'
+				)
+
+				UNION ALL
+
+				-- Table MultiSelect rows removed
+				SELECT
+					ver.name AS name,
+					ver.owner AS owner,
+					ver.creation AS creation,
+					ver.custom_actual_doctype,
+					ver.custom_actual_document_name,
+					ver.ref_doctype,
+					ver.docname,
+					jr.elem AS changed_elem,
+					JSON_UNQUOTE(JSON_EXTRACT(jr.elem, '$[0]')) AS field_name,
+					JSON_UNQUOTE(JSON_EXTRACT(jr.elem, '$[1]')) AS old_value,
+					NULL AS new_value,
+					NULL AS child_table_field,
+					NULL AS row_name,
+					0 AS is_child_table
+				FROM `tabVersion` AS ver
+				CROSS JOIN JSON_TABLE(
+					JSON_EXTRACT(ver.data, '$.removed'),
+					'$[*]' COLUMNS (elem JSON PATH '$')
+				) jr
+				WHERE {where_clause}
+				AND JSON_EXTRACT(ver.data, '$.removed') IS NOT NULL
+				AND JSON_UNQUOTE(JSON_EXTRACT(jr.elem, '$[0]')) IN (
+					SELECT df.fieldname
+					FROM `tabDocField` df
+					WHERE df.parent = COALESCE(ver.custom_actual_doctype, ver.ref_doctype)
+					AND df.fieldtype = 'Table MultiSelect'
+					UNION
+					SELECT cdf.fieldname
+					FROM `tabCustom Field` cdf
+					WHERE cdf.dt = COALESCE(ver.custom_actual_doctype, ver.ref_doctype)
+					AND cdf.fieldtype = 'Table MultiSelect'
+				)
+
+				UNION ALL
+
 				-- Child table row changes
 				SELECT
 					ver.name AS name,

@@ -630,11 +630,253 @@ class SVATimelineGenerator {
 			}
 		}
 	}
+	getJsonSkipFields() {
+		return new Set([
+			"name",
+			"idx",
+			"__islocal",
+			"__unsaved",
+			"doctype",
+			"docstatus",
+			"owner",
+			"modified_by",
+			"creation",
+			"modified",
+			"parent",
+			"parentfield",
+			"parenttype",
+			"budget_plan_doc",
+			"planning_table",
+		]);
+	}
+
+	extractSingleRowValue(row, skipFields = this.getJsonSkipFields()) {
+		if (!row || typeof row !== "object" || Array.isArray(row)) return null;
+
+		const candidateEntries = Object.entries(row).filter(
+			([key, val]) =>
+				!skipFields.has(key) &&
+				val !== undefined &&
+				val !== null &&
+				val !== "" &&
+				(typeof val === "string" || typeof val === "number")
+		);
+
+		if (candidateEntries.length !== 1) return null;
+		return String(candidateEntries[0][1]);
+	}
+
+	normalizeTableMultiSelectChanges(changes) {
+		const grouped = {};
+		const groupedOrder = [];
+		const output = [];
+
+		changes.forEach((change) => {
+			const oldRowValue = this.extractSingleRowValueFromJson(change.oldValue);
+			const newRowValue = this.extractSingleRowValueFromJson(change.newValue);
+			const oldBlank = !change.oldValue || String(change.oldValue).trim() === "(blank)";
+			const newBlank = !change.newValue || String(change.newValue).trim() === "(blank)";
+
+			const isRemoved = oldRowValue && (newBlank || !newRowValue);
+			const isAdded = newRowValue && (oldBlank || !oldRowValue);
+
+			if (!(isAdded || isRemoved)) {
+				output.push(change);
+				return;
+			}
+
+			const key = `${change.fieldLabel || ""}`;
+
+			if (!grouped[key]) {
+				grouped[key] = {
+					fieldLabel: change.fieldLabel,
+					oldValues: [],
+					newValues: [],
+				};
+				groupedOrder.push(key);
+			}
+
+			if (isAdded) grouped[key].newValues.push(newRowValue);
+			if (isRemoved) grouped[key].oldValues.push(oldRowValue);
+		});
+
+		groupedOrder.forEach((key) => {
+			const row = grouped[key];
+			const uniqueOld = [...new Set(row.oldValues)];
+			const uniqueNew = [...new Set(row.newValues)];
+			output.push({
+				fieldLabel: row.fieldLabel,
+				oldValue: uniqueOld.length ? uniqueOld.join(", ") : "(blank)",
+				newValue: uniqueNew.length ? uniqueNew.join(", ") : "(blank)",
+				__tableMultiSelect: 1,
+			});
+		});
+
+		return output;
+	}
+
+	async getTableMultiSelectInfo(sourceDoctype, fieldLabel) {
+		if (!sourceDoctype || !fieldLabel) return null;
+		this._tableMultiSelectInfoCache = this._tableMultiSelectInfoCache || {};
+		const cacheKey = `${sourceDoctype}::${fieldLabel}`;
+		if (Object.prototype.hasOwnProperty.call(this._tableMultiSelectInfoCache, cacheKey)) {
+			return this._tableMultiSelectInfoCache[cacheKey];
+		}
+
+		try {
+			await frappe.model.with_doctype(sourceDoctype);
+			const meta = frappe.get_meta(sourceDoctype);
+			const tableDf = (meta?.fields || []).find(
+				(df) => df.fieldtype === "Table MultiSelect" && df.label === fieldLabel
+			);
+			if (!tableDf?.options) {
+				this._tableMultiSelectInfoCache[cacheKey] = null;
+				return null;
+			}
+
+			await frappe.model.with_doctype(tableDf.options);
+			const childMeta = frappe.get_meta(tableDf.options);
+			const linkDf = (childMeta?.fields || []).find((df) => df.fieldtype === "Link");
+			const info = {
+				fieldname: tableDf.fieldname,
+				childDoctype: tableDf.options,
+				linkFieldname: linkDf?.fieldname || null,
+				linkDoctype: linkDf?.options || null,
+			};
+			this._tableMultiSelectInfoCache[cacheKey] = info;
+			return info;
+		} catch (e) {
+			this._tableMultiSelectInfoCache[cacheKey] = null;
+			return null;
+		}
+	}
+
+	async resolveCsvLinkTitles(csvValue, linkDoctype) {
+		if (!csvValue || csvValue === "(blank)" || !linkDoctype) return csvValue;
+		const values = String(csvValue)
+			.split(",")
+			.map((v) => v.trim())
+			.filter(Boolean);
+		if (!values.length) return csvValue;
+
+		const resolved = [];
+		for (const value of values) {
+			try {
+				const title =
+					frappe.utils.get_link_title(linkDoctype, value) ||
+					(await frappe.utils.fetch_link_title(linkDoctype, value));
+				resolved.push(title || value);
+			} catch (e) {
+				resolved.push(value);
+			}
+		}
+		return resolved.join(", ");
+	}
+
+	parseCsvValues(csvValue) {
+		if (!csvValue || csvValue === "(blank)") return [];
+		return String(csvValue)
+			.split(",")
+			.map((v) => v.trim())
+			.filter(Boolean);
+	}
+
+	getInitialTableMultiSelectState(sourceDoctype, fieldInfo) {
+		if (!fieldInfo?.fieldname || !fieldInfo?.linkFieldname) return null;
+		if (sourceDoctype !== this.frm.doctype) return null;
+
+		const rows = this.frm.doc[fieldInfo.fieldname] || [];
+		if (!Array.isArray(rows)) return null;
+
+		const values = rows
+			.map((row) => row && row[fieldInfo.linkFieldname])
+			.filter(Boolean)
+			.map((value) => String(value));
+
+		return values.length ? [...new Set(values)] : [];
+	}
+
+	async applyFullTableMultiSelectState(changes, sourceDoctype) {
+		this._tableMultiSelectStateCache = this._tableMultiSelectStateCache || {};
+
+		for (const change of changes) {
+			if (!change?.__tableMultiSelect) continue;
+
+			const info = await this.getTableMultiSelectInfo(sourceDoctype, change.fieldLabel);
+			if (!info) continue;
+
+			const stateKey = `${sourceDoctype}::${change.fieldLabel}`;
+			if (
+				!Object.prototype.hasOwnProperty.call(this._tableMultiSelectStateCache, stateKey)
+			) {
+				const initialState = this.getInitialTableMultiSelectState(sourceDoctype, info);
+				if (initialState) {
+					this._tableMultiSelectStateCache[stateKey] = initialState;
+				}
+			}
+
+			const currentState = this._tableMultiSelectStateCache[stateKey];
+			if (!currentState) continue;
+
+			const removedValues = this.parseCsvValues(change.oldValue);
+			const addedValues = this.parseCsvValues(change.newValue);
+
+			const previousState = currentState.filter((value) => !addedValues.includes(value));
+			removedValues.forEach((value) => {
+				if (!previousState.includes(value)) {
+					previousState.push(value);
+				}
+			});
+
+			change.oldValue = previousState.length ? previousState.join(", ") : "(blank)";
+			change.newValue = currentState.length ? currentState.join(", ") : "(blank)";
+			this._tableMultiSelectStateCache[stateKey] = previousState;
+		}
+
+		return changes;
+	}
+
+	async resolveTableMultiSelectTitles(changes, sourceDoctype) {
+		const resolvedChanges = [];
+
+		for (const change of changes) {
+			if (!change?.__tableMultiSelect) {
+				resolvedChanges.push(change);
+				continue;
+			}
+
+			const cloned = { ...change };
+			const info = await this.getTableMultiSelectInfo(sourceDoctype, change.fieldLabel);
+			const linkDoctype = info?.linkDoctype;
+
+			if (linkDoctype) {
+				cloned.oldValue = await this.resolveCsvLinkTitles(cloned.oldValue, linkDoctype);
+				cloned.newValue = await this.resolveCsvLinkTitles(cloned.newValue, linkDoctype);
+			}
+
+			resolvedChanges.push(cloned);
+		}
+
+		return resolvedChanges;
+	}
+
+	extractSingleRowValueFromJson(value) {
+		if (!value || typeof value !== "string") return null;
+		const trimmed = value.trim();
+		if (!(trimmed.startsWith("{") && trimmed.endsWith("}"))) return null;
+
+		try {
+			const parsed = JSON.parse(trimmed);
+			return this.extractSingleRowValue(parsed);
+		} catch (e) {
+			return null;
+		}
+	}
+
 	// Format JSON values into readable mini-tables
 	formatCellValue(value) {
 		if (!value || typeof value !== "string") return value || "";
 
-		// Check if value looks like JSON array or object
 		const trimmed = value.trim();
 		if (
 			(trimmed.startsWith("[") && trimmed.endsWith("]")) ||
@@ -642,30 +884,22 @@ class SVATimelineGenerator {
 		) {
 			try {
 				let parsed = JSON.parse(trimmed);
+				const skipFields = this.getJsonSkipFields();
+
 				if (!Array.isArray(parsed)) {
+					const singleValue = this.extractSingleRowValue(parsed, skipFields);
+					if (singleValue !== null) return singleValue;
 					parsed = [parsed];
 				}
 				if (parsed.length === 0) return "(empty)";
 
-				// Internal/system fields to skip
-				const skipFields = new Set([
-					"name",
-					"idx",
-					"__islocal",
-					"doctype",
-					"docstatus",
-					"owner",
-					"modified_by",
-					"creation",
-					"modified",
-					"parent",
-					"parentfield",
-					"parenttype",
-					"budget_plan_doc",
-					"planning_table",
-				]);
+				const csvValues = parsed
+					.map((row) => this.extractSingleRowValue(row, skipFields))
+					.filter((value) => value !== null);
+				if (csvValues.length && csvValues.length === parsed.length) {
+					return csvValues.join(", ");
+				}
 
-				// Collect display keys from all rows
 				const allKeys = new Set();
 				parsed.forEach((row) => {
 					if (row && typeof row === "object") {
@@ -678,7 +912,6 @@ class SVATimelineGenerator {
 				const keys = Array.from(allKeys);
 				if (keys.length === 0) return trimmed;
 
-				// Build mini-table
 				let html = `<table class="json-mini-table"><thead><tr>`;
 				html += `<th>#</th>`;
 				keys.forEach((k) => {
@@ -702,7 +935,6 @@ class SVATimelineGenerator {
 				html += `</tbody></table>`;
 				return html;
 			} catch (e) {
-				// Not valid JSON, return as-is
 				return value;
 			}
 		}
@@ -712,6 +944,7 @@ class SVATimelineGenerator {
 	fetchTimelineData(append = false) {
 		if (!append) {
 			this.showSkeletonLoader();
+			this._tableMultiSelectStateCache = {};
 		}
 		// Ensure filters are properly formatted
 		const filters = {
@@ -730,7 +963,7 @@ class SVATimelineGenerator {
 					filters: JSON.stringify(filters),
 				},
 			})
-			.then((response) => {
+			.then(async (response) => {
 				const versions = response.message || [];
 				// Check if we got more records than pageSize to determine if next page exists
 				this.hasMore = versions.length > this.pageSize;
@@ -754,7 +987,7 @@ class SVATimelineGenerator {
 					this.timeline_wrapper.querySelector("#timeline-container");
 
 				if (versions.length > 0) {
-					versions.forEach((item) => {
+					for (const item of versions) {
 						let changes = [];
 						try {
 							changes = JSON.parse(item.changed);
@@ -813,12 +1046,23 @@ class SVATimelineGenerator {
 							}
 						});
 
+						const normalizedRegularChanges =
+							this.normalizeTableMultiSelectChanges(regularChanges);
+						const hydratedRegularChanges = await this.applyFullTableMultiSelectState(
+							normalizedRegularChanges,
+							item.custom_actual_doctype || item.ref_doctype
+						);
+						const resolvedRegularChanges = await this.resolveTableMultiSelectTitles(
+							hydratedRegularChanges,
+							item.custom_actual_doctype || item.ref_doctype
+						);
+
 						const entry = document.createElement("div");
 						entry.className = "timeline-entry";
 
 						// Build HTML for regular changes
 						let regularChangesHTML = "";
-						if (regularChanges.length > 0) {
+						if (resolvedRegularChanges.length > 0) {
 							regularChangesHTML = `
 								<div class="changes-table-wrapper">
 								<table class="changes-table">
@@ -830,7 +1074,7 @@ class SVATimelineGenerator {
 										</tr>
 									</thead>
 									<tbody>
-										${regularChanges
+										${resolvedRegularChanges
 											.map(
 												(change) => `
 											<tr>
@@ -978,7 +1222,7 @@ class SVATimelineGenerator {
 						});
 
 						timelineContainer.appendChild(entry);
-					});
+					}
 				} else if (!append) {
 					timelineContainer.innerHTML = `
                     <div class="empty-state">
