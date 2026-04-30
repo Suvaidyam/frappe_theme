@@ -292,7 +292,7 @@ const options = ref({
 	maintainAspectRatio: false,
 	plugins: {
 		legend: {
-			display: true,
+			display: (data.value.datasets?.length ?? 0) > 1,
 			position: props.chart?.details?.custom_legend_position?.toLowerCase() || "bottom",
 			labels: {
 				usePointStyle: true,
