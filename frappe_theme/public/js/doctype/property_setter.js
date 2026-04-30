@@ -140,7 +140,7 @@ after_render_control = async function (dialog, _frm) {
 				size: "large",
 				primary_action_label: __("Save"),
 				primary_action: async function () {
-					let values = this.get_values();
+					let values = this.get_values(true, false); // include hidden fields (e.g. vdr_batch_config)
 					if (mode == "create") {
 						rows.push(values);
 					} else {
@@ -295,13 +295,14 @@ const field_changes = {
 			{ fn: "vdr_max_height", ft: "Int" },
 			{ fn: "vdr_column_batch_size", ft: "Int" },
 			{ fn: "vdr_column_width", ft: "Int" },
+			{ fn: "vdr_label_width", ft: "Int" },
 			{ fn: "vdr_link_fieldname", ft: "Data" },
 			{ fn: "vdr_foreign_field", ft: "Data" },
 			{ fn: "vdr_order_by", ft: "Data" },
 			{ fn: "vdr_use_custom_script", ft: "Check" },
 			{ fn: "vdr_custom_docs_script", ft: "Code" },
 			{ fn: "vdr_fields_config", ft: "Code" },
-			{ fn: "vdr_sub_tables", ft: "Code" },
+			{ fn: "vdr_batch_config", ft: "Code" },
 			{ fn: "crud_permissions", ft: "Code" },
 		];
 
@@ -464,8 +465,8 @@ const field_changes = {
 	setup_list_settings: function (frm) {
 		set_list_settings(frm.config_dialog);
 	},
-	setup_vdr_sub_tables: function (frm) {
-		set_vdr_sub_tables(frm.config_dialog);
+	setup_vdr_batch_config: function (frm) {
+		set_vdr_batch_config(frm.config_dialog);
 	},
 	setup_crud_permissions: function (frm) {
 		set_crud_permissiions(frm.config_dialog);
@@ -848,8 +849,8 @@ const child_table_field_changes = {
 	setup_list_settings: function (frm) {
 		set_list_settings(frm.child_dialog);
 	},
-	setup_vdr_sub_tables: function (frm) {
-		set_vdr_sub_tables(frm.child_dialog);
+	setup_vdr_batch_config: function (frm) {
+		set_vdr_batch_config(frm.child_dialog);
 	},
 	setup_crud_permissions: function (frm) {
 		set_crud_permissiions(frm.child_dialog);
@@ -1092,365 +1093,147 @@ const set_list_settings = async (dialog) => {
 		};
 	});
 };
-// ─── VDR Sub-tables Setup ─────────────────────────────────────────────────────
+// ─── VDR Batch Config Setup ───────────────────────────────────────────────────
 
-const set_vdr_sub_tables = async (dialog) => {
+const set_vdr_batch_config = (dialog) => {
 	const row = dialog.get_values(true, false);
 
-	if (!row.vdr_doctype) {
-		frappe.msgprint({
-			message: __("Please set the Source DocType first."),
-			indicator: "orange",
-		});
-		return;
-	}
-
-	const dtmeta = await frappe.call({
-		method: "frappe_theme.dt_api.get_meta_fields",
-		args: { doctype: row.vdr_doctype, _type: "Direct" },
-	});
-
-	const SKIP_TYPES = new Set([
-		"Column Break",
-		"HTML",
-		"Button",
-		"Fold",
-		"Image",
-		"Signature",
-		"Geolocation",
-		"Barcode",
-		"Tab Break",
-		"Section Break",
-	]);
-	const allFields = (dtmeta.message || []).filter(
-		(f) => !SKIP_TYPES.has(f.fieldtype) && !f.hidden
-	);
-
-	if (!allFields.length) {
-		frappe.msgprint({ message: __("No configurable fields found."), indicator: "orange" });
-		return;
-	}
-
-	// Parse existing sub-tables config
-	let stConfigs = [];
+	// Parse existing config, fall back to sensible defaults
+	let cfg = {
+		allow_add_more_table: false,
+		add_more_button_label: "Add More",
+		add_more_doctype: row.vdr_doctype || "",
+		grouping_field: "",
+		plot_link_field: "",
+		default_collapsed_new_table: true,
+		batch_title_prefix: "Soil Parameters - Batch",
+	};
 	try {
-		stConfigs = JSON.parse(row.vdr_sub_tables || "[]");
-	} catch {
-		stConfigs = [];
-	}
-	if (!stConfigs.length) {
-		stConfigs = [{ title: __("Table 1"), fields_config: [], collapsed: false }];
-	}
-	stConfigs = stConfigs.map((st) => ({
-		title: st.title || "",
-		fields_config: Array.isArray(st.fields_config) ? st.fields_config : [],
-		collapsed: !!st.collapsed,
-	}));
-
-	// ── Shared DnD helper ──────────────────────────────────────────────────────
-	function _attachNativeDnD(listEl, itemSelector) {
-		let _dragSrc = null;
-		listEl.querySelectorAll(itemSelector).forEach((item) => {
-			item.setAttribute("draggable", "true");
-			item.addEventListener("dragstart", (e) => {
-				_dragSrc = item;
-				e.dataTransfer.effectAllowed = "move";
-				item.style.opacity = "0.4";
-			});
-			item.addEventListener("dragend", () => {
-				item.style.opacity = "";
-				listEl.querySelectorAll(itemSelector).forEach((i) => (i.style.outline = ""));
-			});
-			item.addEventListener("dragover", (e) => {
-				e.preventDefault();
-				e.dataTransfer.dropEffect = "move";
-				listEl.querySelectorAll(itemSelector).forEach((i) => (i.style.outline = ""));
-				item.style.outline = "2px solid var(--primary,#2490ef)";
-			});
-			item.addEventListener("drop", (e) => {
-				e.preventDefault();
-				item.style.outline = "";
-				if (_dragSrc && _dragSrc !== item) {
-					const all = [...listEl.querySelectorAll(itemSelector)];
-					if (all.indexOf(_dragSrc) < all.indexOf(item)) item.after(_dragSrc);
-					else item.before(_dragSrc);
-				}
-			});
-		});
+		const saved = JSON.parse(row.vdr_batch_config || "{}");
+		Object.assign(cfg, saved);
+	} catch (e) {
+		console.warn("Failed to parse existing batch config, using defaults", e);
 	}
 
-	// ── Field-picker sub-dialog ────────────────────────────────────────────────
-	function openFieldPicker(idx, parentDialog) {
-		const st = stConfigs[idx];
-		const existing = st.fields_config || [];
-
-		let orderedFields;
-		if (existing.length) {
-			const fieldMap = new Map(allFields.map((f) => [f.fieldname, f]));
-			const existSet = new Set(existing);
-			orderedFields = [
-				...existing
-					.map((fn) => fieldMap.get(fn))
-					.filter(Boolean)
-					.map((f) => ({ f, checked: true })),
-				...allFields
-					.filter((f) => !existSet.has(f.fieldname))
-					.map((f) => ({ f, checked: false })),
-			];
-		} else {
-			orderedFields = allFields.map((f) => ({ f, checked: true }));
-		}
-
-		const fpListHtml = orderedFields
-			.map(
-				({ f, checked }) => `
-			<div class="sva-vdr-ls-item" data-fieldname="${f.fieldname}" style="
-				display:flex;align-items:center;gap:8px;padding:6px 10px;margin-bottom:2px;
-				background:var(--control-bg,#f8f9fa);border:1px solid var(--border-color,#d1d8dd);
-				border-radius:4px;cursor:grab;user-select:none;">
-				<span class="sva-vdr-ls-handle" style="color:var(--text-muted,#888);font-size:16px;line-height:1;flex-shrink:0;">≡</span>
-				<input type="checkbox" class="sva-vdr-ls-check" ${checked ? "checked" : ""}
-					style="margin:0;cursor:pointer;width:14px;height:14px;flex-shrink:0;" />
-				<span style="font-size:13px;color:var(--text-color,#333);flex:1;">${__(
-					f.label || f.fieldname
-				)}</span>
-				<span style="font-size:11px;color:var(--text-muted,#888);">${f.fieldtype}</span>
-			</div>`
-			)
-			.join("");
-
-		const fpDialog = new frappe.ui.Dialog({
-			title: __("Configure Fields — {0}", [st.title || __("Table")]),
-			fields: [
-				{
-					fieldname: "hint",
-					fieldtype: "HTML",
-					options: `<p style="color:var(--text-muted,#888);font-size:12px;margin:0 0 8px 0;">
-						${__("Drag ≡ to reorder. Uncheck to hide a field row.")}
-					</p>`,
-				},
-				{
-					fieldname: "fp_list",
-					fieldtype: "HTML",
-					options: `<div class="sva-vdr-ls-list" style="max-height:420px;overflow-y:auto;padding:2px 0;">${fpListHtml}</div>`,
-				},
-			],
-			primary_action_label: __("Apply"),
-			primary_action() {
-				const listEl = fpDialog.$wrapper[0].querySelector(".sva-vdr-ls-list");
-				if (!listEl) return;
-				const newConfig = [];
-				listEl.querySelectorAll(".sva-vdr-ls-item").forEach((item) => {
-					const cb = item.querySelector(".sva-vdr-ls-check");
-					if (cb && cb.checked) newConfig.push(item.dataset.fieldname);
-				});
-				if (!newConfig.length) {
-					frappe.msgprint({
-						message: __("Select at least one field."),
-						indicator: "red",
-					});
-					return;
-				}
-				// Update stConfigs and the DOM item's data attribute
-				stConfigs[idx].fields_config = newConfig;
-				const stItem = parentDialog.$wrapper[0].querySelector(
-					`.sva-vdr-st-item[data-index="${idx}"]`
-				);
-				if (stItem) {
-					stItem.dataset.fieldsConfig = JSON.stringify(newConfig);
-					const btn = stItem.querySelector(".sva-vdr-st-fields-btn");
-					if (btn) btn.textContent = __("Fields ({0})", [newConfig.length]);
-				}
-				fpDialog.hide();
-			},
-			secondary_action_label: __("Select All"),
-			secondary_action() {
-				const listEl = fpDialog.$wrapper[0].querySelector(".sva-vdr-ls-list");
-				if (listEl)
-					listEl.querySelectorAll(".sva-vdr-ls-check").forEach((cb) => {
-						cb.checked = true;
-					});
-			},
-		});
-
-		fpDialog.show();
-		parentDialog.wrapper.append(`<div class="modal-backdrop fade show sva-fp-bd"></div>`);
-		fpDialog.on_hide = () => parentDialog.wrapper.find(".sva-fp-bd").remove();
-
-		// Init DnD on field picker list
-		const fpListEl = fpDialog.$wrapper[0].querySelector(".sva-vdr-ls-list");
-		if (fpListEl) {
-			if (typeof Sortable !== "undefined") {
-				new Sortable(fpListEl, {
-					handle: ".sva-vdr-ls-handle",
-					draggable: ".sva-vdr-ls-item",
-					animation: 120,
-				});
-			} else {
-				_attachNativeDnD(fpListEl, ".sva-vdr-ls-item");
-			}
-		}
-	}
-
-	// ── Sub-table list builder ──────────────────────────────────────────────────
-	function buildStListHtml() {
-		return stConfigs
-			.map(
-				(st, i) => `
-			<div class="sva-vdr-st-item" data-index="${i}" data-fields-config='${frappe.utils.escape_html(
-					JSON.stringify(st.fields_config || [])
-				)}' style="
-				display:flex;flex-direction:column;gap:6px;padding:10px;margin-bottom:6px;
-				background:var(--control-bg,#f8f9fa);border:1px solid var(--border-color,#d1d8dd);
-				border-radius:4px;">
-				<div style="display:flex;align-items:center;gap:8px;">
-					<span class="sva-vdr-st-handle" style="color:var(--text-muted,#888);font-size:18px;cursor:grab;flex-shrink:0;">≡</span>
-					<input class="sva-vdr-st-title form-control form-control-sm" value="${frappe.utils.escape_html(
-						st.title || ""
-					)}"
-						placeholder="${__("Table title...")}" style="flex:1;min-width:0;" />
-					<label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text-muted,#888);white-space:nowrap;cursor:pointer;flex-shrink:0;margin:0;">
-						<input type="checkbox" class="sva-vdr-st-collapsed" ${
-							st.collapsed ? "checked" : ""
-						} style="margin:0;" />
-						${__("Collapsed")}
-					</label>
-					<button class="btn btn-xs btn-default sva-vdr-st-fields-btn" style="flex-shrink:0;white-space:nowrap;">
-						${__("Fields ({0})", [(st.fields_config || []).length])}
-					</button>
-					<button class="btn btn-xs btn-danger sva-vdr-st-delete" style="flex-shrink:0;" title="${__(
-						"Remove sub-table"
-					)}">×</button>
-				</div>
-			</div>`
-			)
-			.join("");
-	}
-
-	// Read current DOM state into stConfigs (handles Sortable drag reorder)
-	function syncFromDom(listEl) {
-		const newConfigs = [];
-		listEl.querySelectorAll(".sva-vdr-st-item").forEach((item) => {
-			const origIdx = parseInt(item.dataset.index, 10);
-			const titleInput = item.querySelector(".sva-vdr-st-title");
-			const collapsedCb = item.querySelector(".sva-vdr-st-collapsed");
-			let fc = [];
-			try {
-				fc = JSON.parse(item.dataset.fieldsConfig || "[]");
-			} catch {
-				fc = [];
-			}
-			const orig = stConfigs[origIdx] || { fields_config: [] };
-			newConfigs.push({
-				title: titleInput ? titleInput.value : orig.title || "",
-				fields_config: fc.length ? fc : orig.fields_config || [],
-				collapsed: collapsedCb ? collapsedCb.checked : !!orig.collapsed,
-			});
-		});
-		stConfigs.length = 0;
-		newConfigs.forEach((s) => stConfigs.push(s));
-	}
-
-	function reRenderList(listEl) {
-		listEl.innerHTML = buildStListHtml();
-		attachListeners(listEl);
-		initDnD(listEl);
-	}
-
-	function attachListeners(listEl) {
-		listEl.querySelectorAll(".sva-vdr-st-fields-btn").forEach((btn) => {
-			btn.addEventListener("click", () => {
-				syncFromDom(listEl);
-				const idx = parseInt(btn.closest(".sva-vdr-st-item").dataset.index, 10);
-				openFieldPicker(idx, stDialog);
-			});
-		});
-		listEl.querySelectorAll(".sva-vdr-st-delete").forEach((btn) => {
-			btn.addEventListener("click", () => {
-				syncFromDom(listEl);
-				const idx = parseInt(btn.closest(".sva-vdr-st-item").dataset.index, 10);
-				stConfigs.splice(idx, 1);
-				reRenderList(listEl);
-			});
-		});
-	}
-
-	function initDnD(listEl) {
-		if (typeof Sortable !== "undefined") {
-			new Sortable(listEl, {
-				handle: ".sva-vdr-st-handle",
-				draggable: ".sva-vdr-st-item",
-				animation: 120,
-			});
-		} else {
-			_attachNativeDnD(listEl, ".sva-vdr-st-item");
-		}
-	}
-
-	// ── Main sub-tables dialog ─────────────────────────────────────────────────
-	const stDialog = new frappe.ui.Dialog({
-		title: __("Setup Sub-tables — {0}", [row.vdr_doctype]),
+	const batchDialog = new frappe.ui.Dialog({
+		title: __("Setup Batch Config"),
 		fields: [
 			{
 				fieldname: "hint",
 				fieldtype: "HTML",
-				options: `<p style="color:var(--text-muted,#888);font-size:12px;margin:0 0 6px 0;">
-					${__("Each sub-table shows the same columns but different field rows. Drag ≡ to reorder tables.")}
+				options: `<p style="color:var(--text-muted,#888);font-size:12px;margin:0 0 10px 0;">
+					${__(
+						'Configure the stacked batch feature. When enabled, an "Add More" button appears below the VDR table and creates a new batch of records (one per existing column).'
+					)}
 				</p>`,
 			},
 			{
-				fieldname: "st_list",
-				fieldtype: "HTML",
-				options: `<div class="sva-vdr-st-list" style="max-height:440px;overflow-y:auto;padding:2px 0;">
-					${buildStListHtml()}
-				</div>`,
+				label: __("Enable Add More Table"),
+				fieldname: "allow_add_more_table",
+				fieldtype: "Check",
+				default: cfg.allow_add_more_table ? 1 : 0,
 			},
+			{ fieldtype: "Column Break" },
 			{
-				fieldname: "add_row",
-				fieldtype: "HTML",
-				options: `<div style="margin-top:6px;">
-					<button class="btn btn-xs btn-default sva-vdr-st-add">+ ${__("Add Sub-table")}</button>
-				</div>`,
+				label: __("Button Label"),
+				fieldname: "add_more_button_label",
+				fieldtype: "Data",
+				default: cfg.add_more_button_label || "Add More",
+				description: __('Text shown on the button (e.g. "Add More")'),
+			},
+			{ fieldtype: "Section Break", label: __("Data Mapping") },
+			{
+				label: __("Source DocType"),
+				fieldname: "add_more_doctype",
+				fieldtype: "Link",
+				options: "DocType",
+				default: cfg.add_more_doctype || row.vdr_doctype || "",
+				description: __(
+					"DocType where new batch records are created (usually the same as the VDR DocType)"
+				),
+			},
+			{ fieldtype: "Column Break" },
+			{
+				label: __("Grouping Field"),
+				fieldname: "grouping_field",
+				fieldtype: "Data",
+				default: cfg.grouping_field || "",
+				description: __("Int field that identifies the batch number (e.g. batch_no)"),
+			},
+			{ fieldtype: "Section Break" },
+			{
+				label: __("Column Link Field"),
+				fieldname: "plot_link_field",
+				fieldtype: "Data",
+				default: cfg.plot_link_field || "",
+				description: __(
+					"Link field that points to the column source — e.g. the plot or sample name (e.g. plot)"
+				),
+			},
+			{ fieldtype: "Column Break" },
+			{
+				label: __("Batch Title Prefix"),
+				fieldname: "batch_title_prefix",
+				fieldtype: "Data",
+				default: cfg.batch_title_prefix || "Soil Parameters - Batch",
+				description: __('Prefix for auto-generated titles. Result: "Prefix - Batch 2"'),
+			},
+			{ fieldtype: "Section Break", label: __("Display") },
+			{
+				label: __("New Tables Start Collapsed"),
+				fieldname: "default_collapsed_new_table",
+				fieldtype: "Check",
+				default: cfg.default_collapsed_new_table ? 1 : 0,
+				description: __("New batch tables start folded; user expands on demand"),
 			},
 		],
 		primary_action_label: __("Save"),
-		primary_action() {
-			const listEl = stDialog.$wrapper[0].querySelector(".sva-vdr-st-list");
-			if (listEl) syncFromDom(listEl);
-			if (!stConfigs.length) {
-				frappe.msgprint({ message: __("Add at least one sub-table."), indicator: "red" });
-				return;
+		primary_action(values) {
+			if (values.allow_add_more_table) {
+				if (!values.add_more_doctype) {
+					frappe.msgprint({
+						message: __("Source DocType is required."),
+						indicator: "red",
+					});
+					return;
+				}
+				if (!(values.grouping_field || "").trim()) {
+					frappe.msgprint({
+						message: __("Grouping Field is required."),
+						indicator: "red",
+					});
+					return;
+				}
+				if (!(values.plot_link_field || "").trim()) {
+					frappe.msgprint({
+						message: __("Column Link Field is required."),
+						indicator: "red",
+					});
+					return;
+				}
 			}
-			dialog.set_value("vdr_sub_tables", JSON.stringify(stConfigs));
-			frappe.show_alert({ message: __("Sub-tables saved"), indicator: "green" });
-			stDialog.hide();
+
+			const result = {
+				allow_add_more_table: !!values.allow_add_more_table,
+				add_more_button_label: (values.add_more_button_label || "Add More").trim(),
+				add_more_doctype: values.add_more_doctype || "",
+				grouping_field: (values.grouping_field || "").trim(),
+				plot_link_field: (values.plot_link_field || "").trim(),
+				default_collapsed_new_table: !!values.default_collapsed_new_table,
+				batch_title_prefix: (
+					values.batch_title_prefix || "Soil Parameters - Batch"
+				).trim(),
+			};
+
+			dialog.set_value("vdr_batch_config", JSON.stringify(result));
+			frappe.show_alert({ message: __("Batch config saved"), indicator: "green" });
+			batchDialog.hide();
 		},
 	});
 
-	stDialog.show();
-	dialog.wrapper.append(`<div class="modal-backdrop fade show sva-st-bd"></div>`);
-	stDialog.on_hide = () => dialog.wrapper.find(".sva-st-bd").remove();
-
-	// Wire up list interactions
-	const stListEl = stDialog.$wrapper[0].querySelector(".sva-vdr-st-list");
-	if (stListEl) {
-		attachListeners(stListEl);
-		initDnD(stListEl);
-	}
-
-	// "Add Sub-table" button
-	const addBtn = stDialog.$wrapper[0].querySelector(".sva-vdr-st-add");
-	if (addBtn) {
-		addBtn.addEventListener("click", () => {
-			if (stListEl) syncFromDom(stListEl);
-			stConfigs.push({
-				title: __("Table {0}", [stConfigs.length + 1]),
-				fields_config: [],
-				collapsed: false,
-			});
-			if (stListEl) reRenderList(stListEl);
-		});
-	}
+	batchDialog.show();
+	dialog.wrapper.append(`<div class="modal-backdrop fade show sva-batch-bd"></div>`);
+	batchDialog.on_hide = () => dialog.wrapper.find(".sva-batch-bd").remove();
 };
 
 // ─── List Filters ─────────────────────────────────────────────────────────────
@@ -1661,7 +1444,7 @@ async function customPropertySetter(frm) {
 										size: frappe.utils.get_dialog_size(dialog_fields),
 										primary_action_label: "Save",
 										primary_action: async function () {
-											let values = dialog.get_values();
+											let values = dialog.get_values(true, false); // include hidden fields (e.g. vdr_batch_config)
 											let new_val = JSON.stringify(
 												Object.keys(values)
 													.filter(

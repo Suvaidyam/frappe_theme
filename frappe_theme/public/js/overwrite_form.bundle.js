@@ -1169,9 +1169,42 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 						? Number(conf.vdr_column_batch_size)
 						: 0,
 					column_width: conf.vdr_column_width ? Number(conf.vdr_column_width) : 150,
+					label_width: conf.vdr_label_width ? Number(conf.vdr_label_width) : 160,
 					signal,
 					vdr_field_name: field.fieldname,
 				};
+
+				// ── Parse vdr_batch_config (nested JSON string inside conf) ────────
+				const _addMoreConfig = (() => {
+					if (!conf.vdr_batch_config) {
+						console.log(
+							"[VDR] vdr_batch_config not found in conf for field:",
+							field.fieldname
+						);
+						return null;
+					}
+					try {
+						const cfg =
+							typeof conf.vdr_batch_config === "string"
+								? JSON.parse(conf.vdr_batch_config)
+								: conf.vdr_batch_config;
+						console.log("[VDR] vdr_batch_config parsed:", cfg);
+						if (!cfg.allow_add_more_table) {
+							console.log(
+								"[VDR] allow_add_more_table is false — Add More button disabled"
+							);
+							return null;
+						}
+						return cfg;
+					} catch (e) {
+						console.warn(
+							"[VDR] Failed to parse vdr_batch_config:",
+							conf.vdr_batch_config,
+							e
+						);
+						return null;
+					}
+				})();
 
 				const instance = new SVAVerticalDocRenderer({
 					..._vdrShared,
@@ -1180,6 +1213,7 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					fields_config: conf.vdr_fields_config
 						? JSON.parse(conf.vdr_fields_config)
 						: null,
+					add_more_config: _addMoreConfig,
 				});
 
 				instance._vdr_link_fieldname = conf.vdr_link_fieldname || null;

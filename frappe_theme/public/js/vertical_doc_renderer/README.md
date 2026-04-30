@@ -688,39 +688,9 @@ Developers who prefer a UI-driven approach can configure the component via the *
    - **Column Configs** — click **Setup Column Configs** to pick a label field and default colors
    - **Fields to Show / Hide**, **Show Section Headers**, **Show Unit Column**, etc.
    - **Setup Listview Setting** — choose which field rows to show and in what order
-   - **Setup Sub-tables** — stack multiple collapsible tables on the same field (see below)
    - **Setup Crud Permissions** — configure read/write/create/delete access; defaults to `["read"]`
 
 The component is then rendered automatically on form load. `vdr_events` can still be set from the form's DocType JS to override rendering.
-
-### Sub-tables (stacked collapsible VDRs)
-
-Use **Setup Sub-tables** when you need to display the same DocType's data split across multiple sections — each section has its own title, its own set of field rows, and can start collapsed.
-
-| Control | Purpose |
-|---------|---------|
-| `≡` drag handle | Reorder sub-tables |
-| Title input | Heading shown above each table |
-| **Fields (n)** button | Pick and order which field rows this table shows |
-| **Collapsed** checkbox | Whether this table starts folded |
-| **×** button | Remove the sub-table |
-| **+ Add Sub-table** | Append a new entry |
-
-All sub-tables share the same column configuration (docs, colors, CRUD permissions).
-
-**Example visual result:**
-
-```
-▼  Inputs (S&P)
-┌────────────────┬──────────┬──────────┬──────────┐
-│ Parameters     │ NF/T₁R₁  │ TₙRₙ     │  M-NF    │
-├────────────────┼──────────┼──────────┼──────────┤
-│ Date of Input  │          │          │          │
-│ Type of Input  │ Dropdown │          │          │
-└────────────────┴──────────┴──────────┴──────────┘
-
-▶  Outputs (S&P)   ← collapsed
-```
 
 ---
 

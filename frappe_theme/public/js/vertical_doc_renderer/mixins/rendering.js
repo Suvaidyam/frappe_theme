@@ -42,12 +42,15 @@ const RenderingMixin = {
 		this._theadRow = tr; // stored so viewport + delete mixins can append columns
 
 		// "Parameters" sticky label column — highest z-index (corner cell)
+		const labelW = this.label_width || 160;
 		const paramTh = document.createElement("th");
 		paramTh.textContent = __("Parameters");
 		paramTh.className = "sva-vdr-header-cell sva-vdr-sticky-col";
 		this._styleHeaderCell(paramTh);
 		paramTh.style.left = "0";
 		paramTh.style.zIndex = "3"; // corner: above both sticky-top and sticky-left
+		paramTh.style.minWidth = `${labelW}px`;
+		paramTh.style.width = `${labelW}px`;
 		tr.appendChild(paramTh);
 
 		// Optional "Unit" column
@@ -113,7 +116,6 @@ const RenderingMixin = {
 			"Fold",
 			"Image",
 			"Signature",
-			"Geolocation",
 			"Barcode",
 		]);
 
@@ -321,7 +323,8 @@ const RenderingMixin = {
 			padding: 4px 10px;
 			white-space: nowrap;
 			border: 1px solid rgba(0,0,0,.06);
-			min-width: 140px;
+			min-width: ${this.label_width || 160}px;
+		width: ${this.label_width || 160}px;
 		`;
 		labelTd.textContent = __(df.label || df.fieldname);
 		tr.appendChild(labelTd);
@@ -370,6 +373,7 @@ const RenderingMixin = {
 		const th = document.createElement("th");
 		th.className = "sva-vdr-header-cell sva-vdr-doc-header";
 		th.dataset.docname = doc.name;
+		const colW = this.column_width || 150;
 		th.style.cssText = `
 			background: ${bgColor};
 			color: ${textColor};
@@ -378,7 +382,8 @@ const RenderingMixin = {
 			text-align: center;
 			white-space: nowrap;
 			border: 1px solid rgba(0,0,0,.08);
-			min-width: 120px;
+			min-width: ${colW}px;
+			width: ${colW}px;
 			position: sticky;
 			top: 0;
 			z-index: 2;
@@ -430,13 +435,15 @@ const RenderingMixin = {
 		// Per-cell read-only state
 		const readOnly = this.isFieldReadOnly && this.isFieldReadOnly(df, doc);
 
+		const _colW = this.column_width || 150;
 		td.style.cssText = `
 			padding: 4px 10px;
 			border: 1px solid rgba(0,0,0,.06);
 			text-align: left;
 			vertical-align: middle;
-			min-width: 100px;
-			max-width: 280px;
+			min-width: ${_colW}px;
+			max-width: ${_colW}px;
+			width: ${_colW}px;
 			overflow: hidden;
 			text-overflow: ellipsis;
 			white-space: nowrap;

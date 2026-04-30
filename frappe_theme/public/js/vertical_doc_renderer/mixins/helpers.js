@@ -120,7 +120,6 @@ const HelpersMixin = {
 			"Fold",
 			"Image",
 			"Signature",
-			"Geolocation",
 			"Barcode",
 			"Tab Break",
 			"Section Break",

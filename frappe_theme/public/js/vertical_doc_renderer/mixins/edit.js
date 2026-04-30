@@ -173,6 +173,71 @@ const EditMixin = {
 				await this.saveValue(df, doc, newValue, null, colIndex);
 			},
 		});
+
+		if (df.fieldtype === "Geolocation") {
+			const geoCtrl = dialog.fields_dict[df.fieldname];
+			if (geoCtrl) {
+				geoCtrl.doctype = this.doctype;
+				geoCtrl.doc = doc;
+
+				// bind_leaflet_draw_control() gates draw tools on
+				// frappe.perm.has_perm(this.doctype, this.df.permlevel, "write", this.doc).
+				// This silently fails for connected/child doctypes that lack an explicit
+				// Frappe write-permission role entry, even when VDR crud_permissions
+				// includes "write". We already verified write permission in attachEditListener,
+				// so bypass the Frappe perm check and respect only df.read_only.
+				geoCtrl.bind_leaflet_draw_control = function () {
+					if (this.df.read_only) return;
+					this.draw_control = this.get_leaflet_controls();
+					this.map.addControl(this.draw_control);
+				};
+
+				// Frappe's dialog path registers a frappe.ui.Dialog:shown handler every
+				// time set_disp_area() is called (dialog init + set_value both call it).
+				// Multiple handlers → multiple make_map() calls → Leaflet "Map container
+				// already initialized". Also, make_map() is called without value in that
+				// path, so existing geo data never renders.
+				// Fix: gate make_map() to run once and supply the existing value.
+				// Always call the prototype method directly so chained instance patches
+				// (if geoCtrl is ever reused across dialog opens) don't no-op the call.
+				const existingValue = doc[df.fieldname];
+				let mapReady = false;
+				const protoMakeMap = Object.getPrototypeOf(geoCtrl).make_map;
+				geoCtrl.make_map = (v) => {
+					if (mapReady) return;
+					mapReady = true;
+					protoMakeMap.call(geoCtrl, v !== undefined ? v : existingValue);
+				};
+
+				// After Bootstrap's show animation completes, re-invalidate map size.
+				// Without this, fitBounds() (called during make_map with existingValue)
+				// runs while the container is still animating → Leaflet calculates a 0px
+				// viewport → tiles never load → blank white map on reopen after a save.
+				dialog.$wrapper.one("shown.bs.modal", () => {
+					if (geoCtrl.map) {
+						geoCtrl.map.invalidateSize();
+						const layers = geoCtrl.editableLayers?.getLayers() || [];
+						if (layers.length) {
+							try {
+								geoCtrl.map.fitBounds(geoCtrl.editableLayers.getBounds(), {
+									padding: [50, 50],
+								});
+							} catch (e) {
+								console.warn("Could not fit map bounds:", e);
+							}
+						}
+					}
+				});
+			}
+
+			// Remove the wrapper only after Bootstrap finishes its hide animation
+			// (hidden.bs.modal fires after animation; onhide fires before it).
+			// Removing mid-animation corrupts Bootstrap's modal stack so
+			// $(document).trigger("frappe.ui.Dialog:shown") never fires for the next
+			// dialog, leaving the map container blank on every reopen after a save.
+			dialog.$wrapper.one("hidden.bs.modal", () => dialog.$wrapper.remove());
+		}
+
 		dialog.set_value(df.fieldname, doc[df.fieldname]);
 		dialog.show();
 	},

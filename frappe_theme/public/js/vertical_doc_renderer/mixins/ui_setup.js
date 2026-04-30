@@ -101,16 +101,17 @@ const UISetupMixin = {
 
 	/**
 	 * Build the toolbar row placed between the title and the scrollBox.
-	 * Left side: "+" create button (when allow_create is true).
 	 * Right side: gear settings button (when vdr_field_name is set).
-	 * Returns null when neither button is needed (pure read-only standalone usage).
+	 * Returns null when neither the settings button nor Add More is needed.
+	 * Stores reference in this._toolbar so _renderAddMoreButton() can append to it.
 	 *
 	 * @returns {HTMLElement|null}
 	 */
 	_buildToolbar() {
-		// Toolbar only contains the settings gear button.
-		// The "+" create button is an overlay on _scrollWrapper (see setupWrapper).
-		if (!this.vdr_field_name) return null;
+		const hasSettings = !!this.vdr_field_name;
+		const hasAddMore = !!(this.add_more_config && this.add_more_config.allow_add_more_table);
+
+		if (!hasSettings && !hasAddMore) return null;
 
 		const toolbar = document.createElement("div");
 		toolbar.className = "sva-vdr-toolbar";
@@ -118,14 +119,99 @@ const UISetupMixin = {
 			display: flex;
 			justify-content: flex-end;
 			align-items: center;
+			gap: 6px;
 			margin-bottom: 4px;
 		`;
 
-		if (typeof this._buildSettingsButton === "function") {
+		this._toolbar = toolbar; // stored so _renderAddMoreButton() can append to it
+
+		if (hasSettings && typeof this._buildSettingsButton === "function") {
 			toolbar.appendChild(this._buildSettingsButton());
 		}
 
 		return toolbar;
+	},
+
+	/**
+	 * Append the "Add More" button to the toolbar (top-right) after the table renders.
+	 * Called from _initialize() after render() so data is already visible.
+	 * Idempotent — removes any stale button before appending a new one.
+	 * No-op when add_more_config is absent or allow_add_more_table is false.
+	 */
+	_renderAddMoreButton() {
+		// Normalise: accept both a pre-parsed object and a JSON string
+		let cfg = this.add_more_config;
+		if (typeof cfg === "string") {
+			try {
+				cfg = JSON.parse(cfg);
+				this.add_more_config = cfg; // update in place so callers see the object
+				console.log("[VDR] _renderAddMoreButton: parsed add_more_config from string", cfg);
+			} catch (e) {
+				console.warn(
+					"[VDR] _renderAddMoreButton: failed to parse add_more_config string",
+					e
+				);
+				cfg = null;
+			}
+		}
+		console.log("[VDR] _renderAddMoreButton called — add_more_config:", cfg);
+		if (!cfg || !cfg.allow_add_more_table) {
+			console.log(
+				"[VDR] _renderAddMoreButton: no-op (add_more_config missing or allow_add_more_table false)"
+			);
+			return;
+		}
+
+		// Remove stale button (safety for future reloadTable() callers that re-invoke this)
+		if (this._addMoreBtnEl && this._addMoreBtnEl.parentNode) {
+			this._addMoreBtnEl.parentNode.removeChild(this._addMoreBtnEl);
+		}
+
+		const label = cfg.add_more_button_label || "Add More";
+
+		const btn = document.createElement("button");
+		btn.className = "btn btn-default btn-sm sva-vdr-add-more-btn";
+		btn.title = __("Create a new batch of records for each existing column");
+		btn.style.cssText = "font-size:12px;display:flex;align-items:center;gap:4px;";
+		btn.innerHTML = `<span style="font-size:14px;font-weight:700;line-height:1;">+</span> ${__(
+			label
+		)}`;
+
+		btn.addEventListener("click", () => {
+			if (typeof this._onAddMoreClick === "function") {
+				this._onAddMoreClick(cfg);
+			} else {
+				console.warn("[VDR] _onAddMoreClick not implemented. Batch config:", cfg);
+				frappe.show_alert({
+					message: __(
+						"Add More clicked. Implement _onAddMoreClick() to handle batch creation."
+					),
+					indicator: "blue",
+				});
+			}
+		});
+
+		this._addMoreBtnEl = btn;
+
+		// Prefer toolbar (top-right) when available; fall back to a footer bar below table
+		if (this._toolbar) {
+			// Insert before the settings gear so Add More is left of gear: [+ Add More][⚙]
+			this._toolbar.insertBefore(btn, this._toolbar.firstChild);
+			console.log("[VDR] Add More button added to toolbar");
+		} else if (this.container) {
+			// No toolbar (no vdr_field_name) — create a minimal footer bar
+			let footer = this.container.querySelector(".sva-vdr-add-more-footer");
+			if (!footer) {
+				footer = document.createElement("div");
+				footer.className = "sva-vdr-add-more-footer";
+				footer.style.cssText = "display:flex;justify-content:flex-end;margin-top:8px;";
+				this.container.appendChild(footer);
+			}
+			footer.appendChild(btn);
+			console.log("[VDR] Add More button added to footer (no toolbar available)");
+		} else {
+			console.warn("[VDR] _renderAddMoreButton: neither _toolbar nor container is ready");
+		}
 	},
 
 	/**

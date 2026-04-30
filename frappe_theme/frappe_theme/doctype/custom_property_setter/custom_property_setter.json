@@ -43,14 +43,15 @@
   "vdr_max_height",
   "vdr_column_batch_size",
   "vdr_column_width",
+  "vdr_label_width",
   "vdr_link_fieldname",
   "vdr_foreign_field",
   "vdr_order_by",
   "vdr_use_custom_script",
   "vdr_custom_docs_script",
   "vdr_fields_config",
-  "setup_vdr_sub_tables",
-  "vdr_sub_tables",
+  "setup_vdr_batch_config",
+  "vdr_batch_config",
   "column_break_fwyn",
   "section_break_ylfd",
   "sdg_report",
@@ -1030,16 +1031,16 @@
   },
   {
    "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
-   "fieldname": "setup_vdr_sub_tables",
+   "fieldname": "setup_vdr_batch_config",
    "fieldtype": "Button",
-   "label": "Setup Sub-tables"
+   "label": "Setup Batch Config"
   },
   {
    "depends_on": "eval:false",
-   "description": "JSON array of sub-table configs [{title, fields_config, collapsed}] (managed by Setup Sub-tables button)",
-   "fieldname": "vdr_sub_tables",
+   "description": "JSON batch config {allow_add_more_table, add_more_button_label, add_more_doctype, grouping_field, plot_link_field, default_collapsed_new_table, batch_title_prefix} — managed by Setup Batch Config button",
+   "fieldname": "vdr_batch_config",
    "fieldtype": "Code",
-   "label": "Sub-tables Config"
+   "label": "Batch Config"
   },
   {
    "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
@@ -1077,6 +1078,13 @@
    "fieldname": "vdr_column_width",
    "fieldtype": "Int",
    "label": "Column Width (px)"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
+   "description": "Width of the Parameters (label) column in px. Default: 160. Remaining table width is distributed equally among data columns.",
+   "fieldname": "vdr_label_width",
+   "fieldtype": "Int",
+   "label": "Parameter Column Width (px)"
   }
  ],
  "grid_page_length": 50,

@@ -102,6 +102,7 @@ class SVAVerticalDocRenderer {
 		order_by = null,
 		column_batch_size = 0,
 		column_width = 150,
+		label_width = 160,
 		max_height = 600,
 		signal = null,
 		vdr_field_name = null, // HTML field name hosting this VDR — enables server-side settings save
@@ -113,6 +114,9 @@ class SVAVerticalDocRenderer {
 		link_title_fields = {}, // { [LinkedDocType]: fieldname } — explicit display-field override
 		//   e.g. { "Block": "block_name", "District": "district_name" }
 		//   Takes priority over frappe.boot.link_title_doctypes and title_field meta
+		add_more_config = null, // batch config from vdr_batch_config property setter field
+		//   { allow_add_more_table, add_more_button_label, add_more_doctype,
+		//     grouping_field, plot_link_field, default_collapsed_new_table, batch_title_prefix }
 	}) {
 		// Branch on doctype type: string = name to fetch, object = pre-built/mimicked meta
 		const isMetaObj = doctype && typeof doctype === "object";
@@ -143,12 +147,14 @@ class SVAVerticalDocRenderer {
 			order_by,
 			column_batch_size,
 			column_width,
+			label_width,
 			max_height,
 			signal,
 			vdr_field_name,
 			fields_config,
 			section_configs,
 			link_title_fields,
+			add_more_config,
 			_initial_fields_config: fields_config ? [...fields_config] : null,
 			_has_user_settings: false,
 		});
@@ -173,6 +179,7 @@ class SVAVerticalDocRenderer {
 
 		this.hideLoading();
 		this.render(); // renders first-batch columns
+		this._renderAddMoreButton(); // append Add More button if batch config is present
 
 		// Batch-fetch link display titles (non-blocking — updates cells asynchronously)
 		this.resolveLinkTitles();

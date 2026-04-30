@@ -272,6 +272,22 @@ this.meta = { ...(response.meta || {}), name: this.doctype, fields: response.fie
 
 ---
 
+## Geolocation field rendering
+
+`Geolocation` fields are rendered in the comparison table (not skipped). `_formatGeolocation()` in `fields.js` parses the stored GeoJSON string:
+
+| Geometry type | Cell display |
+|---|---|
+| Single `Point` | `📍 lat, lng` — a Google Maps link (opens in new tab) |
+| `Polygon` / `LineString` / mixed | `🗺 <Type>` label with feature count when > 1 |
+| Empty / unparseable | empty cell |
+
+GeoJSON stores coordinates as `[longitude, latitude]`; the cell displays them as `latitude, longitude` (conventional).
+
+When `"write"` is in `crud_permissions`, clicking a Geolocation cell opens the standard `frappe.ui.Dialog` with the Frappe Geolocation control (map picker). Inline editing is not used for this field type.
+
+---
+
 ## Known gaps
 
 - **Refresh method**: `reloadTable()` is available; `refresh()` falls back to `reloadTable()` in overwrite_form.bundle.js
