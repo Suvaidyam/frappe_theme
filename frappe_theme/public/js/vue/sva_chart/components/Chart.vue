@@ -292,7 +292,7 @@ const options = ref({
 	maintainAspectRatio: false,
 	plugins: {
 		legend: {
-			display: true,
+			display: (data.value.datasets?.length ?? 0) > 1,
 			position: props.chart?.details?.custom_legend_position?.toLowerCase() || "bottom",
 			labels: {
 				usePointStyle: true,
@@ -368,8 +368,16 @@ const options = ref({
 		},
 		datalabels: {
 			display: props.chart?.details?.custom_show_data_labels == 1 ? true : false,
-			anchor: "center",
-			align: "center",
+			anchor: (ctx) => {
+				const raw = ctx.dataset.data[ctx.dataIndex];
+				const v = typeof raw === "object" ? raw?.y : raw;
+				return v === 0 ? "end" : "center";
+			},
+			align: (ctx) => {
+				const raw = ctx.dataset.data[ctx.dataIndex];
+				const v = typeof raw === "object" ? raw?.y : raw;
+				return v === 0 ? "end" : "center";
+			},
 			formatter: (v) => {
 				const isPieOrDonut = ["Pie", "Donut"].includes(props.chart?.details?.type);
 

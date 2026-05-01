@@ -100,6 +100,80 @@ class VersionUtils:
 
 				UNION ALL
 
+				-- Table MultiSelect rows added
+				SELECT
+					ver.name AS name,
+					ver.owner AS owner,
+					ver.creation AS creation,
+					ver.custom_actual_doctype,
+					ver.custom_actual_document_name,
+					ver.ref_doctype,
+					ver.docname,
+					ja.elem AS changed_elem,
+					JSON_UNQUOTE(JSON_EXTRACT(ja.elem, '$[0]')) AS field_name,
+					NULL AS old_value,
+					JSON_UNQUOTE(JSON_EXTRACT(ja.elem, '$[1]')) AS new_value,
+					NULL AS child_table_field,
+					NULL AS row_name,
+					0 AS is_child_table
+				FROM `tabVersion` AS ver
+				CROSS JOIN JSON_TABLE(
+					JSON_EXTRACT(ver.data, '$.added'),
+					'$[*]' COLUMNS (elem JSON PATH '$')
+				) ja
+				WHERE {where_clause}
+				AND JSON_EXTRACT(ver.data, '$.added') IS NOT NULL
+				AND JSON_UNQUOTE(JSON_EXTRACT(ja.elem, '$[0]')) IN (
+					SELECT df.fieldname
+					FROM `tabDocField` df
+					WHERE df.parent = COALESCE(ver.custom_actual_doctype, ver.ref_doctype)
+					AND df.fieldtype = 'Table MultiSelect'
+					UNION
+					SELECT cdf.fieldname
+					FROM `tabCustom Field` cdf
+					WHERE cdf.dt = COALESCE(ver.custom_actual_doctype, ver.ref_doctype)
+					AND cdf.fieldtype = 'Table MultiSelect'
+				)
+
+				UNION ALL
+
+				-- Table MultiSelect rows removed
+				SELECT
+					ver.name AS name,
+					ver.owner AS owner,
+					ver.creation AS creation,
+					ver.custom_actual_doctype,
+					ver.custom_actual_document_name,
+					ver.ref_doctype,
+					ver.docname,
+					jr.elem AS changed_elem,
+					JSON_UNQUOTE(JSON_EXTRACT(jr.elem, '$[0]')) AS field_name,
+					JSON_UNQUOTE(JSON_EXTRACT(jr.elem, '$[1]')) AS old_value,
+					NULL AS new_value,
+					NULL AS child_table_field,
+					NULL AS row_name,
+					0 AS is_child_table
+				FROM `tabVersion` AS ver
+				CROSS JOIN JSON_TABLE(
+					JSON_EXTRACT(ver.data, '$.removed'),
+					'$[*]' COLUMNS (elem JSON PATH '$')
+				) jr
+				WHERE {where_clause}
+				AND JSON_EXTRACT(ver.data, '$.removed') IS NOT NULL
+				AND JSON_UNQUOTE(JSON_EXTRACT(jr.elem, '$[0]')) IN (
+					SELECT df.fieldname
+					FROM `tabDocField` df
+					WHERE df.parent = COALESCE(ver.custom_actual_doctype, ver.ref_doctype)
+					AND df.fieldtype = 'Table MultiSelect'
+					UNION
+					SELECT cdf.fieldname
+					FROM `tabCustom Field` cdf
+					WHERE cdf.dt = COALESCE(ver.custom_actual_doctype, ver.ref_doctype)
+					AND cdf.fieldtype = 'Table MultiSelect'
+				)
+
+				UNION ALL
+
 				-- Child table row changes
 				SELECT
 					ver.name AS name,
@@ -206,13 +280,9 @@ class VersionUtils:
 		}
 
 		results = frappe.db.sql(sql, params, as_dict=True)
-		# Apply field-level permissions filtering
+		# Apply field-level permissions filtering and strip hidden fields from display
 		if results:
-			if frappe.session.user != "Administrator":
-				results = VersionUtils._apply_field_level_permissions(results, dt)
-			else:
-				# For Administrator, still filter out entries with empty changed arrays
-				results = VersionUtils._filter_empty_changed_arrays(results)
+			results = VersionUtils._apply_field_level_permissions(results, dt)
 
 		return results
 
@@ -252,10 +322,13 @@ class VersionUtils:
 	def _apply_field_level_permissions(results, parent_doctype):
 		"""
 		Filter field changes based on user's field-level permissions.
+		Hidden fields are stored in version history but excluded from the UI display.
 		Uses caching to optimize performance.
 		"""
 		# Cache for permitted fields per doctype
 		permitted_fields_cache = {}
+		# Cache for hidden fields per doctype
+		hidden_fields_cache = {}
 		# Cache for child table doctype resolution
 		child_table_doctype_cache = {}
 
@@ -271,6 +344,16 @@ class VersionUtils:
 					)
 				)
 			return permitted_fields_cache[cache_key]
+
+		def get_cached_hidden_fields(doctype):
+			"""Get hidden fields with caching. Hidden fields are excluded from display."""
+			if doctype not in hidden_fields_cache:
+				try:
+					meta = frappe.get_meta(doctype)
+					hidden_fields_cache[doctype] = {df.fieldname for df in meta.fields if df.hidden}
+				except Exception:
+					hidden_fields_cache[doctype] = set()
+			return hidden_fields_cache[doctype]
 
 		def get_child_table_doctype(parent_doctype, child_table_field):
 			"""Get child table doctype from parent doctype and fieldname."""
@@ -367,9 +450,14 @@ class VersionUtils:
 				# Get permitted fields for this doctype
 				permitted_fields = get_cached_permitted_fields(doctype_to_check, parenttype_for_check)
 
-				# Check if field is permitted
-				if field_name in permitted_fields:
-					# Remove field_name from the array before adding (to maintain original format)
+				# Hidden fields are stored but must not be shown in the UI
+				hidden_fields = get_cached_hidden_fields(doctype_to_check)
+				if field_name in hidden_fields:
+					continue
+
+				# Check field-level permissions (skip for Administrator)
+				is_admin = frappe.session.user == "Administrator"
+				if is_admin or field_name in permitted_fields:
 					# Keep only first 6 elements: [field_label, old_value, new_value, is_child_table, child_table_field, row_name]
 					filtered_changes.append(change_item[:6])
 
