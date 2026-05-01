@@ -205,6 +205,36 @@ class SVATimelineGenerator {
             border-radius: 4px;
         }
 
+        .value-chip-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .value-chip {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 2px 8px;
+            font-size: 0.75rem;
+            line-height: 1.2;
+            font-weight: 500;
+            border: 1px solid transparent;
+            white-space: nowrap;
+        }
+
+        .old-value .value-chip {
+            background: #fee2e2;
+            color: #991b1b;
+            border-color: #fca5a5;
+        }
+
+        .new-value .value-chip {
+            background: #dcfce7;
+            color: #166534;
+            border-color: #86efac;
+        }
+
         .json-mini-table {
             width: 100%;
             border-collapse: collapse;
@@ -941,6 +971,28 @@ class SVATimelineGenerator {
 		return value;
 	}
 
+	formatChipValue(value) {
+		if (!value || String(value).trim() === "(blank)") return "(blank)";
+
+		const items = String(value)
+			.split(",")
+			.map((v) => v.trim())
+			.filter(Boolean);
+
+		if (!items.length) return "(blank)";
+
+		return `<span class="value-chip-container">${items
+			.map((item) => `<span class="value-chip">${frappe.utils.escape_html(item)}</span>`)
+			.join("")}</span>`;
+	}
+
+	formatTimelineValue(change, value) {
+		if (change?.__tableMultiSelect) {
+			return this.formatChipValue(value);
+		}
+		return this.formatCellValue(value);
+	}
+
 	fetchTimelineData(append = false) {
 		if (!append) {
 			this.showSkeletonLoader();
@@ -1079,8 +1131,8 @@ class SVATimelineGenerator {
 												(change) => `
 											<tr>
 												<td>${change.fieldLabel}</td>
-												<td><span class="old-value">${this.formatCellValue(change.oldValue)}</span></td>
-												<td><span class="new-value">${this.formatCellValue(change.newValue)}</span></td>
+												<td><span class="old-value">${this.formatTimelineValue(change, change.oldValue)}</span></td>
+												<td><span class="new-value">${this.formatTimelineValue(change, change.newValue)}</span></td>
 											</tr>
 										`
 											)
