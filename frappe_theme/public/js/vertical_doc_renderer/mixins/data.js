@@ -5,8 +5,13 @@ const DataMixin = {
 	 */
 	_getDataFields() {
 		const LAYOUT_TYPES = new Set([
-			"Section Break", "Column Break", "Tab Break",
-			"HTML", "Button", "Fold", "Image",
+			"Section Break",
+			"Column Break",
+			"Tab Break",
+			"HTML",
+			"Button",
+			"Fold",
+			"Image",
 		]);
 		const fields = ["name"];
 		(this.meta.fields || []).forEach((df) => {
@@ -35,10 +40,11 @@ const DataMixin = {
 		}
 		try {
 			// response = { fields: [...filtered fields (no Tab Break)...], meta: {...} }
-			const response = await frappe.xcall(
-				"frappe_theme.dt_api.get_meta_fields",
-				{ doctype: this.doctype, _type: "Direct", meta_attached: 1 }
-			);
+			const response = await frappe.xcall("frappe_theme.dt_api.get_meta_fields", {
+				doctype: this.doctype,
+				_type: "Direct",
+				meta_attached: 1,
+			});
 			// Spread full Frappe meta dict so all properties are available,
 			// then override fields with the filtered list (no Tab Break) and
 			// set name explicitly from this.doctype.
@@ -77,7 +83,7 @@ const DataMixin = {
 		if (input === null && this._meta_override) {
 			console.warn(
 				"SVAVerticalDocRenderer: docs: null is not supported when doctype is a " +
-				"mimicked meta object. Pass docs as an array of objects instead."
+					"mimicked meta object. Pass docs as an array of objects instead."
 			);
 			this._all_inputs = null;
 			this.data = [];

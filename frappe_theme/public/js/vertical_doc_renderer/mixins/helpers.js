@@ -25,7 +25,13 @@ const HelpersMixin = {
 	isEmptyRow(df) {
 		return this.data.every((doc) => {
 			const v = doc[df.fieldname];
-			return v === null || v === undefined || v === "" || v === 0;
+			return (
+				v === null ||
+				v === undefined ||
+				v === "" ||
+				v === 0 ||
+				(Array.isArray(v) && !v.length)
+			);
 		});
 	},
 
@@ -80,6 +86,131 @@ const HelpersMixin = {
 			liters: "L",
 		};
 		return MAP[unit.toLowerCase()] || unit;
+	},
+
+	/**
+	 * Match a column header label against this.column_color_rules.
+	 * Each rule: { key, bg_color, text_color, priority }
+	 *   - key       — case-insensitive substring to match against the label
+	 *   - priority  — higher number wins when multiple keys match (default 0)
+	 *
+	 * Returns the winning rule object, or null when no rule matches.
+	 *
+	 * @param {string} label — column header label (doc name or column_label_field value)
+	 * @returns {object|null}
+	 */
+	_matchColorRule(label) {
+		if (!this.column_color_rules || !this.column_color_rules.length) return null;
+		const haystack = String(label || "").toLowerCase();
+		let best = null;
+		for (const rule of this.column_color_rules) {
+			const key = String(rule.key || "").toLowerCase();
+			if (key && haystack.includes(key)) {
+				if (!best) {
+					best = rule;
+				} else {
+					const bp = best.priority ?? 0;
+					const rp = rule.priority ?? 0;
+					const bestKey = String(best.key || "").toLowerCase();
+					// Higher priority wins; on tie prefer longer key (more specific match)
+					if (rp > bp || (rp === bp && key.length > bestKey.length)) {
+						best = rule;
+					}
+				}
+			}
+		}
+		return best;
+	},
+
+	/**
+	 * Match a column header label against this.column_order_rules.
+	 * Each rule: { key, order, priority }
+	 *   - key       — case-insensitive substring to match against the label
+	 *   - order     — numeric sort position (lower = rendered first)
+	 *   - priority  — higher number wins when multiple keys match (default 0)
+	 *
+	 * Returns the winning rule object, or null when no rule matches.
+	 *
+	 * @param {string} label
+	 * @returns {object|null}
+	 */
+	_matchOrderRule(label) {
+		if (!this.column_order_rules || !this.column_order_rules.length) return null;
+		const haystack = String(label || "").toLowerCase();
+		let best = null;
+		for (const rule of this.column_order_rules) {
+			const key = String(rule.key || "").toLowerCase();
+			if (key && haystack.includes(key)) {
+				if (!best) {
+					best = rule;
+				} else {
+					const bp = best.priority ?? 0;
+					const rp = rule.priority ?? 0;
+					const bestKey = String(best.key || "").toLowerCase();
+					// Higher priority wins; on tie prefer longer key (more specific match)
+					if (rp > bp || (rp === bp && key.length > bestKey.length)) {
+						best = rule;
+					}
+				}
+			}
+		}
+		return best;
+	},
+
+	/**
+	 * Sort this.data (and this.column_configs) according to column_order_rules.
+	 * Called once after fetchDocs(), before render().
+	 *
+	 * For object[] input mode: also sorts this._all_inputs so viewport lazy-loaded
+	 * batches maintain the same order.
+	 * For string[]/null modes: only the already-fetched data is sorted (known limitation).
+	 *
+	 * Columns that match no rule are placed at the end (order = Infinity).
+	 */
+	_sortDataByOrderRules() {
+		if (!this.column_order_rules || !this.column_order_rules.length) return;
+		if (!this.data || !this.data.length) return;
+
+		const labelField = this.column_label_field;
+		const configs = this.column_configs || [];
+
+		const getOrder = (doc, i) => {
+			const label = (labelField && doc[labelField]) || configs[i]?.label || doc.name || "";
+			const rule = this._matchOrderRule(label);
+			return rule ? rule.order ?? Infinity : Infinity;
+		};
+
+		// object[] mode — sort full _all_inputs so viewport batches are also ordered
+		if (
+			this._all_inputs !== null &&
+			Array.isArray(this._all_inputs) &&
+			this._all_inputs.length > 0 &&
+			typeof this._all_inputs[0] === "object"
+		) {
+			const entries = this._all_inputs.map((doc, i) => ({
+				doc,
+				conf: configs[i] || {},
+				order: getOrder(doc, i),
+			}));
+			entries.sort((a, b) => a.order - b.order);
+			this._all_inputs = entries.map((e) => e.doc);
+			this.column_configs = entries.map((e) => e.conf);
+			const batchSize = this.data.length;
+			this.data = this._all_inputs.slice(0, batchSize);
+			this.docs = this.data.map((d) => d.name);
+			return;
+		}
+
+		// string[] / null mode — sort only the fetched first batch
+		const entries = this.data.map((doc, i) => ({
+			doc,
+			conf: configs[i] || {},
+			order: getOrder(doc, i),
+		}));
+		entries.sort((a, b) => a.order - b.order);
+		this.data = entries.map((e) => e.doc);
+		this.column_configs = entries.map((e) => e.conf);
+		this.docs = this.data.map((d) => d.name);
 	},
 
 	/**

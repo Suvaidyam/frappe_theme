@@ -34,25 +34,29 @@
   "vdr_fields_to_show",
   "vdr_fields_to_hide",
   "vdr_link_title_fields",
+  "vdr_column_color_rules",
+  "vdr_column_order_rules",
   "vdr_show_sections",
   "vdr_section_configs",
   "vdr_show_unit",
   "vdr_hide_empty_rows",
   "vdr_show_legend",
   "vdr_legend_items",
+  "column_break_jxsm",
   "vdr_max_height",
   "vdr_column_batch_size",
   "vdr_column_width",
   "vdr_label_width",
+  "vdr_table_max_rows",
   "vdr_link_fieldname",
   "vdr_foreign_field",
   "vdr_order_by",
+  "vdr_extra_filters",
   "vdr_use_custom_script",
   "vdr_custom_docs_script",
   "vdr_fields_config",
   "setup_vdr_batch_config",
   "vdr_batch_config",
-  "column_break_fwyn",
   "section_break_ylfd",
   "sdg_report",
   "sdg_name_column",
@@ -309,10 +313,6 @@
   },
   {
    "fieldname": "column_break_vafi",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "column_break_fwyn",
    "fieldtype": "Column Break"
   },
   {
@@ -894,7 +894,7 @@
   },
   {
    "depends_on": "eval:false",
-   "description": "JSON array of {label, bg_color, text_color} — index-aligned to Document Names. Managed by Setup Column Configs button.",
+   "description": "JSON array of {label, bg_color, text_color} \u2014 index-aligned to Document Names. Managed by Setup Column Configs button.",
    "fieldname": "vdr_column_configs",
    "fieldtype": "Code",
    "label": "Column Configs"
@@ -995,7 +995,7 @@
   },
   {
    "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
-   "description": "Field on the parent form whose value is used to filter the source DocType (e.g. 'employee' → show only records where the foreign field matches frm.doc.employee)",
+   "description": "Field on the parent form whose value is used to filter the source DocType (e.g. 'employee' \u2192 show only records where the foreign field matches frm.doc.employee)",
    "fieldname": "vdr_link_fieldname",
    "fieldtype": "Data",
    "label": "Parent Link Field"
@@ -1037,7 +1037,7 @@
   },
   {
    "depends_on": "eval:false",
-   "description": "JSON batch config {allow_add_more_table, add_more_button_label, add_more_doctype, grouping_field, plot_link_field, default_collapsed_new_table, batch_title_prefix} — managed by Setup Batch Config button",
+   "description": "JSON batch config {allow_add_more_table, add_more_button_label, add_more_doctype, grouping_field, plot_link_field, default_collapsed_new_table, batch_title_prefix} \u2014 managed by Setup Batch Config button",
    "fieldname": "vdr_batch_config",
    "fieldtype": "Code",
    "label": "Batch Config"
@@ -1060,10 +1060,36 @@
   },
   {
    "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
+   "description": "JSON array of color rules applied to column headers. Each rule: {key, bg_color, text_color, priority}. key is matched (case-insensitive) as a substring of the column label; highest priority wins when multiple keys match. e.g. [{\"key\":\"NF\",\"bg_color\":\"#7391c5\",\"priority\":0},{\"key\":\"Matured-NF\",\"bg_color\":\"#7da860\",\"priority\":1}]",
+   "fieldname": "vdr_column_color_rules",
+   "fieldtype": "Code",
+   "label": "Column Color Rules",
+   "max_height": "8rem"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
+   "description": "JSON array of ordering rules for columns. Each rule: {key, order, priority}. key is matched (case-insensitive) as a substring of the column label; order is numeric position (lower = first); highest priority wins when multiple keys match. Unmatched columns go to end. e.g. [{\"key\":\"CF\",\"order\":1},{\"key\":\"NF\",\"order\":2,\"priority\":0},{\"key\":\"Matured-NF\",\"order\":3,\"priority\":1}]",
+   "fieldname": "vdr_column_order_rules",
+   "fieldtype": "Code",
+   "label": "Column Order Rules",
+   "max_height": "8rem",
+   "options": "JSON"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
    "description": "Sort order when fetching documents from the server, e.g. \"creation desc\" or \"employee_name asc\". Used when no static doc list is set.",
    "fieldname": "vdr_order_by",
    "fieldtype": "Data",
    "label": "Order By"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
+   "description": "JSON filter array merged with existing filters. Use \"{frm.doc.fieldname}\" to reference the current form's field value. e.g. [[\"research_context\",\"=\",\"{frm.doc.research_context}\"],[\"status\",\"=\",\"Active\"]]",
+   "fieldname": "vdr_extra_filters",
+   "fieldtype": "Code",
+   "label": "Extra Filters",
+   "max_height": "6rem",
+   "options": "JSON"
   },
   {
    "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
@@ -1085,13 +1111,24 @@
    "fieldname": "vdr_label_width",
    "fieldtype": "Int",
    "label": "Parameter Column Width (px)"
+  },
+  {
+   "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",
+   "description": "Max rows allowed per Table field. Set to 1 to skip the row-listing dialog and open the single row directly on click.",
+   "fieldname": "vdr_table_max_rows",
+   "fieldtype": "Int",
+   "label": "Table Field Max Rows"
+  },
+  {
+   "fieldname": "column_break_jxsm",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_virtual": 1,
  "links": [],
- "modified": "2026-03-30 12:54:41.025050",
+ "modified": "2026-05-01 11:49:18.733929",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Custom Property Setter",

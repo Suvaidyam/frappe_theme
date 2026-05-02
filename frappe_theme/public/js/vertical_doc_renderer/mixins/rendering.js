@@ -24,7 +24,7 @@ const RenderingMixin = {
 			border-collapse: collapse;
 			width: 100%;
 			min-width: 100%;
-			table-layout: auto;
+			table-layout: fixed;
 		`;
 		this._table = table;
 
@@ -321,10 +321,13 @@ const RenderingMixin = {
 			color: var(--sva-vdr-label-text, #1a3a5c);
 			font-weight: 500;
 			padding: 4px 10px;
-			white-space: nowrap;
+			white-space: normal;
+			word-break: break-word;
+			overflow-wrap: break-word;
 			border: 1px solid rgba(0,0,0,.06);
 			min-width: ${this.label_width || 160}px;
-		width: ${this.label_width || 160}px;
+			width: ${this.label_width || 160}px;
+			max-width: ${this.label_width || 160}px;
 		`;
 		labelTd.textContent = __(df.label || df.fieldname);
 		tr.appendChild(labelTd);
@@ -365,15 +368,19 @@ const RenderingMixin = {
 	 * @returns {HTMLElement}
 	 */
 	_buildDocHeaderCell(doc, colIndex, conf) {
-		const bgColor = conf.bg_color || this.column_default_bg || "#4472C4";
-		const textColor = conf.text_color || this.column_default_text || "#fff";
 		const label =
 			(this.column_label_field && doc[this.column_label_field]) || conf.label || doc.name;
+
+		// Priority: explicit column_configs[i] > color_rules match > column_default > fallback
+		const rule = !conf.bg_color && this._matchColorRule ? this._matchColorRule(label) : null;
+		const bgColor =
+			conf.bg_color || (rule && rule.bg_color) || this.column_default_bg || "#4472C4";
+		const textColor =
+			conf.text_color || (rule && rule.text_color) || this.column_default_text || "#fff";
 
 		const th = document.createElement("th");
 		th.className = "sva-vdr-header-cell sva-vdr-doc-header";
 		th.dataset.docname = doc.name;
-		const colW = this.column_width || 150;
 		th.style.cssText = `
 			background: ${bgColor};
 			color: ${textColor};
@@ -382,8 +389,6 @@ const RenderingMixin = {
 			text-align: center;
 			white-space: nowrap;
 			border: 1px solid rgba(0,0,0,.08);
-			min-width: ${colW}px;
-			width: ${colW}px;
 			position: sticky;
 			top: 0;
 			z-index: 2;
@@ -435,15 +440,11 @@ const RenderingMixin = {
 		// Per-cell read-only state
 		const readOnly = this.isFieldReadOnly && this.isFieldReadOnly(df, doc);
 
-		const _colW = this.column_width || 150;
 		td.style.cssText = `
 			padding: 4px 10px;
 			border: 1px solid rgba(0,0,0,.06);
 			text-align: left;
 			vertical-align: middle;
-			min-width: ${_colW}px;
-			max-width: ${_colW}px;
-			width: ${_colW}px;
 			overflow: hidden;
 			text-overflow: ellipsis;
 			white-space: nowrap;

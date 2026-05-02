@@ -26,10 +26,7 @@ const DeleteMixin = {
 	 * @returns {boolean}
 	 */
 	_canDelete() {
-		return (
-			this.crud_permissions.includes("delete") &&
-			frappe.model.can_delete(this.doctype)
-		);
+		return this.crud_permissions.includes("delete") && frappe.model.can_delete(this.doctype);
 	},
 
 	/**
@@ -193,29 +190,26 @@ const DeleteMixin = {
 	 * @param {string} docName
 	 */
 	deleteDoc(docName) {
-		frappe.confirm(
-			__("Are you sure you want to delete <b>{0}</b>?", [docName]),
-			async () => {
-				try {
-					await frappe.xcall("frappe.client.delete", {
-						doctype: this.doctype,
-						name: docName,
-					});
-					this._removeColumn(docName);
-					frappe.show_alert({
-						message: __("{0} deleted successfully", [docName]),
-						indicator: "green",
-					});
-				} catch (e) {
-					const msg = (e && (e.message || e.exc_type)) || String(e);
-					frappe.msgprint({
-						title: __("Delete failed"),
-						message: msg,
-						indicator: "red",
-					});
-				}
+		frappe.confirm(__("Are you sure you want to delete <b>{0}</b>?", [docName]), async () => {
+			try {
+				await frappe.xcall("frappe.client.delete", {
+					doctype: this.doctype,
+					name: docName,
+				});
+				this._removeColumn(docName);
+				frappe.show_alert({
+					message: __("{0} deleted successfully", [docName]),
+					indicator: "green",
+				});
+			} catch (e) {
+				const msg = (e && (e.message || e.exc_type)) || String(e);
+				frappe.msgprint({
+					title: __("Delete failed"),
+					message: msg,
+					indicator: "red",
+				});
 			}
-		);
+		});
 	},
 
 	/**
@@ -237,18 +231,14 @@ const DeleteMixin = {
 
 		// 3. Delete row cell
 		if (this._deleteRow) {
-			const deleteTd = this._deleteRow.querySelector(
-				`td[data-docname="${docName}"]`
-			);
+			const deleteTd = this._deleteRow.querySelector(`td[data-docname="${docName}"]`);
 			if (deleteTd) deleteTd.remove();
 		}
 
 		// 4. Decrement colSpan on all section-header rows
-		this._table
-			.querySelectorAll("tr.sva-vdr-section-row td")
-			.forEach((td) => {
-				if (td.colSpan > 1) td.colSpan -= 1;
-			});
+		this._table.querySelectorAll("tr.sva-vdr-section-row td").forEach((td) => {
+			if (td.colSpan > 1) td.colSpan -= 1;
+		});
 
 		// 5. Sync data arrays
 		this.data = this.data.filter((d) => d.name !== docName);

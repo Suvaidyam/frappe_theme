@@ -1133,6 +1133,33 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 				}
 				// else: vdrDocs = null, vdrFilters = [] → paginated without filters
 
+				// ── Merge extra filters (JSON with {frm.doc.x} substitution) ────
+				if (conf.vdr_extra_filters) {
+					try {
+						// Replace "{frm.doc.fieldname}" tokens with live form values
+						const _substituted = conf.vdr_extra_filters.replace(
+							/"\{frm\.doc\.([^}]+)\}"/g,
+							(_, fieldname) => {
+								const val = frm.doc[fieldname];
+								if (val === null || val === undefined) return "null";
+								if (typeof val === "number" || typeof val === "boolean")
+									return String(val);
+								return JSON.stringify(String(val));
+							}
+						);
+						const _extra = JSON.parse(_substituted);
+						if (Array.isArray(_extra) && _extra.length) {
+							vdrFilters = [...vdrFilters, ..._extra];
+						}
+					} catch (_err) {
+						console.error("[VDR] extra filters error", _err);
+						frappe.show_alert({
+							message: __("VDR filters error: ") + _err.message,
+							indicator: "red",
+						});
+					}
+				}
+
 				// Shared options for every VDR instance (single or multi-table)
 				const _vdrShared = {
 					frm,
@@ -1153,6 +1180,12 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					link_title_fields: conf.vdr_link_title_fields
 						? JSON.parse(conf.vdr_link_title_fields)
 						: {},
+					column_color_rules: conf.vdr_column_color_rules
+						? JSON.parse(conf.vdr_column_color_rules)
+						: [],
+					column_order_rules: conf.vdr_column_order_rules
+						? JSON.parse(conf.vdr_column_order_rules)
+						: [],
 					show_section_headers: conf.vdr_show_sections !== 0,
 					section_configs: conf.vdr_section_configs
 						? JSON.parse(conf.vdr_section_configs)
@@ -1170,6 +1203,9 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 						: 0,
 					column_width: conf.vdr_column_width ? Number(conf.vdr_column_width) : 150,
 					label_width: conf.vdr_label_width ? Number(conf.vdr_label_width) : 160,
+					table_max_rows: conf.vdr_table_max_rows
+						? Number(conf.vdr_table_max_rows)
+						: null,
 					signal,
 					vdr_field_name: field.fieldname,
 				};

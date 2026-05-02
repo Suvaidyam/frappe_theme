@@ -28,7 +28,10 @@ const ValidationMixin = {
 			// Fallback: strip "eval:" prefix and evaluate with doc bound
 			const code = expr.replace(/^eval:/, "");
 			// eslint-disable-next-line no-new-func
-			const fn = new Function("doc", `try { return !!(${code}); } catch(e) { return false; }`);
+			const fn = new Function(
+				"doc",
+				`try { return !!(${code}); } catch(e) { return false; }`
+			);
 			return fn(doc);
 		} catch (_) {
 			return false;
@@ -88,10 +91,7 @@ const ValidationMixin = {
 		const errors = [];
 		if (this.isFieldRequired(df, doc)) {
 			const isEmpty =
-				newValue === null ||
-				newValue === undefined ||
-				newValue === "" ||
-				newValue === 0;
+				newValue === null || newValue === undefined || newValue === "" || newValue === 0;
 			if (isEmpty) {
 				const label = __(df.label || df.fieldname);
 				errors.push(__("'{0}' is required for {1}", [label, doc.name]));

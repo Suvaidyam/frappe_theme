@@ -65,7 +65,6 @@ const RowSettingsMixin = {
 			"Fold",
 			"Image",
 			"Signature",
-			"Geolocation",
 			"Barcode",
 			"Tab Break",
 			"Section Break",

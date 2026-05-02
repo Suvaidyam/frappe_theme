@@ -61,7 +61,9 @@ const EditMixin = {
 
 		cell.addEventListener("click", () => {
 			if (cell.dataset.editing === "1") return;
-			if (this.getEditableCellTypes().includes(df.fieldtype)) {
+			if (df.fieldtype === "Table") {
+				this._openTableEditDialog(df, doc, colIndex);
+			} else if (this.getEditableCellTypes().includes(df.fieldtype)) {
 				this.renderInlineEditor(cell, df, doc, colIndex);
 			} else {
 				this.openEditDialog(df, doc, colIndex);
@@ -356,6 +358,320 @@ const EditMixin = {
 				delete cell.dataset.editing;
 				delete cell.dataset.originalContent;
 				this.attachEditListener(cell, df, doc, colIndex);
+			}
+		}
+	},
+
+	// ─── Table fieldtype editing ─────────────────────────────────────────────
+
+	/**
+	 * Entry point for Table field clicks.
+	 * Ensures child DocType meta is loaded, fetches existing rows if not cached,
+	 * then either opens the single-row dialog directly (table_max_rows === 1)
+	 * or the row-listing dialog (multi-row mode).
+	 */
+	_openTableEditDialog(df, doc, colIndex) {
+		const me = this;
+		const childDt = df.options;
+		if (!childDt) return;
+
+		frappe.model.with_doctype(childDt, async () => {
+			const childMeta = frappe.get_meta(childDt);
+			let rows;
+			if (Array.isArray(doc[df.fieldname])) {
+				rows = JSON.parse(JSON.stringify(doc[df.fieldname]));
+			} else {
+				try {
+					const fullDoc = await frappe.db.get_doc(me.doctype, doc.name);
+					rows = fullDoc[df.fieldname] || [];
+					doc[df.fieldname] = rows;
+				} catch (_) {
+					rows = [];
+				}
+			}
+
+			// Single-row mode: skip the listing dialog and open the row editor directly.
+			// The row is re-used on every click — existing data pre-fills; saving replaces it.
+			if (me.table_max_rows === 1) {
+				const rowData = rows[0] ? { ...rows[0] } : {};
+				me._openChildRowDialog(childMeta, rowData, rows[0] ? 0 : null, async (saved) => {
+					const newRows = [saved];
+					doc[df.fieldname] = newRows; // keep cache fresh
+					await me._saveTableValue(df, doc, newRows, colIndex);
+				});
+				return;
+			}
+
+			me._showTableDialog(df, doc, colIndex, childMeta, rows);
+		});
+	},
+
+	/**
+	 * Build and show the row-listing dialog for a Table field.
+	 * Allows adding, editing, and deleting rows before saving.
+	 */
+	_showTableDialog(df, doc, colIndex, childMeta, rows) {
+		const me = this;
+
+		const SYSTEM = new Set([
+			"name",
+			"doctype",
+			"parent",
+			"parentfield",
+			"parenttype",
+			"idx",
+			"docstatus",
+			"creation",
+			"modified",
+			"modified_by",
+			"owner",
+			"__islocal",
+			"__unsaved",
+		]);
+
+		const buildSummary = (row, i) => {
+			const parts = Object.entries(row)
+				.filter(([k, v]) => !SYSTEM.has(k) && v !== null && v !== undefined && v !== "")
+				.slice(0, 3)
+				.map(([k, v]) => {
+					const fdf = (childMeta.fields || []).find((f) => f.fieldname === k);
+					const label = fdf ? __(fdf.label || k) : k;
+					return `<b>${label}:</b> ${String(v).slice(0, 40)}`;
+				});
+			return parts.join(" &nbsp;|&nbsp; ") || `${__("Row")} ${i + 1}`;
+		};
+
+		const buildListHTML = (r) => {
+			if (!r.length) {
+				return `<p style="color:var(--text-muted,#888);font-size:12px;margin:4px 0;">${__(
+					"No rows yet. Click Add Row to begin."
+				)}</p>`;
+			}
+			return r
+				.map(
+					(row, i) => `
+				<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;margin-bottom:3px;
+					background:var(--control-bg,#f8f9fa);border:1px solid var(--border-color,#d1d8dd);border-radius:4px;">
+					<span style="flex:1;font-size:12px;">${buildSummary(row, i)}</span>
+					<button class="btn btn-xs btn-secondary sva-tr-edit" data-idx="${i}" style="padding:1px 8px;">${__(
+						"Edit"
+					)}</button>
+					<button class="btn btn-xs btn-danger sva-tr-del" data-idx="${i}" style="padding:1px 8px;">${__(
+						"Delete"
+					)}</button>
+				</div>`
+				)
+				.join("");
+		};
+
+		const atMax = () => me.table_max_rows && rows.length >= me.table_max_rows;
+
+		const dialogFields = [
+			{
+				fieldname: "row_list",
+				fieldtype: "HTML",
+				options: `<div class="sva-tr-list" style="max-height:320px;overflow-y:auto;padding:2px 0;">${buildListHTML(
+					rows
+				)}</div>`,
+			},
+		];
+		if (!atMax()) {
+			dialogFields.push({
+				fieldname: "add_row_btn",
+				fieldtype: "HTML",
+				options: `<button class="btn btn-xs btn-primary sva-tr-add" style="margin-top:6px;">+ ${__(
+					"Add Row"
+				)}</button>`,
+			});
+		}
+
+		const dialog = new frappe.ui.Dialog({
+			title: __(df.label || df.fieldname),
+			fields: dialogFields,
+			primary_action_label: __("Save"),
+			primary_action: async () => {
+				dialog.hide();
+				await me._saveTableValue(df, doc, rows, colIndex);
+			},
+		});
+
+		dialog.show();
+
+		const refreshList = () => {
+			const listEl = dialog.$wrapper[0].querySelector(".sva-tr-list");
+			if (listEl) listEl.innerHTML = buildListHTML(rows);
+			wireButtons();
+		};
+
+		const wireButtons = () => {
+			const w = dialog.$wrapper[0];
+
+			const addBtn = w.querySelector(".sva-tr-add");
+			if (addBtn) {
+				addBtn.style.display = atMax() ? "none" : "";
+				addBtn.onclick = () =>
+					me._openChildRowDialog(childMeta, {}, null, (newRow) => {
+						rows.push(newRow);
+						refreshList();
+					});
+			}
+
+			w.querySelectorAll(".sva-tr-edit").forEach((btn) => {
+				btn.onclick = () => {
+					const idx = parseInt(btn.dataset.idx);
+					me._openChildRowDialog(childMeta, { ...rows[idx] }, idx, (updated) => {
+						rows[idx] = updated;
+						refreshList();
+					});
+				};
+			});
+
+			w.querySelectorAll(".sva-tr-del").forEach((btn) => {
+				btn.onclick = () => {
+					rows.splice(parseInt(btn.dataset.idx), 1);
+					refreshList();
+				};
+			});
+		};
+
+		wireButtons();
+	},
+
+	/**
+	 * Open a sub-dialog for adding or editing a single child row.
+	 * Includes full Geolocation field support (map picker, draw tools, etc.).
+	 *
+	 * @param {Object}   childMeta — meta of the child DocType
+	 * @param {Object}   rowData   — existing row values (empty {} for new row)
+	 * @param {number|null} rowIdx — null = new row; number = edit existing
+	 * @param {Function} onSave   — called with merged row data on confirm
+	 */
+	_openChildRowDialog(childMeta, rowData, rowIdx, onSave) {
+		const me = this;
+		const SKIP_TYPES = new Set([
+			"Column Break",
+			"Section Break",
+			"Tab Break",
+			"HTML",
+			"Button",
+			"Fold",
+			"Image",
+			"Signature",
+			"Barcode",
+		]);
+		const fields = (childMeta.fields || [])
+			.filter((df) => !SKIP_TYPES.has(df.fieldtype) && !df.hidden)
+			.map((df) => ({ ...df, reqd: 0 }));
+
+		if (!fields.length) return;
+
+		const subDialog = new frappe.ui.Dialog({
+			title: rowIdx === null ? __("Add Row") : __("Edit Row"),
+			fields,
+			primary_action_label: rowIdx === null ? __("Add") : __("Update"),
+			primary_action(values) {
+				subDialog.hide();
+				onSave({ ...rowData, ...values });
+			},
+		});
+
+		// Apply the same Geolocation patches used in openEditDialog
+		fields.forEach((df) => {
+			if (df.fieldtype !== "Geolocation") return;
+			const geoCtrl = subDialog.fields_dict[df.fieldname];
+			if (!geoCtrl) return;
+
+			geoCtrl.doctype = me.doctype;
+			geoCtrl.doc = rowData;
+			geoCtrl.bind_leaflet_draw_control = function () {
+				if (this.df.read_only) return;
+				this.draw_control = this.get_leaflet_controls();
+				this.map.addControl(this.draw_control);
+			};
+			const existingValue = rowData[df.fieldname];
+			let mapReady = false;
+			const protoMakeMap = Object.getPrototypeOf(geoCtrl).make_map;
+			geoCtrl.make_map = (v) => {
+				if (mapReady) return;
+				mapReady = true;
+				protoMakeMap.call(geoCtrl, v !== undefined ? v : existingValue);
+			};
+			subDialog.$wrapper.one("shown.bs.modal", () => {
+				if (geoCtrl.map) {
+					geoCtrl.map.invalidateSize();
+					const layers = geoCtrl.editableLayers?.getLayers() || [];
+					if (layers.length) {
+						try {
+							geoCtrl.map.fitBounds(geoCtrl.editableLayers.getBounds(), {
+								padding: [50, 50],
+							});
+						} catch (_e) {
+							console.warn("Could not fit map bounds:", _e);
+						}
+					}
+				}
+			});
+			subDialog.$wrapper.one("hidden.bs.modal", () => subDialog.$wrapper.remove());
+		});
+
+		// Populate existing values
+		fields.forEach((df) => {
+			if (rowData[df.fieldname] !== undefined) {
+				try {
+					subDialog.set_value(df.fieldname, rowData[df.fieldname]);
+				} catch (_e) {
+					console.warn("Could not set field value:", _e);
+				}
+			}
+		});
+
+		subDialog.show();
+	},
+
+	/**
+	 * Fetch the full parent doc, replace the child table field, save, and
+	 * refresh the VDR cell.
+	 */
+	async _saveTableValue(df, doc, rows, colIndex) {
+		const me = this;
+		const childDt = df.options;
+
+		const processedRows = rows.map((row, i) => ({
+			doctype: childDt,
+			idx: i + 1,
+			...row,
+		}));
+
+		try {
+			const fullDoc = await frappe.db.get_doc(me.doctype, doc.name);
+			fullDoc[df.fieldname] = processedRows;
+			const saved = await frappe.xcall("frappe.client.save", { doc: fullDoc });
+
+			doc[df.fieldname] = saved[df.fieldname] || processedRows;
+
+			const cell = me._table?.querySelector(
+				`td.sva-vdr-value-cell[data-fieldname="${CSS.escape(
+					df.fieldname
+				)}"][data-docname="${CSS.escape(doc.name)}"]`
+			);
+			if (cell) {
+				cell.dataset.rawValue = String(rows.length);
+				cell.innerHTML = me.formatCellValue(doc[df.fieldname], df, doc, colIndex);
+				me.attachEditListener(cell, df, doc, colIndex);
+			}
+
+			if (typeof me.clearErrorBanner === "function") me.clearErrorBanner();
+			frappe.show_alert({ message: __("Saved"), indicator: "green" });
+
+			if (typeof me.events.afterSave === "function") {
+				me.events.afterSave(df, doc.name, doc[df.fieldname]);
+			}
+		} catch (err) {
+			const errMsg = (err && (err.message || err.exc_type)) || __("Could not save");
+			if (typeof me.showErrorBanner === "function") {
+				me.showErrorBanner([`${__(df.label || df.fieldname)}: ${errMsg}`]);
+			} else {
+				frappe.msgprint({ title: __("Save failed"), message: errMsg, indicator: "red" });
 			}
 		}
 	},

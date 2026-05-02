@@ -286,6 +286,8 @@ const field_changes = {
 			{ fn: "vdr_fields_to_show", ft: "Code" },
 			{ fn: "vdr_fields_to_hide", ft: "Code" },
 			{ fn: "vdr_link_title_fields", ft: "Code" },
+			{ fn: "vdr_column_color_rules", ft: "Code" },
+			{ fn: "vdr_column_order_rules", ft: "Code" },
 			{ fn: "vdr_show_sections", ft: "Check" },
 			{ fn: "vdr_section_configs", ft: "Code" },
 			{ fn: "vdr_show_unit", ft: "Check" },
@@ -296,9 +298,11 @@ const field_changes = {
 			{ fn: "vdr_column_batch_size", ft: "Int" },
 			{ fn: "vdr_column_width", ft: "Int" },
 			{ fn: "vdr_label_width", ft: "Int" },
+			{ fn: "vdr_table_max_rows", ft: "Int" },
 			{ fn: "vdr_link_fieldname", ft: "Data" },
 			{ fn: "vdr_foreign_field", ft: "Data" },
 			{ fn: "vdr_order_by", ft: "Data" },
+			{ fn: "vdr_extra_filters", ft: "Code" },
 			{ fn: "vdr_use_custom_script", ft: "Check" },
 			{ fn: "vdr_custom_docs_script", ft: "Code" },
 			{ fn: "vdr_fields_config", ft: "Code" },
@@ -1107,6 +1111,8 @@ const set_vdr_batch_config = (dialog) => {
 		plot_link_field: "",
 		default_collapsed_new_table: true,
 		batch_title_prefix: "Soil Parameters - Batch",
+		allow_delete_batch: false,
+		delete_batch_button_label: "Delete Batch",
 	};
 	try {
 		const saved = JSON.parse(row.vdr_batch_config || "{}");
@@ -1186,6 +1192,24 @@ const set_vdr_batch_config = (dialog) => {
 				default: cfg.default_collapsed_new_table ? 1 : 0,
 				description: __("New batch tables start folded; user expands on demand"),
 			},
+			{ fieldtype: "Column Break" },
+			{
+				label: __("Allow Delete Batch"),
+				fieldname: "allow_delete_batch",
+				fieldtype: "Check",
+				default: cfg.allow_delete_batch ? 1 : 0,
+				description: __(
+					"Show a Delete Batch button on each batch header (requires Delete permission on the DocType)"
+				),
+			},
+			{
+				label: __("Delete Button Label"),
+				fieldname: "delete_batch_button_label",
+				fieldtype: "Data",
+				default: cfg.delete_batch_button_label || "Delete Batch",
+				description: __('Text shown on the delete button (e.g. "Remove Batch")'),
+				depends_on: "eval:doc.allow_delete_batch == 1",
+			},
 		],
 		primary_action_label: __("Save"),
 		primary_action(values) {
@@ -1222,6 +1246,10 @@ const set_vdr_batch_config = (dialog) => {
 				default_collapsed_new_table: !!values.default_collapsed_new_table,
 				batch_title_prefix: (
 					values.batch_title_prefix || "Soil Parameters - Batch"
+				).trim(),
+				allow_delete_batch: !!values.allow_delete_batch,
+				delete_batch_button_label: (
+					values.delete_batch_button_label || "Delete Batch"
 				).trim(),
 			};
 

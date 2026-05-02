@@ -10,6 +10,8 @@ import ValidationMixin from "./mixins/validation.js";
 import LinkTitlesMixin from "./mixins/link_titles.js";
 import DeleteMixin from "./mixins/delete.js";
 import RowSettingsMixin from "./mixins/row_settings.js";
+import AddMoreMixin from "./mixins/add_more.js";
+import BatchGroupMixin from "./mixins/batch_group.js";
 
 /**
  * SVAVerticalDocRenderer
@@ -89,6 +91,12 @@ class SVAVerticalDocRenderer {
 		column_label_field = null, // fieldname on source DocType to use as column header label
 		column_default_bg = null, // default bg_color for all columns (overridden by column_configs[i].bg_color)
 		column_default_text = null, // default text_color for all columns (overridden by column_configs[i].text_color)
+		column_color_rules = [], // [{key, bg_color, text_color, priority}] — key-based color matching
+		// key is matched (case-insensitive substring) against column header label
+		// highest priority wins when multiple keys match
+		column_order_rules = [], // [{key, order, priority}] — key-based column ordering
+		// order: numeric sort position (lower = rendered first)
+		// priority: higher wins when multiple keys match (default 0)
 		fields_to_show = null,
 		fields_to_hide = [],
 		show_section_headers = true,
@@ -103,6 +111,7 @@ class SVAVerticalDocRenderer {
 		column_batch_size = 0,
 		column_width = 150,
 		label_width = 160,
+		vdr_label_width = null, // alias for label_width (matches Custom Property Setter field name)
 		max_height = 600,
 		signal = null,
 		vdr_field_name = null, // HTML field name hosting this VDR — enables server-side settings save
@@ -114,6 +123,8 @@ class SVAVerticalDocRenderer {
 		link_title_fields = {}, // { [LinkedDocType]: fieldname } — explicit display-field override
 		//   e.g. { "Block": "block_name", "District": "district_name" }
 		//   Takes priority over frappe.boot.link_title_doctypes and title_field meta
+		table_max_rows = null, // null = unlimited rows per Table field; 1 = single-row mode (no listing dialog)
+		vdr_table_max_rows = null, // alias for table_max_rows (matches Custom Property Setter field name)
 		add_more_config = null, // batch config from vdr_batch_config property setter field
 		//   { allow_add_more_table, add_more_button_label, add_more_doctype,
 		//     grouping_field, plot_link_field, default_collapsed_new_table, batch_title_prefix }
@@ -132,6 +143,8 @@ class SVAVerticalDocRenderer {
 			column_label_field,
 			column_default_bg,
 			column_default_text,
+			column_color_rules,
+			column_order_rules,
 			fields_to_show,
 			fields_to_hide,
 			show_section_headers,
@@ -147,13 +160,14 @@ class SVAVerticalDocRenderer {
 			order_by,
 			column_batch_size,
 			column_width,
-			label_width,
+			label_width: vdr_label_width ? Number(vdr_label_width) : label_width,
 			max_height,
 			signal,
 			vdr_field_name,
 			fields_config,
 			section_configs,
 			link_title_fields,
+			table_max_rows: vdr_table_max_rows ? Number(vdr_table_max_rows) : table_max_rows,
 			add_more_config,
 			_initial_fields_config: fields_config ? [...fields_config] : null,
 			_has_user_settings: false,
@@ -165,7 +179,9 @@ class SVAVerticalDocRenderer {
 		this.meta = null;
 		this.data = [];
 
-		this._initialize();
+		// _ready resolves when _initialize() fully completes.
+		// Used by batch_group.js to await sub-VDR render before starting the next.
+		this._ready = this._initialize();
 	}
 
 	async _initialize() {
@@ -174,17 +190,23 @@ class SVAVerticalDocRenderer {
 		this.showLoading();
 
 		await this.fetchMeta();
-		await this._loadUserRowSettings(); // apply non-admin row settings override (if any)
-		await this.fetchDocs(); // loads first batch only
+		await this._loadUserRowSettings();
 
-		this.hideLoading();
-		this.render(); // renders first-batch columns
-		this._renderAddMoreButton(); // append Add More button if batch config is present
-
-		// Batch-fetch link display titles (non-blocking — updates cells asynchronously)
-		this.resolveLinkTitles();
-
-		this.setupViewportLoader(); // IntersectionObserver watches for scroll-right
+		if (this._isBatchGrouped && this._isBatchGrouped()) {
+			// ── Batched mode: one collapsible table per batch_no ──────────────
+			await this._renderBatchGroups();
+			this.hideLoading();
+			this._renderAddMoreButton();
+		} else {
+			// ── Standard mode ─────────────────────────────────────────────────
+			await this.fetchDocs();
+			this._sortDataByOrderRules();
+			this.hideLoading();
+			this.render();
+			this._renderAddMoreButton();
+			this.resolveLinkTitles();
+			this.setupViewportLoader();
+		}
 	}
 }
 
@@ -201,7 +223,9 @@ Object.assign(
 	ValidationMixin,
 	LinkTitlesMixin,
 	DeleteMixin,
-	RowSettingsMixin
+	RowSettingsMixin,
+	AddMoreMixin,
+	BatchGroupMixin
 );
 
 export default SVAVerticalDocRenderer;

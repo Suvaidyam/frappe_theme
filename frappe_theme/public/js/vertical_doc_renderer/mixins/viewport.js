@@ -199,6 +199,17 @@ const ViewportMixin = {
 	 * when set (used by the filter ribbon reset/apply flow).
 	 */
 	async reloadTable() {
+		// ── Batched mode: rebuild all batch sections from scratch ─────────────
+		if (this._isBatchGrouped && this._isBatchGrouped()) {
+			this.container.querySelectorAll(".sva-vdr-batch-section").forEach((el) => el.remove());
+			this._batchInstances = {};
+			this.showLoading();
+			await this._renderBatchGroups();
+			this.hideLoading();
+			return;
+		}
+
+		// ── Standard mode ────────────────────────────────────────────────────
 		// Stop in-progress observation
 		if (this._observer) {
 			this._observer.disconnect();
@@ -207,11 +218,15 @@ const ViewportMixin = {
 		this._sentinel = null;
 		this._loading_batch = false;
 
-		// Merge base filters with additional (applied by filter ribbon)
-		if (this.additional_list_filters && this.additional_list_filters.length) {
-			this.filters = [...(this._base_filters || []), ...this.additional_list_filters];
-		} else {
-			this.filters = [...(this._base_filters || [])];
+		// Restore filters: only touch them when setFilters() was previously called
+		// (signalled by _base_filters being set). Otherwise keep this.filters as-is
+		// so the original constructor filters are never wiped on a plain reload.
+		if (this._base_filters !== undefined) {
+			if (this.additional_list_filters && this.additional_list_filters.length) {
+				this.filters = [...this._base_filters, ...this.additional_list_filters];
+			} else {
+				this.filters = [...this._base_filters];
+			}
 		}
 
 		// Reset data state
@@ -226,6 +241,7 @@ const ViewportMixin = {
 
 		// Re-fetch and re-render first batch
 		await this.fetchDocs();
+		this._sortDataByOrderRules && this._sortDataByOrderRules();
 		this.render();
 		if (typeof this.resolveLinkTitles === "function") {
 			this.resolveLinkTitles();

@@ -215,19 +215,81 @@ const UISetupMixin = {
 	},
 
 	/**
-	 * Show a lightweight loading indicator inside the scroll box.
+	 * Show a skeleton loading table inside the scroll box.
 	 */
 	showLoading() {
 		if (this.scrollBox.querySelector(".sva-vdr-skeleton")) return;
+
+		// _docs_input holds the raw constructor arg (string[] | object[] | null);
+		// this.docs is always [] at load time, so use _docs_input for accurate count.
+		const inputDocs = this._docs_input;
+		const colCount =
+			Array.isArray(inputDocs) && inputDocs.length ? Math.min(inputDocs.length, 6) : 4;
+		const ROW_COUNT = 7;
+
+		// Bar widths per column to look natural (label col + doc cols)
+		const labelWidths = ["75%", "90%", "60%", "85%", "70%", "80%", "65%"];
+		const cellWidths = ["55%", "70%", "45%", "60%", "50%", "65%", "40%"];
+
 		const sk = document.createElement("div");
 		sk.className = "sva-vdr-skeleton";
 		sk.style.cssText = `
-			padding: 16px;
-			color: var(--text-muted, #888);
-			font-size: 13px;
-			text-align: center;
+			width: 100%;
+			border-radius: 6px;
+			overflow: hidden;
+			border: 1px solid rgba(0,0,0,.06);
 		`;
-		sk.textContent = __("Loading\u2026");
+
+		const table = document.createElement("table");
+		table.style.cssText = "width:100%;border-collapse:collapse;table-layout:fixed;";
+
+		// \u2500\u2500 Header row \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+		const thead = document.createElement("thead");
+		const htr = document.createElement("tr");
+
+		const mkTh = (widthPct) => {
+			const th = document.createElement("th");
+			th.style.cssText =
+				"padding:10px 12px;background:#e9ecef;border:1px solid rgba(0,0,0,.06);";
+			th.innerHTML = `<div class="sva-vdr-skel-bar" style="width:${widthPct};height:14px;border-radius:20px;"></div>`;
+			return th;
+		};
+
+		htr.appendChild(mkTh("65%")); // label column header
+		for (let c = 0; c < colCount; c++) {
+			const th = mkTh("55%");
+			th.querySelector(".sva-vdr-skel-bar").style.margin = "0 auto";
+			htr.appendChild(th);
+		}
+		thead.appendChild(htr);
+		table.appendChild(thead);
+
+		// \u2500\u2500 Body rows \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+		const tbody = document.createElement("tbody");
+		for (let r = 0; r < ROW_COUNT; r++) {
+			const tr = document.createElement("tr");
+			const bg = r % 2 === 0 ? "#f8f9fa" : "#fff";
+
+			const mkTd = (widthPct, centered = false) => {
+				const td = document.createElement("td");
+				td.style.cssText = `padding:9px 12px;background:${bg};border:1px solid rgba(0,0,0,.06);`;
+				const bar = document.createElement("div");
+				bar.className = "sva-vdr-skel-bar";
+				bar.style.cssText = `width:${widthPct};height:12px;border-radius:20px;${
+					centered ? "margin:0 auto;" : ""
+				}`;
+				td.appendChild(bar);
+				return td;
+			};
+
+			tr.appendChild(mkTd(labelWidths[r % labelWidths.length]));
+			for (let c = 0; c < colCount; c++) {
+				tr.appendChild(mkTd(cellWidths[(r + c) % cellWidths.length], true));
+			}
+			tbody.appendChild(tr);
+		}
+		table.appendChild(tbody);
+		sk.appendChild(table);
 		this.scrollBox.appendChild(sk);
 	},
 
@@ -266,6 +328,15 @@ const UISetupMixin = {
 				display: inline-block;
 				animation: sva-vdr-spin 0.8s linear infinite;
 				margin-left: 4px;
+			}
+			@keyframes sva-vdr-shimmer {
+				0%   { background-position: -400px 0; }
+				100% { background-position:  400px 0; }
+			}
+			.sva-vdr-skel-bar {
+				background: linear-gradient(90deg, #e0e0e0 25%, #ececec 50%, #e0e0e0 75%);
+				background-size: 800px 100%;
+				animation: sva-vdr-shimmer 1.4s ease-in-out infinite;
 			}
 		`;
 		document.head.appendChild(style);
