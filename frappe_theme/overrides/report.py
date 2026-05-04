@@ -6,7 +6,23 @@ from frappe.core.doctype.report.report import Report
 from frappe.utils import cstr
 from frappe.utils.safe_exec import check_safe_sql_query
 
-OPERATORS = ["=", "!=", ">", "<", ">=", "<=", "in", "not in", "like", "not like", "between", "not between"]
+OPERATORS = [
+	"=",
+	"!=",
+	">",
+	"<",
+	">=",
+	"<=",
+	"in",
+	"not in",
+	"like",
+	"not like",
+	"between",
+	"not between",
+	"Between",
+	"not between",
+]
+_OPERATORS_LOWER = {op.lower() for op in OPERATORS}
 from frappe_theme.utils.permission_engine import get_permission_query_conditions_custom
 from frappe_theme.utils.sql_builder import SQLBuilder
 
@@ -171,12 +187,12 @@ class CustomReport(Report):
 			_filters = []
 			for key, value in filters.items():
 				if isinstance(value, list):
-					if len(value) > 1 and value[0] in OPERATORS:
+					if len(value) > 1 and value[0].lower() in _OPERATORS_LOWER:
 						operator = value[0]
-						if value[1]:
+						if value[1] is not None:
 							val = value[1]
 							# If value is a list and operator is not in or not in, convert to "in" operator
-							if isinstance(val, list) and operator not in ["in", "not in"]:
+							if isinstance(val, list) and operator.lower() not in ["in", "not in", "between"]:
 								operator = "in"
 							_filters.append([table_alias, key, operator, val])
 					else:
