@@ -15,7 +15,6 @@ OPERATORS = [
 	"not like",
 	"between",
 	"not between",
-	"Between",
 ]
 
 
@@ -118,10 +117,29 @@ class DTFilters:
 		"""
 		from frappe_theme.utils.sql_builder import SQLBuilder
 
-		sql_params = set()
-		query = getattr(report, "query", None) or ""
-		if query:
-			sql_params = set(SQLBuilder.extract_placeholders(query))
+		# report can be a Frappe Document or a plain dict (chart/number card paths)
+		if isinstance(report, dict):
+			query = report.get("query", None) or ""
+			report_type = report.get("report_type", None)
+		else:
+			query = getattr(report, "query", None) or ""
+			report_type = getattr(report, "report_type", None)
+
+		# Script Reports have no SQL — pass all filters to inner_filters as scalars
+		# so they reach the execute(filters=...) call unchanged.
+		if report_type == "Script Report" or not query:
+			inner_filters = {}
+			for k, v in client_filters.items():
+				operator = DTFilters._extract_operator(v)
+				unwrapped = DTFilters._unwrap_operator_value(v)
+				inner_filters[k] = unwrapped
+				inner_filters[k + "_condition"] = operator
+				if operator.upper() == "BETWEEN" and isinstance(unwrapped, list) and len(unwrapped) == 2:
+					inner_filters[k + "_from"] = unwrapped[0]
+					inner_filters[k + "_to"] = unwrapped[1]
+			return {}, inner_filters, []
+
+		sql_params = set(SQLBuilder.extract_placeholders(query))
 
 		inner_filters = {}
 		outer_filters = {}
@@ -132,7 +150,7 @@ class DTFilters:
 				inner_filters[k] = unwrapped
 				# Store condition so SQLBuilder can override the hardcoded SQL operator
 				inner_filters[k + "_condition"] = operator
-				if operator == "Between" and isinstance(unwrapped, list) and len(unwrapped) == 2:
+				if operator.upper() == "BETWEEN" and isinstance(unwrapped, list) and len(unwrapped) == 2:
 					inner_filters[k + "_from"] = unwrapped[0]
 					inner_filters[k + "_to"] = unwrapped[1]
 			else:
@@ -209,7 +227,7 @@ class DTFilters:
 				unwrapped = DTFilters._unwrap_operator_value(value)
 				inner_filters[key] = unwrapped
 				inner_filters[key + "_condition"] = operator
-				if operator == "Between" and isinstance(unwrapped, list) and len(unwrapped) == 2:
+				if operator.upper() == "BETWEEN" and isinstance(unwrapped, list) and len(unwrapped) == 2:
 					inner_filters[key + "_from"] = unwrapped[0]
 					inner_filters[key + "_to"] = unwrapped[1]
 				matched = True
@@ -287,7 +305,7 @@ class DTFilters:
 			# Only inject _condition / _from / _to for Date-type report filters
 			if direct_filter.get("fieldtype") == "Date":
 				inner_filters[report_fn + "_condition"] = operator
-				if operator == "Between" and isinstance(unwrapped, list) and len(unwrapped) == 2:
+				if operator.upper() == "BETWEEN" and isinstance(unwrapped, list) and len(unwrapped) == 2:
 					inner_filters[report_fn + "_from"] = unwrapped[0]
 					inner_filters[report_fn + "_to"] = unwrapped[1]
 
@@ -296,7 +314,7 @@ class DTFilters:
 			inner_filters[report_fn] = DTFilters._resolve_date_filter_value(unwrapped, f)
 			# Condition keyed to the report fieldname so SQLBuilder can find it
 			inner_filters[report_fn + "_condition"] = operator
-			if operator == "Between" and isinstance(unwrapped, list) and len(unwrapped) == 2:
+			if operator.upper() == "BETWEEN" and isinstance(unwrapped, list) and len(unwrapped) == 2:
 				inner_filters[report_fn + "_from"] = unwrapped[0]
 				inner_filters[report_fn + "_to"] = unwrapped[1]
 

@@ -606,7 +606,7 @@ class SQLBuilder:
 			if op.upper() == "BETWEEN":
 				from_val = self.params.get(key + "_from")
 				to_val = self.params.get(key + "_to")
-				if from_val is None and isinstance(val, list | tuple) and len(val) == 2:
+				if (from_val is None or to_val is None) and isinstance(val, list | tuple) and len(val) == 2:
 					from_val, to_val = val[0], val[1]
 				if from_val is not None and to_val is not None:
 					return f"{column} BETWEEN {self.format_value(from_val)} AND {self.format_value(to_val)}"
