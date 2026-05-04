@@ -20,7 +20,6 @@ OPERATORS = [
 	"between",
 	"not between",
 	"Between",
-	"not between",
 ]
 _OPERATORS_LOWER = {op.lower() for op in OPERATORS}
 from frappe_theme.utils.permission_engine import get_permission_query_conditions_custom
@@ -189,9 +188,12 @@ class CustomReport(Report):
 				if isinstance(value, list):
 					if len(value) > 1 and value[0].lower() in _OPERATORS_LOWER:
 						operator = value[0]
-						if value[1] is not None:
-							val = value[1]
-							# If value is a list and operator is not in or not in, convert to "in" operator
+						val = value[1]
+						# Allow 0/False as valid values; skip None, empty sequences, and empty strings
+						if val is None or (isinstance(val, list | tuple) and not val) or val == "":
+							pass
+						else:
+							# If value is a list and operator is not in/not in/between, coerce to "in"
 							if isinstance(val, list) and operator.lower() not in ["in", "not in", "between"]:
 								operator = "in"
 							_filters.append([table_alias, key, operator, val])
@@ -213,9 +215,13 @@ class CustomReport(Report):
 			elif operator.lower() == "like":
 				condition = f"{field_name} LIKE '%{value}%'"
 			elif operator.lower() == "in" and isinstance(value, (list | tuple)):
+				if not value:
+					continue
 				in_values = ", ".join(f"'{v}'" for v in value)
 				condition = f"{field_name} IN ({in_values})"
 			elif operator.lower() == "not in" and isinstance(value, (list | tuple)):
+				if not value:
+					continue
 				not_in_values = ", ".join(f"'{v}'" for v in value)
 				condition = f"{field_name} NOT IN ({not_in_values})"
 			elif operator.lower() == "is":
