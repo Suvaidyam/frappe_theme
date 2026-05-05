@@ -2,7 +2,20 @@ import json
 
 import frappe
 
-OPERATORS = ["=", "!=", ">", "<", ">=", "<=", "in", "not in", "like", "not like", "between", "not between"]
+OPERATORS = [
+	"=",
+	"!=",
+	">",
+	"<",
+	">=",
+	"<=",
+	"in",
+	"not in",
+	"like",
+	"not like",
+	"between",
+	"not between",
+]
 
 
 class DTFilters:
@@ -93,6 +106,59 @@ class DTFilters:
 		return value
 
 	@staticmethod
+	def _split_non_dashboard_filters(report, client_filters):
+		"""Split client_filters into outer/inner for non-dashboard reports.
+
+		- Filters whose key appears as a %(key)s placeholder in the report SQL
+		  go to inner_filters as scalar values (SQLBuilder will substitute them).
+		- All other filters go to outer_filters in [operator, value] form so
+		  apply_dt_dn_filter_and_filters wraps the query and adds a WHERE clause.
+		- Script Reports have no SQL → everything goes to inner_filters as scalars.
+		"""
+		from frappe_theme.utils.sql_builder import SQLBuilder
+
+		# report can be a Frappe Document or a plain dict (chart/number card paths)
+		if isinstance(report, dict):
+			query = report.get("query", None) or ""
+			report_type = report.get("report_type", None)
+		else:
+			query = getattr(report, "query", None) or ""
+			report_type = getattr(report, "report_type", None)
+
+		# Script Reports have no SQL — pass all filters to inner_filters as scalars
+		# so they reach the execute(filters=...) call unchanged.
+		if report_type == "Script Report" or not query:
+			inner_filters = {}
+			for k, v in client_filters.items():
+				operator = DTFilters._extract_operator(v)
+				unwrapped = DTFilters._unwrap_operator_value(v)
+				inner_filters[k] = unwrapped
+				inner_filters[k + "_condition"] = operator
+				if operator.upper() == "BETWEEN" and isinstance(unwrapped, list) and len(unwrapped) == 2:
+					inner_filters[k + "_from"] = unwrapped[0]
+					inner_filters[k + "_to"] = unwrapped[1]
+			return {}, inner_filters, []
+
+		sql_params = set(SQLBuilder.extract_placeholders(query))
+
+		inner_filters = {}
+		outer_filters = {}
+		for k, v in client_filters.items():
+			if k in sql_params:
+				operator = DTFilters._extract_operator(v)
+				unwrapped = DTFilters._unwrap_operator_value(v)
+				inner_filters[k] = unwrapped
+				# Store condition so SQLBuilder can override the hardcoded SQL operator
+				inner_filters[k + "_condition"] = operator
+				if operator.upper() == "BETWEEN" and isinstance(unwrapped, list) and len(unwrapped) == 2:
+					inner_filters[k + "_from"] = unwrapped[0]
+					inner_filters[k + "_to"] = unwrapped[1]
+			else:
+				outer_filters[k] = v  # keep [operator, value] for filters_to_sql_conditions
+
+		return outer_filters, inner_filters, []
+
+	@staticmethod
 	def get_report_filters(report, client_filters, dt):
 		"""Partition client filters into outer (column), inner (report-filter), and not-applied.
 
@@ -106,11 +172,11 @@ class DTFilters:
 			client_filters = {}
 
 		if not dt:
-			return {}, client_filters, []
+			return DTFilters._split_non_dashboard_filters(report, client_filters)
 
 		meta = frappe.get_meta(dt, True)
 		if meta.get("is_dashboard") != 1:
-			return {}, client_filters, []
+			return DTFilters._split_non_dashboard_filters(report, client_filters)
 
 		report_filters = report.get("filters", [])
 		report_columns = report.get("columns", [])
@@ -130,6 +196,13 @@ class DTFilters:
 			)
 		}
 
+		# Dashboard Date fields — pass through to inner_filters even without a matching report filter
+		dashboard_date_fields = {
+			f.get("fieldname")
+			for f in meta.get("fields", [])
+			if f.get("fieldtype") == "Date" and f.get("fieldname") in client_filter_keys
+		}
+
 		outer_filters = {}
 		inner_filters = {}
 		not_applied_filters = []
@@ -146,6 +219,18 @@ class DTFilters:
 				matched = DTFilters._match_via_fieldname(
 					key, value, report_columns, report_filters, outer_filters, inner_filters
 				)
+
+			# If no report filter/column matched but this is a dashboard Date field,
+			# pass it through directly so the report SQL can use %(key)s / %(key_condition)s
+			if not matched and key in dashboard_date_fields:
+				operator = DTFilters._extract_operator(value)
+				unwrapped = DTFilters._unwrap_operator_value(value)
+				inner_filters[key] = unwrapped
+				inner_filters[key + "_condition"] = operator
+				if operator.upper() == "BETWEEN" and isinstance(unwrapped, list) and len(unwrapped) == 2:
+					inner_filters[key + "_from"] = unwrapped[0]
+					inner_filters[key + "_to"] = unwrapped[1]
+				matched = True
 
 			if not matched:
 				not_applied_filters.append(key)
@@ -169,20 +254,91 @@ class DTFilters:
 		return bool(matching_column or matching_filter)
 
 	@staticmethod
+	def _extract_operator(value):
+		"""Extract the operator from an [operator, value] pair, defaulting to '='."""
+		if (
+			isinstance(value, list)
+			and len(value) >= 1
+			and isinstance(value[0], str)
+			and value[0] in OPERATORS
+		):
+			return value[0]
+		return "="
+
+	@staticmethod
 	def _match_via_fieldname(key, value, report_columns, report_filters, outer_filters, inner_filters):
 		"""Match a non-link field directly by fieldname against report columns and filters.
+
+		DASHBOARD-ONLY: this method is only ever called from get_report_filters(), which
+		returns early when the doctype is not a dashboard (is_dashboard != 1).  No other
+		Frappe feature is affected by the logic below.
+
+		Date-specific behaviour (does NOT touch non-Date fields):
+		  - Operator extracted from [operator, value] and stored as  key + "_condition"
+		  - Between range stored as  key + "_from" / key + "_to"
+		  - Report filters with  custom_filter_apply_for_field == key  are matched in
+		    addition to the direct fieldname match.
 
 		Returns True if at least one match was found.
 		"""
 		matching_column = next((f for f in report_columns if f.get("fieldname") == key), None)
-		matching_filter = next((f for f in report_filters if f.get("fieldname") == key), None)
 
+		# Direct fieldname match
+		direct_filter = next((f for f in report_filters if f.get("fieldname") == key), None)
+
+		# Date-type report filters mapped to this dashboard key via custom_filter_apply_for_field
+		custom_date_filters = [
+			f
+			for f in report_filters
+			if f.get("fieldtype") == "Date" and f.get("custom_filter_apply_for_field") == key
+		]
 		if matching_column:
 			outer_filters[matching_column.get("fieldname")] = value
-		if matching_filter:
-			inner_filters[matching_filter.get("fieldname")] = DTFilters._unwrap_operator_value(value)
 
-		return bool(matching_column or matching_filter)
+		# Extract operator and plain value once — used only for Date fields below
+		operator = DTFilters._extract_operator(value)
+		unwrapped = DTFilters._unwrap_operator_value(value)
+
+		if direct_filter:
+			report_fn = direct_filter.get("fieldname")
+			inner_filters[report_fn] = unwrapped
+			# Only inject _condition / _from / _to for Date-type report filters
+			if direct_filter.get("fieldtype") == "Date":
+				inner_filters[report_fn + "_condition"] = operator
+				if operator.upper() == "BETWEEN" and isinstance(unwrapped, list) and len(unwrapped) == 2:
+					inner_filters[report_fn + "_from"] = unwrapped[0]
+					inner_filters[report_fn + "_to"] = unwrapped[1]
+
+		for f in custom_date_filters:
+			report_fn = f.get("fieldname")
+			inner_filters[report_fn] = DTFilters._resolve_date_filter_value(unwrapped, f)
+			# Condition keyed to the report fieldname so SQLBuilder can find it
+			inner_filters[report_fn + "_condition"] = operator
+			if operator.upper() == "BETWEEN" and isinstance(unwrapped, list) and len(unwrapped) == 2:
+				inner_filters[report_fn + "_from"] = unwrapped[0]
+				inner_filters[report_fn + "_to"] = unwrapped[1]
+
+		return bool(matching_column or direct_filter or custom_date_filters)
+
+	@staticmethod
+	def _resolve_date_filter_value(unwrapped, filter_def):
+		"""Return the scalar date value to assign to a report filter.
+
+		`unwrapped` is already the operator-stripped value (string or [date1, date2]).
+
+		`custom_filter_range_part` on the filter definition:
+		  "start"  →  first date of a Between range
+		  "end"    →  second date of a Between range
+		"""
+		range_part = filter_def.get("custom_filter_range_part")
+
+		if range_part and isinstance(unwrapped, list) and len(unwrapped) == 2:
+			if range_part == "start":
+				return unwrapped[0]
+			elif range_part == "end":
+				return unwrapped[1]
+
+		return unwrapped
 
 	@staticmethod
 	def get_conf_for_multi_slect_link_field(child_doctype):
