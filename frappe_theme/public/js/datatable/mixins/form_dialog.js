@@ -731,6 +731,13 @@ const FormDialogMixin = {
 			frappe.utils.make_dialog_fullscreen(dialog);
 		}
 		dialog.show();
+		$(dialog.$wrapper).one("shown.bs.modal", function () {
+			Object.values(dialog.fields_dict).forEach((field) => {
+				if (field?.grid) {
+					field.grid.refresh();
+				}
+			});
+		});
 		for (let [fieldname, field] of Object.entries(dialog.fields_dict)?.filter(
 			([fieldname, field]) => field.df.fieldtype == "Date"
 		)) {

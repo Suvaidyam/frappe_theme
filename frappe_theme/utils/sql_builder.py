@@ -567,6 +567,25 @@ class SQLBuilder:
 
 		return pattern.sub(_handler, sql)
 
+	_CONDITION_OPERATORS = frozenset(
+		[
+			"=",
+			"!=",
+			"<>",
+			"<",
+			">",
+			"<=",
+			">=",
+			"Between",
+			"between",
+			"BETWEEN",
+			"like",
+			"LIKE",
+			"not like",
+			"NOT LIKE",
+		]
+	)
+
 	def _replace_comparison(self, sql: str) -> str:
 		pattern = re.compile(
 			r"(\S+)\s*(!=|<>|<=|>=|=|<|>)\s*%\(\s*(\w+)\s*\)s",
@@ -577,6 +596,22 @@ class SQLBuilder:
 			val = self._get(key)
 			if val is self._MISSING:
 				return "1=1"
+
+			# Dynamic operator override: if filters contain {key}_condition, use it
+			dynamic_op = self.params.get(key + "_condition")
+			if dynamic_op and dynamic_op in self._CONDITION_OPERATORS:
+				op = dynamic_op
+
+			# Between: use {key}_from / {key}_to or fall back to [val1, val2]
+			if op.upper() == "BETWEEN":
+				from_val = self.params.get(key + "_from")
+				to_val = self.params.get(key + "_to")
+				if (from_val is None or to_val is None) and isinstance(val, list | tuple) and len(val) == 2:
+					from_val, to_val = val[0], val[1]
+				if from_val is not None and to_val is not None:
+					return f"{column} BETWEEN {self.format_value(from_val)} AND {self.format_value(to_val)}"
+				return "1=1"
+
 			formatted = self.format_value(val)
 			if formatted == "NULL":
 				if op == "=":
