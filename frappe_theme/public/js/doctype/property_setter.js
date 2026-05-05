@@ -1104,6 +1104,7 @@ const set_vdr_batch_config = (dialog) => {
 
 	// Parse existing config, fall back to sensible defaults
 	let cfg = {
+		enable_batch_config: false,
 		allow_add_more_table: false,
 		add_more_button_label: "Add More",
 		add_more_doctype: row.vdr_doctype || "",
@@ -1134,6 +1135,15 @@ const set_vdr_batch_config = (dialog) => {
 				</p>`,
 			},
 			{
+				label: __("Enable Batch Config"),
+				fieldname: "enable_batch_config",
+				fieldtype: "Check",
+				default: cfg.enable_batch_config ? 1 : 0,
+				description: __(
+					"Group records by Grouping Field and display each batch as a separate collapsible table — without an Add More button"
+				),
+			},
+			{
 				label: __("Enable Add More Table"),
 				fieldname: "allow_add_more_table",
 				fieldtype: "Check",
@@ -1146,6 +1156,7 @@ const set_vdr_batch_config = (dialog) => {
 				fieldtype: "Data",
 				default: cfg.add_more_button_label || "Add More",
 				description: __('Text shown on the button (e.g. "Add More")'),
+				depends_on: "eval:doc.allow_add_more_table == 1",
 			},
 			{ fieldtype: "Section Break", label: __("Data Mapping") },
 			{
@@ -1182,7 +1193,9 @@ const set_vdr_batch_config = (dialog) => {
 				fieldname: "batch_title_prefix",
 				fieldtype: "Data",
 				default: cfg.batch_title_prefix || "Soil Parameters - Batch",
-				description: __('Prefix for auto-generated titles. Result: "Prefix - Batch 2"'),
+				description: __(
+					'Prefix for auto-generated titles. Result: "Prefix - Batch 2". Use {fieldname} to insert a source-doc field value, e.g. "Seed Treatment - {crop_name}"'
+				),
 			},
 			{ fieldtype: "Section Break", label: __("Display") },
 			{
@@ -1213,17 +1226,21 @@ const set_vdr_batch_config = (dialog) => {
 		],
 		primary_action_label: __("Save"),
 		primary_action(values) {
-			if (values.allow_add_more_table) {
-				if (!values.add_more_doctype) {
+			// Grouping Field is required whenever either batch mode is active
+			if (values.enable_batch_config || values.allow_add_more_table) {
+				if (!(values.grouping_field || "").trim()) {
 					frappe.msgprint({
-						message: __("Source DocType is required."),
+						message: __("Grouping Field is required."),
 						indicator: "red",
 					});
 					return;
 				}
-				if (!(values.grouping_field || "").trim()) {
+			}
+			// Source DocType and Column Link Field are only needed for Add More
+			if (values.allow_add_more_table) {
+				if (!values.add_more_doctype) {
 					frappe.msgprint({
-						message: __("Grouping Field is required."),
+						message: __("Source DocType is required."),
 						indicator: "red",
 					});
 					return;
@@ -1238,6 +1255,7 @@ const set_vdr_batch_config = (dialog) => {
 			}
 
 			const result = {
+				enable_batch_config: !!values.enable_batch_config,
 				allow_add_more_table: !!values.allow_add_more_table,
 				add_more_button_label: (values.add_more_button_label || "Add More").trim(),
 				add_more_doctype: values.add_more_doctype || "",

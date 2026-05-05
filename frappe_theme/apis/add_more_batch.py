@@ -41,6 +41,7 @@ def add_more_batch(doctype, filters, grouping_field, link_field=None):
 		"Column Break",
 		"Tab Break",
 		"HTML",
+		"Table",
 		"Button",
 		"Fold",
 		"Heading",

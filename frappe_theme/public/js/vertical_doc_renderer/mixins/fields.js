@@ -67,6 +67,13 @@ const FieldsMixin = {
 	 * @param {Object} df    — Table field descriptor (df.options = child DocType name)
 	 */
 	_formatTable(value, df) {
+		// frappe.db.get_list may return a numeric row count for Table fields instead of
+		// the actual rows — show a count badge so the cell isn't misleadingly empty.
+		if (typeof value === "number" && value > 0) {
+			return `<span style="color:var(--text-muted,#aaa);font-size:13px;" title="${__(
+				"Child table — click to view/edit"
+			)}">📋 ${value}</span>`;
+		}
 		if (!Array.isArray(value) || !value.length) {
 			return `<span style="color:var(--text-muted,#aaa);font-size:13px;" title="${__(
 				"Child table — click to view/edit"

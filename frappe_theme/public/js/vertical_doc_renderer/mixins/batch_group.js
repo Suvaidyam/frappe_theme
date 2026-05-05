@@ -8,7 +8,8 @@ const BatchGroupMixin = {
 	_isBatchGrouped() {
 		return !!(
 			this.add_more_config &&
-			this.add_more_config.allow_add_more_table &&
+			(this.add_more_config.allow_add_more_table ||
+				this.add_more_config.enable_batch_config) &&
 			this.add_more_config.grouping_field
 		);
 	},
@@ -75,8 +76,14 @@ const BatchGroupMixin = {
 	 * @returns {SVAVerticalDocRenderer} sub-VDR instance
 	 */
 	_addBatchSection(batchNo, docs, collapsed = false) {
-		const prefix =
+		const rawPrefix =
 			(this.add_more_config && this.add_more_config.batch_title_prefix) || "Batch";
+		// Replace {fieldname} placeholders with values from the first doc in this batch.
+		// e.g. "Seed Treatment - {crop_name}" → "Seed Treatment - Paddy"
+		const firstDoc = docs && docs.length ? docs[0] : null;
+		const prefix = rawPrefix.replace(/\{(\w+)\}/g, (_, fn) =>
+			firstDoc && firstDoc[fn] != null ? String(firstDoc[fn]) : `{${fn}}`
+		);
 		const label = `${__(prefix)} ${batchNo}`;
 
 		// ── Section wrapper ──────────────────────────────────────────────────
@@ -205,8 +212,14 @@ const BatchGroupMixin = {
 	 * @param {HTMLElement}   section  — the .sva-vdr-batch-section element to remove
 	 */
 	_deleteBatchSection(batchNo, section) {
-		const prefix =
+		const rawPrefix =
 			(this.add_more_config && this.add_more_config.batch_title_prefix) || "Batch";
+		// Interpolate {fieldname} using data from the sub-VDR for this batch
+		const subVDR = this._batchInstances && this._batchInstances[batchNo];
+		const firstDoc = subVDR && subVDR.data && subVDR.data.length ? subVDR.data[0] : null;
+		const prefix = rawPrefix.replace(/\{(\w+)\}/g, (_, fn) =>
+			firstDoc && firstDoc[fn] != null ? String(firstDoc[fn]) : `{${fn}}`
+		);
 		const label = `${__(prefix)} ${batchNo}`;
 
 		frappe.confirm(

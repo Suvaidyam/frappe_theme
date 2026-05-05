@@ -59,7 +59,13 @@ const EditMixin = {
 		cell.style.cursor = "pointer";
 		cell.title = __("Click to edit");
 
-		cell.addEventListener("click", () => {
+		// Remove any previously attached handler before adding a new one so
+		// repeated calls (e.g. after every save) never stack up listeners.
+		if (cell._svaVdrClickHandler) {
+			cell.removeEventListener("click", cell._svaVdrClickHandler);
+		}
+
+		const _handler = () => {
 			if (cell.dataset.editing === "1") return;
 			if (df.fieldtype === "Table") {
 				this._openTableEditDialog(df, doc, colIndex);
@@ -68,7 +74,9 @@ const EditMixin = {
 			} else {
 				this.openEditDialog(df, doc, colIndex);
 			}
-		});
+		};
+		cell._svaVdrClickHandler = _handler;
+		cell.addEventListener("click", _handler);
 	},
 
 	/**
@@ -388,6 +396,15 @@ const EditMixin = {
 				} catch (_) {
 					rows = [];
 				}
+			}
+
+			// Allow vdr_events to intercept with a custom dialog.
+			if (typeof me.events.openTableDialog === "function") {
+				const handled = me.events.openTableDialog(df, doc, rows, async (newRows) => {
+					doc[df.fieldname] = newRows;
+					await me._saveTableValue(df, doc, newRows, colIndex);
+				});
+				if (handled) return;
 			}
 
 			// Single-row mode: skip the listing dialog and open the row editor directly.
