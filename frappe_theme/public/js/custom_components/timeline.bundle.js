@@ -10,7 +10,10 @@ class SVATimelineGenerator {
 		this.filters = {
 			doctype: "",
 			owner: "",
+			field: "",
 		};
+		this._selectedField = { value: "", label: "All Fields" };
+		this.fieldOptions = [];
 		this.setupFilters();
 		this.setupPagination();
 		this.fetchTimelineData();
@@ -803,6 +806,28 @@ class SVATimelineGenerator {
 		return resolved.join(", ");
 	}
 
+	async resolveCsvLinkTitlesArray(csvValue, linkDoctype) {
+		if (!csvValue || csvValue === "(blank)" || !linkDoctype) return null;
+		const values = String(csvValue)
+			.split(",")
+			.map((v) => v.trim())
+			.filter(Boolean);
+		if (!values.length) return null;
+
+		const resolved = [];
+		for (const value of values) {
+			try {
+				const title =
+					frappe.utils.get_link_title(linkDoctype, value) ||
+					(await frappe.utils.fetch_link_title(linkDoctype, value));
+				resolved.push(title || value);
+			} catch (e) {
+				resolved.push(value);
+			}
+		}
+		return resolved;
+	}
+
 	parseCsvValues(csvValue) {
 		if (!csvValue || csvValue === "(blank)") return [];
 		return String(csvValue)
@@ -880,8 +905,14 @@ class SVATimelineGenerator {
 			const linkDoctype = info?.linkDoctype;
 
 			if (linkDoctype) {
-				cloned.oldValue = await this.resolveCsvLinkTitles(cloned.oldValue, linkDoctype);
-				cloned.newValue = await this.resolveCsvLinkTitles(cloned.newValue, linkDoctype);
+				cloned.__oldItems = await this.resolveCsvLinkTitlesArray(
+					cloned.oldValue,
+					linkDoctype
+				);
+				cloned.__newItems = await this.resolveCsvLinkTitlesArray(
+					cloned.newValue,
+					linkDoctype
+				);
 			}
 
 			resolvedChanges.push(cloned);
@@ -972,12 +1003,16 @@ class SVATimelineGenerator {
 	}
 
 	formatChipValue(value) {
-		if (!value || String(value).trim() === "(blank)") return "(blank)";
-
-		const items = String(value)
-			.split(",")
-			.map((v) => v.trim())
-			.filter(Boolean);
+		let items;
+		if (Array.isArray(value)) {
+			items = value.filter(Boolean);
+		} else {
+			if (!value || String(value).trim() === "(blank)") return "(blank)";
+			items = String(value)
+				.split(",")
+				.map((v) => v.trim())
+				.filter(Boolean);
+		}
 
 		if (!items.length) return "(blank)";
 
@@ -988,7 +1023,9 @@ class SVATimelineGenerator {
 
 	formatTimelineValue(change, value) {
 		if (change?.__tableMultiSelect) {
-			return this.formatChipValue(value);
+			const isOld = value === change.oldValue;
+			const items = isOld ? change.__oldItems : change.__newItems;
+			return this.formatChipValue(items || value);
 		}
 		return this.formatCellValue(value);
 	}
@@ -1002,6 +1039,7 @@ class SVATimelineGenerator {
 		const filters = {
 			doctype: this.filters.doctype || "",
 			owner: this.filters.owner || "",
+			field: this.filters.field || "",
 		};
 
 		return frappe
@@ -1378,6 +1416,55 @@ class SVATimelineGenerator {
             background-size: 16px, 16px;
         `;
 
+		// /* Field filter — searchable dropdown (commented out)
+		// const fieldWrapper = document.createElement("div");
+		// fieldWrapper.style.cssText = `
+		//     position: relative;
+		//     min-width: 180px;
+		// `;
+
+		// this.fieldInput = document.createElement("input");
+		// this.fieldInput.type = "text";
+		// this.fieldInput.placeholder = "All Fields";
+		// this.fieldInput.autocomplete = "off";
+		// this.fieldInput.style.cssText = `
+		//     width: 100%;
+		//     padding: 8px 12px 8px 28px;
+		//     border: 1px solid #e5e7eb;
+		//     border-radius: 6px;
+		//     outline: none;
+		//     background: white;
+		//     color: #374151;
+		//     font-size: 0.875rem;
+		//     transition: all 0.2s ease;
+		//     box-sizing: border-box;
+		//     cursor: pointer;
+		//     background-image: url("data:image/svg+xml,...");
+		//     background-repeat: no-repeat;
+		//     background-position: left 8px center;
+		//     background-size: 14px;
+		// `;
+
+		// this.fieldDropdown = document.createElement("div");
+		// this.fieldDropdown.style.cssText = `
+		//     position: absolute;
+		//     top: calc(100% + 4px);
+		//     left: 0;
+		//     right: 0;
+		//     background: white;
+		//     border: 1px solid #e5e7eb;
+		//     border-radius: 6px;
+		//     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+		//     max-height: 200px;
+		//     overflow-y: auto;
+		//     z-index: 100;
+		// `;
+		// this.fieldDropdown.hidden = true;
+
+		// fieldWrapper.appendChild(this.fieldInput);
+		// fieldWrapper.appendChild(this.fieldDropdown);
+		// */
+
 		// Owner search with icon
 		const searchWrapper = document.createElement("div");
 		searchWrapper.style.cssText = `
@@ -1388,7 +1475,7 @@ class SVATimelineGenerator {
 
 		this.ownerSearch = document.createElement("input");
 		this.ownerSearch.type = "text";
-		this.ownerSearch.placeholder = "Search user...";
+		this.ownerSearch.placeholder = "Changed By";
 		this.ownerSearch.style.cssText = `
             width: 100%;
             padding: 8px 32px 8px 28px;
@@ -1428,7 +1515,7 @@ class SVATimelineGenerator {
         `;
 
 		// Hover and focus states
-		[this.doctypeSelect, this.ownerSearch].forEach((element) => {
+		[this.doctypeSelect, /*this.fieldInput,*/ this.ownerSearch].forEach((element) => {
 			element.addEventListener("focus", () => {
 				element.style.borderColor = "#6366f1";
 				element.style.boxShadow = "0 0 0 2px rgba(99, 102, 241, 0.1)";
@@ -1442,6 +1529,7 @@ class SVATimelineGenerator {
 		// Append elements
 		filtersWrapper.appendChild(filterIcon);
 		filtersWrapper.appendChild(this.doctypeSelect);
+		// filtersWrapper.appendChild(fieldWrapper); // Field filter commented out
 		searchWrapper.appendChild(this.ownerSearch);
 		filtersWrapper.appendChild(searchWrapper);
 		filtersWrapper.appendChild(this.clearButton);
@@ -1450,21 +1538,53 @@ class SVATimelineGenerator {
 
 		this.setupFilterEventListeners();
 		this.fetchDoctypes();
+		// this.fetchDocFields(null); // Field filter commented out
 	}
 
 	setupFilterEventListeners() {
 		const updateClearButtonVisibility = () => {
-			const hasFilters = this.filters.doctype || this.filters.owner;
+			const hasFilters =
+				this.filters.doctype || this.filters.owner; /*|| this.filters.field*/
 			this.clearButton.style.display = hasFilters ? "inline-flex" : "none";
 		};
 
 		this.doctypeSelect.addEventListener("change", () => {
 			this.filters.doctype = this.doctypeSelect.value;
+			// /* Field filter reset (commented out)
+			// this.filters.field = "";
+			// this._selectedField = { value: "", label: "All Fields" };
+			// this.fieldInput.value = "";
+			// this.fieldInput.placeholder = "All Fields";
+			// this.fetchDocFields(this.filters.doctype || null);
+			// */
 			this.page = 1;
 			this.setupPagination();
 			this.fetchTimelineData();
 			updateClearButtonVisibility();
 		});
+
+		// /* Field searchable dropdown listeners (commented out)
+		// this.fieldInput.addEventListener("focus", () => {
+		// 	this.fieldInput.value = "";
+		// 	this._renderFieldOptions(this.fieldOptions, updateClearButtonVisibility);
+		// 	this.fieldDropdown.hidden = false;
+		// });
+
+		// this.fieldInput.addEventListener("input", () => {
+		// 	const q = this.fieldInput.value.toLowerCase();
+		// 	const filtered = this.fieldOptions.filter((o) => o.label.toLowerCase().includes(q));
+		// 	this._renderFieldOptions(filtered, updateClearButtonVisibility);
+		// 	this.fieldDropdown.hidden = filtered.length === 0;
+		// });
+
+		// this.fieldInput.addEventListener("blur", () => {
+		// 	this.fieldDropdown.hidden = true;
+		// 	this.fieldInput.value = this._selectedField.value ? this._selectedField.label : "";
+		// 	this.fieldInput.placeholder = this._selectedField.value
+		// 		? this._selectedField.label
+		// 		: "All Fields";
+		// });
+		// */
 
 		let timeout;
 		this.ownerSearch.addEventListener("input", () => {
@@ -1481,6 +1601,13 @@ class SVATimelineGenerator {
 		this.clearButton.addEventListener("click", () => {
 			this.doctypeSelect.value = "";
 			this.ownerSearch.value = "";
+			// /* Field filter reset (commented out)
+			// this._selectedField = { value: "", label: "All Fields" };
+			// this.fieldInput.value = "";
+			// this.fieldInput.placeholder = "All Fields";
+			// this.filters.field = "";
+			// this.fetchDocFields(null);
+			// */
 			this.filters.doctype = "";
 			this.filters.owner = "";
 			this.page = 1;
@@ -1489,6 +1616,70 @@ class SVATimelineGenerator {
 			updateClearButtonVisibility();
 		});
 	}
+
+	/* fetchDocFields and _renderFieldOptions commented out
+	fetchDocFields(filterDoctype) {
+		frappe
+			.call({
+				method: "frappe_theme.api.get_timeline_fields",
+				args: {
+					dt: this.frm.doctype,
+					dn: this.frm.docname,
+					filter_doctype: filterDoctype || null,
+				},
+			})
+			.then((response) => {
+				const fields = response.message || [];
+				this.fieldOptions = [{ value: "", label: __("All Fields"), doctype: "" }];
+				fields.forEach((f) => {
+					this.fieldOptions.push({
+						value: f.fieldname,
+						label: f.label,
+						doctype: f.doctype,
+					});
+				});
+				this._renderFieldOptions(this.fieldOptions, null);
+			});
+	}
+
+	_renderFieldOptions(options, updateClearButtonVisibility) {
+		this.fieldDropdown.innerHTML = "";
+		options.forEach((opt) => {
+			const div = document.createElement("div");
+			div.dataset.value = opt.value;
+			div.style.cssText = `
+                padding: 8px 8px;
+                cursor: pointer;
+                color: #374151;
+            `;
+			div.innerHTML = `
+				<div style="font-size: 0.875rem; font-weight: 500; color: #374151;">${opt.label}</div>
+				${
+					opt.doctype
+						? `<div style="font-size: 0.75rem; color: #374151; margin-top: 1px;">${__(
+								opt.doctype
+						  )}</div>`
+						: ""
+				}
+			`;
+			div.addEventListener("mouseenter", () => (div.style.background = "#f3f4f6"));
+			div.addEventListener("mouseleave", () => (div.style.background = ""));
+			div.addEventListener("mousedown", (e) => {
+				e.preventDefault(); // prevent blur firing before click
+				this._selectedField = opt;
+				this.fieldInput.value = opt.value ? opt.label : "";
+				this.fieldInput.placeholder = opt.value ? opt.label : "All Fields";
+				this.filters.field = opt.value;
+				this.fieldDropdown.hidden = true;
+				this.page = 1;
+				this.setupPagination();
+				this.fetchTimelineData();
+				if (updateClearButtonVisibility) updateClearButtonVisibility();
+			});
+			this.fieldDropdown.appendChild(div);
+		});
+	}
+	*/
 
 	async fetchDoctypes() {
 		try {
@@ -1506,7 +1697,7 @@ class SVATimelineGenerator {
 			// Add placeholder option
 			const placeholderOption = document.createElement("option");
 			placeholderOption.value = "";
-			placeholderOption.textContent = __("All Documents");
+			placeholderOption.textContent = __("All Changes");
 			placeholderOption.selected = true;
 			this.doctypeSelect.appendChild(placeholderOption);
 

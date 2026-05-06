@@ -56,6 +56,10 @@ class VersionUtils:
 				search_param_cond = " AND usr.full_name LIKE %(owner)s"
 				params["owner"] = f"{filters['owner']}%"
 
+			if filters.get("field"):
+				additional_where += " AND e.field_name = %(filter_field)s"
+				params["filter_field"] = filters["field"]
+
 		return where_clause, search_param_cond, additional_joins, additional_where, params
 
 	@classmethod
@@ -123,17 +127,6 @@ class VersionUtils:
 				) ja
 				WHERE {where_clause}
 				AND JSON_EXTRACT(ver.data, '$.added') IS NOT NULL
-				AND JSON_UNQUOTE(JSON_EXTRACT(ja.elem, '$[0]')) IN (
-					SELECT df.fieldname
-					FROM `tabDocField` df
-					WHERE df.parent = COALESCE(ver.custom_actual_doctype, ver.ref_doctype)
-					AND df.fieldtype = 'Table MultiSelect'
-					UNION
-					SELECT cdf.fieldname
-					FROM `tabCustom Field` cdf
-					WHERE cdf.dt = COALESCE(ver.custom_actual_doctype, ver.ref_doctype)
-					AND cdf.fieldtype = 'Table MultiSelect'
-				)
 
 				UNION ALL
 
@@ -160,17 +153,6 @@ class VersionUtils:
 				) jr
 				WHERE {where_clause}
 				AND JSON_EXTRACT(ver.data, '$.removed') IS NOT NULL
-				AND JSON_UNQUOTE(JSON_EXTRACT(jr.elem, '$[0]')) IN (
-					SELECT df.fieldname
-					FROM `tabDocField` df
-					WHERE df.parent = COALESCE(ver.custom_actual_doctype, ver.ref_doctype)
-					AND df.fieldtype = 'Table MultiSelect'
-					UNION
-					SELECT cdf.fieldname
-					FROM `tabCustom Field` cdf
-					WHERE cdf.dt = COALESCE(ver.custom_actual_doctype, ver.ref_doctype)
-					AND cdf.fieldtype = 'Table MultiSelect'
-				)
 
 				UNION ALL
 
