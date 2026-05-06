@@ -26,23 +26,39 @@ const UISetupMixin = {
 		`;
 		this.container = container;
 
-		if (this.title) {
-			const titleEl = document.createElement("div");
-			titleEl.className = "sva-vdr-title";
-			titleEl.textContent = this.title;
-			titleEl.style.cssText = `
-				font-weight: 600;
-				font-size: 15px;
-				margin-bottom: 8px;
-				text-align: center;
-				color: var(--text-color, #333);
-			`;
-			container.appendChild(titleEl);
-		}
-
-		// Toolbar (gear settings button only) — only when vdr_field_name is set
+		// Header row: title on the left, toolbar (settings/add-more) on the right
 		const toolbar = this._buildToolbar();
-		if (toolbar) container.appendChild(toolbar);
+		if (this.title || toolbar) {
+			const headerRow = document.createElement("div");
+			headerRow.style.cssText = `
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 8px;
+				margin-bottom: 6px;
+			`;
+
+			if (this.title) {
+				const titleEl = document.createElement("div");
+				titleEl.className = "sva-vdr-title";
+				titleEl.textContent = this.title;
+				titleEl.style.cssText = `
+					font-weight: 600;
+					font-size: 15px;
+					color: var(--text-color, #333);
+					flex: 1;
+				`;
+				headerRow.appendChild(titleEl);
+			}
+
+			if (toolbar) {
+				// Remove the toolbar's own bottom margin — headerRow handles spacing
+				toolbar.style.marginBottom = "0";
+				headerRow.appendChild(toolbar);
+			}
+
+			container.appendChild(headerRow);
+		}
 
 		// scrollWrapper shrinks to the table's natural width but never exceeds
 		// the container (max-width:100%). position:relative anchors the "+" overlay
