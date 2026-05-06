@@ -490,6 +490,9 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 				return;
 			}
 			fields.forEach((field) => {
+				// Button set_value fires the button's Frappe click-event handler —
+				// skip them entirely since buttons hold no resettable data value.
+				if (field.fieldtype == "Button") return;
 				if (field.fieldtype == "Table MultiSelect") {
 					frm.set_value(field.fieldname, []);
 				} else {
@@ -563,6 +566,9 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 		}
 	}
 	async custom_after_save(frm) {
+		// Dashboard forms auto-save on filter reset — never redirect from them.
+		// sva_dt_prev_route is only meant for child-record edit round-trips.
+		if (frm?.meta?.is_dashboard) return;
 		if (frm?.sva_dt_prev_route && frm?.sva_dt_prev_route.length) {
 			frappe.set_route(frm.sva_dt_prev_route);
 			frm.sva_dt_prev_route = null;
