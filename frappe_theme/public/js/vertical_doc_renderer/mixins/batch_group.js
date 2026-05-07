@@ -198,7 +198,8 @@ const BatchGroupMixin = {
 			max_height: 0, // each batch table expands naturally; no inner scroll cap
 			table_max_rows: this.table_max_rows || null,
 			signal: this.signal || null,
-			// No add_more_config, no vdr_field_name → no nested "Add More" / settings
+			// No add_more_config, no vdr_field_name → no nested "Add More" / settings / reload
+			_is_sub_vdr: true,
 		});
 
 		this._batchInstances[batchNo] = subVDR;

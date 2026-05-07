@@ -199,54 +199,67 @@ const ViewportMixin = {
 	 * when set (used by the filter ribbon reset/apply flow).
 	 */
 	async reloadTable() {
-		// ── Batched mode: rebuild all batch sections from scratch ─────────────
-		if (this._isBatchGrouped && this._isBatchGrouped()) {
-			this.container.querySelectorAll(".sva-vdr-batch-section").forEach((el) => el.remove());
-			this._batchInstances = {};
-			this.showLoading();
-			await this._renderBatchGroups();
-			this.hideLoading();
-			return;
-		}
+		// Spin the reload button while reloading
+		const _icon = this._reloadBtn?.querySelector(".sva-vdr-reload-icon");
+		if (this._reloadBtn) this._reloadBtn.disabled = true;
+		if (_icon) _icon.style.animation = "sva-vdr-spin 0.6s linear infinite";
 
-		// ── Standard mode ────────────────────────────────────────────────────
-		// Stop in-progress observation
-		if (this._observer) {
-			this._observer.disconnect();
-			this._observer = null;
-		}
-		this._sentinel = null;
-		this._loading_batch = false;
-
-		// Restore filters: only touch them when setFilters() was previously called
-		// (signalled by _base_filters being set). Otherwise keep this.filters as-is
-		// so the original constructor filters are never wiped on a plain reload.
-		if (this._base_filters !== undefined) {
-			if (this.additional_list_filters && this.additional_list_filters.length) {
-				this.filters = [...this._base_filters, ...this.additional_list_filters];
-			} else {
-				this.filters = [...this._base_filters];
+		try {
+			// ── Batched mode: rebuild all batch sections from scratch ─────────────
+			if (this._isBatchGrouped && this._isBatchGrouped()) {
+				this.container.querySelectorAll(".sva-vdr-batch-section").forEach((el) => el.remove());
+				this._batchInstances = {};
+				this.showLoading();
+				await this._renderBatchGroups();
+				this.hideLoading();
+				return;
 			}
-		}
 
-		// Reset data state
-		this.data = [];
-		this.docs = [];
-		this._rendered_count = 0;
+			// ── Standard mode ────────────────────────────────────────────────────
+			// Stop in-progress observation
+			if (this._observer) {
+				this._observer.disconnect();
+				this._observer = null;
+			}
+			this._sentinel = null;
+			this._loading_batch = false;
 
-		// Clear rendered table
-		if (this.scrollBox) {
-			this.scrollBox.innerHTML = "";
-		}
+			// Restore filters: only touch them when setFilters() was previously called
+			// (signalled by _base_filters being set). Otherwise keep this.filters as-is
+			// so the original constructor filters are never wiped on a plain reload.
+			if (this._base_filters !== undefined) {
+				if (this.additional_list_filters && this.additional_list_filters.length) {
+					this.filters = [...this._base_filters, ...this.additional_list_filters];
+				} else {
+					this.filters = [...this._base_filters];
+				}
+			}
 
-		// Re-fetch and re-render first batch
-		await this.fetchDocs();
-		this._sortDataByOrderRules && this._sortDataByOrderRules();
-		this.render();
-		if (typeof this.resolveLinkTitles === "function") {
-			this.resolveLinkTitles();
+			// Reset data state
+			this.data = [];
+			this.docs = [];
+			this._rendered_count = 0;
+
+			// Clear rendered table and show skeleton while fetching
+			if (this.scrollBox) {
+				this.scrollBox.innerHTML = "";
+			}
+			this.showLoading();
+
+			// Re-fetch and re-render first batch
+			await this.fetchDocs();
+			this.hideLoading();
+			this._sortDataByOrderRules && this._sortDataByOrderRules();
+			this.render();
+			if (typeof this.resolveLinkTitles === "function") {
+				this.resolveLinkTitles();
+			}
+			this.setupViewportLoader();
+		} finally {
+			// Restore button regardless of success or error
+			if (this._reloadBtn) this._reloadBtn.disabled = false;
+			if (_icon) _icon.style.animation = "";
 		}
-		this.setupViewportLoader();
 	},
 
 	/**

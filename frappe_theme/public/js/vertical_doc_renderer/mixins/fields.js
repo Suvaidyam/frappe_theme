@@ -32,6 +32,13 @@ const FieldsMixin = {
 			return this._formatGeolocation(value);
 		}
 
+		// Link fields: frappe.format() returns <a href="..."> which causes page navigation
+		// when the cell is clicked for editing. Return plain text — link titles are resolved
+		// separately by _applyLinkTitles() after render.
+		if (df.fieldtype === "Link") {
+			return frappe.utils.escape_html(String(value));
+		}
+
 		// Use Frappe's built-in formatter when available
 		try {
 			const formatted = frappe.format(value, df, { inline: true }, doc);

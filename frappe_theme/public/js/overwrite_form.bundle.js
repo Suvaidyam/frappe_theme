@@ -1225,9 +1225,9 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 								? JSON.parse(conf.vdr_batch_config)
 								: conf.vdr_batch_config;
 						console.log("[VDR] vdr_batch_config parsed:", cfg);
-						if (!cfg.allow_add_more_table) {
+						if (!cfg.allow_add_more_table && !cfg.enable_batch_config) {
 							console.log(
-								"[VDR] allow_add_more_table is false — Add More button disabled"
+								"[VDR] Neither allow_add_more_table nor enable_batch_config — batch config disabled"
 							);
 							return null;
 						}

@@ -111,7 +111,15 @@ const EditMixin = {
 		});
 		ctrl.refresh();
 		ctrl.set_value(doc[df.fieldname]);
-		if (ctrl.$input) ctrl.$input.focus();
+		if (ctrl.$input) {
+			ctrl.$input.focus();
+			// air-datepicker doesn't always open on programmatic focus when a value is
+			// already set — call show() explicitly for date/time types.
+			if (["Date", "Datetime", "Time"].includes(df.fieldtype)) {
+				const dp = ctrl.datepicker || ctrl.$input.data("datepicker");
+				if (dp && typeof dp.show === "function") dp.show();
+			}
+		}
 
 		// ── cancel: revert cell to its pre-edit state ──────────────────────
 		const cancel = () => {
@@ -127,7 +135,22 @@ const EditMixin = {
 		const triggerSave = async () => {
 			if (cell.dataset.saving === "1") return;
 
-			const newValue = ctrl.get_value();
+			// For Date/Datetime/Time: ctrl.get_value() returns the stale initial value
+			// because the standalone control's this.value is never updated by air-datepicker
+			// (set_model_value requires a frm/doctype context). Read $input.val() directly
+			// and convert from locale display format to ISO using Frappe's datetime util.
+			let newValue;
+			if (df.fieldtype === "Date") {
+				const raw = ctrl.$input.val();
+				newValue = raw ? frappe.datetime.user_to_str(raw) : "";
+			} else if (df.fieldtype === "Datetime") {
+				const raw = ctrl.$input.val();
+				newValue = raw ? frappe.datetime.user_to_str(raw, true) : "";
+			} else if (df.fieldtype === "Time") {
+				newValue = ctrl.$input.val() || "";
+			} else {
+				newValue = ctrl.get_value();
+			}
 
 			// Set saving visual state
 			cell.dataset.saving = "1";
@@ -151,10 +174,17 @@ const EditMixin = {
 			if (this._getInstantSaveTypes().includes(df.fieldtype)) {
 				// Check, Select — save immediately on change
 				ctrl.$input.on("change", triggerSave);
+			} else if (["Date", "Datetime", "Time"].includes(df.fieldtype)) {
+				// Date picker types: flatpickr fires a native change event after selecting
+				// a date, but Frappe's ctrl.value may not be fully settled yet. Defer by
+				// one tick so ctrl.get_value() reliably returns the new ISO date string.
+				ctrl.$input.on("change", () => setTimeout(triggerSave, 0));
+				ctrl.$input.on("keydown", (e) => {
+					if (e.key === "Escape") { e.preventDefault(); cancel(); }
+				});
 			} else {
 				// Text-like fields — save when focus leaves the input
 				ctrl.$input.on("blur", triggerSave);
-				// ESC → cancel without saving
 				ctrl.$input.on("keydown", (e) => {
 					if (e.key === "Escape") {
 						e.preventDefault();

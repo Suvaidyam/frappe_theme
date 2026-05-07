@@ -117,17 +117,17 @@ const UISetupMixin = {
 
 	/**
 	 * Build the toolbar row placed between the title and the scrollBox.
-	 * Right side: gear settings button (when vdr_field_name is set).
-	 * Returns null when neither the settings button nor Add More is needed.
+	 * Right side: reload button (always), gear settings (when vdr_field_name is set).
 	 * Stores reference in this._toolbar so _renderAddMoreButton() can append to it.
 	 *
-	 * @returns {HTMLElement|null}
+	 * @returns {HTMLElement}
 	 */
 	_buildToolbar() {
 		const hasSettings = !!this.vdr_field_name;
 		const hasAddMore = !!(this.add_more_config && this.add_more_config.allow_add_more_table);
+		const hasReload = !this._is_sub_vdr;
 
-		if (!hasSettings && !hasAddMore) return null;
+		if (!hasSettings && !hasAddMore && !hasReload) return null;
 
 		const toolbar = document.createElement("div");
 		toolbar.className = "sva-vdr-toolbar";
@@ -143,6 +143,25 @@ const UISetupMixin = {
 
 		if (hasSettings && typeof this._buildSettingsButton === "function") {
 			toolbar.appendChild(this._buildSettingsButton());
+		}
+
+		if (hasReload) {
+			const reloadBtn = document.createElement("button");
+			reloadBtn.className = "btn btn-default btn-xs sva-vdr-reload-btn";
+			reloadBtn.title = __("Reload");
+			reloadBtn.style.cssText = `
+				font-size: 14px;
+				line-height: 1;
+				padding: 3px 7px;
+				display: flex;
+				align-items: center;
+			`;
+			reloadBtn.innerHTML = `<span class="sva-vdr-reload-icon" style="display:inline-block;">↺</span>`;
+			reloadBtn.addEventListener("click", () => {
+				if (!reloadBtn.disabled) this.reloadTable();
+			});
+			this._reloadBtn = reloadBtn;
+			toolbar.appendChild(reloadBtn);
 		}
 
 		return toolbar;
