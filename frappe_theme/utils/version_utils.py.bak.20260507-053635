@@ -318,24 +318,13 @@ class VersionUtils:
 			"""Get permitted fields with caching."""
 			cache_key = (doctype, parenttype)
 			if cache_key not in permitted_fields_cache:
-				fields = set(
+				permitted_fields_cache[cache_key] = set(
 					get_permitted_fields(
 						doctype=doctype,
 						parenttype=parenttype,
 						ignore_virtual=True,
 					)
 				)
-				# Table / Table MultiSelect fields are not stored as columns on the
-				# parent table, so get_permitted_fields() excludes them. Add them
-				# back so audit log entries for Thematic Areas etc. are not dropped.
-				try:
-					meta = frappe.get_meta(doctype)
-					for df in meta.fields:
-						if df.fieldtype in ("Table", "Table MultiSelect") and (df.permlevel or 0) == 0:
-							fields.add(df.fieldname)
-				except Exception:
-					pass
-				permitted_fields_cache[cache_key] = fields
 			return permitted_fields_cache[cache_key]
 
 		def get_cached_hidden_fields(doctype):
