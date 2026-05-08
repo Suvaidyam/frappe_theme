@@ -16,6 +16,7 @@ OPERATORS = [
 	"between",
 	"not between",
 ]
+_OPERATORS_LOWER = {op.lower() for op in OPERATORS}
 
 
 class DTFilters:
@@ -101,7 +102,13 @@ class DTFilters:
 
 		Otherwise return the value as-is.
 		"""
-		if value and isinstance(value, list) and len(value) > 1 and value[0] in OPERATORS:
+		if (
+			value
+			and isinstance(value, list)
+			and len(value) > 1
+			and isinstance(value[0], str)
+			and value[0].lower() in _OPERATORS_LOWER
+		):
 			return value[1]
 		return value
 
@@ -260,7 +267,7 @@ class DTFilters:
 			isinstance(value, list)
 			and len(value) >= 1
 			and isinstance(value[0], str)
-			and value[0] in OPERATORS
+			and value[0].lower() in _OPERATORS_LOWER
 		):
 			return value[0]
 		return "="

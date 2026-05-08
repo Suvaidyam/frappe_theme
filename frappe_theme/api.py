@@ -234,6 +234,87 @@ def get_linked_doctype_fields(doc_type, frm_doctype):
 
 
 @frappe.whitelist()
+def get_timeline_fields(dt, dn, filter_doctype=None):
+	"""Return distinct non-hidden fields that have at least one log entry for this document.
+	Each version's own actual_doctype is used for field lookups so related-doctype fields
+	are resolved correctly when 'All Documents' is selected.
+	Custom Field hidden value takes precedence over DocField.
+	"""
+	filter_clause = "AND actual_dt = %(filter_doctype)s" if filter_doctype else ""
+	sql = f"""
+		SELECT DISTINCT
+			field_name,
+			actual_dt,
+			COALESCE(
+				(SELECT cdf.label FROM `tabCustom Field` cdf
+				 WHERE cdf.fieldname = field_name AND cdf.dt = actual_dt LIMIT 1),
+				(SELECT df.label FROM `tabDocField` df
+				 WHERE df.fieldname = field_name AND df.parent = actual_dt LIMIT 1)
+			) AS field_label
+		FROM (
+			SELECT
+				JSON_UNQUOTE(JSON_EXTRACT(jt.elem, '$[0]')) AS field_name,
+				COALESCE(ver.custom_actual_doctype, ver.ref_doctype) AS actual_dt
+			FROM `tabVersion` AS ver
+			CROSS JOIN JSON_TABLE(
+				JSON_EXTRACT(ver.data, '$.changed'),
+				'$[*]' COLUMNS (elem JSON PATH '$')
+			) jt
+			WHERE ver.ref_doctype = %(dt)s AND ver.docname = %(dn)s
+			AND JSON_EXTRACT(ver.data, '$.changed') IS NOT NULL
+
+			UNION
+
+			SELECT
+				JSON_UNQUOTE(JSON_EXTRACT(ja.elem, '$[0]')) AS field_name,
+				COALESCE(ver.custom_actual_doctype, ver.ref_doctype) AS actual_dt
+			FROM `tabVersion` AS ver
+			CROSS JOIN JSON_TABLE(
+				JSON_EXTRACT(ver.data, '$.added'),
+				'$[*]' COLUMNS (elem JSON PATH '$')
+			) ja
+			WHERE ver.ref_doctype = %(dt)s AND ver.docname = %(dn)s
+			AND JSON_EXTRACT(ver.data, '$.added') IS NOT NULL
+
+			UNION
+
+			SELECT
+				JSON_UNQUOTE(JSON_EXTRACT(jr.elem, '$[0]')) AS field_name,
+				COALESCE(ver.custom_actual_doctype, ver.ref_doctype) AS actual_dt
+			FROM `tabVersion` AS ver
+			CROSS JOIN JSON_TABLE(
+				JSON_EXTRACT(ver.data, '$.removed'),
+				'$[*]' COLUMNS (elem JSON PATH '$')
+			) jr
+			WHERE ver.ref_doctype = %(dt)s AND ver.docname = %(dn)s
+			AND JSON_EXTRACT(ver.data, '$.removed') IS NOT NULL
+		) AS all_fields
+		WHERE field_name IS NOT NULL
+		{filter_clause}
+		AND COALESCE(
+			(SELECT cdf.hidden FROM `tabCustom Field` cdf
+			 WHERE cdf.fieldname = field_name AND cdf.dt = actual_dt LIMIT 1),
+			(SELECT df.hidden FROM `tabDocField` df
+			 WHERE df.fieldname = field_name AND df.parent = actual_dt LIMIT 1),
+			1
+		) = 0
+		ORDER BY field_label
+	"""
+	params = {"dt": dt, "dn": dn}
+	if filter_doctype:
+		params["filter_doctype"] = filter_doctype
+	result = frappe.db.sql(sql, params, as_dict=True)
+	return [
+		{
+			"fieldname": r["field_name"],
+			"label": r["field_label"] or r["field_name"],
+			"doctype": r["actual_dt"],
+		}
+		for r in result
+	]
+
+
+@frappe.whitelist()
 def get_timeline_dt(dt, dn):
 	sql = f"""
         SELECT DISTINCT ver.custom_actual_doctype AS doctype
