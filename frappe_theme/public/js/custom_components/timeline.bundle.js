@@ -1626,6 +1626,29 @@ class SVATimelineGenerator {
 			updateClearButtonVisibility();
 		});
 
+		// /* Field searchable dropdown listeners (commented out)
+		// this.fieldInput.addEventListener("focus", () => {
+		// 	this.fieldInput.value = "";
+		// 	this._renderFieldOptions(this.fieldOptions, updateClearButtonVisibility);
+		// 	this.fieldDropdown.hidden = false;
+		// });
+
+		// this.fieldInput.addEventListener("input", () => {
+		// 	const q = this.fieldInput.value.toLowerCase();
+		// 	const filtered = this.fieldOptions.filter((o) => o.label.toLowerCase().includes(q));
+		// 	this._renderFieldOptions(filtered, updateClearButtonVisibility);
+		// 	this.fieldDropdown.hidden = filtered.length === 0;
+		// });
+
+		// this.fieldInput.addEventListener("blur", () => {
+		// 	this.fieldDropdown.hidden = true;
+		// 	this.fieldInput.value = this._selectedField.value ? this._selectedField.label : "";
+		// 	this.fieldInput.placeholder = this._selectedField.value
+		// 		? this._selectedField.label
+		// 		: "All Fields";
+		// });
+		// */
+
 		let timeout;
 		this.ownerSearch.addEventListener("input", () => {
 			clearTimeout(timeout);
