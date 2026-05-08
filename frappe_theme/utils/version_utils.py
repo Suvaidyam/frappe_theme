@@ -60,6 +60,14 @@ class VersionUtils:
 				additional_where += " AND e.field_name = %(filter_field)s"
 				params["filter_field"] = filters["field"]
 
+			if filters.get("date_from"):
+				where_clause += " AND DATE(ver.creation) >= %(date_from)s"
+				params["date_from"] = filters["date_from"]
+
+			if filters.get("date_to"):
+				where_clause += " AND DATE(ver.creation) <= %(date_to)s"
+				params["date_to"] = filters["date_to"]
+
 		return where_clause, search_param_cond, additional_joins, additional_where, params
 
 	@classmethod
