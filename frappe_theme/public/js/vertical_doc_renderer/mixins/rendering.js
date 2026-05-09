@@ -20,10 +20,17 @@ const RenderingMixin = {
 	_buildTable() {
 		const table = document.createElement("table");
 		table.className = "sva-vdr-table";
+
+		// Calculate minimum pixel width so the table overflows the scroll container
+		// on narrow screens instead of squishing columns. CSS min-width overrides
+		// width:100% when the calculated minimum is larger (e.g. on mobile).
+		// Updated incrementally in _appendDocColumn() as viewport loads more batches.
+		const minTableW = this._calcTableMinWidth(this.data.length || 0);
+
 		table.style.cssText = `
 			border-collapse: collapse;
 			width: 100%;
-			min-width: 100%;
+			min-width: ${minTableW}px;
 			table-layout: fixed;
 		`;
 		this._table = table;
@@ -464,6 +471,23 @@ const RenderingMixin = {
 		}
 
 		return td;
+	},
+
+	// ─── Helpers ────────────────────────────────────────────────────────────
+
+	/**
+	 * Minimum table width in pixels for a given column count.
+	 * Used to set/update table min-width so the table scrolls horizontally on
+	 * narrow viewports instead of squishing columns.
+	 *
+	 * @param {number} colCount — number of document columns currently rendered
+	 * @returns {number}
+	 */
+	_calcTableMinWidth(colCount) {
+		const labelW = this.label_width || 160;
+		const colW = this.column_width || 150;
+		const unitW = this.show_unit ? 60 : 0;
+		return labelW + unitW + colCount * colW;
 	},
 
 	// ─── Legend ─────────────────────────────────────────────────────────────

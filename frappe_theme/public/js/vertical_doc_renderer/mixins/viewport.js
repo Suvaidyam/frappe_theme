@@ -327,6 +327,11 @@ const ViewportMixin = {
 		if (!this.docs.includes(doc.name)) {
 			this.docs.push(doc.name);
 		}
+
+		// 5. Grow table min-width so narrow viewports scroll rather than squish
+		if (this._table && typeof this._calcTableMinWidth === "function") {
+			this._table.style.minWidth = `${this._calcTableMinWidth(this.data.length)}px`;
+		}
 	},
 };
 
