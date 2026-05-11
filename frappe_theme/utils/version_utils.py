@@ -57,8 +57,18 @@ class VersionUtils:
 				params["owner"] = f"{filters['owner']}%"
 
 			if filters.get("field"):
+				# Strip geo-level suffix (e.g. "geography_details::state_name" → "geography_details")
+				filter_field = filters["field"].split("::")[0]
 				additional_where += " AND e.field_name = %(filter_field)s"
-				params["filter_field"] = filters["field"]
+				params["filter_field"] = filter_field
+
+			if filters.get("date_from"):
+				where_clause += " AND DATE(ver.creation) >= %(date_from)s"
+				params["date_from"] = filters["date_from"]
+
+			if filters.get("date_to"):
+				where_clause += " AND DATE(ver.creation) <= %(date_to)s"
+				params["date_to"] = filters["date_to"]
 
 			if filters.get("date_from"):
 				where_clause += " AND DATE(ver.creation) >= %(date_from)s"
