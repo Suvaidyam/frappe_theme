@@ -2,6 +2,18 @@ import frappe
 
 
 def validate(self, method):
+	if self.ref_doctype == "Geography Details":
+		try:
+			curr_doc = frappe.get_doc("Geography Details", self.docname)
+			if curr_doc and curr_doc.get("document_type") and curr_doc.get("docname"):
+				self.custom_actual_doctype = self.ref_doctype
+				self.custom_actual_document_name = self.docname
+				self.ref_doctype = curr_doc.document_type
+				self.docname = curr_doc.docname
+		except Exception:
+			pass
+		return
+
 	dt_connections = frappe.get_all("SVADatatable Configuration", pluck="name")
 	if self.ref_doctype in dt_connections:
 		return

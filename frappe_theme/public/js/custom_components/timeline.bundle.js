@@ -496,6 +496,36 @@ class SVATimelineGenerator {
             50% {
                 opacity: 1;
             }
+        }
+
+        .geo-added-chip {
+            background: #dcfce7;
+            color: #166534;
+            border-color: #86efac;
+            font-weight: 600;
+        }
+
+        .geo-removed-chip {
+            background: #fee2e2;
+            color: #991b1b;
+            border-color: #fca5a5;
+        }
+
+        .old-value .value-chip,
+        .new-value .value-chip {
+            background: rgba(0,0,0,0.04);
+            color: #374151;
+            border-color: #d1d5db;
+        }
+
+        .geo-parent-badge {
+            display: inline-block;
+            margin-left: 4px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            opacity: 0.7;
+            vertical-align: middle;
         }`;
 
 		this.timeline_wrapper = document.createElement("div");
@@ -950,6 +980,193 @@ class SVATimelineGenerator {
 		}
 	}
 
+	isGeoDetailsChange(change) {
+		const val =
+			change.newValue && change.newValue !== "(blank)" ? change.newValue : change.oldValue;
+		if (!val || val === "(blank)") return false;
+		const trimmed = val.trim();
+		if (!(trimmed.startsWith("{") && trimmed.endsWith("}"))) return false;
+		try {
+			const p = JSON.parse(trimmed);
+			return p && ("state_name" in p || "district_name" in p || "block_name" in p);
+		} catch {
+			return false;
+		}
+	}
+
+	normalizeGeoChanges(changes) {
+		const geoChanges = changes.filter((c) => this.isGeoDetailsChange(c));
+		const nonGeoChanges = changes.filter((c) => !this.isGeoDetailsChange(c));
+		if (!geoChanges.length) return changes;
+
+		const addedRows = [];
+		const removedRows = [];
+		for (const change of geoChanges) {
+			const isAdded = !change.oldValue || change.oldValue === "(blank)";
+			const val = isAdded ? change.newValue : change.oldValue;
+			try {
+				const row = JSON.parse(val.trim());
+				if (isAdded) addedRows.push(row);
+				else removedRows.push(row);
+			} catch (_e) {
+				/* invalid JSON — skip row */
+			}
+		}
+
+		const levels = [
+			{ key: "state", idField: "state", nameField: "state_name", parentField: null },
+			{
+				key: "district",
+				idField: "district",
+				nameField: "district_name",
+				parentField: "state_name",
+			},
+			{
+				key: "block",
+				idField: "block",
+				nameField: "block_name",
+				parentField: "district_name",
+			},
+			{
+				key: "gram_panchayat",
+				idField: "gram_panchayat",
+				nameField: "gram_panchayat_name",
+				parentField: "block_name",
+			},
+			{
+				key: "village",
+				idField: "village",
+				nameField: "village_name",
+				parentField: "gram_panchayat_name",
+			},
+		];
+		const levelLabels = {
+			state: "States",
+			district: "Districts",
+			block: "Blocks",
+			gram_panchayat: "Gram Panchayats",
+			village: "Villages",
+		};
+
+		const getRowDepth = (row) => {
+			if (row.village_name) return "village";
+			if (row.gram_panchayat_name) return "gram_panchayat";
+			if (row.block_name) return "block";
+			if (row.district_name) return "district";
+			if (row.state_name) return "state";
+			return null;
+		};
+
+		// Build a composite name-key for a row up to the given level
+		// e.g. district level → "Bihar|Saran", state level → "Bihar"
+		const rowNameKey = (row, level) => {
+			const parts = [row.state_name];
+			if (level.key !== "state") parts.push(row.district_name);
+			if (level.key !== "state" && level.key !== "district") parts.push(row.block_name);
+			if (["gram_panchayat", "village"].includes(level.key))
+				parts.push(row.gram_panchayat_name);
+			if (level.key === "village") parts.push(row.village_name);
+			return parts.filter(Boolean).join("|");
+		};
+
+		// Collect unique rows for a level by aggregating from rows at this depth OR deeper.
+		// e.g. for "States", also collects state names from district/block rows.
+		const levelOrder = ["state", "district", "block", "gram_panchayat", "village"];
+		const getRowsForLevel = (rows, level) => {
+			const levelIdx = levelOrder.indexOf(level.key);
+			const seen = new Set();
+			return rows.filter((r) => {
+				const depthIdx = levelOrder.indexOf(getRowDepth(r));
+				if (depthIdx < levelIdx) return false; // row doesn't reach this level
+				if (!r[level.nameField]) return false;
+				const key = rowNameKey(r, level);
+				if (seen.has(key)) return false;
+				seen.add(key);
+				return true;
+			});
+		};
+
+		const geoLevelChanges = [];
+		for (const level of levels) {
+			const rawAdded = getRowsForLevel(addedRows, level);
+			const rawRemoved = getRowsForLevel(removedRows, level);
+			if (!rawAdded.length && !rawRemoved.length) continue;
+
+			// Match rows by name-key to identify truly added/removed vs re-saved unchanged rows
+			const addedKeys = new Map(rawAdded.map((r) => [rowNameKey(r, level), r]));
+			const removedKeys = new Map(rawRemoved.map((r) => [rowNameKey(r, level), r]));
+
+			const unchanged = [...addedKeys.entries()]
+				.filter(([k]) => removedKeys.has(k))
+				.map(([, r]) => r);
+			const trulyAdded = [...addedKeys.entries()]
+				.filter(([k]) => !removedKeys.has(k))
+				.map(([, r]) => r);
+			const trulyRemoved = [...removedKeys.entries()]
+				.filter(([k]) => !addedKeys.has(k))
+				.map(([, r]) => r);
+
+			// Only show this level if something actually changed at this level
+			if (!trulyAdded.length && !trulyRemoved.length) continue;
+
+			const makeItem = (row) => ({
+				label: row[level.nameField] || row[level.idField],
+				parentLabel: level.parentField
+					? (row[level.parentField] || "").toUpperCase()
+					: null,
+			});
+
+			geoLevelChanges.push({
+				fieldLabel: levelLabels[level.key],
+				__geoChange: true,
+				__geoLevel: level.nameField,
+				__unchangedItems: unchanged.map(makeItem),
+				__addedItems: trulyAdded.map(makeItem),
+				__removedItems: trulyRemoved.map(makeItem),
+			});
+		}
+
+		return [...nonGeoChanges, ...geoLevelChanges];
+	}
+
+	_geoChip(item, cssClass) {
+		return `<span class="value-chip ${cssClass}">${frappe.utils.escape_html(item.label)}${
+			item.parentLabel
+				? `<span class="geo-parent-badge">${frappe.utils.escape_html(
+						item.parentLabel
+				  )}</span>`
+				: ""
+		}</span>`;
+	}
+
+	formatGeoPrevious(change) {
+		const prev = [...(change.__removedItems || []), ...(change.__unchangedItems || [])];
+		if (!prev.length) return "(empty)";
+		const chips = [
+			...(change.__removedItems || []).map((i) => this._geoChip(i, "geo-removed-chip")),
+			...(change.__unchangedItems || []).map((i) => this._geoChip(i, "value-chip")),
+		].join("");
+		return `<span class="value-chip-container">${chips}</span>`;
+	}
+
+	formatGeoCurrent(change) {
+		const curr = [...(change.__unchangedItems || []), ...(change.__addedItems || [])];
+		if (!curr.length) return "(empty)";
+		const chips = [
+			...(change.__unchangedItems || []).map((i) => this._geoChip(i, "value-chip")),
+			...(change.__addedItems || []).map((i) => this._geoChip(i, "geo-added-chip")),
+		].join("");
+		return `<span class="value-chip-container">${chips}</span>`;
+	}
+
+	parseGeoDocname(docname) {
+		if (!docname || !docname.startsWith("GD-")) return null;
+		const rest = docname.slice(3);
+		const idx = rest.indexOf("-");
+		if (idx === -1) return null;
+		return { doctype: rest.slice(0, idx), docname: rest.slice(idx + 1) };
+	}
+
 	// Format JSON values into readable mini-tables
 	formatCellValue(value) {
 		if (!value || typeof value !== "string") return value || "";
@@ -1052,10 +1269,13 @@ class SVATimelineGenerator {
 			this._tableMultiSelectStateCache = {};
 		}
 		// Ensure filters are properly formatted
+		// Strip geo-level suffix (e.g. "geography_details::state_name" → "geography_details")
+		const rawField = this.filters.field || "";
+		const activeGeoLevel = rawField.includes("::") ? rawField.split("::")[1] : null;
 		const filters = {
 			doctype: this.filters.doctype || "",
 			owner: this.filters.owner || "",
-			field: this.filters.field || "",
+			field: rawField.split("::")[0],
 			date_from: this.filters.date_from || "",
 			date_to: this.filters.date_to || "",
 		};
@@ -1154,8 +1374,9 @@ class SVATimelineGenerator {
 							}
 						});
 
-						const normalizedRegularChanges =
-							this.normalizeTableMultiSelectChanges(regularChanges);
+						const normalizedRegularChanges = this.normalizeGeoChanges(
+							this.normalizeTableMultiSelectChanges(regularChanges)
+						);
 						const hydratedRegularChanges = await this.applyFullTableMultiSelectState(
 							normalizedRegularChanges,
 							item.custom_actual_doctype || item.ref_doctype
@@ -1169,8 +1390,21 @@ class SVATimelineGenerator {
 						entry.className = "timeline-entry";
 
 						// Build HTML for regular changes
+						const visibleRegularChanges = resolvedRegularChanges.filter(
+							(change) =>
+								!(
+									change.__geoChange &&
+									activeGeoLevel &&
+									change.__geoLevel !== activeGeoLevel
+								)
+						);
+						if (
+							visibleRegularChanges.length === 0 &&
+							Object.keys(childTableGroups).length === 0
+						)
+							continue;
 						let regularChangesHTML = "";
-						if (resolvedRegularChanges.length > 0) {
+						if (visibleRegularChanges.length > 0) {
 							regularChangesHTML = `
 								<div class="changes-table-wrapper">
 								<table class="changes-table">
@@ -1182,16 +1416,23 @@ class SVATimelineGenerator {
 										</tr>
 									</thead>
 									<tbody>
-										${resolvedRegularChanges
-											.map(
-												(change) => `
+										${visibleRegularChanges
+											.map((change) => {
+												if (change.__geoChange) {
+													return `
+													<tr>
+														<td>${change.fieldLabel}</td>
+														<td><span class="old-value">${this.formatGeoPrevious(change)}</span></td>
+														<td><span class="new-value">${this.formatGeoCurrent(change)}</span></td>
+													</tr>`;
+												}
+												return `
 											<tr>
 												<td>${change.fieldLabel}</td>
 												<td><span class="old-value">${this.formatTimelineValue(change, change.oldValue)}</span></td>
 												<td><span class="new-value">${this.formatTimelineValue(change, change.newValue)}</span></td>
-											</tr>
-										`
-											)
+											</tr>`;
+											})
 											.join("")}
 									</tbody>
 								</table>
@@ -1252,6 +1493,16 @@ class SVATimelineGenerator {
 								.join("");
 						}
 
+						const actualDoctype = item.custom_actual_doctype || item.ref_doctype;
+						const actualDocname = item.custom_actual_document_name || item.docname;
+						const geoParent =
+							actualDoctype === "Geography Details"
+								? this.parseGeoDocname(actualDocname)
+								: null;
+						const linkDoctype = geoParent ? geoParent.doctype : actualDoctype;
+						const linkDocname = geoParent ? geoParent.docname : actualDocname;
+						const showLink = linkDoctype !== this.frm.doc.doctype;
+
 						entry.innerHTML = `
                         <div class="timeline-header">
                             <div>
@@ -1262,15 +1513,10 @@ class SVATimelineGenerator {
                                     <div class="timeline-meta">${item.owner}</div>
                                 </div>
                                 <a href="#" class="timeline-link"
-                                style="display: ${
-									(item.custom_actual_doctype || item.ref_doctype) ===
-									this.frm.doc.doctype
-										? "none"
-										: "block"
-								};"
+                                style="display: ${showLink ? "block" : "none"};"
                                 >
-                                    ${__(item.custom_actual_doctype || item.ref_doctype)} -
-                                    ${item.custom_actual_document_name || item.docname}
+                                    ${__(linkDoctype)} -
+                                    ${linkDocname}
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                         <path d="M7 17L17 7M17 7H7M17 7V17" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                     </svg>
@@ -1296,16 +1542,14 @@ class SVATimelineGenerator {
 
 						entry.querySelector(".timeline-link").addEventListener("click", (e) => {
 							e.preventDefault();
-							const doctype = item.custom_actual_doctype || item.ref_doctype;
-							const docname = item.custom_actual_document_name || item.docname;
 
-							frappe.model.with_doctype(doctype, () => {
-								frappe.model.with_doc(doctype, docname, function () {
-									const doc = frappe.get_doc(doctype, docname);
-									const meta = frappe.get_meta(doctype);
+							frappe.model.with_doctype(linkDoctype, () => {
+								frappe.model.with_doc(linkDoctype, linkDocname, function () {
+									const doc = frappe.get_doc(linkDoctype, linkDocname);
+									const meta = frappe.get_meta(linkDoctype);
 
 									const d = new frappe.ui.Dialog({
-										title: __(`${doctype}: ${docname}`),
+										title: __(`${linkDoctype}: ${linkDocname}`),
 										fields: meta.fields
 											.filter(
 												(df) =>
