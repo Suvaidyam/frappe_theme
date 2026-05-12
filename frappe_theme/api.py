@@ -387,9 +387,12 @@ def get_timeline_fields(dt, dn, filter_doctype=None):
 			for geo_name in geo_names:
 				geo_versions = frappe.db.sql(
 					"""SELECT data FROM `tabVersion`
-					   WHERE ref_doctype = 'Geography Details' AND docname = %s
+					   WHERE (
+					       (ref_doctype = 'Geography Details' AND docname = %s)
+					       OR (custom_actual_doctype = 'Geography Details' AND custom_actual_document_name = %s)
+					   )
 					   AND data IS NOT NULL""",
-					geo_name,
+					(geo_name, geo_name),
 					as_dict=True,
 				)
 				for ver in geo_versions:

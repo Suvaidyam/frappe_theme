@@ -469,18 +469,26 @@ class VersionUtils:
 				# Check field-level permissions (skip for Administrator)
 				is_admin = frappe.session.user == "Administrator"
 				if is_admin or field_name in permitted_fields:
+					# Keep only first 6 elements: [field_label, old_value, new_value, is_child_table, child_table_field, row_name]
 					change_copy = list(change_item[:6])
 
-					# For whole-table / per-row JSON values ($.changed / $.added / $.removed),
-					# strip hidden columns so they never reach the UI.
-					# $.added / $.removed store a single row dict; $.changed may store a full array.
+					# For $.added / $.removed entries (whole-row JSON dicts), strip hidden fields
+					# from the child doctype so they never appear in the timeline mini-table.
+					# Skip geography rows — their *_name fields are hidden but required by the
+					# frontend geo-chip display (normalizeGeoChanges).
+					_GEO_KEYS = {
+						"state_name",
+						"district_name",
+						"block_name",
+						"gram_panchayat_name",
+						"village_name",
+					}
 					if not is_child_table:
 						try:
 							meta = frappe.get_meta(parent_doctype_for_check)
-							field_df = meta.get_field(field_name)
-							if not field_df:
-								# Also check custom fields
-								field_df = next((f for f in meta.fields if f.fieldname == field_name), None)
+							field_df = meta.get_field(field_name) or next(
+								(f for f in meta.fields if f.fieldname == field_name), None
+							)
 							if (
 								field_df
 								and field_df.fieldtype in ("Table", "Table MultiSelect")
@@ -488,14 +496,20 @@ class VersionUtils:
 							):
 								child_hidden = get_cached_hidden_fields(field_df.options)
 								if child_hidden:
-									for val_idx in (1, 2):  # old_value, new_value
+									for val_idx in (1, 2):
 										val = change_copy[val_idx]
 										if not val or val in ("(blank)", ""):
 											continue
 										try:
 											parsed = json.loads(val)
 											if isinstance(parsed, list):
-												# Full JSON array (e.g. from $.changed)
+												# Skip if any row is a geo row
+												if any(
+													_GEO_KEYS.intersection(r.keys())
+													for r in parsed
+													if isinstance(r, dict)
+												):
+													continue
 												change_copy[val_idx] = json.dumps(
 													[
 														{
@@ -508,7 +522,9 @@ class VersionUtils:
 													]
 												)
 											elif isinstance(parsed, dict):
-												# Single row object (e.g. from $.added / $.removed)
+												# Skip if this is a geo row
+												if _GEO_KEYS.intersection(parsed.keys()):
+													continue
 												change_copy[val_idx] = json.dumps(
 													{k: v for k, v in parsed.items() if k not in child_hidden}
 												)
