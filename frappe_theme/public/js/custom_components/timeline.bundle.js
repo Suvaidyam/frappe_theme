@@ -1219,9 +1219,6 @@ class SVATimelineGenerator {
 					keys.forEach((k) => {
 						let val = row[k];
 						if (val === undefined || val === null) val = "";
-						if (typeof val === "number") {
-							val = frappe.format(val, { fieldtype: "Currency" });
-						}
 						html += `<td>${val}</td>`;
 					});
 					html += `</tr>`;
