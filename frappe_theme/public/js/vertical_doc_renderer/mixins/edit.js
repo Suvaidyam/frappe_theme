@@ -376,7 +376,7 @@ const EditMixin = {
 			}
 
 			if (typeof this.events.afterSave === "function") {
-				this.events.afterSave(df, doc.name, newValue);
+				this.events.afterSave(df, doc.name, newValue, this);
 			}
 		} catch (err) {
 			// ── failure: revert + show banner ───────────────────────────────
@@ -711,7 +711,7 @@ const EditMixin = {
 			frappe.show_alert({ message: __("Saved"), indicator: "green" });
 
 			if (typeof me.events.afterSave === "function") {
-				me.events.afterSave(df, doc.name, doc[df.fieldname]);
+				me.events.afterSave(df, doc.name, doc[df.fieldname], me);
 			}
 		} catch (err) {
 			const errMsg = (err && (err.message || err.exc_type)) || __("Could not save");
