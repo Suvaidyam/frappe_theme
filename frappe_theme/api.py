@@ -116,251 +116,6 @@ def get_versions(
 	return results
 
 
-def _build_deletion_summary(deleted_doctype: str, doc_data: dict, link_field_to_skip: str) -> list[dict]:
-	"""
-	Build summary fields for a deleted document:
-	- Skips system/internal/hidden fields and layout-only fieldtypes
-	- Skips child-table fields (Table / Table MultiSelect) — shows row count instead
-	- Uses field labels from DocType meta
-	- Collects Link fields for batch title resolution (caller resolves them)
-	Returns list of dicts: {fieldname, label, value, fieldtype, link_options}
-	"""
-	_system_skip = {
-		"doctype",
-		"name",
-		"owner",
-		"creation",
-		"modified",
-		"modified_by",
-		"docstatus",
-		"idx",
-		"parent",
-		"parenttype",
-		"parentfield",
-		"amended_from",
-		"__islocal",
-		"__unsaved",
-		link_field_to_skip,
-	}
-	_layout_types = {
-		"Section Break",
-		"Column Break",
-		"Tab Break",
-		"HTML",
-		"Button",
-		"Heading",
-		"Fold",
-		"Image",
-	}
-	_child_table_types = {"Table", "Table MultiSelect"}
-
-	try:
-		meta = frappe.get_meta(deleted_doctype)
-		field_map = {df.fieldname: df for df in meta.fields}
-	except Exception:
-		return []
-
-	summary = []
-	for fieldname, value in doc_data.items():
-		if fieldname in _system_skip:
-			continue
-		if value in (None, "", [], {}):
-			continue
-		df = field_map.get(fieldname)
-		if not df:
-			continue
-		if df.hidden or df.fieldtype in _layout_types:
-			continue
-
-		if df.fieldtype in _child_table_types:
-			# Show row count instead of raw JSON array
-			count = len(value) if isinstance(value, list) else 0
-			if count:
-				summary.append(
-					{
-						"fieldname": fieldname,
-						"label": df.label or fieldname,
-						"value": f"{count} row{'s' if count != 1 else ''}",
-						"fieldtype": df.fieldtype,
-						"link_options": None,
-					}
-				)
-			continue
-
-		summary.append(
-			{
-				"fieldname": fieldname,
-				"label": df.label or fieldname,
-				"value": str(value),
-				"fieldtype": df.fieldtype,
-				"link_options": df.options if df.fieldtype == "Link" else None,
-			}
-		)
-
-	return summary
-
-
-def _resolve_link_titles(summary_rows: list[dict]) -> list[dict]:
-	"""
-	For every Link-type field in summary_rows, replace the raw name with
-	'Title (name)' by batch-fetching titles per linked doctype.
-	Modifies value in-place and strips internal keys before returning.
-	"""
-	# Collect: linked_doctype → [(idx, value)]
-	by_dt: dict[str, list[tuple[int, str]]] = {}
-	for idx, item in enumerate(summary_rows):
-		if item.get("fieldtype") == "Link" and item.get("link_options") and item.get("value"):
-			by_dt.setdefault(item["link_options"], []).append((idx, item["value"]))
-
-	for linked_dt, idx_vals in by_dt.items():
-		try:
-			linked_meta = frappe.get_meta(linked_dt)
-			title_field = linked_meta.title_field or "name"
-			values = [v for _, v in idx_vals]
-			in_ph = ", ".join(["%s"] * len(values))
-			title_rows = frappe.db.sql(
-				f"SELECT `name`, `{title_field}` AS title FROM `tab{linked_dt}` WHERE `name` IN ({in_ph})",
-				values,
-				as_dict=True,
-			)
-			name_to_title = {r.name: r.title for r in title_rows if r.title and r.title != r.name}
-			for idx, value in idx_vals:
-				title = name_to_title.get(value)
-				summary_rows[idx]["value"] = f"{title} ({value})" if title else value
-		except Exception:
-			pass
-
-	# Strip internal keys before returning to client
-	return [{"label": r["label"], "value": r["value"]} for r in summary_rows]
-
-
-@frappe.whitelist()
-def get_deletion_log(dt: str, dn: str, date_filter: str = "all") -> list[dict]:
-	"""
-	Return deleted documents for this document:
-	1. The parent document itself (deleted_doctype=dt, deleted_name=dn)
-	2. Related child documents via SVADatatable Configuration connections
-
-	Strategy: never use JSON_EXTRACT in WHERE — use indexed deleted_doctype filter
-	only, then do link-field matching in Python.
-	"""
-	date_cond = "AND creation >= DATE_SUB(NOW(), INTERVAL 7 DAY)" if date_filter == "last_7_days" else ""
-
-	# Always include the parent doctype itself; "" sentinel = match by deleted_name
-	connections: dict[str, str] = {dt: ""}
-
-	if frappe.db.exists("SVADatatable Configuration", dt):
-		config = frappe.get_doc("SVADatatable Configuration", dt)
-		for row in config.child_doctypes:
-			if row.connection_type == "Direct" and row.link_doctype and row.link_fieldname:
-				connections.setdefault(row.link_doctype, row.link_fieldname)
-			elif (
-				row.connection_type == "Referenced" and row.referenced_link_doctype and row.dt_reference_field
-			):
-				connections.setdefault(row.referenced_link_doctype, row.dt_reference_field)
-
-	doctypes = list(connections.keys())
-	placeholders = ", ".join(["%s"] * len(doctypes))
-
-	# Step 1 — lightweight query: indexed deleted_doctype filter, NO data/JSON_EXTRACT
-	meta_rows = frappe.db.sql(
-		f"""
-		SELECT name, deleted_doctype, deleted_name, restored, new_name, creation, owner
-		FROM `tabDeleted Document`
-		WHERE deleted_doctype IN ({placeholders})
-		{date_cond}
-		ORDER BY creation DESC
-		LIMIT 500
-		""",
-		doctypes,
-		as_dict=True,
-	)
-
-	if not meta_rows:
-		return []
-
-	# Step 2 — fetch data column for matched rows only (PK lookup)
-	names = [r.name for r in meta_rows]
-	in_ph = ", ".join(["%s"] * len(names))
-	data_rows = frappe.db.sql(
-		f"SELECT name, data FROM `tabDeleted Document` WHERE name IN ({in_ph})",
-		names,
-		as_dict=True,
-	)
-	data_map = {r.name: r.data for r in data_rows}
-
-	# Step 3 — batch-resolve owner full names
-	owners = list({r.owner for r in meta_rows if r.owner})
-	owner_map: dict[str, str] = {}
-	if owners:
-		owner_ph = ", ".join(["%s"] * len(owners))
-		owner_rows = frappe.db.sql(
-			f"SELECT name, full_name FROM `tabUser` WHERE name IN ({owner_ph})",
-			owners,
-			as_dict=True,
-		)
-		owner_map = {r.name: r.full_name for r in owner_rows}
-
-	# Step 4 — filter matching records and build raw summaries
-	matched = []
-	all_summary_rows: list[dict] = []
-
-	for r in meta_rows:
-		link_field = connections.get(r.deleted_doctype)
-		if link_field is None:
-			continue
-
-		raw_data = data_map.get(r.name, "")
-		try:
-			doc_data = frappe.parse_json(raw_data) if raw_data else {}
-		except Exception:
-			doc_data = {}
-
-		is_parent = link_field == ""
-		if is_parent:
-			# Parent doc: match by deleted_name directly
-			if r.deleted_name != dn:
-				continue
-		else:
-			# Related doc: match by link field value inside data JSON
-			if doc_data.get(link_field) != dn:
-				continue
-
-		summary = _build_deletion_summary(r.deleted_doctype, doc_data, link_field)
-		start_idx = len(all_summary_rows)
-		all_summary_rows.extend(summary)
-
-		matched.append(
-			{
-				"deleted_doctype": r.deleted_doctype,
-				"deleted_name": r.deleted_name,
-				"deleted_by": owner_map.get(r.owner) or r.owner or "",
-				"creation": str(r.creation),
-				"restored": r.restored,
-				"new_name": r.new_name or "",
-				"is_parent": is_parent,
-				"_sum_start": start_idx,
-				"_sum_end": len(all_summary_rows),
-			}
-		)
-
-	if not matched:
-		return []
-
-	# Step 5 — batch-resolve all Link titles in one pass per linked doctype
-	resolved = _resolve_link_titles(all_summary_rows)
-
-	results = []
-	for item in matched:
-		item["summary"] = resolved[item.pop("_sum_start") : item.pop("_sum_end")]
-		results.append(item)
-
-	# Parent deletion entry pinned to top; children sorted by creation DESC
-	results.sort(key=lambda x: (not x["is_parent"], x["creation"]), reverse=True)
-
-	return results
-
-
 @frappe.whitelist()
 def get_permissions(doctype, _type="Direct"):
 	permissions = []
@@ -523,16 +278,18 @@ def get_timeline_fields(dt, dn, filter_doctype=None):
 	are resolved correctly when 'All Documents' is selected.
 	Custom Field hidden value takes precedence over DocField.
 	"""
-	filter_clause = "AND actual_dt = %(filter_doctype)s" if filter_doctype else ""
+	filter_clause = "AND all_fields.actual_dt = %(filter_doctype)s" if filter_doctype else ""
 	sql = f"""
 		SELECT DISTINCT
-			field_name,
-			actual_dt,
+			all_fields.field_name,
+			all_fields.actual_dt,
 			COALESCE(
+				(SELECT ps.value FROM `tabProperty Setter` ps
+				 WHERE ps.doc_type = all_fields.actual_dt AND ps.field_name = all_fields.field_name AND ps.property = 'label' LIMIT 1),
 				(SELECT cdf.label FROM `tabCustom Field` cdf
-				 WHERE cdf.fieldname = field_name AND cdf.dt = actual_dt LIMIT 1),
+				 WHERE cdf.fieldname = all_fields.field_name AND cdf.dt = all_fields.actual_dt LIMIT 1),
 				(SELECT df.label FROM `tabDocField` df
-				 WHERE df.fieldname = field_name AND df.parent = actual_dt LIMIT 1)
+				 WHERE df.fieldname = all_fields.field_name AND df.parent = all_fields.actual_dt LIMIT 1)
 			) AS field_label
 		FROM (
 			SELECT
@@ -572,13 +329,15 @@ def get_timeline_fields(dt, dn, filter_doctype=None):
 			WHERE ver.ref_doctype = %(dt)s AND ver.docname = %(dn)s
 			AND JSON_EXTRACT(ver.data, '$.removed') IS NOT NULL
 		) AS all_fields
-		WHERE field_name IS NOT NULL
+		WHERE all_fields.field_name IS NOT NULL
 		{filter_clause}
 		AND COALESCE(
+			(SELECT CAST(ps.value AS UNSIGNED) FROM `tabProperty Setter` ps
+			 WHERE ps.doc_type = all_fields.actual_dt AND ps.field_name = all_fields.field_name AND ps.property = 'hidden' LIMIT 1),
 			(SELECT cdf.hidden FROM `tabCustom Field` cdf
-			 WHERE cdf.fieldname = field_name AND cdf.dt = actual_dt LIMIT 1),
+			 WHERE cdf.fieldname = all_fields.field_name AND cdf.dt = all_fields.actual_dt LIMIT 1),
 			(SELECT df.hidden FROM `tabDocField` df
-			 WHERE df.fieldname = field_name AND df.parent = actual_dt LIMIT 1),
+			 WHERE df.fieldname = all_fields.field_name AND df.parent = all_fields.actual_dt LIMIT 1),
 			1
 		) = 0
 		ORDER BY field_label
@@ -632,9 +391,12 @@ def get_timeline_fields(dt, dn, filter_doctype=None):
 			for geo_name in geo_names:
 				geo_versions = frappe.db.sql(
 					"""SELECT data FROM `tabVersion`
-					   WHERE ref_doctype = 'Geography Details' AND docname = %s
+					   WHERE (
+					       (ref_doctype = 'Geography Details' AND docname = %s)
+					       OR (custom_actual_doctype = 'Geography Details' AND custom_actual_document_name = %s)
+					   )
 					   AND data IS NOT NULL""",
-					geo_name,
+					(geo_name, geo_name),
 					as_dict=True,
 				)
 				for ver in geo_versions:

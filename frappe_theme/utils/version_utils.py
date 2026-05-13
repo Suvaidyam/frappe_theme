@@ -216,6 +216,8 @@ class VersionUtils:
 							WHEN e.is_child_table = 1 THEN
 								CONCAT(
 									COALESCE(
+										(SELECT ps.value FROM `tabProperty Setter` ps WHERE ps.doc_type = e.ref_doctype AND ps.field_name = e.child_table_field AND ps.property = 'label' LIMIT 1),
+										(SELECT ps.value FROM `tabProperty Setter` ps WHERE ps.doc_type = e.custom_actual_doctype AND ps.field_name = e.child_table_field AND ps.property = 'label' LIMIT 1),
 										(SELECT tf.label FROM `tabDocField` tf WHERE e.child_table_field = tf.fieldname AND tf.parent = e.ref_doctype LIMIT 1),
 										(SELECT tf.label FROM `tabDocField` tf WHERE e.child_table_field = tf.fieldname AND tf.parent = e.custom_actual_doctype LIMIT 1),
 										(SELECT ctf.label FROM `tabCustom Field` ctf WHERE e.child_table_field = ctf.fieldname AND ctf.dt = e.ref_doctype LIMIT 1),
@@ -241,6 +243,8 @@ class VersionUtils:
 								)
 							ELSE
 								COALESCE(
+									(SELECT ps.value FROM `tabProperty Setter` ps WHERE ps.doc_type = e.ref_doctype AND ps.field_name = e.field_name AND ps.property = 'label' LIMIT 1),
+									(SELECT ps.value FROM `tabProperty Setter` ps WHERE ps.doc_type = e.custom_actual_doctype AND ps.field_name = e.field_name AND ps.property = 'label' LIMIT 1),
 									(SELECT tf.label FROM `tabDocField` tf WHERE e.field_name = tf.fieldname AND tf.parent = e.ref_doctype LIMIT 1),
 									(SELECT tf.label FROM `tabDocField` tf WHERE e.field_name = tf.fieldname AND tf.parent = e.custom_actual_doctype LIMIT 1),
 									(SELECT ctf.label FROM `tabCustom Field` ctf WHERE e.field_name = ctf.fieldname AND ctf.dt = e.ref_doctype LIMIT 1),
@@ -470,7 +474,70 @@ class VersionUtils:
 				is_admin = frappe.session.user == "Administrator"
 				if is_admin or field_name in permitted_fields:
 					# Keep only first 6 elements: [field_label, old_value, new_value, is_child_table, child_table_field, row_name]
-					filtered_changes.append(change_item[:6])
+					change_copy = list(change_item[:6])
+
+					# For $.added / $.removed entries (whole-row JSON dicts), strip hidden fields
+					# from the child doctype so they never appear in the timeline mini-table.
+					# Skip geography rows — their *_name fields are hidden but required by the
+					# frontend geo-chip display (normalizeGeoChanges).
+					_GEO_KEYS = {
+						"state_name",
+						"district_name",
+						"block_name",
+						"gram_panchayat_name",
+						"village_name",
+					}
+					if not is_child_table:
+						try:
+							meta = frappe.get_meta(parent_doctype_for_check)
+							field_df = meta.get_field(field_name) or next(
+								(f for f in meta.fields if f.fieldname == field_name), None
+							)
+							if (
+								field_df
+								and field_df.fieldtype in ("Table", "Table MultiSelect")
+								and field_df.options
+							):
+								child_hidden = get_cached_hidden_fields(field_df.options)
+								if child_hidden:
+									for val_idx in (1, 2):
+										val = change_copy[val_idx]
+										if not val or val in ("(blank)", ""):
+											continue
+										try:
+											parsed = json.loads(val)
+											if isinstance(parsed, list):
+												# Skip if any row is a geo row
+												if any(
+													_GEO_KEYS.intersection(r.keys())
+													for r in parsed
+													if isinstance(r, dict)
+												):
+													continue
+												change_copy[val_idx] = json.dumps(
+													[
+														{
+															k: v
+															for k, v in row.items()
+															if k not in child_hidden
+														}
+														for row in parsed
+														if isinstance(row, dict)
+													]
+												)
+											elif isinstance(parsed, dict):
+												# Skip if this is a geo row
+												if _GEO_KEYS.intersection(parsed.keys()):
+													continue
+												change_copy[val_idx] = json.dumps(
+													{k: v for k, v in parsed.items() if k not in child_hidden}
+												)
+										except (json.JSONDecodeError, TypeError):
+											pass
+						except Exception:
+							pass
+
+					filtered_changes.append(change_copy)
 
 			# Skip entries where all fields were filtered out (empty changed array)
 			if len(filtered_changes) == 0:
