@@ -1,6 +1,8 @@
 import re
 
 import frappe
+from frappe.query_builder import DocType, Interval, Order
+from frappe.query_builder.functions import Now
 
 _HTML_TAG_RE = re.compile(r"<[^>]+>")
 
@@ -76,20 +78,20 @@ def _build_deletion_summary(
 
 	try:
 		meta = frappe.get_meta(deleted_doctype)
-		field_map = {df.fieldname: df for df in meta.fields}
 	except Exception:
 		return []
 
+	# Iterate meta.fields to preserve form field order
 	summary = []
-	for fieldname, value in doc_data.items():
+	for df in meta.fields:
+		fieldname = df.fieldname
 		if fieldname in _system_skip:
 			continue
-		if value in (None, "", [], {}):
-			continue
-		df = field_map.get(fieldname)
-		if not df:
-			continue
 		if df.hidden or df.fieldtype in _layout_types:
+			continue
+
+		value = doc_data.get(fieldname)
+		if value in (None, "", [], {}):
 			continue
 
 		if df.fieldtype in _child_table_types:
@@ -135,12 +137,17 @@ def _resolve_link_titles(summary_rows: list[dict]) -> list[dict]:
 			linked_meta = frappe.get_meta(linked_dt)
 			title_field = linked_meta.title_field or "name"
 			values = [v for _, v in idx_vals]
-			in_ph = ", ".join(["%s"] * len(values))
-			title_rows = frappe.db.sql(
-				f"SELECT `name`, `{title_field}` AS title FROM `tab{linked_dt}` WHERE `name` IN ({in_ph})",
-				values,
-				as_dict=True,
+
+			# Use QueryBuilder — no f-string table/column interpolation
+			tbl = DocType(linked_dt)
+			title_col = tbl[title_field]
+			title_rows = (
+				frappe.qb.from_(tbl)
+				.select(tbl.name, title_col.as_("title"))
+				.where(tbl.name.isin(values))
+				.run(as_dict=True)
 			)
+
 			name_to_title = {r.name: r.title for r in title_rows if r.title and r.title != r.name}
 			for idx, value in idx_vals:
 				title = name_to_title.get(value)
@@ -163,8 +170,20 @@ def _build_connections(dt: str) -> dict[str, list[str]]:
 	4. Child tables of dt          — matched via 'parent' field
 	5. File attachments            — attached_to_doctype / attached_to_name
 	6. Notes                       — reference_doctype / related_to
-	"""
 
+	Result is cached in Redis for 5 minutes to avoid repeated schema queries.
+	"""
+	cache_key = f"sva_dl_conn__{dt}"
+	cached = frappe.cache().get_value(cache_key)
+	if cached is not None:
+		return frappe.parse_json(cached)
+
+	result = _compute_connections(dt)
+	frappe.cache().set_value(cache_key, frappe.as_json(result), expires_in_sec=300)
+	return result
+
+
+def _compute_connections(dt: str) -> dict[str, list[str]]:
 	def _add(d: dict, doctype: str, fieldname: str) -> None:
 		d.setdefault(doctype, [])
 		if fieldname not in d[doctype]:
@@ -187,62 +206,73 @@ def _build_connections(dt: str) -> dict[str, list[str]]:
 				else:
 					_add(connections, row.referenced_link_doctype, row.dt_reference_field)
 
-	_sys_ph = ", ".join(["%s"] * len(_SYSTEM_MODULES))
+	DocField = DocType("DocField")
+	DocTypeT = DocType("DocType")
 
 	# ── 2. Direct Link fields pointing to dt ──────────────────────────────────
-	auto_links = frappe.db.sql(
-		f"""
-		SELECT DISTINCT df.parent AS link_doctype, df.fieldname AS link_field
-		FROM `tabDocField` df
-		INNER JOIN `tabDocType` dtt ON dtt.name = df.parent
-		WHERE df.fieldtype = 'Link'
-		  AND df.options = %s
-		  AND dtt.issingle = 0
-		  AND dtt.istable  = 0
-		  AND dtt.module NOT IN ({_sys_ph})
-		""",
-		(dt, *_SYSTEM_MODULES),
-		as_dict=True,
+	auto_links = (
+		frappe.qb.from_(DocField)
+		.join(DocTypeT)
+		.on(DocTypeT.name == DocField.parent)
+		.select(DocField.parent.as_("link_doctype"), DocField.fieldname.as_("link_field"))
+		.distinct()
+		.where(
+			(DocField.fieldtype == "Link")
+			& (DocField.options == dt)
+			& (DocTypeT.issingle == 0)
+			& (DocTypeT.istable == 0)
+			& (DocTypeT.module.notin(_SYSTEM_MODULES))
+		)
+		.run(as_dict=True)
 	)
 	for row in auto_links:
 		_add(connections, row.link_doctype, row.link_field)
 
 	# ── 3. Dynamic Link patterns ───────────────────────────────────────────────
-	dyn_links = frappe.db.sql(
-		f"""
-		SELECT DISTINCT
-			df_dt.parent        AS link_doctype,
-			df_dt.fieldname     AS doctype_field,
-			df_ref.fieldname    AS name_field
-		FROM `tabDocField` df_dt
-		INNER JOIN `tabDocField` df_ref
-			ON  df_ref.parent    = df_dt.parent
-			AND df_ref.fieldtype = 'Dynamic Link'
-			AND df_ref.options   = df_dt.fieldname
-		INNER JOIN `tabDocType` dtt ON dtt.name = df_dt.parent
-		WHERE df_dt.fieldtype = 'Link'
-		  AND df_dt.options   = 'DocType'
-		  AND dtt.issingle    = 0
-		  AND dtt.istable     = 0
-		  AND dtt.module NOT IN ({_sys_ph})
-		""",
-		_SYSTEM_MODULES,
-		as_dict=True,
+	# Self-join on DocField: df_dt has fieldtype=Link/options=DocType,
+	# df_ref has fieldtype=Dynamic Link/options=df_dt.fieldname
+	df_dt = DocField.as_("df_dt")
+	df_ref = DocField.as_("df_ref")
+	dyn_links = (
+		frappe.qb.from_(df_dt)
+		.join(df_ref)
+		.on(
+			(df_ref.parent == df_dt.parent)
+			& (df_ref.fieldtype == "Dynamic Link")
+			& (df_ref.options == df_dt.fieldname)
+		)
+		.join(DocTypeT)
+		.on(DocTypeT.name == df_dt.parent)
+		.select(
+			df_dt.parent.as_("link_doctype"),
+			df_dt.fieldname.as_("doctype_field"),
+			df_ref.fieldname.as_("name_field"),
+		)
+		.distinct()
+		.where(
+			(df_dt.fieldtype == "Link")
+			& (df_dt.options == "DocType")
+			& (DocTypeT.issingle == 0)
+			& (DocTypeT.istable == 0)
+			& (DocTypeT.module.notin(_SYSTEM_MODULES))
+		)
+		.run(as_dict=True)
 	)
 	for row in dyn_links:
 		_add(connections, row.link_doctype, f"__dl__{row.doctype_field}:{row.name_field}")
 
 	# ── 4. Child tables of dt ─────────────────────────────────────────────────
-	child_tables = frappe.db.sql(
-		"""
-		SELECT DISTINCT df.options AS child_dt
-		FROM `tabDocField` df
-		WHERE df.parent = %s
-		  AND df.fieldtype IN ('Table', 'Table MultiSelect')
-		  AND df.options IS NOT NULL AND df.options != ''
-		""",
-		(dt,),
-		as_dict=True,
+	child_tables = (
+		frappe.qb.from_(DocField)
+		.select(DocField.options.as_("child_dt"))
+		.distinct()
+		.where(
+			(DocField.parent == dt)
+			& (DocField.fieldtype.isin(["Table", "Table MultiSelect"]))
+			& (DocField.options.isnotnull())
+			& (DocField.options != "")
+		)
+		.run(as_dict=True)
 	)
 	for row in child_tables:
 		if row.child_dt:
@@ -276,154 +306,200 @@ def get_deletion_log_doctypes(dt: str) -> dict:
 
 
 @frappe.whitelist()
-def get_deletion_log(dt: str, dn: str, date_filter: str = "all", doctype_filter: str = "") -> list[dict]:
+def get_deletion_log(
+	dt: str,
+	dn: str,
+	date_filter: str = "all",
+	doctype_filter: str = "",
+	page_length: int = 30,
+	cursor: str = "",
+) -> dict:
 	"""
-	Return deleted documents related to document (dt, dn).
+	Return paginated deleted documents related to document (dt, dn).
 
-	date_filter:    "all" | "last_7_days"
+	date_filter:  "all" | "last_7_days"
 	doctype_filter: "" (all) | specific deleted_doctype value
+	page_length:  records per page (default 30)
+	cursor:       ISO datetime of the last record on the previous page
+	              (empty string = start from the newest record)
 
-	Strategy: query by deleted_doctype (indexed) per doctype, then match
-	link fields in Python — avoids JSON_EXTRACT in WHERE.
+	Returns {"records": [...], "has_more": bool, "cursor": str}
+
+	Uses cursor-based pagination so no records are ever skipped regardless of
+	how many unrelated deleted documents exist in the database.
 	"""
-	date_cond = "AND creation >= DATE_SUB(NOW(), INTERVAL 7 DAY)" if date_filter == "last_7_days" else ""
-
+	_SQL_BATCH = 500  # rows fetched from DB per iteration
+	page_length = int(page_length)
 	connections = _build_connections(dt)
 
 	if doctype_filter and doctype_filter in connections:
 		connections = {doctype_filter: connections[doctype_filter]}
 
-	# ── Step 1: per-doctype queries (LIMIT 300 each) ──────────────────────────
-	meta_rows = []
-	for doc_type in connections:
-		rows = frappe.db.sql(
-			f"""
-			SELECT name, deleted_doctype, deleted_name, restored, new_name, creation, owner
-			FROM `tabDeleted Document`
-			WHERE deleted_doctype = %s
-			{date_cond}
-			ORDER BY creation DESC
-			LIMIT 300
-			""",
-			(doc_type,),
-			as_dict=True,
+	doctypes_in = list(connections.keys())
+	if not doctypes_in:
+		return {"records": [], "has_more": False, "cursor": ""}
+
+	DD = DocType("Deleted Document")
+	matched: list[dict] = []
+	last_creation: str = ""
+	batch_cursor: str = cursor  # moves backward in time as we page through batches
+
+	while len(matched) <= page_length:
+		# ── Fetch one batch ───────────────────────────────────────────────────
+		q = (
+			frappe.qb.from_(DD)
+			.select(
+				DD.name,
+				DD.deleted_doctype,
+				DD.deleted_name,
+				DD.data,
+				DD.restored,
+				DD.new_name,
+				DD.creation,
+				DD.owner,
+			)
+			.where(DD.deleted_doctype.isin(doctypes_in))
+			.orderby(DD.creation, order=Order.desc)
+			.limit(_SQL_BATCH)
 		)
-		meta_rows.extend(rows)
+		if date_filter == "last_7_days":
+			q = q.where(DD.creation >= (Now() - Interval(days=7)))
+		if batch_cursor:
+			q = q.where(DD.creation < batch_cursor)
 
-	if not meta_rows:
-		return []
+		batch = q.run(as_dict=True)
+		if not batch:
+			break  # no more rows in the DB
 
-	# ── Step 2: fetch data JSON for all candidate rows ────────────────────────
-	names = [r.name for r in meta_rows]
-	in_ph = ", ".join(["%s"] * len(names))
-	data_map = {
-		r.name: r.data
-		for r in frappe.db.sql(
-			f"SELECT name, data FROM `tabDeleted Document` WHERE name IN ({in_ph})",
-			names,
-			as_dict=True,
-		)
-	}
+		for r in batch:
+			link_fields = connections.get(r.deleted_doctype)
+			if link_fields is None:
+				continue
 
-	# ── Step 3: batch-resolve owner display names ─────────────────────────────
-	owners = list({r.owner for r in meta_rows if r.owner})
+			try:
+				doc_data = frappe.parse_json(r.data or "{}")
+			except Exception:
+				doc_data = {}
+
+			is_parent = "" in link_fields
+			matched_link_field: str | list = ""
+
+			if is_parent:
+				if r.deleted_name != dn:
+					continue
+			else:
+				found = False
+				for lf in link_fields:
+					if lf.startswith("__dl__"):
+						_, pair = lf.split("__dl__", 1)
+						doctype_field, name_field = pair.split(":", 1)
+						if doc_data.get(doctype_field) == dt and doc_data.get(name_field) == dn:
+							matched_link_field = [doctype_field, name_field]
+							found = True
+							break
+					else:
+						if doc_data.get(lf) == dn:
+							matched_link_field = lf
+							found = True
+							break
+				if not found:
+					continue
+
+			display_name = ""
+			extra_skip: list[str] = []
+			if r.deleted_doctype == "File":
+				display_name = doc_data.get("file_name", "") or r.deleted_name
+				extra_skip = [
+					"attached_to_field",
+					"is_private",
+					"uploaded_to_dropbox",
+					"uploaded_to_google_drive",
+				]
+			elif r.deleted_doctype == "Notes":
+				display_name = doc_data.get("title", "") or r.deleted_name
+
+			base_skip = (
+				matched_link_field
+				if isinstance(matched_link_field, list)
+				else ([matched_link_field] if matched_link_field else [])
+			)
+
+			matched.append(
+				{
+					"dd_name": r.name,
+					"deleted_doctype": r.deleted_doctype,
+					"deleted_name": r.deleted_name,
+					"display_name": display_name,
+					"_owner": r.owner or "",
+					"creation": str(r.creation),
+					"restored": r.restored,
+					"new_name": r.new_name or "",
+					"is_parent": is_parent,
+					"fields_to_skip": base_skip + extra_skip,
+				}
+			)
+
+			if len(matched) > page_length:
+				break  # we have enough — stop scanning this batch
+
+		if len(matched) > page_length:
+			break
+
+		# Advance cursor to oldest row in this batch for next iteration
+		batch_cursor = str(batch[-1].creation)
+
+		if len(batch) < _SQL_BATCH:
+			break  # DB exhausted
+
+	has_more = len(matched) > page_length
+	page_records = matched[:page_length]
+
+	if page_records:
+		last_creation = page_records[-1]["creation"]
+
+	# ── Owner names for this page only ───────────────────────────────────────
+	page_owners = {r["_owner"] for r in page_records if r["_owner"]}
 	owner_map: dict[str, str] = {}
-	if owners:
-		owner_ph = ", ".join(["%s"] * len(owners))
+	if page_owners:
+		User = DocType("User")
 		owner_map = {
 			r.name: r.full_name
-			for r in frappe.db.sql(
-				f"SELECT name, full_name FROM `tabUser` WHERE name IN ({owner_ph})",
-				owners,
-				as_dict=True,
+			for r in (
+				frappe.qb.from_(User)
+				.select(User.name, User.full_name)
+				.where(User.name.isin(list(page_owners)))
+				.run(as_dict=True)
 			)
 		}
 
-	# ── Step 4: match records and build summaries ─────────────────────────────
-	matched: list[dict] = []
-	all_summary_rows: list[dict] = []
+	for item in page_records:
+		owner = item.pop("_owner")
+		item["deleted_by"] = owner_map.get(owner) or owner
 
-	for r in meta_rows:
-		link_fields = connections.get(r.deleted_doctype)
-		if link_fields is None:
-			continue
+	return {"records": page_records, "has_more": has_more, "cursor": last_creation}
 
+
+@frappe.whitelist()
+def get_deletion_log_detail(name: str, deleted_doctype: str, fields_to_skip: str | list = "[]") -> list[dict]:
+	"""
+	Return the full field summary for a single Deleted Document record.
+	Called lazily when the user expands a card in the deletion log drawer.
+	"""
+	if isinstance(fields_to_skip, str):
 		try:
-			doc_data = frappe.parse_json(data_map.get(r.name, "") or "{}")
+			fields_to_skip = frappe.parse_json(fields_to_skip)
 		except Exception:
-			doc_data = {}
+			fields_to_skip = []
 
-		# "" sentinel → this is the parent document itself
-		is_parent = "" in link_fields
-		matched_link_field: str | list = ""
-
-		if is_parent:
-			if r.deleted_name != dn:
-				continue
-		else:
-			found = False
-			for lf in link_fields:
-				if lf.startswith("__dl__"):
-					_, pair = lf.split("__dl__", 1)
-					doctype_field, name_field = pair.split(":", 1)
-					if doc_data.get(doctype_field) == dt and doc_data.get(name_field) == dn:
-						matched_link_field = [doctype_field, name_field]
-						found = True
-						break
-				else:
-					if doc_data.get(lf) == dn:
-						matched_link_field = lf
-						found = True
-						break
-			if not found:
-				continue
-
-		# Human-readable display name + fields to skip from pills
-		display_name = ""
-		extra_skip: list[str] = []
-		if r.deleted_doctype == "File":
-			display_name = doc_data.get("file_name", "") or r.deleted_name
-			extra_skip = ["file_name"]
-		elif r.deleted_doctype == "Notes":
-			display_name = doc_data.get("title", "") or r.deleted_name
-
-		base_skip = (
-			matched_link_field
-			if isinstance(matched_link_field, list)
-			else ([matched_link_field] if matched_link_field else [])
-		)
-		fields_to_skip = base_skip + extra_skip
-
-		summary = _build_deletion_summary(r.deleted_doctype, doc_data, fields_to_skip)
-		start_idx = len(all_summary_rows)
-		all_summary_rows.extend(summary)
-
-		matched.append(
-			{
-				"deleted_doctype": r.deleted_doctype,
-				"deleted_name": r.deleted_name,
-				"display_name": display_name,
-				"deleted_by": owner_map.get(r.owner) or r.owner or "",
-				"creation": str(r.creation),
-				"restored": r.restored,
-				"new_name": r.new_name or "",
-				"is_parent": is_parent,
-				"_sum_start": start_idx,
-				"_sum_end": len(all_summary_rows),
-			}
-		)
-
-	if not matched:
+	DD = DocType("Deleted Document")
+	rows = frappe.qb.from_(DD).select(DD.data).where(DD.name == name).limit(1).run(as_dict=True)
+	if not rows:
 		return []
 
-	# ── Step 5: batch-resolve Link field titles ───────────────────────────────
-	resolved = _resolve_link_titles(all_summary_rows)
+	try:
+		doc_data = frappe.parse_json(rows[0].data or "{}")
+	except Exception:
+		doc_data = {}
 
-	results = []
-	for item in matched:
-		item["summary"] = resolved[item.pop("_sum_start") : item.pop("_sum_end")]
-		results.append(item)
-
-	# Parent pinned first, then children newest-first
-	results.sort(key=lambda x: (x["is_parent"], x["creation"]), reverse=True)
-	return results
+	summary = _build_deletion_summary(deleted_doctype, doc_data, fields_to_skip)
+	return _resolve_link_titles(summary)

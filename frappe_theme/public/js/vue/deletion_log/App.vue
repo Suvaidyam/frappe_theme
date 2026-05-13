@@ -95,288 +95,356 @@
 
 			<!-- ── Doctype chips ──────────────────────────────────────────── -->
 			<div class="sva-dl-chips-bar">
-				<div class="sva-dl-chips-scroll">
-					<button
-						:class="['sva-dl-chip', { active: doctypeFilter === '' }]"
-						@click="setDoctypeFilter('')"
-					>
-						{{ __("All Records") }}
-						<span class="sva-dl-chip-badge">{{ allRecords.length }}</span>
-					</button>
-					<button
-						v-for="(d, idx) in doctypes.filter(
-							(d) => (countByDoctype[d.value] || 0) > 0
-						)"
-						:key="d.value"
-						:class="['sva-dl-chip', { active: doctypeFilter === d.value }]"
-						:style="
-							doctypeFilter === d.value
-								? {
-										background: chipColor(idx),
-										borderColor: chipColor(idx),
-										color: '#fff',
-								  }
-								: {}
-						"
-						@click="setDoctypeFilter(d.value)"
-					>
-						{{ __(d.label) }}
-						<span class="sva-dl-chip-badge">{{ countByDoctype[d.value] || 0 }}</span>
-					</button>
-				</div>
+				<Transition name="dl-fade" mode="out-in">
+					<!-- Skeleton chips while loading -->
+					<div v-if="loading" key="chips-skel" class="sva-dl-chips-scroll">
+						<div v-for="i in 5" :key="i" class="sva-dl-skel sva-dl-skel-chip"></div>
+					</div>
+					<!-- Real chips -->
+					<div v-else key="chips-real" class="sva-dl-chips-scroll">
+						<button
+							:class="['sva-dl-chip', { active: doctypeFilter === '' }]"
+							@click="setDoctypeFilter('')"
+						>
+							{{ __("All Records") }}
+							<span class="sva-dl-chip-badge">{{ allRecords.length }}</span>
+						</button>
+						<button
+							v-for="(d, idx) in doctypes.filter(
+								(d) => (countByDoctype[d.value] || 0) > 0
+							)"
+							:key="d.value"
+							:class="['sva-dl-chip', { active: doctypeFilter === d.value }]"
+							:style="
+								doctypeFilter === d.value
+									? {
+											background: chipColor(idx),
+											borderColor: chipColor(idx),
+											color: '#fff',
+									  }
+									: {}
+							"
+							@click="setDoctypeFilter(d.value)"
+						>
+							{{ __(d.label) }}
+							<span class="sva-dl-chip-badge">{{
+								countByDoctype[d.value] || 0
+							}}</span>
+						</button>
+					</div>
+				</Transition>
 			</div>
 
 			<!-- ── Body ──────────────────────────────────────────────────── -->
-			<div class="sva-dl-body">
-				<!-- Loading -->
-				<div v-if="loading" class="sva-dl-loading">
-					<svg
-						class="sva-dl-spinner"
-						width="26"
-						height="26"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="#9ca3af"
-						stroke-width="2"
-					>
-						<path
-							d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"
-						/>
-					</svg>
-					<span>{{ __("Loading…") }}</span>
-				</div>
-
-				<!-- Empty -->
-				<div v-else-if="!records.length" class="sva-dl-empty">
-					<div class="sva-dl-empty-icon">
-						<svg
-							width="36"
-							height="36"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="#d1d5db"
-							stroke-width="1.5"
-						>
-							<polyline points="3 6 5 6 21 6" />
-							<path d="M19 6l-1 14H6L5 6" />
-							<path d="M10 11v6M14 11v6" />
-							<path d="M9 6V4h6v2" />
-						</svg>
-					</div>
-					<p>{{ __("No deleted records found") }}</p>
-				</div>
-
-				<!-- Date-grouped records -->
-				<template v-else>
-					<div
-						v-for="group in groupedRecords"
-						:key="group.date"
-						class="sva-dl-date-group"
-					>
-						<!-- Date section header -->
-						<div class="sva-dl-date-header">
-							<div class="sva-dl-date-label">
-								{{ group.displayDate }}
-								<span v-if="group.isRecent" class="sva-dl-recent-dot"
-									>· {{ __("Recent") }}</span
-								>
-							</div>
-							<span class="sva-dl-group-count">
-								{{ group.items.length }}&thinsp;{{
-									group.items.length === 1 ? __("deletion") : __("deletions")
-								}}
-							</span>
-						</div>
-
-						<!-- Cards -->
-						<div
-							v-for="(item, idx) in group.items"
-							:key="item.deleted_name + item.creation"
-							class="sva-dl-card"
-							:style="{ borderLeftColor: cardBorderColor(item) }"
-						>
-							<!-- Top row: avatar + info + toggle -->
-							<div class="sva-dl-card-top">
-								<div
-									class="sva-dl-avatar"
-									:style="{ background: cardBorderColor(item) }"
-								>
-									{{ avatarLetter(item.deleted_by) }}
+			<div ref="bodyEl" class="sva-dl-body" @scroll.passive="onBodyScroll">
+				<Transition name="dl-fade" mode="out-in">
+					<!-- Skeleton cards while loading -->
+					<div v-if="loading" key="body-skel" class="sva-dl-skeletons">
+						<div v-for="i in 6" :key="i" class="sva-dl-skel-card">
+							<div class="sva-dl-skel-card-top">
+								<div class="sva-dl-skel sva-dl-skel-avatar"></div>
+								<div class="sva-dl-skel-lines">
+									<div
+										class="sva-dl-skel sva-dl-skel-line"
+										style="width: 62%"
+									></div>
+									<div
+										class="sva-dl-skel sva-dl-skel-line"
+										style="width: 38%; margin-top: 7px"
+									></div>
 								</div>
+							</div>
+							<div class="sva-dl-skel-pills-row">
+								<div class="sva-dl-skel sva-dl-skel-pill-sm"></div>
+								<div class="sva-dl-skel sva-dl-skel-pill-sm"></div>
+								<div class="sva-dl-skel sva-dl-skel-pill-sm"></div>
+							</div>
+						</div>
+					</div>
 
-								<div class="sva-dl-card-main">
-									<!-- Title -->
-									<div class="sva-dl-card-title">
-										<!-- Deleted badge (all types) -->
-										<span class="sva-dl-del-badge">
-											<svg
-												width="9"
-												height="9"
-												viewBox="0 0 24 24"
-												fill="none"
-												stroke="currentColor"
-												stroke-width="2.5"
-											>
-												<polyline points="3 6 5 6 21 6" />
-												<path d="M19 6l-1 14H6L5 6" />
-											</svg>
-											{{ __("DELETED") }}
-										</span>
-										<strong class="sva-dl-dt-name">{{
-											item.deleted_doctype === "File"
-												? __("Attachment")
-												: item.deleted_doctype === "Notes"
-												? __("Note")
-												: __(item.deleted_doctype)
-										}}</strong>
-										<span class="sva-dl-sep">·</span>
-										<span class="sva-dl-doc-id">{{
-											item.display_name || item.deleted_name
-										}}</span>
-										<span
-											v-if="item.is_parent"
-											class="sva-dl-tag sva-dl-tag--parent"
-											>{{ __("This Document") }}</span
-										>
-										<span
-											v-if="item.restored"
-											class="sva-dl-tag sva-dl-tag--restored"
-											>{{ __("Restored") }}</span
-										>
+					<!-- Empty -->
+					<div v-else-if="!records.length" key="body-empty" class="sva-dl-empty">
+						<div class="sva-dl-empty-icon">
+							<svg
+								width="36"
+								height="36"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="#d1d5db"
+								stroke-width="1.5"
+							>
+								<polyline points="3 6 5 6 21 6" />
+								<path d="M19 6l-1 14H6L5 6" />
+								<path d="M10 11v6M14 11v6" />
+								<path d="M9 6V4h6v2" />
+							</svg>
+						</div>
+						<p>{{ __("No deleted records found") }}</p>
+					</div>
+
+					<!-- Date-grouped records -->
+					<div v-else key="body-content">
+						<div
+							v-for="group in groupedRecords"
+							:key="group.date"
+							class="sva-dl-date-group"
+						>
+							<!-- Date section header -->
+							<div class="sva-dl-date-header">
+								<div class="sva-dl-date-label">
+									{{ group.displayDate }}
+									<span v-if="group.isRecent" class="sva-dl-recent-dot"
+										>· {{ __("Recent") }}</span
+									>
+								</div>
+								<span class="sva-dl-group-count">
+									{{ group.items.length }}&thinsp;{{
+										group.items.length === 1 ? __("deletion") : __("deletions")
+									}}
+								</span>
+							</div>
+
+							<!-- Cards -->
+							<div
+								v-for="(item, idx) in group.items"
+								:key="item.deleted_name + item.creation"
+								class="sva-dl-card"
+								:style="{
+									borderLeftColor: cardBorderColor(item),
+									'--dl-i': cardIndexMap[item.deleted_name + item.creation],
+								}"
+							>
+								<!-- Top row: avatar + info + toggle -->
+								<div class="sva-dl-card-top">
+									<div
+										class="sva-dl-avatar"
+										:style="{ background: cardBorderColor(item) }"
+									>
+										{{ avatarLetter(item.deleted_by) }}
 									</div>
 
-									<!-- Meta: user · clock · date · ago -->
-									<div class="sva-dl-card-meta">
-										<span class="sva-dl-user-name">{{
-											item.deleted_by || __("Unknown")
-										}}</span>
-										<span class="sva-dl-meta-dot">·</span>
+									<div class="sva-dl-card-main">
+										<!-- Title -->
+										<div class="sva-dl-card-title">
+											<!-- Deleted badge (all types) -->
+											<span class="sva-dl-del-badge">
+												<svg
+													width="9"
+													height="9"
+													viewBox="0 0 24 24"
+													fill="none"
+													stroke="currentColor"
+													stroke-width="2.5"
+												>
+													<polyline points="3 6 5 6 21 6" />
+													<path d="M19 6l-1 14H6L5 6" />
+												</svg>
+												{{ __("DELETED") }}
+											</span>
+											<strong class="sva-dl-dt-name">{{
+												__(item.deleted_doctype)
+											}}</strong>
+											<span class="sva-dl-sep">·</span>
+											<span class="sva-dl-doc-id">{{
+												item.deleted_name
+											}}</span>
+											<span
+												v-if="item.is_parent"
+												class="sva-dl-tag sva-dl-tag--parent"
+												>{{ __("This Document") }}</span
+											>
+											<span
+												v-if="item.restored"
+												class="sva-dl-tag sva-dl-tag--restored"
+												>{{ __("Restored") }}</span
+											>
+										</div>
+
+										<!-- Meta: user · clock · date · ago -->
+										<div class="sva-dl-card-meta">
+											<span class="sva-dl-user-name">{{
+												item.deleted_by || __("Unknown")
+											}}</span>
+											<span class="sva-dl-meta-dot">·</span>
+											<svg
+												width="11"
+												height="11"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="#9ca3af"
+												stroke-width="2"
+												style="flex-shrink: 0; margin-top: 1px"
+											>
+												<circle cx="12" cy="12" r="10" />
+												<polyline points="12 6 12 12 16 14" />
+											</svg>
+											<span class="sva-dl-meta-time">{{
+												formatDate(item.creation)
+											}}</span>
+											<span class="sva-dl-meta-dot">·</span>
+											<span class="sva-dl-meta-ago">{{
+												timeAgo(item.creation)
+											}}</span>
+										</div>
+									</div>
+
+									<!-- Collapse / Details toggle -->
+									<button
+										v-if="item._summary === null || item._summary.length > 0"
+										:class="[
+											'sva-dl-toggle-btn',
+											{ 'is-expanded': item._expanded },
+											{ 'is-loading': item._loadingDetail },
+										]"
+										:disabled="item._loadingDetail"
+										@click="toggleExpand(item)"
+									>
 										<svg
+											v-if="item._loadingDetail"
+											class="sva-dl-detail-spin"
 											width="11"
 											height="11"
 											viewBox="0 0 24 24"
 											fill="none"
-											stroke="#9ca3af"
-											stroke-width="2"
-											style="flex-shrink: 0; margin-top: 1px"
+											stroke="currentColor"
+											stroke-width="2.5"
 										>
-											<circle cx="12" cy="12" r="10" />
-											<polyline points="12 6 12 12 16 14" />
+											<path
+												d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"
+											/>
 										</svg>
-										<span class="sva-dl-meta-time">{{
-											formatDate(item.creation)
+										<span v-if="!item._loadingDetail">{{
+											item._expanded ? __("Collapse") : __("Details")
 										}}</span>
-										<span class="sva-dl-meta-dot">·</span>
-										<span class="sva-dl-meta-ago">{{
-											timeAgo(item.creation)
-										}}</span>
-									</div>
+										<svg
+											v-if="!item._loadingDetail"
+											width="11"
+											height="11"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="2.5"
+											:style="{
+												transform: item._expanded
+													? 'rotate(180deg)'
+													: 'rotate(0deg)',
+												transition: 'transform .2s',
+											}"
+										>
+											<polyline points="6 9 12 15 18 9" />
+										</svg>
+									</button>
 								</div>
 
-								<!-- Collapse / Details toggle -->
-								<button
-									v-if="item.summary && item.summary.length"
-									:class="[
-										'sva-dl-toggle-btn',
-										{ 'is-expanded': item._expanded },
-									]"
-									@click="toggleExpand(item)"
+								<!-- Reason box (if summary has a "reason" field) -->
+								<div v-if="reasonOf(item)" class="sva-dl-reason-box">
+									<span class="sva-dl-reason-label">{{ __("Reason") }}</span>
+									<span class="sva-dl-reason-sep">·</span>
+									<span class="sva-dl-reason-text">{{ reasonOf(item) }}</span>
+								</div>
+
+								<!-- Content preview block (Text Editor / HTML fields) -->
+								<div v-if="contentPreviewOf(item)" class="sva-dl-content-preview">
+									{{ contentPreviewOf(item) }}
+								</div>
+
+								<!-- Collapsed: field pills (excludes content-preview fields) -->
+								<div
+									v-if="!item._expanded && pillsOf(item).length"
+									class="sva-dl-pills"
 								>
-									<span>{{
-										item._expanded ? __("Collapse") : __("Details")
-									}}</span>
-									<svg
-										width="11"
-										height="11"
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="2.5"
-										:style="{
-											transform: item._expanded
-												? 'rotate(180deg)'
-												: 'rotate(0deg)',
-											transition: 'transform .2s',
-										}"
+									<span
+										v-for="f in pillsOf(item).slice(0, 4)"
+										:key="f.label"
+										class="sva-dl-pill"
 									>
-										<polyline points="6 9 12 15 18 9" />
-									</svg>
-								</button>
-							</div>
+										<span class="sva-dl-pill-label">{{ f.label }}</span>
+										<span class="sva-dl-pill-value">{{ f.value }}</span>
+									</span>
+									<button
+										v-if="pillsOf(item).length > 4"
+										class="sva-dl-more-btn"
+										@click="toggleExpand(item)"
+									>
+										+ {{ pillsOf(item).length - 4 }}&nbsp;{{
+											__("more fields")
+										}}
+									</button>
+								</div>
 
-							<!-- Reason box (if summary has a "reason" field) -->
-							<div v-if="reasonOf(item)" class="sva-dl-reason-box">
-								<span class="sva-dl-reason-label">{{ __("Reason") }}</span>
-								<span class="sva-dl-reason-sep">·</span>
-								<span class="sva-dl-reason-text">{{ reasonOf(item) }}</span>
-							</div>
-
-							<!-- Content preview block (Text Editor / HTML fields) -->
-							<div v-if="contentPreviewOf(item)" class="sva-dl-content-preview">
-								{{ contentPreviewOf(item) }}
-							</div>
-
-							<!-- Collapsed: field pills (excludes content-preview fields) -->
-							<div
-								v-if="!item._expanded && pillsOf(item).length"
-								class="sva-dl-pills"
-							>
-								<span
-									v-for="f in pillsOf(item).slice(0, 4)"
-									:key="f.label"
-									class="sva-dl-pill"
+								<!-- Expanded: full table -->
+								<table
+									v-if="item._expanded && item._summary && item._summary.length"
+									class="sva-dl-table"
 								>
-									<span class="sva-dl-pill-label">{{ f.label }}</span>
-									<span class="sva-dl-pill-value">{{ f.value }}</span>
-								</span>
-								<button
-									v-if="pillsOf(item).length > 4"
-									class="sva-dl-more-btn"
-									@click="toggleExpand(item)"
-								>
-									+ {{ pillsOf(item).length - 4 }}&nbsp;{{ __("more fields") }}
-								</button>
+									<thead>
+										<tr>
+											<th>{{ __("Field") }}</th>
+											<th>{{ __("Value at Deletion") }}</th>
+										</tr>
+									</thead>
+									<tbody>
+										<tr v-for="f in item._summary" :key="f.label">
+											<td>{{ f.label }}</td>
+											<td>{{ f.value }}</td>
+										</tr>
+									</tbody>
+								</table>
 							</div>
-
-							<!-- Expanded: full table -->
-							<table
-								v-if="item._expanded && item.summary && item.summary.length"
-								class="sva-dl-table"
+						</div>
+						<!-- Load-more trigger -->
+						<div class="sva-dl-load-more">
+							<div v-if="loadingMore" class="sva-dl-load-more-spinner">
+								<svg
+									class="sva-dl-lm-spin"
+									width="18"
+									height="18"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="#9ca3af"
+									stroke-width="2"
+								>
+									<path
+										d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"
+									/>
+								</svg>
+								<span>{{ __("Loading more…") }}</span>
+							</div>
+							<button
+								v-else-if="hasMore"
+								class="sva-dl-load-more-btn"
+								@click="loadMore"
 							>
-								<thead>
-									<tr>
-										<th>{{ __("Field") }}</th>
-										<th>{{ __("Value at Deletion") }}</th>
-									</tr>
-								</thead>
-								<tbody>
-									<tr v-for="f in item.summary" :key="f.label">
-										<td>{{ f.label }}</td>
-										<td>{{ f.value }}</td>
-									</tr>
-								</tbody>
-							</table>
+								{{ __("Load More") }}
+							</button>
 						</div>
 					</div>
-				</template>
+				</Transition>
 			</div>
 		</div>
 	</div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, getCurrentInstance } from "vue";
+import { ref, computed, onMounted, onUnmounted, getCurrentInstance } from "vue";
 
 const props = defineProps({ frm: { required: true } });
 
 const primaryColor = computed(() => frappe.boot?.my_theme?.navbar_color || "#111827");
+
+const PAGE_LENGTH = 30;
 
 const dateFilter = ref("all");
 const doctypeFilter = ref("");
 const doctypes = ref([]);
 const allRecords = ref([]);
 const loading = ref(false);
-const alwaysShow = ref(true); // true = purge disabled; false = show warning banner
+const loadingMore = ref(false);
+const hasMore = ref(false);
+const cursor = ref("");
+const loadingDoctypes = ref(true);
+const alwaysShow = ref(true);
+const bodyEl = ref(null);
 
 const instance = getCurrentInstance();
 
@@ -415,6 +483,18 @@ const groupedRecords = computed(() => {
 		}));
 });
 
+// Global card index for stagger delay (mirrors list_view.js idx * 35ms)
+const cardIndexMap = computed(() => {
+	const m = {};
+	let i = 0;
+	for (const group of groupedRecords.value) {
+		for (const item of group.items) {
+			m[item.deleted_name + item.creation] = i++;
+		}
+	}
+	return m;
+});
+
 // ── Colors ─────────────────────────────────────────────────────────────────
 
 const PALETTE = ["#991b1b", "#92400e", "#065f46", "#1e40af", "#b45309", "#0e7490", "#5b21b6"];
@@ -433,8 +513,8 @@ const chipColor = (idx) => PALETTE[idx % PALETTE.length];
 
 /** Extract the "reason" field value from summary (case-insensitive label match). */
 const reasonOf = (item) => {
-	if (!item.summary) return null;
-	const f = item.summary.find((f) => /reason/i.test(f.label));
+	if (!item._summary) return null;
+	const f = item._summary.find((f) => /reason/i.test(f.label));
 	return f ? f.value : null;
 };
 
@@ -445,15 +525,15 @@ const _HTML_FIELD_TYPES = new Set(["Text Editor", "HTML Editor", "Long Text", "S
  * The backend already strips HTML tags, so this is plain text.
  */
 const contentPreviewOf = (item) => {
-	if (!item.summary) return null;
-	const f = item.summary.find((f) => _HTML_FIELD_TYPES.has(f.fieldtype));
+	if (!item._summary) return null;
+	const f = item._summary.find((f) => _HTML_FIELD_TYPES.has(f.fieldtype));
 	return f ? f.value : null;
 };
 
 /** All summary fields excluding reason and content-preview fields (shown separately). */
 const pillsOf = (item) => {
-	if (!item.summary) return [];
-	return item.summary.filter(
+	if (!item._summary) return [];
+	return item._summary.filter(
 		(f) => !/reason/i.test(f.label) && !_HTML_FIELD_TYPES.has(f.fieldtype)
 	);
 };
@@ -461,6 +541,7 @@ const pillsOf = (item) => {
 // ── API ─────────────────────────────────────────────────────────────────────
 
 const fetchDoctypes = async () => {
+	loadingDoctypes.value = true;
 	try {
 		const res = await frappe.call({
 			method: "frappe_theme.apis.deletion_log.get_deletion_log_doctypes",
@@ -472,11 +553,21 @@ const fetchDoctypes = async () => {
 	} catch {
 		doctypes.value = [];
 		alwaysShow.value = true;
+	} finally {
+		loadingDoctypes.value = false;
 	}
 };
 
-const fetchData = async () => {
-	loading.value = true;
+const _mapRecord = (r) => ({ ...r, _expanded: false, _summary: null, _loadingDetail: false });
+
+const fetchData = async (reset = true) => {
+	if (reset) {
+		loading.value = true;
+		cursor.value = "";
+		allRecords.value = [];
+	} else {
+		loadingMore.value = true;
+	}
 	try {
 		const res = await frappe.call({
 			method: "frappe_theme.apis.deletion_log.get_deletion_log",
@@ -485,25 +576,71 @@ const fetchData = async () => {
 				dn: props.frm.docname,
 				date_filter: dateFilter.value,
 				doctype_filter: "",
+				page_length: PAGE_LENGTH,
+				cursor: cursor.value,
 			},
 		});
-		allRecords.value = (res.message || []).map((r) => ({ ...r, _expanded: false }));
+		const msg = res.message || {};
+		const newRecords = (msg.records || []).map(_mapRecord);
+		if (reset) {
+			allRecords.value = newRecords;
+		} else {
+			allRecords.value.push(...newRecords);
+		}
+		hasMore.value = msg.has_more || false;
+		cursor.value = msg.cursor || "";
 	} catch {
-		allRecords.value = [];
+		if (reset) allRecords.value = [];
+		hasMore.value = false;
 	} finally {
 		loading.value = false;
+		loadingMore.value = false;
 	}
+};
+
+const loadMore = () => {
+	if (!loadingMore.value && hasMore.value) fetchData(false);
+};
+
+const onBodyScroll = () => {
+	if (!bodyEl.value || !hasMore.value || loadingMore.value || loading.value) return;
+	const el = bodyEl.value;
+	if (el.scrollHeight - el.scrollTop - el.clientHeight < 120) loadMore();
 };
 
 const setDateFilter = (val) => {
 	dateFilter.value = val;
-	fetchData();
+	fetchData(true);
 };
 const setDoctypeFilter = (val) => {
 	doctypeFilter.value = val;
 };
-const toggleExpand = (item) => {
-	item._expanded = !item._expanded;
+const toggleExpand = async (item) => {
+	if (item._expanded) {
+		item._expanded = false;
+		return;
+	}
+	if (item._summary !== null) {
+		item._expanded = true;
+		return;
+	}
+	item._loadingDetail = true;
+	try {
+		const res = await frappe.call({
+			method: "frappe_theme.apis.deletion_log.get_deletion_log_detail",
+			args: {
+				name: item.dd_name,
+				deleted_doctype: item.deleted_doctype,
+				fields_to_skip: JSON.stringify(item.fields_to_skip || []),
+			},
+		});
+		item._summary = res.message || [];
+	} catch {
+		item._summary = [];
+	} finally {
+		item._loadingDetail = false;
+		item._expanded = true;
+	}
 };
 
 // ── Formatters ────────────────────────────────────────────────────────────
@@ -534,8 +671,13 @@ const formatGroupDate = (dateStr) => {
 };
 
 onMounted(async () => {
+	loading.value = true;
 	await fetchDoctypes();
 	await fetchData();
+});
+
+onUnmounted(() => {
+	if (bodyEl.value) bodyEl.value.removeEventListener("scroll", onBodyScroll);
 });
 </script>
 
@@ -744,8 +886,125 @@ onMounted(async () => {
 	padding: 14px 16px 28px;
 }
 
-/* ── Loading / Empty ─────────────────────────────────────────────────────── */
-.sva-dl-loading,
+/* ── Vue transitions ─────────────────────────────────────────────────────── */
+.dl-fade-enter-active {
+	transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.dl-fade-leave-active {
+	transition: opacity 0.12s ease, transform 0.12s ease;
+}
+.dl-fade-enter-from {
+	opacity: 0;
+	transform: translateY(6px);
+}
+.dl-fade-leave-to {
+	opacity: 0;
+	transform: translateY(-4px);
+}
+
+/* Card entrance — staggered via --dl-i CSS variable (mirrors list_view.js idx*35ms) */
+@keyframes dl-card-in {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+.dl-fade-enter-active .sva-dl-card {
+	animation: dl-card-in 0.25s ease both;
+	animation-delay: min(calc(var(--dl-i, 0) * 35ms), 400ms);
+}
+
+/* ── Skeleton shimmer ─────────────────────────────────────────────────────── */
+@keyframes dl-shimmer {
+	0% {
+		background-position: -600px 0;
+	}
+	100% {
+		background-position: 600px 0;
+	}
+}
+.sva-dl-skel {
+	background: linear-gradient(90deg, #f0f0f0 25%, #e4e4e4 50%, #f0f0f0 75%);
+	background-size: 1200px 100%;
+	animation: dl-shimmer 1.4s ease-in-out infinite;
+	border-radius: 6px;
+	flex-shrink: 0;
+}
+
+/* Chip skeleton — widths mirror real chip label lengths */
+.sva-dl-skel-chip {
+	height: 32px;
+	width: 110px;
+	border-radius: 20px;
+}
+.sva-dl-skel-chip:nth-child(2) {
+	width: 72px;
+}
+.sva-dl-skel-chip:nth-child(3) {
+	width: 190px;
+}
+.sva-dl-skel-chip:nth-child(4) {
+	width: 130px;
+}
+.sva-dl-skel-chip:nth-child(5) {
+	width: 90px;
+}
+
+/* Card skeletons */
+.sva-dl-skeletons {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+.sva-dl-skel-card {
+	background: #fff;
+	border: 1px solid #e5e7eb;
+	border-left: 4px solid #e5e7eb;
+	border-radius: 10px;
+	padding: 14px 16px 12px;
+}
+.sva-dl-skel-card-top {
+	display: flex;
+	gap: 11px;
+	align-items: flex-start;
+}
+.sva-dl-skel-avatar {
+	width: 36px;
+	height: 36px;
+	border-radius: 50%;
+}
+.sva-dl-skel-lines {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+}
+.sva-dl-skel-line {
+	height: 13px;
+}
+.sva-dl-skel-pills-row {
+	display: flex;
+	gap: 6px;
+	margin-top: 12px;
+	padding-top: 10px;
+	border-top: 1px solid #f3f4f6;
+}
+.sva-dl-skel-pill-sm {
+	height: 26px;
+	width: 90px;
+	border-radius: 6px;
+}
+.sva-dl-skel-pill-sm:nth-child(2) {
+	width: 110px;
+}
+.sva-dl-skel-pill-sm:nth-child(3) {
+	width: 75px;
+}
+
+/* ── Empty ───────────────────────────────────────────────────────────────── */
 .sva-dl-empty {
 	display: flex;
 	flex-direction: column;
@@ -772,9 +1031,6 @@ onMounted(async () => {
 	to {
 		transform: rotate(360deg);
 	}
-}
-.sva-dl-spinner {
-	animation: dl-spin 1s linear infinite;
 }
 
 /* ── Date group ──────────────────────────────────────────────────────────── */
@@ -949,6 +1205,13 @@ onMounted(async () => {
 	border-color: color-mix(in srgb, var(--dl-primary) 40%, transparent);
 	color: var(--dl-primary);
 }
+.sva-dl-toggle-btn.is-loading {
+	opacity: 0.7;
+	cursor: wait;
+}
+.sva-dl-detail-spin {
+	animation: dl-spin 0.7s linear infinite;
+}
 
 /* ── Content preview (Text Editor / HTML fields) ─────────────────────────── */
 .sva-dl-content-preview {
@@ -1052,6 +1315,39 @@ onMounted(async () => {
 	border-color: color-mix(in srgb, var(--dl-primary) 50%, transparent);
 }
 
+/* ── Load more ───────────────────────────────────────────────────────────── */
+.sva-dl-load-more {
+	display: flex;
+	justify-content: center;
+	padding: 16px 0 8px;
+}
+.sva-dl-load-more-btn {
+	padding: 7px 22px;
+	border-radius: 20px;
+	border: 1px solid #e5e7eb;
+	background: #f9fafb;
+	color: #374151;
+	font-size: 0.8rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.sva-dl-load-more-btn:hover {
+	background: var(--dl-primary);
+	border-color: var(--dl-primary);
+	color: #fff;
+}
+.sva-dl-load-more-spinner {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	color: #9ca3af;
+	font-size: 0.78rem;
+}
+.sva-dl-lm-spin {
+	animation: dl-spin 0.8s linear infinite;
+}
+
 /* ── Expanded table ──────────────────────────────────────────────────────── */
 .sva-dl-table {
 	width: 100%;
@@ -1070,6 +1366,11 @@ onMounted(async () => {
 	background: #f9fafb;
 	font-weight: 600;
 	color: #374151;
+}
+.sva-dl-table th:first-child,
+.sva-dl-table td:first-child {
+	white-space: nowrap;
+	width: 1%;
 }
 .sva-dl-table td {
 	color: #4b5563;
