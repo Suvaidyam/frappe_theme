@@ -278,16 +278,18 @@ def get_timeline_fields(dt, dn, filter_doctype=None):
 	are resolved correctly when 'All Documents' is selected.
 	Custom Field hidden value takes precedence over DocField.
 	"""
-	filter_clause = "AND actual_dt = %(filter_doctype)s" if filter_doctype else ""
+	filter_clause = "AND all_fields.actual_dt = %(filter_doctype)s" if filter_doctype else ""
 	sql = f"""
 		SELECT DISTINCT
-			field_name,
-			actual_dt,
+			all_fields.field_name,
+			all_fields.actual_dt,
 			COALESCE(
+				(SELECT ps.value FROM `tabProperty Setter` ps
+				 WHERE ps.doc_type = all_fields.actual_dt AND ps.field_name = all_fields.field_name AND ps.property = 'label' LIMIT 1),
 				(SELECT cdf.label FROM `tabCustom Field` cdf
-				 WHERE cdf.fieldname = field_name AND cdf.dt = actual_dt LIMIT 1),
+				 WHERE cdf.fieldname = all_fields.field_name AND cdf.dt = all_fields.actual_dt LIMIT 1),
 				(SELECT df.label FROM `tabDocField` df
-				 WHERE df.fieldname = field_name AND df.parent = actual_dt LIMIT 1)
+				 WHERE df.fieldname = all_fields.field_name AND df.parent = all_fields.actual_dt LIMIT 1)
 			) AS field_label
 		FROM (
 			SELECT
@@ -327,13 +329,15 @@ def get_timeline_fields(dt, dn, filter_doctype=None):
 			WHERE ver.ref_doctype = %(dt)s AND ver.docname = %(dn)s
 			AND JSON_EXTRACT(ver.data, '$.removed') IS NOT NULL
 		) AS all_fields
-		WHERE field_name IS NOT NULL
+		WHERE all_fields.field_name IS NOT NULL
 		{filter_clause}
 		AND COALESCE(
+			(SELECT CAST(ps.value AS UNSIGNED) FROM `tabProperty Setter` ps
+			 WHERE ps.doc_type = all_fields.actual_dt AND ps.field_name = all_fields.field_name AND ps.property = 'hidden' LIMIT 1),
 			(SELECT cdf.hidden FROM `tabCustom Field` cdf
-			 WHERE cdf.fieldname = field_name AND cdf.dt = actual_dt LIMIT 1),
+			 WHERE cdf.fieldname = all_fields.field_name AND cdf.dt = all_fields.actual_dt LIMIT 1),
 			(SELECT df.hidden FROM `tabDocField` df
-			 WHERE df.fieldname = field_name AND df.parent = actual_dt LIMIT 1),
+			 WHERE df.fieldname = all_fields.field_name AND df.parent = all_fields.actual_dt LIMIT 1),
 			1
 		) = 0
 		ORDER BY field_label

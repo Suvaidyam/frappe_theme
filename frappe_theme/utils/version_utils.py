@@ -216,6 +216,8 @@ class VersionUtils:
 							WHEN e.is_child_table = 1 THEN
 								CONCAT(
 									COALESCE(
+										(SELECT ps.value FROM `tabProperty Setter` ps WHERE ps.doc_type = e.ref_doctype AND ps.field_name = e.child_table_field AND ps.property = 'label' LIMIT 1),
+										(SELECT ps.value FROM `tabProperty Setter` ps WHERE ps.doc_type = e.custom_actual_doctype AND ps.field_name = e.child_table_field AND ps.property = 'label' LIMIT 1),
 										(SELECT tf.label FROM `tabDocField` tf WHERE e.child_table_field = tf.fieldname AND tf.parent = e.ref_doctype LIMIT 1),
 										(SELECT tf.label FROM `tabDocField` tf WHERE e.child_table_field = tf.fieldname AND tf.parent = e.custom_actual_doctype LIMIT 1),
 										(SELECT ctf.label FROM `tabCustom Field` ctf WHERE e.child_table_field = ctf.fieldname AND ctf.dt = e.ref_doctype LIMIT 1),
@@ -241,6 +243,8 @@ class VersionUtils:
 								)
 							ELSE
 								COALESCE(
+									(SELECT ps.value FROM `tabProperty Setter` ps WHERE ps.doc_type = e.ref_doctype AND ps.field_name = e.field_name AND ps.property = 'label' LIMIT 1),
+									(SELECT ps.value FROM `tabProperty Setter` ps WHERE ps.doc_type = e.custom_actual_doctype AND ps.field_name = e.field_name AND ps.property = 'label' LIMIT 1),
 									(SELECT tf.label FROM `tabDocField` tf WHERE e.field_name = tf.fieldname AND tf.parent = e.ref_doctype LIMIT 1),
 									(SELECT tf.label FROM `tabDocField` tf WHERE e.field_name = tf.fieldname AND tf.parent = e.custom_actual_doctype LIMIT 1),
 									(SELECT ctf.label FROM `tabCustom Field` ctf WHERE e.field_name = ctf.fieldname AND ctf.dt = e.ref_doctype LIMIT 1),
