@@ -84,7 +84,17 @@ def get_role_profiles_with_roles(doctype_name=None):
 	# Roles to skip
 	skip_roles = ["Donor Observer"]
 
+	# Role Profiles to skip entirely
+	skip_profiles = [
+		"Admin & Support Manager",
+		"Partnerships Team",
+		"NGO Compliance Auditor",
+		"Platform Engineer",
+	]
+
 	for rp in role_profiles:
+		if rp.name in skip_profiles:
+			continue
 		# Get all roles assigned to this role profile
 		roles = frappe.get_all(
 			"Has Role",
@@ -126,6 +136,40 @@ def get_role_profiles_with_roles(doctype_name=None):
 				)
 
 	return result
+
+
+@frappe.whitelist()
+def get_permissions_for_doctype(doctype_name):
+	"""
+	Return a role→permissions mapping for a given DocType.
+	Checks Custom DocPerm first, falls back to standard DocPerm.
+	Key format: "role::permlevel"
+	"""
+	perm_fields = [
+		"role",
+		"permlevel",
+		"select",
+		"read",
+		"write",
+		"create",
+		"delete",
+		"submit",
+		"cancel",
+		"amend",
+		"report",
+		"export",
+		"import",
+		"share",
+		"print",
+		"email",
+	]
+
+	perms = frappe.get_all("Custom DocPerm", filters={"parent": doctype_name}, fields=perm_fields)
+
+	if not perms:
+		perms = frappe.get_all("DocPerm", filters={"parent": doctype_name}, fields=perm_fields)
+
+	return {f"{p.role}::{p.permlevel}": p for p in perms}
 
 
 @frappe.whitelist()

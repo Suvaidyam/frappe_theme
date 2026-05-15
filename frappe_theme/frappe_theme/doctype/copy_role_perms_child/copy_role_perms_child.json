@@ -34,16 +34,16 @@
    "label": "Permissions"
   },
   {
+   "columns": 1,
    "default": "0",
    "depends_on": "eval:doc.permlevel == 0",
    "fieldname": "select",
    "fieldtype": "Check",
    "in_list_view": 1,
-   "label": "Select",
-   "width": "500px"
+   "label": "Select"
   },
   {
-   "columns": 4,
+   "columns": 1,
    "default": "0",
    "fieldname": "read",
    "fieldtype": "Check",
@@ -51,7 +51,7 @@
    "label": "Read"
   },
   {
-   "columns": 4,
+   "columns": 1,
    "default": "0",
    "fieldname": "write",
    "fieldtype": "Check",
@@ -152,6 +152,7 @@
    "label": "Email"
   },
   {
+   "columns": 6,
    "fieldname": "reference_doctype",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -164,6 +165,7 @@
    "fieldtype": "Column Break"
   },
   {
+   "columns": 1,
    "default": "0",
    "fieldname": "permlevel",
    "fieldtype": "Int",

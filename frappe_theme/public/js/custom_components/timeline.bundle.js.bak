@@ -11,8 +11,6 @@ class SVATimelineGenerator {
 			doctype: "",
 			owner: "",
 			field: "",
-			date_from: "",
-			date_to: "",
 		};
 		this._selectedField = { value: "", label: "All Fields" };
 		this.fieldOptions = [];
@@ -381,20 +379,6 @@ class SVATimelineGenerator {
             .timeline-relative-time {
                 display: none;
             }
-
-            .timeline-filters {
-                margin-left: 0 !important;
-                padding: 8px !important;
-            }
-
-            .timeline-entry {
-                margin-left: 0 !important;
-                border-left: none !important;
-            }
-
-            .timeline-entry::before {
-                display: none;
-            }
         }
 
         .skeleton-loader {
@@ -496,36 +480,6 @@ class SVATimelineGenerator {
             50% {
                 opacity: 1;
             }
-        }
-
-        .geo-added-chip {
-            background: #dcfce7;
-            color: #166534;
-            border-color: #86efac;
-            font-weight: 600;
-        }
-
-        .geo-removed-chip {
-            background: #fee2e2;
-            color: #991b1b;
-            border-color: #fca5a5;
-        }
-
-        .old-value .value-chip,
-        .new-value .value-chip {
-            background: rgba(0,0,0,0.04);
-            color: #374151;
-            border-color: #d1d5db;
-        }
-
-        .geo-parent-badge {
-            display: inline-block;
-            margin-left: 4px;
-            font-size: 0.65rem;
-            font-weight: 700;
-            letter-spacing: 0.04em;
-            opacity: 0.7;
-            vertical-align: middle;
         }`;
 
 		this.timeline_wrapper = document.createElement("div");
@@ -980,193 +934,6 @@ class SVATimelineGenerator {
 		}
 	}
 
-	isGeoDetailsChange(change) {
-		const val =
-			change.newValue && change.newValue !== "(blank)" ? change.newValue : change.oldValue;
-		if (!val || val === "(blank)") return false;
-		const trimmed = val.trim();
-		if (!(trimmed.startsWith("{") && trimmed.endsWith("}"))) return false;
-		try {
-			const p = JSON.parse(trimmed);
-			return p && ("state_name" in p || "district_name" in p || "block_name" in p);
-		} catch {
-			return false;
-		}
-	}
-
-	normalizeGeoChanges(changes) {
-		const geoChanges = changes.filter((c) => this.isGeoDetailsChange(c));
-		const nonGeoChanges = changes.filter((c) => !this.isGeoDetailsChange(c));
-		if (!geoChanges.length) return changes;
-
-		const addedRows = [];
-		const removedRows = [];
-		for (const change of geoChanges) {
-			const isAdded = !change.oldValue || change.oldValue === "(blank)";
-			const val = isAdded ? change.newValue : change.oldValue;
-			try {
-				const row = JSON.parse(val.trim());
-				if (isAdded) addedRows.push(row);
-				else removedRows.push(row);
-			} catch (_e) {
-				/* invalid JSON — skip row */
-			}
-		}
-
-		const levels = [
-			{ key: "state", idField: "state", nameField: "state_name", parentField: null },
-			{
-				key: "district",
-				idField: "district",
-				nameField: "district_name",
-				parentField: "state_name",
-			},
-			{
-				key: "block",
-				idField: "block",
-				nameField: "block_name",
-				parentField: "district_name",
-			},
-			{
-				key: "gram_panchayat",
-				idField: "gram_panchayat",
-				nameField: "gram_panchayat_name",
-				parentField: "block_name",
-			},
-			{
-				key: "village",
-				idField: "village",
-				nameField: "village_name",
-				parentField: "gram_panchayat_name",
-			},
-		];
-		const levelLabels = {
-			state: "States",
-			district: "Districts",
-			block: "Blocks",
-			gram_panchayat: "Gram Panchayats",
-			village: "Villages",
-		};
-
-		const getRowDepth = (row) => {
-			if (row.village_name) return "village";
-			if (row.gram_panchayat_name) return "gram_panchayat";
-			if (row.block_name) return "block";
-			if (row.district_name) return "district";
-			if (row.state_name) return "state";
-			return null;
-		};
-
-		// Build a composite name-key for a row up to the given level
-		// e.g. district level → "Bihar|Saran", state level → "Bihar"
-		const rowNameKey = (row, level) => {
-			const parts = [row.state_name];
-			if (level.key !== "state") parts.push(row.district_name);
-			if (level.key !== "state" && level.key !== "district") parts.push(row.block_name);
-			if (["gram_panchayat", "village"].includes(level.key))
-				parts.push(row.gram_panchayat_name);
-			if (level.key === "village") parts.push(row.village_name);
-			return parts.filter(Boolean).join("|");
-		};
-
-		// Collect unique rows for a level by aggregating from rows at this depth OR deeper.
-		// e.g. for "States", also collects state names from district/block rows.
-		const levelOrder = ["state", "district", "block", "gram_panchayat", "village"];
-		const getRowsForLevel = (rows, level) => {
-			const levelIdx = levelOrder.indexOf(level.key);
-			const seen = new Set();
-			return rows.filter((r) => {
-				const depthIdx = levelOrder.indexOf(getRowDepth(r));
-				if (depthIdx < levelIdx) return false; // row doesn't reach this level
-				if (!r[level.nameField]) return false;
-				const key = rowNameKey(r, level);
-				if (seen.has(key)) return false;
-				seen.add(key);
-				return true;
-			});
-		};
-
-		const geoLevelChanges = [];
-		for (const level of levels) {
-			const rawAdded = getRowsForLevel(addedRows, level);
-			const rawRemoved = getRowsForLevel(removedRows, level);
-			if (!rawAdded.length && !rawRemoved.length) continue;
-
-			// Match rows by name-key to identify truly added/removed vs re-saved unchanged rows
-			const addedKeys = new Map(rawAdded.map((r) => [rowNameKey(r, level), r]));
-			const removedKeys = new Map(rawRemoved.map((r) => [rowNameKey(r, level), r]));
-
-			const unchanged = [...addedKeys.entries()]
-				.filter(([k]) => removedKeys.has(k))
-				.map(([, r]) => r);
-			const trulyAdded = [...addedKeys.entries()]
-				.filter(([k]) => !removedKeys.has(k))
-				.map(([, r]) => r);
-			const trulyRemoved = [...removedKeys.entries()]
-				.filter(([k]) => !addedKeys.has(k))
-				.map(([, r]) => r);
-
-			// Only show this level if something actually changed at this level
-			if (!trulyAdded.length && !trulyRemoved.length) continue;
-
-			const makeItem = (row) => ({
-				label: row[level.nameField] || row[level.idField],
-				parentLabel: level.parentField
-					? (row[level.parentField] || "").toUpperCase()
-					: null,
-			});
-
-			geoLevelChanges.push({
-				fieldLabel: levelLabels[level.key],
-				__geoChange: true,
-				__geoLevel: level.nameField,
-				__unchangedItems: unchanged.map(makeItem),
-				__addedItems: trulyAdded.map(makeItem),
-				__removedItems: trulyRemoved.map(makeItem),
-			});
-		}
-
-		return [...nonGeoChanges, ...geoLevelChanges];
-	}
-
-	_geoChip(item, cssClass) {
-		return `<span class="value-chip ${cssClass}">${frappe.utils.escape_html(item.label)}${
-			item.parentLabel
-				? `<span class="geo-parent-badge">${frappe.utils.escape_html(
-						item.parentLabel
-				  )}</span>`
-				: ""
-		}</span>`;
-	}
-
-	formatGeoPrevious(change) {
-		const prev = [...(change.__removedItems || []), ...(change.__unchangedItems || [])];
-		if (!prev.length) return "(empty)";
-		const chips = [
-			...(change.__removedItems || []).map((i) => this._geoChip(i, "geo-removed-chip")),
-			...(change.__unchangedItems || []).map((i) => this._geoChip(i, "value-chip")),
-		].join("");
-		return `<span class="value-chip-container">${chips}</span>`;
-	}
-
-	formatGeoCurrent(change) {
-		const curr = [...(change.__unchangedItems || []), ...(change.__addedItems || [])];
-		if (!curr.length) return "(empty)";
-		const chips = [
-			...(change.__unchangedItems || []).map((i) => this._geoChip(i, "value-chip")),
-			...(change.__addedItems || []).map((i) => this._geoChip(i, "geo-added-chip")),
-		].join("");
-		return `<span class="value-chip-container">${chips}</span>`;
-	}
-
-	parseGeoDocname(docname) {
-		if (!docname || !docname.startsWith("GD-")) return null;
-		const rest = docname.slice(3);
-		const idx = rest.indexOf("-");
-		if (idx === -1) return null;
-		return { doctype: rest.slice(0, idx), docname: rest.slice(idx + 1) };
-	}
-
 	// Format JSON values into readable mini-tables
 	formatCellValue(value) {
 		if (!value || typeof value !== "string") return value || "";
@@ -1219,6 +986,9 @@ class SVATimelineGenerator {
 					keys.forEach((k) => {
 						let val = row[k];
 						if (val === undefined || val === null) val = "";
+						if (typeof val === "number") {
+							val = frappe.format(val, { fieldtype: "Currency" });
+						}
 						html += `<td>${val}</td>`;
 					});
 					html += `</tr>`;
@@ -1266,15 +1036,10 @@ class SVATimelineGenerator {
 			this._tableMultiSelectStateCache = {};
 		}
 		// Ensure filters are properly formatted
-		// Strip geo-level suffix (e.g. "geography_details::state_name" → "geography_details")
-		const rawField = this.filters.field || "";
-		const activeGeoLevel = rawField.includes("::") ? rawField.split("::")[1] : null;
 		const filters = {
 			doctype: this.filters.doctype || "",
 			owner: this.filters.owner || "",
-			field: rawField.split("::")[0],
-			date_from: this.filters.date_from || "",
-			date_to: this.filters.date_to || "",
+			field: this.filters.field || "",
 		};
 
 		return frappe
@@ -1371,9 +1136,8 @@ class SVATimelineGenerator {
 							}
 						});
 
-						const normalizedRegularChanges = this.normalizeGeoChanges(
-							this.normalizeTableMultiSelectChanges(regularChanges)
-						);
+						const normalizedRegularChanges =
+							this.normalizeTableMultiSelectChanges(regularChanges);
 						const hydratedRegularChanges = await this.applyFullTableMultiSelectState(
 							normalizedRegularChanges,
 							item.custom_actual_doctype || item.ref_doctype
@@ -1387,21 +1151,8 @@ class SVATimelineGenerator {
 						entry.className = "timeline-entry";
 
 						// Build HTML for regular changes
-						const visibleRegularChanges = resolvedRegularChanges.filter(
-							(change) =>
-								!(
-									change.__geoChange &&
-									activeGeoLevel &&
-									change.__geoLevel !== activeGeoLevel
-								)
-						);
-						if (
-							visibleRegularChanges.length === 0 &&
-							Object.keys(childTableGroups).length === 0
-						)
-							continue;
 						let regularChangesHTML = "";
-						if (visibleRegularChanges.length > 0) {
+						if (resolvedRegularChanges.length > 0) {
 							regularChangesHTML = `
 								<div class="changes-table-wrapper">
 								<table class="changes-table">
@@ -1413,23 +1164,16 @@ class SVATimelineGenerator {
 										</tr>
 									</thead>
 									<tbody>
-										${visibleRegularChanges
-											.map((change) => {
-												if (change.__geoChange) {
-													return `
-													<tr>
-														<td>${__(change.fieldLabel)}</td>
-														<td><span class="old-value">${this.formatGeoPrevious(change)}</span></td>
-														<td><span class="new-value">${this.formatGeoCurrent(change)}</span></td>
-													</tr>`;
-												}
-												return `
+										${resolvedRegularChanges
+											.map(
+												(change) => `
 											<tr>
-												<td>${__(change.fieldLabel)}</td>
+												<td>${change.fieldLabel}</td>
 												<td><span class="old-value">${this.formatTimelineValue(change, change.oldValue)}</span></td>
 												<td><span class="new-value">${this.formatTimelineValue(change, change.newValue)}</span></td>
-											</tr>`;
-											})
+											</tr>
+										`
+											)
 											.join("")}
 									</tbody>
 								</table>
@@ -1475,7 +1219,7 @@ class SVATimelineGenerator {
 														.map(
 															(change) => `
 														<tr>
-															<td>${__(change.fieldLabel)}</td>
+															<td>${change.fieldLabel}</td>
 															<td><span class="old-value">${this.formatCellValue(change.oldValue)}</span></td>
 															<td><span class="new-value">${this.formatCellValue(change.newValue)}</span></td>
 														</tr>
@@ -1490,16 +1234,6 @@ class SVATimelineGenerator {
 								.join("");
 						}
 
-						const actualDoctype = item.custom_actual_doctype || item.ref_doctype;
-						const actualDocname = item.custom_actual_document_name || item.docname;
-						const geoParent =
-							actualDoctype === "Geography Details"
-								? this.parseGeoDocname(actualDocname)
-								: null;
-						const linkDoctype = geoParent ? geoParent.doctype : actualDoctype;
-						const linkDocname = geoParent ? geoParent.docname : actualDocname;
-						const showLink = linkDoctype !== this.frm.doc.doctype;
-
 						entry.innerHTML = `
                         <div class="timeline-header">
                             <div>
@@ -1510,10 +1244,15 @@ class SVATimelineGenerator {
                                     <div class="timeline-meta">${item.owner}</div>
                                 </div>
                                 <a href="#" class="timeline-link"
-                                style="display: ${showLink ? "block" : "none"};"
+                                style="display: ${
+									(item.custom_actual_doctype || item.ref_doctype) ===
+									this.frm.doc.doctype
+										? "none"
+										: "block"
+								};"
                                 >
-                                    ${__(linkDoctype)} -
-                                    ${linkDocname}
+                                    ${__(item.custom_actual_doctype || item.ref_doctype)} -
+                                    ${item.custom_actual_document_name || item.docname}
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                         <path d="M7 17L17 7M17 7H7M17 7V17" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                     </svg>
@@ -1539,14 +1278,16 @@ class SVATimelineGenerator {
 
 						entry.querySelector(".timeline-link").addEventListener("click", (e) => {
 							e.preventDefault();
+							const doctype = item.custom_actual_doctype || item.ref_doctype;
+							const docname = item.custom_actual_document_name || item.docname;
 
-							frappe.model.with_doctype(linkDoctype, () => {
-								frappe.model.with_doc(linkDoctype, linkDocname, function () {
-									const doc = frappe.get_doc(linkDoctype, linkDocname);
-									const meta = frappe.get_meta(linkDoctype);
+							frappe.model.with_doctype(doctype, () => {
+								frappe.model.with_doc(doctype, docname, function () {
+									const doc = frappe.get_doc(doctype, docname);
+									const meta = frappe.get_meta(doctype);
 
 									const d = new frappe.ui.Dialog({
-										title: __(`${linkDoctype}: ${linkDocname}`),
+										title: __(`${doctype}: ${docname}`),
 										fields: meta.fields
 											.filter(
 												(df) =>
@@ -1632,7 +1373,6 @@ class SVATimelineGenerator {
 		const filtersWrapper = document.createElement("div");
 		filtersWrapper.style.cssText = `
             display: flex;
-            flex-wrap: wrap;
             gap: 8px;
             align-items: center;
             background: #f9fafb;
@@ -1653,14 +1393,12 @@ class SVATimelineGenerator {
             align-items: center;
             padding: 0 4px;
             color: #6b7280;
-            flex-shrink: 0;
         `;
 
 		// Doctype filter with icon
 		this.doctypeSelect = document.createElement("select");
 		this.doctypeSelect.style.cssText = `
-            flex: 1 1 150px;
-            min-width: 0;
+            min-width: 180px;
             padding: 8px 32px 8px 28px;
             border: 1px solid #e5e7eb;
             outline: none;
@@ -1678,65 +1416,61 @@ class SVATimelineGenerator {
             background-size: 16px, 16px;
         `;
 
-		// Field filter — searchable dropdown
-		const fieldWrapper = document.createElement("div");
-		fieldWrapper.style.cssText = `
-            position: relative;
-            flex: 1 1 150px;
-            min-width: 0;
-        `;
+		// /* Field filter — searchable dropdown (commented out)
+		// const fieldWrapper = document.createElement("div");
+		// fieldWrapper.style.cssText = `
+		//     position: relative;
+		//     min-width: 180px;
+		// `;
 
-		this.fieldInput = document.createElement("input");
-		this.fieldInput.type = "text";
-		this.fieldInput.placeholder = "All Fields";
-		this.fieldInput.autocomplete = "off";
-		this.fieldInput.style.cssText = `
-            width: 100%;
-            padding: 8px 12px 8px 28px;
-            border: 1px solid #e5e7eb;
-            border-radius: 6px;
-            outline: none;
-            background: white;
-            color: #374151;
-            font-size: 0.875rem;
-            transition: all 0.2s ease;
-            box-sizing: border-box;
-            cursor: pointer;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M7 7h10M7 12h6M7 17h4'%3E%3C/path%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: left 8px center;
-            background-size: 14px;
-        `;
+		// this.fieldInput = document.createElement("input");
+		// this.fieldInput.type = "text";
+		// this.fieldInput.placeholder = "All Fields";
+		// this.fieldInput.autocomplete = "off";
+		// this.fieldInput.style.cssText = `
+		//     width: 100%;
+		//     padding: 8px 12px 8px 28px;
+		//     border: 1px solid #e5e7eb;
+		//     border-radius: 6px;
+		//     outline: none;
+		//     background: white;
+		//     color: #374151;
+		//     font-size: 0.875rem;
+		//     transition: all 0.2s ease;
+		//     box-sizing: border-box;
+		//     cursor: pointer;
+		//     background-image: url("data:image/svg+xml,...");
+		//     background-repeat: no-repeat;
+		//     background-position: left 8px center;
+		//     background-size: 14px;
+		// `;
 
-		this.fieldDropdown = document.createElement("div");
-		this.fieldDropdown.style.cssText = `
-            position: absolute;
-            top: calc(100% + 4px);
-            left: 0;
-            right: 0;
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 6px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            max-height: 200px;
-            overflow-y: auto;
-            z-index: 100;
-        `;
-		this.fieldDropdown.hidden = true;
+		// this.fieldDropdown = document.createElement("div");
+		// this.fieldDropdown.style.cssText = `
+		//     position: absolute;
+		//     top: calc(100% + 4px);
+		//     left: 0;
+		//     right: 0;
+		//     background: white;
+		//     border: 1px solid #e5e7eb;
+		//     border-radius: 6px;
+		//     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+		//     max-height: 200px;
+		//     overflow-y: auto;
+		//     z-index: 100;
+		// `;
+		// this.fieldDropdown.hidden = true;
 
-		fieldWrapper.appendChild(this.fieldInput);
-		fieldWrapper.appendChild(this.fieldDropdown);
-
-		// Date range filter — single range picker
-		this.dateRangePicker = this.createDateRangePicker("Date Range");
-		this.dateRangePicker.el.style.cssText += `flex: 1 1 180px; min-width: 0;`;
+		// fieldWrapper.appendChild(this.fieldInput);
+		// fieldWrapper.appendChild(this.fieldDropdown);
+		// */
 
 		// Owner search with icon
 		const searchWrapper = document.createElement("div");
 		searchWrapper.style.cssText = `
             position: relative;
-            flex: 1 1 150px;
-            min-width: 0;
+            flex: 1;
+            min-width: 160px;
         `;
 
 		this.ownerSearch = document.createElement("input");
@@ -1744,7 +1478,6 @@ class SVATimelineGenerator {
 		this.ownerSearch.placeholder = "Changed By";
 		this.ownerSearch.style.cssText = `
             width: 100%;
-            box-sizing: border-box;
             padding: 8px 32px 8px 28px;
             border: 1px solid #e5e7eb;
             border-radius: 6px;
@@ -1770,8 +1503,6 @@ class SVATimelineGenerator {
             display: none;
             align-items: center;
             justify-content: center;
-            flex-shrink: 0;
-            margin-left: auto;
             width: 32px;
             height: 32px;
             padding: 0;
@@ -1784,7 +1515,7 @@ class SVATimelineGenerator {
         `;
 
 		// Hover and focus states
-		[this.doctypeSelect, this.fieldInput, this.ownerSearch].forEach((element) => {
+		[this.doctypeSelect, /*this.fieldInput,*/ this.ownerSearch].forEach((element) => {
 			element.addEventListener("focus", () => {
 				element.style.borderColor = "#6366f1";
 				element.style.boxShadow = "0 0 0 2px rgba(99, 102, 241, 0.1)";
@@ -1798,106 +1529,62 @@ class SVATimelineGenerator {
 		// Append elements
 		filtersWrapper.appendChild(filterIcon);
 		filtersWrapper.appendChild(this.doctypeSelect);
-		filtersWrapper.appendChild(fieldWrapper);
+		// filtersWrapper.appendChild(fieldWrapper); // Field filter commented out
 		searchWrapper.appendChild(this.ownerSearch);
 		filtersWrapper.appendChild(searchWrapper);
-		filtersWrapper.appendChild(this.dateRangePicker.el);
 		filtersWrapper.appendChild(this.clearButton);
 		filtersContainer.appendChild(filtersWrapper);
 		this.wrapper.insertBefore(filtersContainer, this.timeline_wrapper);
 
 		this.setupFilterEventListeners();
 		this.fetchDoctypes();
-		this.fetchDocFields(null);
+		// this.fetchDocFields(null); // Field filter commented out
 	}
 
 	setupFilterEventListeners() {
 		const updateClearButtonVisibility = () => {
 			const hasFilters =
-				this.filters.doctype ||
-				this.filters.owner ||
-				this.filters.field ||
-				this.filters.date_from ||
-				this.filters.date_to;
+				this.filters.doctype || this.filters.owner; /*|| this.filters.field*/
 			this.clearButton.style.display = hasFilters ? "inline-flex" : "none";
 		};
 
 		this.doctypeSelect.addEventListener("change", () => {
 			this.filters.doctype = this.doctypeSelect.value;
-			this.filters.field = "";
-			this._selectedField = { value: "", label: "All Fields" };
-			this.fieldInput.value = "";
-			this.fieldInput.placeholder = "All Fields";
-			this.fetchDocFields(this.filters.doctype || null);
+			// /* Field filter reset (commented out)
+			// this.filters.field = "";
+			// this._selectedField = { value: "", label: "All Fields" };
+			// this.fieldInput.value = "";
+			// this.fieldInput.placeholder = "All Fields";
+			// this.fetchDocFields(this.filters.doctype || null);
+			// */
 			this.page = 1;
 			this.setupPagination();
 			this.fetchTimelineData();
 			updateClearButtonVisibility();
 		});
 
-		// Field searchable dropdown listeners
-		this.fieldInput.addEventListener("focus", () => {
-			this.fieldInput.value = "";
-			this._renderFieldOptions(this.fieldOptions, updateClearButtonVisibility);
-			this.fieldDropdown.hidden = false;
-		});
+		// /* Field searchable dropdown listeners (commented out)
+		// this.fieldInput.addEventListener("focus", () => {
+		// 	this.fieldInput.value = "";
+		// 	this._renderFieldOptions(this.fieldOptions, updateClearButtonVisibility);
+		// 	this.fieldDropdown.hidden = false;
+		// });
 
-		this.fieldInput.addEventListener("input", () => {
-			const q = this.fieldInput.value.toLowerCase();
-			const filtered = this.fieldOptions.filter((o) => o.label.toLowerCase().includes(q));
-			this._renderFieldOptions(filtered, updateClearButtonVisibility);
-			this.fieldDropdown.hidden = filtered.length === 0;
-		});
+		// this.fieldInput.addEventListener("input", () => {
+		// 	const q = this.fieldInput.value.toLowerCase();
+		// 	const filtered = this.fieldOptions.filter((o) => o.label.toLowerCase().includes(q));
+		// 	this._renderFieldOptions(filtered, updateClearButtonVisibility);
+		// 	this.fieldDropdown.hidden = filtered.length === 0;
+		// });
 
-		this.fieldInput.addEventListener("blur", () => {
-			this.fieldDropdown.hidden = true;
-			this.fieldInput.value = this._selectedField.value ? this._selectedField.label : "";
-			this.fieldInput.placeholder = this._selectedField.value
-				? this._selectedField.label
-				: "All Fields";
-		});
-
-		// Date range listener
-		this.dateRangePicker.el.addEventListener("date-range-change", (e) => {
-			this.filters.date_from = e.detail.date_from;
-			this.filters.date_to = e.detail.date_to;
-			this.page = 1;
-			this.setupPagination();
-			this.fetchTimelineData();
-			updateClearButtonVisibility();
-		});
-
-		// Field searchable dropdown listeners
-		this.fieldInput.addEventListener("focus", () => {
-			this.fieldInput.value = "";
-			this._renderFieldOptions(this.fieldOptions, updateClearButtonVisibility);
-			this.fieldDropdown.hidden = false;
-		});
-
-		this.fieldInput.addEventListener("input", () => {
-			const q = this.fieldInput.value.toLowerCase();
-			const filtered = this.fieldOptions.filter((o) => o.label.toLowerCase().includes(q));
-			this._renderFieldOptions(filtered, updateClearButtonVisibility);
-			this.fieldDropdown.hidden = filtered.length === 0;
-		});
-
-		this.fieldInput.addEventListener("blur", () => {
-			this.fieldDropdown.hidden = true;
-			this.fieldInput.value = this._selectedField.value ? this._selectedField.label : "";
-			this.fieldInput.placeholder = this._selectedField.value
-				? this._selectedField.label
-				: "All Fields";
-		});
-
-		// Date range listener
-		this.dateRangePicker.el.addEventListener("date-range-change", (e) => {
-			this.filters.date_from = e.detail.date_from;
-			this.filters.date_to = e.detail.date_to;
-			this.page = 1;
-			this.setupPagination();
-			this.fetchTimelineData();
-			updateClearButtonVisibility();
-		});
+		// this.fieldInput.addEventListener("blur", () => {
+		// 	this.fieldDropdown.hidden = true;
+		// 	this.fieldInput.value = this._selectedField.value ? this._selectedField.label : "";
+		// 	this.fieldInput.placeholder = this._selectedField.value
+		// 		? this._selectedField.label
+		// 		: "All Fields";
+		// });
+		// */
 
 		let timeout;
 		this.ownerSearch.addEventListener("input", () => {
@@ -1914,16 +1601,15 @@ class SVATimelineGenerator {
 		this.clearButton.addEventListener("click", () => {
 			this.doctypeSelect.value = "";
 			this.ownerSearch.value = "";
-			this.dateRangePicker.clear();
-			this._selectedField = { value: "", label: "All Fields" };
-			this.fieldInput.value = "";
-			this.fieldInput.placeholder = "All Fields";
+			// /* Field filter reset (commented out)
+			// this._selectedField = { value: "", label: "All Fields" };
+			// this.fieldInput.value = "";
+			// this.fieldInput.placeholder = "All Fields";
+			// this.filters.field = "";
+			// this.fetchDocFields(null);
+			// */
 			this.filters.doctype = "";
 			this.filters.owner = "";
-			this.filters.field = "";
-			this.filters.date_from = "";
-			this.filters.date_to = "";
-			this.fetchDocFields(null);
 			this.page = 1;
 			this.setupPagination();
 			this.fetchTimelineData();
@@ -1931,412 +1617,7 @@ class SVATimelineGenerator {
 		});
 	}
 
-	createDateRangePicker(placeholder) {
-		const MONTHS = [
-			"January",
-			"February",
-			"March",
-			"April",
-			"May",
-			"June",
-			"July",
-			"August",
-			"September",
-			"October",
-			"November",
-			"December",
-		];
-		const DAYS = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
-
-		const wrapper = document.createElement("div");
-		wrapper.style.cssText = `position:relative;`;
-
-		const input = document.createElement("input");
-		input.type = "text";
-		input.placeholder = placeholder;
-		input.readOnly = true;
-		input.style.cssText = `
-            padding: 7px 10px 7px 28px;
-            border: 1px solid #e5e7eb;
-            border-radius: 6px;
-            outline: none;
-            background: white;
-            color: #374151;
-            font-size: 0.875rem;
-            transition: border-color 0.2s ease;
-            cursor: pointer;
-            width: 100%;
-            box-sizing: border-box;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'%3E%3C/path%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: left 8px center;
-            background-size: 14px;
-        `;
-
-		const dropdown = document.createElement("div");
-		dropdown.style.cssText = `
-            position: absolute;
-            top: calc(100% + 4px);
-            left: 0;
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 10px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-            padding: 14px;
-            z-index: 300;
-            min-width: 268px;
-            display: none;
-        `;
-
-		let startDate = null; // [d, m, y]
-		let endDate = null;
-		let viewYear = new Date().getFullYear();
-		let viewMonth = new Date().getMonth();
-		let viewMode = "day"; // "day" | "month" | "year"
-		let yearRangeStart = Math.floor(viewYear / 12) * 12;
-
-		const fmt = (d, m, y) => `${String(d).padStart(2, "0")} ${MONTHS[m].slice(0, 3)}, ${y}`;
-		const toStr = (d, m, y) =>
-			`${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-
-		const updateInput = () => {
-			if (startDate && endDate) {
-				input.value = `${fmt(...startDate)} – ${fmt(...endDate)}`;
-				input.style.borderColor = "#6366f1";
-			} else if (startDate) {
-				input.value = `${fmt(...startDate)} – ...`;
-				input.style.borderColor = "#6366f1";
-			} else {
-				input.value = "";
-				input.style.borderColor = "#e5e7eb";
-			}
-		};
-
-		const applyStyles = (dayCells, todayStr, hoverStr) => {
-			const sStr = startDate ? toStr(...startDate) : null;
-			const eStr = endDate ? toStr(...endDate) : null;
-			const effectiveEnd = eStr || (sStr && hoverStr && hoverStr > sStr ? hoverStr : null);
-			Object.entries(dayCells).forEach(([ds, cell]) => {
-				const isStart = ds === sStr;
-				const isEnd = ds === eStr;
-				const isHover = ds === hoverStr && startDate && !endDate;
-				const inRange = sStr && effectiveEnd && ds > sStr && ds < effectiveEnd;
-				const isToday = ds === todayStr;
-				if (isStart || isEnd || isHover) {
-					cell.style.cssText += `background:#111827; color:white; border-radius:50%; font-weight:600;`;
-				} else if (inRange) {
-					cell.style.cssText += `background:#e0e7ff; color:#111827; border-radius:2px; font-weight:400;`;
-				} else if (isToday) {
-					cell.style.cssText += `background:#f3f4f6; color:#111827; border-radius:50%; font-weight:600;`;
-				} else {
-					cell.style.cssText += `background:transparent; color:#111827; border-radius:50%; font-weight:400;`;
-				}
-			});
-		};
-
-		const makeNavBtn = (svgPath, onClick) => {
-			const btn = document.createElement("button");
-			btn.type = "button";
-			btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="${svgPath}"/></svg>`;
-			btn.style.cssText = `background:none; border:none; cursor:pointer; color:#6b7280; padding:4px; border-radius:4px; display:flex; align-items:center; flex-shrink:0;`;
-			btn.addEventListener("mouseenter", () => (btn.style.background = "#f3f4f6"));
-			btn.addEventListener("mouseleave", () => (btn.style.background = "none"));
-			btn.addEventListener("click", (e) => {
-				e.stopPropagation();
-				onClick();
-			});
-			return btn;
-		};
-
-		const makeHeaderLabel = (text, onClick) => {
-			const span = document.createElement("span");
-			span.textContent = text;
-			span.style.cssText = `font-weight:600; color:#111827; font-size:0.9rem; cursor:pointer; padding:2px 6px; border-radius:4px; transition:background 0.15s;`;
-			span.addEventListener("mouseenter", () => (span.style.background = "#f3f4f6"));
-			span.addEventListener("mouseleave", () => (span.style.background = "transparent"));
-			span.addEventListener("click", (e) => {
-				e.stopPropagation();
-				onClick();
-			});
-			return span;
-		};
-
-		const renderCalendar = () => {
-			dropdown.innerHTML = "";
-
-			const header = document.createElement("div");
-			header.style.cssText = `display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;`;
-
-			if (viewMode === "day") {
-				header.appendChild(
-					makeNavBtn("M15 18l-6-6 6-6", () => {
-						viewMonth--;
-						if (viewMonth < 0) {
-							viewMonth = 11;
-							viewYear--;
-						}
-						renderCalendar();
-					})
-				);
-
-				const titleWrap = document.createElement("div");
-				titleWrap.style.cssText = `display:flex; gap:4px; align-items:center;`;
-				titleWrap.appendChild(
-					makeHeaderLabel(MONTHS[viewMonth], () => {
-						viewMode = "month";
-						renderCalendar();
-					})
-				);
-				titleWrap.appendChild(
-					makeHeaderLabel(String(viewYear), () => {
-						yearRangeStart = Math.floor(viewYear / 12) * 12;
-						viewMode = "year";
-						renderCalendar();
-					})
-				);
-				header.appendChild(titleWrap);
-
-				header.appendChild(
-					makeNavBtn("M9 18l6-6-6-6", () => {
-						viewMonth++;
-						if (viewMonth > 11) {
-							viewMonth = 0;
-							viewYear++;
-						}
-						renderCalendar();
-					})
-				);
-				dropdown.appendChild(header);
-
-				// Day headers
-				const dayHeaders = document.createElement("div");
-				dayHeaders.style.cssText = `display:grid; grid-template-columns:repeat(7,1fr); margin-bottom:4px;`;
-				DAYS.forEach((day) => {
-					const cell = document.createElement("div");
-					cell.textContent = day;
-					cell.style.cssText = `text-align:center; font-size:0.7rem; font-weight:600; color:#9ca3af; padding:4px 0;`;
-					dayHeaders.appendChild(cell);
-				});
-				dropdown.appendChild(dayHeaders);
-
-				const grid = document.createElement("div");
-				grid.style.cssText = `display:grid; grid-template-columns:repeat(7,1fr);`;
-
-				const firstDay = new Date(viewYear, viewMonth, 1).getDay();
-				const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-				const daysInPrevMonth = new Date(viewYear, viewMonth, 0).getDate();
-				const today = new Date();
-				const todayStr = toStr(today.getDate(), today.getMonth(), today.getFullYear());
-
-				for (let i = firstDay - 1; i >= 0; i--) {
-					const cell = document.createElement("div");
-					cell.textContent = daysInPrevMonth - i;
-					cell.style.cssText = `text-align:center; height:30px; display:flex; align-items:center; justify-content:center; font-size:0.8rem; color:#d1d5db;`;
-					grid.appendChild(cell);
-				}
-
-				const dayCells = {};
-				for (let d = 1; d <= daysInMonth; d++) {
-					const dateStr = toStr(d, viewMonth, viewYear);
-					const cell = document.createElement("div");
-					cell.textContent = d;
-					cell.style.cssText = `text-align:center; font-size:0.8rem; cursor:pointer; height:30px; display:flex; align-items:center; justify-content:center;`;
-					cell.dataset.date = dateStr;
-					dayCells[dateStr] = cell;
-					grid.appendChild(cell);
-				}
-
-				applyStyles(dayCells, todayStr, null);
-
-				grid.addEventListener("mouseover", (e) => {
-					const cell = e.target.closest("[data-date]");
-					if (!cell) return;
-					const ds = cell.dataset.date;
-					if (startDate && !endDate) {
-						applyStyles(dayCells, todayStr, ds);
-					} else {
-						const sStr = startDate ? toStr(...startDate) : null;
-						const eStr = endDate ? toStr(...endDate) : null;
-						if (ds !== sStr && ds !== eStr) {
-							cell.style.background = "#f3f4f6";
-							cell.style.borderRadius = "50%";
-						}
-					}
-				});
-				grid.addEventListener("mouseleave", () => applyStyles(dayCells, todayStr, null));
-
-				grid.addEventListener("click", (e) => {
-					e.stopPropagation();
-					const cell = e.target.closest("[data-date]");
-					if (!cell) return;
-					const ds = cell.dataset.date;
-					const [y, m, d] = ds.split("-").map(Number);
-					const clickedDmy = [d, m - 1, y];
-					if (!startDate || (startDate && endDate)) {
-						startDate = clickedDmy;
-						endDate = null;
-					} else {
-						const sStr = toStr(...startDate);
-						if (ds === sStr) return;
-						if (ds < sStr) {
-							endDate = startDate;
-							startDate = clickedDmy;
-						} else {
-							endDate = clickedDmy;
-						}
-						dropdown.style.display = "none";
-						wrapper.dispatchEvent(
-							new CustomEvent("date-range-change", {
-								detail: {
-									date_from: toStr(...startDate),
-									date_to: toStr(...endDate),
-								},
-							})
-						);
-					}
-					updateInput();
-					applyStyles(dayCells, todayStr, null);
-				});
-
-				const totalCells = firstDay + daysInMonth;
-				const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
-				for (let d = 1; d <= remaining; d++) {
-					const cell = document.createElement("div");
-					cell.textContent = d;
-					cell.style.cssText = `text-align:center; height:30px; display:flex; align-items:center; justify-content:center; font-size:0.8rem; color:#d1d5db;`;
-					grid.appendChild(cell);
-				}
-				dropdown.appendChild(grid);
-			} else if (viewMode === "month") {
-				header.appendChild(
-					makeNavBtn("M15 18l-6-6 6-6", () => {
-						viewYear--;
-						renderCalendar();
-					})
-				);
-				header.appendChild(
-					makeHeaderLabel(String(viewYear), () => {
-						yearRangeStart = Math.floor(viewYear / 12) * 12;
-						viewMode = "year";
-						renderCalendar();
-					})
-				);
-				header.appendChild(
-					makeNavBtn("M9 18l6-6-6-6", () => {
-						viewYear++;
-						renderCalendar();
-					})
-				);
-				dropdown.appendChild(header);
-
-				const grid = document.createElement("div");
-				grid.style.cssText = `display:grid; grid-template-columns:repeat(3,1fr); gap:6px; padding:4px 0;`;
-				MONTHS.forEach((mon, idx) => {
-					const cell = document.createElement("div");
-					cell.textContent = mon.slice(0, 3);
-					const isActive = idx === viewMonth;
-					cell.style.cssText = `text-align:center; padding:10px 0; font-size:0.85rem; cursor:pointer; border-radius:6px; font-weight:${
-						isActive ? "600" : "400"
-					}; background:${isActive ? "#111827" : "transparent"}; color:${
-						isActive ? "white" : "#111827"
-					};`;
-					cell.addEventListener("mouseenter", () => {
-						if (!isActive) cell.style.background = "#f3f4f6";
-					});
-					cell.addEventListener("mouseleave", () => {
-						if (!isActive) cell.style.background = "transparent";
-					});
-					cell.addEventListener("click", (e) => {
-						e.stopPropagation();
-						viewMonth = idx;
-						viewMode = "day";
-						renderCalendar();
-					});
-					grid.appendChild(cell);
-				});
-				dropdown.appendChild(grid);
-			} else if (viewMode === "year") {
-				header.appendChild(
-					makeNavBtn("M15 18l-6-6 6-6", () => {
-						yearRangeStart -= 12;
-						renderCalendar();
-					})
-				);
-				header.appendChild(
-					makeHeaderLabel(`${yearRangeStart} – ${yearRangeStart + 11}`, () => {})
-				);
-				header.appendChild(
-					makeNavBtn("M9 18l6-6-6-6", () => {
-						yearRangeStart += 12;
-						renderCalendar();
-					})
-				);
-				dropdown.appendChild(header);
-
-				const grid = document.createElement("div");
-				grid.style.cssText = `display:grid; grid-template-columns:repeat(3,1fr); gap:6px; padding:4px 0;`;
-				for (let y = yearRangeStart; y < yearRangeStart + 12; y++) {
-					const cell = document.createElement("div");
-					cell.textContent = y;
-					const isActive = y === viewYear;
-					cell.style.cssText = `text-align:center; padding:10px 0; font-size:0.85rem; cursor:pointer; border-radius:6px; font-weight:${
-						isActive ? "600" : "400"
-					}; background:${isActive ? "#111827" : "transparent"}; color:${
-						isActive ? "white" : "#111827"
-					};`;
-					cell.addEventListener("mouseenter", () => {
-						if (!isActive) cell.style.background = "#f3f4f6";
-					});
-					cell.addEventListener("mouseleave", () => {
-						if (!isActive) cell.style.background = "transparent";
-					});
-					cell.addEventListener("click", (e) => {
-						e.stopPropagation();
-						viewYear = y;
-						viewMode = "month";
-						renderCalendar();
-					});
-					grid.appendChild(cell);
-				}
-				dropdown.appendChild(grid);
-			}
-		};
-
-		input.addEventListener("click", (e) => {
-			e.stopPropagation();
-			const isOpen = dropdown.style.display === "block";
-			document.querySelectorAll(".sva-dp-dropdown").forEach((d) => {
-				d.style.display = "none";
-			});
-			if (!isOpen) {
-				renderCalendar();
-				dropdown.style.display = "block";
-			}
-		});
-
-		document.addEventListener("click", () => {
-			dropdown.style.display = "none";
-		});
-		dropdown.addEventListener("click", (e) => e.stopPropagation());
-		dropdown.classList.add("sva-dp-dropdown");
-
-		wrapper.appendChild(input);
-		wrapper.appendChild(dropdown);
-
-		return {
-			el: wrapper,
-			clear: () => {
-				startDate = null;
-				endDate = null;
-				viewYear = new Date().getFullYear();
-				viewMonth = new Date().getMonth();
-				viewMode = "day";
-				yearRangeStart = Math.floor(viewYear / 12) * 12;
-				updateInput();
-			},
-		};
-	}
-
+	/* fetchDocFields and _renderFieldOptions commented out
 	fetchDocFields(filterDoctype) {
 		frappe
 			.call({
@@ -2372,7 +1653,7 @@ class SVATimelineGenerator {
                 color: #374151;
             `;
 			div.innerHTML = `
-				<div style="font-size: 0.875rem; font-weight: 500; color: #374151;">${__(opt.label)}</div>
+				<div style="font-size: 0.875rem; font-weight: 500; color: #374151;">${opt.label}</div>
 				${
 					opt.doctype
 						? `<div style="font-size: 0.75rem; color: #374151; margin-top: 1px;">${__(
@@ -2398,6 +1679,7 @@ class SVATimelineGenerator {
 			this.fieldDropdown.appendChild(div);
 		});
 	}
+	*/
 
 	async fetchDoctypes() {
 		try {

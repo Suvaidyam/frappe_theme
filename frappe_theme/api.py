@@ -75,7 +75,45 @@ def get_versions(
 	start: int,
 	filters: str | None = None,
 ) -> list[dict]:
-	return VersionUtils.get_versions(dt, dn, page_length, start, filters)
+	results = VersionUtils.get_versions(dt, dn, page_length, start, filters)
+
+	# On the first page, also include Geography Details versions linked to this document.
+	# Geography Details tracks its own versions (track_changes=1) but stores them with
+	# ref_doctype="Geography Details", so they don't appear in the parent doc's timeline
+	# unless we explicitly fetch and merge them here.
+	if int(start) == 0:
+		try:
+			parsed_filters = frappe.parse_json(filters) if filters else {}
+			active_field = parsed_filters.get("field", "") if isinstance(parsed_filters, dict) else ""
+			# Strip geo-level suffix to get base fieldname (e.g. "geography_details::state_name" → "geography_details")
+			base_field = active_field.split("::")[0] if active_field else ""
+
+			# Only merge geo versions when there is no non-geo field filter active
+			if not base_field or base_field == "geography_details":
+				geo_names = frappe.get_all(
+					"Geography Details",
+					filters={"document_type": dt, "docname": dn},
+					pluck="name",
+				)
+				# Build a filter for geo versions: always filter by "geography_details" fieldname
+				geo_filters = dict(parsed_filters) if isinstance(parsed_filters, dict) else {}
+				geo_filters["field"] = "geography_details"
+				import json
+
+				geo_filters_str = json.dumps(geo_filters)
+				all_geo = []
+				for geo_name in geo_names:
+					geo_results = VersionUtils.get_versions(
+						"Geography Details", geo_name, page_length, 0, geo_filters_str
+					)
+					all_geo.extend(geo_results)
+				if all_geo:
+					results = all_geo + results
+					results.sort(key=lambda x: str(x.get("creation", "")), reverse=True)
+		except Exception:
+			pass
+
+	return results
 
 
 @frappe.whitelist()
@@ -144,7 +182,7 @@ def execute_number_card_query(report_name, filters=None):
 				field = field.strip("'\"")
 
 				# Safely format the value based on type
-				if isinstance(value, (int | float)):
+				if isinstance(value, int | float):
 					where_conditions.append(f"{field} = {value}")
 				else:
 					# Remove any existing quotes and escape single quotes in the value
@@ -231,6 +269,176 @@ def get_linked_doctype_fields(doc_type, frm_doctype):
 	except Exception as e:
 		frappe.log_error(f"Error in get_linked_doctype_fields: {str(e)}")
 		return None
+
+
+@frappe.whitelist()
+def get_timeline_fields(dt, dn, filter_doctype=None):
+	"""Return distinct non-hidden fields that have at least one log entry for this document.
+	Each version's own actual_doctype is used for field lookups so related-doctype fields
+	are resolved correctly when 'All Documents' is selected.
+	Custom Field hidden value takes precedence over DocField.
+	"""
+	filter_clause = "AND all_fields.actual_dt = %(filter_doctype)s" if filter_doctype else ""
+	sql = f"""
+		SELECT DISTINCT
+			all_fields.field_name,
+			all_fields.actual_dt,
+			COALESCE(
+				(SELECT ps.value FROM `tabProperty Setter` ps
+				 WHERE ps.doc_type = all_fields.actual_dt AND ps.field_name = all_fields.field_name AND ps.property = 'label' LIMIT 1),
+				(SELECT cdf.label FROM `tabCustom Field` cdf
+				 WHERE cdf.fieldname = all_fields.field_name AND cdf.dt = all_fields.actual_dt LIMIT 1),
+				(SELECT df.label FROM `tabDocField` df
+				 WHERE df.fieldname = all_fields.field_name AND df.parent = all_fields.actual_dt LIMIT 1)
+			) AS field_label
+		FROM (
+			SELECT
+				JSON_UNQUOTE(JSON_EXTRACT(jt.elem, '$[0]')) AS field_name,
+				COALESCE(ver.custom_actual_doctype, ver.ref_doctype) AS actual_dt
+			FROM `tabVersion` AS ver
+			CROSS JOIN JSON_TABLE(
+				JSON_EXTRACT(ver.data, '$.changed'),
+				'$[*]' COLUMNS (elem JSON PATH '$')
+			) jt
+			WHERE ver.ref_doctype = %(dt)s AND ver.docname = %(dn)s
+			AND JSON_EXTRACT(ver.data, '$.changed') IS NOT NULL
+
+			UNION
+
+			SELECT
+				JSON_UNQUOTE(JSON_EXTRACT(ja.elem, '$[0]')) AS field_name,
+				COALESCE(ver.custom_actual_doctype, ver.ref_doctype) AS actual_dt
+			FROM `tabVersion` AS ver
+			CROSS JOIN JSON_TABLE(
+				JSON_EXTRACT(ver.data, '$.added'),
+				'$[*]' COLUMNS (elem JSON PATH '$')
+			) ja
+			WHERE ver.ref_doctype = %(dt)s AND ver.docname = %(dn)s
+			AND JSON_EXTRACT(ver.data, '$.added') IS NOT NULL
+
+			UNION
+
+			SELECT
+				JSON_UNQUOTE(JSON_EXTRACT(jr.elem, '$[0]')) AS field_name,
+				COALESCE(ver.custom_actual_doctype, ver.ref_doctype) AS actual_dt
+			FROM `tabVersion` AS ver
+			CROSS JOIN JSON_TABLE(
+				JSON_EXTRACT(ver.data, '$.removed'),
+				'$[*]' COLUMNS (elem JSON PATH '$')
+			) jr
+			WHERE ver.ref_doctype = %(dt)s AND ver.docname = %(dn)s
+			AND JSON_EXTRACT(ver.data, '$.removed') IS NOT NULL
+		) AS all_fields
+		WHERE all_fields.field_name IS NOT NULL
+		{filter_clause}
+		AND COALESCE(
+			(SELECT CAST(ps.value AS UNSIGNED) FROM `tabProperty Setter` ps
+			 WHERE ps.doc_type = all_fields.actual_dt AND ps.field_name = all_fields.field_name AND ps.property = 'hidden' LIMIT 1),
+			(SELECT cdf.hidden FROM `tabCustom Field` cdf
+			 WHERE cdf.fieldname = all_fields.field_name AND cdf.dt = all_fields.actual_dt LIMIT 1),
+			(SELECT df.hidden FROM `tabDocField` df
+			 WHERE df.fieldname = all_fields.field_name AND df.parent = all_fields.actual_dt LIMIT 1),
+			1
+		) = 0
+		ORDER BY field_label
+	"""
+	params = {"dt": dt, "dn": dn}
+	if filter_doctype:
+		params["filter_doctype"] = filter_doctype
+	result = frappe.db.sql(sql, params, as_dict=True)
+
+	# Secondary filter: use Frappe meta to reliably exclude hidden fields
+	# (the SQL hidden check can miss edge cases where hidden is stored inconsistently)
+	meta_cache = {}
+	filtered = []
+	for r in result:
+		doctype = r.get("actual_dt")
+		field_name = r.get("field_name")
+		if not doctype or not field_name:
+			continue
+		try:
+			if doctype not in meta_cache:
+				meta_cache[doctype] = frappe.get_meta(doctype)
+			df = meta_cache[doctype].get_field(field_name)
+			if df and df.hidden:
+				continue
+		except Exception:
+			pass
+		filtered.append(r)
+
+	# Expand geography_details entries into per-level entries
+	GEO_LEVEL_ORDER = ["state_name", "district_name", "block_name", "gram_panchayat_name", "village_name"]
+	GEO_LEVEL_LABELS = {
+		"state_name": "States",
+		"district_name": "Districts",
+		"block_name": "Blocks",
+		"gram_panchayat_name": "Gram Panchayats",
+		"village_name": "Villages",
+	}
+
+	geo_entries = [r for r in filtered if r.get("field_name") == "geography_details"]
+	if geo_entries:
+		filtered = [r for r in filtered if r.get("field_name") != "geography_details"]
+		geo_doctype = geo_entries[0].get("actual_dt") or dt
+
+		geo_levels_found = set()
+		try:
+			geo_names = frappe.get_all(
+				"Geography Details",
+				filters={"document_type": dt, "docname": dn},
+				pluck="name",
+			)
+			for geo_name in geo_names:
+				geo_versions = frappe.db.sql(
+					"""SELECT data FROM `tabVersion`
+					   WHERE (
+					       (ref_doctype = 'Geography Details' AND docname = %s)
+					       OR (custom_actual_doctype = 'Geography Details' AND custom_actual_document_name = %s)
+					   )
+					   AND data IS NOT NULL""",
+					(geo_name, geo_name),
+					as_dict=True,
+				)
+				for ver in geo_versions:
+					try:
+						data = frappe.parse_json(ver.get("data") or "{}")
+						for section in ("added", "removed"):
+							for entry in data.get(section) or []:
+								if not isinstance(entry, list | tuple) or len(entry) < 2:
+									continue
+								row = entry[1]
+								if isinstance(row, str):
+									try:
+										row = frappe.parse_json(row)
+									except Exception:
+										continue
+								if isinstance(row, dict):
+									for lf in GEO_LEVEL_ORDER:
+										if row.get(lf):
+											geo_levels_found.add(lf)
+					except Exception:
+						pass
+		except Exception:
+			pass
+
+		for lf in GEO_LEVEL_ORDER:
+			if lf in geo_levels_found:
+				filtered.append(
+					{
+						"field_name": f"geography_details::{lf}",
+						"field_label": GEO_LEVEL_LABELS[lf],
+						"actual_dt": geo_doctype,
+					}
+				)
+
+	return [
+		{
+			"fieldname": r["field_name"],
+			"label": r["field_label"] or r["field_name"],
+			"doctype": r["actual_dt"],
+		}
+		for r in filtered
+	]
 
 
 @frappe.whitelist()

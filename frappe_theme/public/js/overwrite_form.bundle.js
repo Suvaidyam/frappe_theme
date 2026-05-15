@@ -368,26 +368,67 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 	}
 	async dashboard_form_events_handler(frm) {
 		function apply_dashboard_filters(frm, fields, apply_button_field) {
+			const FILTER_OPERATORS = [
+				"=",
+				"!=",
+				">",
+				"<",
+				">=",
+				"<=",
+				"Between",
+				"like",
+				"not like",
+				"in",
+				"not in",
+			];
+			// Helper: unpack [operator, value] stored in filters
+			function unpack_filter(val) {
+				if (Array.isArray(val) && val.length === 2 && FILTER_OPERATORS.includes(val[0])) {
+					return { condition: val[0], value: val[1] };
+				}
+				return { condition: "=", value: val };
+			}
 			let filters = {};
 			fields.forEach((field) => {
 				if (Array.isArray(frm.doc[field.fieldname])) {
 					if (frm.doc[field.fieldname].length > 0) {
-						let field_dict = frm.fields_dict?.[field.fieldname];
-						let link_field = field_dict?._link_field || field_dict?.getLinkField();
-						filters[field.fieldname] = link_field
-							? frm.doc[field.fieldname]?.map((i) => i[link_field.fieldname])
-							: frm.doc[field.fieldname];
+						if (["Date"].includes(field.fieldtype)) {
+							// Date range — always Between
+							filters[field.filter_key || field.fieldname] = [
+								"Between",
+								frm.doc[field.fieldname],
+							];
+						} else {
+							let field_dict = frm.fields_dict?.[field.fieldname];
+							let link_field =
+								field_dict?._link_field ||
+								(typeof field_dict?.getLinkField === "function"
+									? field_dict.getLinkField()
+									: null);
+							filters[field.fieldname] = link_field
+								? frm.doc[field.fieldname]?.map((i) => i[link_field.fieldname])
+								: frm.doc[field.fieldname];
+						}
 					} else {
 						return;
 					}
 				} else if (frm.doc[field.fieldname]) {
 					if (["Link"].includes(field.fieldtype)) {
 						filters[field.fieldname] = frm.doc[field.fieldname];
+					} else if (["Date"].includes(field.fieldtype)) {
+						// Embed operator with value
+						let field_ctrl = frm.fields_dict?.[field.fieldname];
+						let condition = field_ctrl?._dashboard_condition || "=";
+						filters[field.filter_key || field.fieldname] = [
+							condition,
+							frm.doc[field.fieldname],
+						];
 					} else {
 						filters[field.filter_key || field.fieldname] = frm.doc[field.fieldname];
 					}
 				}
 			});
+
 			if (Object.keys(filters).length) {
 				let parent_section_field = get_parent_section_field_by_fieldname(
 					frm,
@@ -419,17 +460,19 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 					if (instance?.connection) {
 						let _filters = [];
 						for (let f in filters) {
+							let { condition, value } = unpack_filter(filters[f]);
 							_filters.push([
 								instance.doctype || instance.linked_report || "RN",
 								f,
-								"=",
-								filters[f],
+								condition,
+								value,
 							]);
 						}
 						instance.additional_list_filters = _filters;
 						instance.reloadTable();
 						continue;
 					} else {
+						// filters already carries [operator, value] for Date fields
 						instance.setFilters(filters);
 						continue;
 					}
@@ -448,10 +491,25 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 				return;
 			}
 			fields.forEach((field) => {
+				// Button set_value fires the button's Frappe click-event handler —
+				// skip them entirely since buttons hold no resettable data value.
+				if (field.fieldtype == "Button") return;
 				if (field.fieldtype == "Table MultiSelect") {
 					frm.set_value(field.fieldname, []);
 				} else {
 					frm.set_value(field.fieldname, "");
+				}
+				// reset operator select for date fields
+				let field_ctrl = frm.fields_dict?.[field.fieldname];
+				if (field_ctrl?._dashboard_condition !== undefined) {
+					field_ctrl._dashboard_condition = "=";
+					field_ctrl.datepicker?.$datepicker?.find(".sva-date-op-select").val("=");
+					field_ctrl.$wrapper?.find(".sva-date-op-badge").text("=");
+					// Reset range mode if Between was active
+					if (field_ctrl.datepicker) {
+						field_ctrl.datepicker.update("range", false);
+						field_ctrl.datepicker.clear();
+					}
 				}
 				return;
 			});
@@ -509,6 +567,9 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 		}
 	}
 	async custom_after_save(frm) {
+		// Dashboard forms auto-save on filter reset — never redirect from them.
+		// sva_dt_prev_route is only meant for child-record edit round-trips.
+		if (frm?.meta?.is_dashboard) return;
 		if (frm?.sva_dt_prev_route && frm?.sva_dt_prev_route.length) {
 			frappe.set_route(frm.sva_dt_prev_route);
 			frm.sva_dt_prev_route = null;
@@ -846,9 +907,15 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			const f = frm?.meta?.fields[i];
 			if (f.fieldtype === "Tab Break") break;
 			if (
-				["Link", "Table MultiSelect", "Button", "Data", "Autocomplete", "Select"].includes(
-					f.fieldtype
-				)
+				[
+					"Link",
+					"Table MultiSelect",
+					"Button",
+					"Data",
+					"Autocomplete",
+					"Select",
+					"Date",
+				].includes(f.fieldtype)
 			)
 				tab_fields.push(f);
 		}

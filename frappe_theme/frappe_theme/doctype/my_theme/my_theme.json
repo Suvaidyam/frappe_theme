@@ -107,6 +107,7 @@
   "hide_side_bar",
   "hide_form_comment",
   "show_comment_count_default",
+  "deleted_doc_always_show",
   "import_file",
   "cloud_assets",
   "section_break_cxrk",
@@ -692,13 +693,19 @@
   {
    "fieldname": "column_break_yjyk",
    "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "deleted_doc_always_show",
+   "fieldtype": "Check",
+   "label": "Deleted doc always show"
   }
  ],
  "hide_toolbar": 1,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-01-21 16:54:16.845937",
+ "modified": "2026-05-13 11:51:27.694521",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "My Theme",

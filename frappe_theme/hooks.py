@@ -158,6 +158,7 @@ after_migrate = "frappe_theme.setup.migration.after_migrate"
 override_doctype_class = {
 	"Report": "frappe_theme.overrides.report.CustomReport",
 	"Customize Form": "frappe_theme.overrides.customize_form.SVACustomizeForm",
+	"Deleted Document": "frappe_theme.overrides.deleted_document.CustomDeletedDocument",
 }
 
 # Document Events
