@@ -306,6 +306,57 @@ def get_deletion_log_doctypes(dt: str) -> dict:
 
 
 @frappe.whitelist()
+def get_deletion_log_count(dt: str, dn: str) -> dict:
+	"""
+	Return the total count of deleted records related to document (dt, dn).
+	Fetches all candidate rows (filtered by doctype) at once — no batching,
+	no cursor issues. Only deleted_doctype, deleted_name, and data are read.
+	Returns {"count": int}
+	"""
+	connections = _build_connections(dt)
+	if not connections:
+		return {"count": 0}
+
+	DD = DocType("Deleted Document")
+
+	# Fetch only the three columns needed — no limit so all records are counted
+	all_rows = (
+		frappe.qb.from_(DD)
+		.select(DD.deleted_doctype, DD.deleted_name, DD.data)
+		.where(DD.deleted_doctype.isin(list(connections.keys())))
+		.run(as_dict=True)
+	)
+
+	count = 0
+	for r in all_rows:
+		link_fields = connections.get(r.deleted_doctype)
+		if not link_fields:
+			continue
+		try:
+			doc_data = frappe.parse_json(r.data or "{}")
+		except Exception:
+			doc_data = {}
+
+		if "" in link_fields:
+			if r.deleted_name == dn:
+				count += 1
+		else:
+			for lf in link_fields:
+				if lf.startswith("__dl__"):
+					_, pair = lf.split("__dl__", 1)
+					doctype_field, name_field = pair.split(":", 1)
+					if doc_data.get(doctype_field) == dt and doc_data.get(name_field) == dn:
+						count += 1
+						break
+				else:
+					if doc_data.get(lf) == dn:
+						count += 1
+						break
+
+	return {"count": count}
+
+
+@frappe.whitelist()
 def get_deletion_log(
 	dt: str,
 	dn: str,
@@ -457,24 +508,42 @@ def get_deletion_log(
 	if page_records:
 		last_creation = page_records[-1]["creation"]
 
-	# ── Owner names for this page only ───────────────────────────────────────
+	# ── Owner names + role profile for this page only ────────────────────────
 	page_owners = {r["_owner"] for r in page_records if r["_owner"]}
 	owner_map: dict[str, str] = {}
+	role_map: dict[str, str] = {}
 	if page_owners:
 		User = DocType("User")
-		owner_map = {
-			r.name: r.full_name
-			for r in (
-				frappe.qb.from_(User)
-				.select(User.name, User.full_name)
-				.where(User.name.isin(list(page_owners)))
+		owner_rows = (
+			frappe.qb.from_(User)
+			.select(User.name, User.full_name, User.role_profile_name)
+			.where(User.name.isin(list(page_owners)))
+			.run(as_dict=True)
+		)
+		for r in owner_rows:
+			owner_map[r.name] = r.full_name
+			if r.role_profile_name:
+				role_map[r.name] = r.role_profile_name
+
+		# Fall back to role_profiles child table for users without a primary profile
+		missing = [u for u in page_owners if u not in role_map]
+		if missing:
+			UserRoleProfile = DocType("User Role Profile")
+			child_rows = (
+				frappe.qb.from_(UserRoleProfile)
+				.select(UserRoleProfile.parent, UserRoleProfile.role_profile)
+				.where(UserRoleProfile.parent.isin(missing))
+				.orderby(UserRoleProfile.idx)
 				.run(as_dict=True)
 			)
-		}
+			for r in child_rows:
+				if r.parent not in role_map and r.role_profile:
+					role_map[r.parent] = r.role_profile
 
 	for item in page_records:
 		owner = item.pop("_owner")
 		item["deleted_by"] = owner_map.get(owner) or owner
+		item["role"] = role_map.get(owner, "")
 
 	return {"records": page_records, "has_more": has_more, "cursor": last_creation}
 

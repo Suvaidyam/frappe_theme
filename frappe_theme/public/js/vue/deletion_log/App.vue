@@ -4,19 +4,10 @@
 			<!-- ── Header ─────────────────────────────────────────────────── -->
 			<div class="sva-dl-header">
 				<div class="sva-dl-header-left">
-					<svg
-						width="15"
-						height="15"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="#ef4444"
-						stroke-width="2.2"
-					>
-						<polyline points="3 6 5 6 21 6" />
-						<path d="M19 6l-1 14H6L5 6" />
-						<path d="M10 11v6M14 11v6" />
-						<path d="M9 6V4h6v2" />
-					</svg>
+					<span
+						class="sva-dl-header-icon"
+						v-html="frappe.utils.icon('delete-active', 'xs')"
+					></span>
 					<span>{{ __("Deletion History") }}</span>
 				</div>
 				<button class="sva-dl-close-btn" @click="close">
@@ -164,21 +155,10 @@
 
 					<!-- Empty -->
 					<div v-else-if="!records.length" key="body-empty" class="sva-dl-empty">
-						<div class="sva-dl-empty-icon">
-							<svg
-								width="36"
-								height="36"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="#d1d5db"
-								stroke-width="1.5"
-							>
-								<polyline points="3 6 5 6 21 6" />
-								<path d="M19 6l-1 14H6L5 6" />
-								<path d="M10 11v6M14 11v6" />
-								<path d="M9 6V4h6v2" />
-							</svg>
-						</div>
+						<div
+							class="sva-dl-empty-icon"
+							v-html="frappe.utils.icon('delete-active', 'xs')"
+						></div>
 						<p>{{ __("No deleted records found") }}</p>
 					</div>
 
@@ -216,11 +196,46 @@
 							>
 								<!-- Top row: avatar + info + toggle -->
 								<div class="sva-dl-card-top">
-									<div
-										class="sva-dl-avatar"
-										:style="{ background: cardBorderColor(item) }"
-									>
-										{{ avatarLetter(item.deleted_by) }}
+									<div class="sva-dl-avatar-wrap">
+										<div class="sva-dl-avatar">
+											{{ avatarLetter(item.deleted_by) }}
+										</div>
+										<span class="sva-dl-avatar-badge">
+											<span
+												style="
+													display: inline-flex;
+													align-items: center;
+													justify-content: center;
+													width: 18px;
+													height: 18px;
+													border-radius: 999px;
+													background: #c1272d;
+													color: #fff;
+													border: 2px solid #fff;
+												"
+											>
+												<svg
+													width="10"
+													height="10"
+													viewBox="0 0 24 24"
+													fill="none"
+													stroke="currentColor"
+													stroke-width="2.5"
+													stroke-linecap="round"
+													stroke-linejoin="round"
+												>
+													<polyline points="3 6 5 6 21 6" />
+													<path
+														d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"
+													/>
+													<path d="M10 11v6" />
+													<path d="M14 11v6" />
+													<path
+														d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"
+													/>
+												</svg>
+											</span>
+										</span>
 									</div>
 
 									<div class="sva-dl-card-main">
@@ -229,15 +244,24 @@
 											<!-- Deleted badge (all types) -->
 											<span class="sva-dl-del-badge">
 												<svg
-													width="9"
-													height="9"
+													width="11"
+													height="11"
 													viewBox="0 0 24 24"
 													fill="none"
 													stroke="currentColor"
 													stroke-width="2.5"
+													stroke-linecap="round"
+													stroke-linejoin="round"
 												>
 													<polyline points="3 6 5 6 21 6" />
-													<path d="M19 6l-1 14H6L5 6" />
+													<path
+														d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"
+													/>
+													<path d="M10 11v6" />
+													<path d="M14 11v6" />
+													<path
+														d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"
+													/>
 												</svg>
 												{{ __("DELETED") }}
 											</span>
@@ -245,7 +269,7 @@
 												__(item.deleted_doctype)
 											}}</strong>
 											<span class="sva-dl-sep">·</span>
-											<span class="sva-dl-doc-id">{{
+											<span class="sva-dl-doc-id-pill">{{
 												item.deleted_name
 											}}</span>
 											<span
@@ -260,12 +284,14 @@
 											>
 										</div>
 
-										<!-- Meta: user · clock · date · ago -->
+										<!-- Meta: user · role · clock · date · ago -->
 										<div class="sva-dl-card-meta">
 											<span class="sva-dl-user-name">{{
 												item.deleted_by || __("Unknown")
 											}}</span>
-											<span class="sva-dl-meta-dot">·</span>
+											<span v-if="item.role" class="sva-dl-role-badge">{{
+												item.role.toUpperCase()
+											}}</span>
 											<svg
 												width="11"
 												height="11"
@@ -359,7 +385,9 @@
 										class="sva-dl-pill"
 									>
 										<span class="sva-dl-pill-label">{{ f.label }}</span>
-										<span class="sva-dl-pill-value">{{ f.value }}</span>
+										<span class="sva-dl-pill-value">{{
+											formatFieldValue(f)
+										}}</span>
 									</span>
 									<button
 										v-if="pillsOf(item).length > 4"
@@ -386,7 +414,7 @@
 									<tbody>
 										<tr v-for="f in item._summary" :key="f.label">
 											<td>{{ f.label }}</td>
-											<td>{{ f.value }}</td>
+											<td>{{ formatFieldValue(f) }}</td>
 										</tr>
 									</tbody>
 								</table>
@@ -430,7 +458,7 @@ import { ref, computed, onMounted, onUnmounted, getCurrentInstance } from "vue";
 
 const props = defineProps({ frm: { required: true } });
 
-const primaryColor = computed(() => frappe.boot?.my_theme?.navbar_color || "#111827");
+const primaryColor = computed(() => frappe.boot?.my_theme?.navbar_color || "#7A1E2E");
 
 const PAGE_LENGTH = 30;
 
@@ -497,7 +525,7 @@ const cardIndexMap = computed(() => {
 
 // ── Colors ─────────────────────────────────────────────────────────────────
 
-const PALETTE = ["#991b1b", "#92400e", "#065f46", "#1e40af", "#b45309", "#0e7490", "#5b21b6"];
+const PALETTE = ["#C1272D", "#d97706", "#059669", "#2563eb", "#ea580c", "#0891b2", "#7c3aed"];
 
 const cardBorderColor = (item) => {
 	if (item.deleted_doctype === "File") return "#0284c7";
@@ -536,6 +564,16 @@ const pillsOf = (item) => {
 	return item._summary.filter(
 		(f) => !/reason/i.test(f.label) && !_HTML_FIELD_TYPES.has(f.fieldtype)
 	);
+};
+
+/** Format a summary field value — Currency fields get symbol + formatting. */
+const formatFieldValue = (f) => {
+	if (f.fieldtype === "Currency") {
+		const currency = frappe.sys_defaults?.currency || "";
+		const num = parseFloat(f.value);
+		if (!isNaN(num)) return format_currency(num, currency);
+	}
+	return f.value;
 };
 
 // ── API ─────────────────────────────────────────────────────────────────────
@@ -692,9 +730,9 @@ onUnmounted(() => {
 	justify-content: flex-end;
 }
 .sva-dl-drawer {
-	width: 620px;
+	width: 710px;
 	max-width: 100vw;
-	background: #f3f4f6;
+	background: #faf7f3;
 	height: 100vh;
 	display: flex;
 	flex-direction: column;
@@ -729,6 +767,22 @@ onUnmounted(() => {
 	font-size: 0.9rem;
 	color: #111827;
 }
+.sva-dl-header-icon {
+	display: flex;
+	align-items: center;
+	width: 30px;
+	height: 30px;
+	justify-content: center;
+	border: 1px solid #e4151c;
+	background-color: #fff0f1;
+	border-radius: 6px;
+}
+.sva-dl-header-icon :deep(svg),
+.sva-dl-header-icon svg {
+	width: 15px;
+	height: 15px;
+	stroke: #c1272d;
+}
 .sva-dl-close-btn {
 	background: none;
 	border: none;
@@ -741,7 +795,7 @@ onUnmounted(() => {
 	transition: background 0.15s, color 0.15s;
 }
 .sva-dl-close-btn:hover {
-	background: #f3f4f6;
+	background: #ede8e3;
 	color: #374151;
 }
 
@@ -765,7 +819,7 @@ onUnmounted(() => {
 	transition: all 0.15s;
 }
 .sva-dl-date-btn:hover {
-	background: #f3f4f6;
+	background: #ede8e3;
 }
 .sva-dl-date-btn.active {
 	background: var(--dl-primary);
@@ -853,7 +907,7 @@ onUnmounted(() => {
 	transition: all 0.15s;
 }
 .sva-dl-chip:hover {
-	background: #f3f4f6;
+	background: #ede8e3;
 	border-color: #d1d5db;
 }
 .sva-dl-chip.active {
@@ -963,7 +1017,7 @@ onUnmounted(() => {
 .sva-dl-skel-card {
 	background: #fff;
 	border: 1px solid #e5e7eb;
-	border-left: 4px solid #e5e7eb;
+	border-left: 4px solid #ede8e3;
 	border-radius: 10px;
 	padding: 14px 16px 12px;
 }
@@ -990,7 +1044,7 @@ onUnmounted(() => {
 	gap: 6px;
 	margin-top: 12px;
 	padding-top: 10px;
-	border-top: 1px solid #f3f4f6;
+	border-top: 1px solid #ede8e3;
 }
 .sva-dl-skel-pill-sm {
 	height: 26px;
@@ -1018,7 +1072,7 @@ onUnmounted(() => {
 .sva-dl-empty-icon {
 	width: 60px;
 	height: 60px;
-	background: #f3f4f6;
+	background: #ede8e3;
 	border-radius: 50%;
 	display: flex;
 	align-items: center;
@@ -1067,7 +1121,7 @@ onUnmounted(() => {
 .sva-dl-card {
 	background: #fff;
 	border: 1px solid #e5e7eb;
-	border-left: 4px solid #ef4444;
+	border-left: 4px solid #c1272d;
 	border-radius: 10px;
 	padding: 14px 16px 12px;
 	margin-bottom: 10px;
@@ -1084,18 +1138,34 @@ onUnmounted(() => {
 	align-items: flex-start;
 }
 
+.sva-dl-avatar-wrap {
+	position: relative;
+	flex-shrink: 0;
+	width: 36px;
+	height: 36px;
+}
 .sva-dl-avatar {
 	width: 36px;
 	height: 36px;
-	background: #ef4444;
-	color: #fff;
+	background: #dde3ea;
+	color: #374151;
 	border-radius: 50%;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	font-weight: 700;
 	font-size: 0.88rem;
-	flex-shrink: 0;
+}
+.sva-dl-avatar-badge {
+	position: absolute;
+	bottom: -2px;
+	right: -2px;
+}
+.sva-dl-avatar-badge :deep(svg),
+.sva-dl-avatar-badge svg {
+	width: 8px;
+	height: 8px;
+	stroke: #fff;
 }
 
 .sva-dl-card-main {
@@ -1115,14 +1185,25 @@ onUnmounted(() => {
 	display: inline-flex;
 	align-items: center;
 	gap: 3px;
-	background: #fee2e2;
-	color: #dc2626;
-	font-size: 0.64rem;
-	font-weight: 700;
 	padding: 2px 7px;
-	border-radius: 4px;
 	letter-spacing: 0.05em;
 	flex-shrink: 0;
+
+	background: #fdeeee; /* --danger-bg */
+	border: 1px solid #f3cccc; /* --danger-border */
+	color: #8a1b1f; /* --danger-deep */
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.5px;
+	text-transform: uppercase;
+	border-radius: 999px;
+	font-family: "Inter", system-ui, sans-serif;
+}
+.sva-dl-del-badge :deep(svg),
+.sva-dl-del-badge svg {
+	width: 9px;
+	height: 9px;
+	stroke: #c1272d;
 }
 
 .sva-dl-dt-name {
@@ -1134,11 +1215,29 @@ onUnmounted(() => {
 	color: #9ca3af;
 	font-size: 0.8rem;
 }
-.sva-dl-doc-id {
-	font-size: 0.82rem;
+.sva-dl-doc-id-pill {
+	display: inline-block;
+	font-size: 0.75rem;
 	color: #374151;
-	font-weight: 500;
+	font-weight: 600;
 	font-family: ui-monospace, monospace;
+	background: #f3f4f6;
+	border: 1px solid #e5e7eb;
+	border-radius: 5px;
+	padding: 1px 7px;
+	line-height: 1.5;
+}
+.sva-dl-role-badge {
+	display: inline-block;
+	font-size: 0.62rem;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	color: #6b7280;
+	background: #f3f4f6;
+	border: 1px solid #e5e7eb;
+	border-radius: 4px;
+	padding: 1px 6px;
+	line-height: 1.5;
 }
 
 .sva-dl-tag {
@@ -1198,7 +1297,7 @@ onUnmounted(() => {
 	transition: all 0.15s;
 }
 .sva-dl-toggle-btn:hover {
-	background: #f3f4f6;
+	background: #ede8e3;
 }
 .sva-dl-toggle-btn.is-expanded {
 	background: color-mix(in srgb, var(--dl-primary) 10%, transparent);
@@ -1234,10 +1333,10 @@ onUnmounted(() => {
 	align-items: baseline;
 	gap: 6px;
 	margin: 10px 0 0;
-	padding: 8px 12px;
-	background: #f9fafb;
-	border: 1px solid #e5e7eb;
-	border-radius: 6px;
+	padding: 7px 12px;
+	background: #fafafa;
+	border-left: 3px solid #c1272d;
+	border-radius: 0 4px 4px 0;
 	font-size: 0.78rem;
 	color: #4b5563;
 	line-height: 1.5;
@@ -1262,7 +1361,7 @@ onUnmounted(() => {
 	gap: 6px;
 	margin-top: 10px;
 	padding-top: 10px;
-	border-top: 1px solid #f3f4f6;
+	border-top: 1px solid #ede8e3;
 }
 
 .sva-dl-pill {
@@ -1354,12 +1453,12 @@ onUnmounted(() => {
 	border-collapse: collapse;
 	font-size: 0.78rem;
 	margin-top: 10px;
-	border-top: 1px solid #f3f4f6;
+	border-top: 1px solid #ede8e3;
 }
 .sva-dl-table th,
 .sva-dl-table td {
 	padding: 6px 10px;
-	border-bottom: 1px solid #f3f4f6;
+	border-bottom: 1px solid #ede8e3;
 	text-align: left;
 }
 .sva-dl-table th {
