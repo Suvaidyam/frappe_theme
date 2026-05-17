@@ -388,6 +388,181 @@ frm.vdr_events = {
 };
 ```
 
+### Intercept a child table cell click (`openTableDialog`)
+
+By default, clicking a Table field cell opens a generic Add/Edit row dialog with all child fields. Return `true` to suppress the default and open your own dialog instead:
+
+```js
+frm.vdr_events = {
+    openTableDialog(df, doc, rows, saveFn, vdrInstance) {
+        if (df.fieldname === "plant_biometrics") {
+            open_plant_biometrics_dialog(
+                df.parent,          // parent DocType
+                doc.name,           // parent doc name
+                doc.main_crop || "",
+                doc.plant_type || "",
+                rows,               // existing child rows
+                saveFn,             // call this with updated rows to persist
+            );
+            return true;           // suppress default dialog
+        }
+        return false;              // fall through to default for all other table fields
+    },
+};
+```
+
+**Arguments:**
+
+| Arg | Type | Description |
+|---|---|---|
+| `df` | object | Field descriptor of the Table field (`df.fieldname`, `df.options` = child DocType) |
+| `doc` | object | The column's parent document (includes all fetched field values) |
+| `rows` | object[] | Current child rows for this column |
+| `saveFn` | function | Call `saveFn(updatedRows)` to save changes. Returns a Promise. |
+| `vdrInstance` | SVAVerticalDocRenderer | The VDR instance that fired the hook — use `vdrInstance.doctype` or `vdrInstance.vdr_field_name` to target only one VDR when the form has multiple. |
+
+---
+
+### Allowlist child table dialog fields (`getTableFields`)
+
+Return a string array of fieldnames to show in the default Add/Edit row dialog. Useful for filtering dialog columns based on dynamic data (e.g. the parent doc's `main_crop` value). Async supported.
+
+```js
+frm.vdr_events = {
+    async getTableFields(tableDf, parentDoc, vdrInstance) {
+        // Only filter for a specific VDR / child DocType
+        if (vdrInstance.doctype !== "My DocType") return null;
+
+        const config = await fetchSomeConfig();
+        const allowed = config
+            .filter((c) => c.reference_doctype === tableDf.options && c[parentDoc.crop_key] === 1)
+            .map((c) => c.fieldname);
+
+        return allowed.length ? allowed : null; // null = show all fields (default)
+    },
+};
+```
+
+**Return value:**
+- `string[]` — only these fieldnames appear in the dialog (order is preserved from child meta)
+- `null` / `undefined` — no filtering; all non-hidden child fields are shown
+
+**Arguments:**
+
+| Arg | Type | Description |
+|---|---|---|
+| `tableDf` | object | Field descriptor of the Table field (`tableDf.options` = child DocType) |
+| `parentDoc` | object | The column's parent document |
+| `vdrInstance` | SVAVerticalDocRenderer | The VDR instance — identify via `vdrInstance.doctype` or `vdrInstance.vdr_field_name` |
+
+---
+
+### Per-field filter for child table dialog (`filterTableField`)
+
+A finer-grained gate that runs **after** `getTableFields`. Receives each field descriptor individually; return `false` to hide it. Async supported.
+
+```js
+frm.vdr_events = {
+    filterTableField(tableDf, fieldDf, parentDoc, vdrInstance) {
+        // Example: hide "weed_density" when crop type is Horticulture
+        if (
+            vdrInstance.doctype === "Harvesting of Crop" &&
+            tableDf.fieldname === "harvesting_details" &&
+            fieldDf.fieldname === "weed_density" &&
+            parentDoc.crop_type === "Horticulture"
+        ) {
+            return false;
+        }
+        return true; // show by default
+    },
+};
+```
+
+**Return value:**
+- `false` — hide this field from the dialog
+- anything else — show it
+
+**Arguments:**
+
+| Arg | Type | Description |
+|---|---|---|
+| `tableDf` | object | Field descriptor of the Table field |
+| `fieldDf` | object | Field descriptor of the individual child field being tested |
+| `parentDoc` | object | The column's parent document |
+| `vdrInstance` | SVAVerticalDocRenderer | The VDR instance |
+
+> **Execution order:** `getTableFields` runs first (allowlist), then `filterTableField` runs on each field that passed the allowlist. Use `getTableFields` for bulk config-driven filtering and `filterTableField` for doc-value-driven per-field conditions.
+
+---
+
+### Filter which rows appear in the table (`filterRow`)
+
+Sync gate called for each field row during render. Return `false` to hide the row entirely. Useful for crop/context-driven field visibility without changing `fields_to_show`.
+
+```js
+frm.vdr_events = {
+    filterRow(df, vdrInstance) {
+        // Only filter a specific VDR
+        if (vdrInstance.doctype !== "Harvesting of Crop") return true;
+
+        const cropKey = getCropKey(frm.doc.main_crop); // e.g. "wheat"
+        if (!cropKey) return true;
+
+        const config = getCachedConfig(); // must be synchronous
+        const entry = config.find(
+            (c) => c.reference_doctype === vdrInstance.doctype && c.fieldname === df.fieldname
+        );
+        // If no entry → show the row; if entry exists → show only when crop flag is 1
+        return !entry || entry[cropKey] === 1;
+    },
+};
+```
+
+**Return value:**
+- `false` — row is not rendered
+- anything else — row is rendered normally
+
+**Arguments:**
+
+| Arg | Type | Description |
+|---|---|---|
+| `df` | object | Field descriptor of the row |
+| `vdrInstance` | SVAVerticalDocRenderer | The VDR instance |
+
+> **Important:** `filterRow` must be **synchronous** — it is called inside the rendering loop. Pre-fetch any async config (e.g. with a module-level cache warmed on form load) before the VDR renders.
+
+> **Works with `fields_config`:** `filterRow` is applied in both rendering paths — whether `fields_config` (row-settings saved order) is set or not.
+
+---
+
+### Identifying which VDR fired the hook
+
+All hooks receive `vdrInstance` as their last argument. The most reliable identifiers:
+
+```js
+vdrInstance.doctype          // DocType being rendered — "Harvesting of Crop"
+vdrInstance.vdr_field_name   // HTML field name on the parent form — "my_vdr_field"
+                             // (set only when rendered via Custom Property Setter)
+```
+
+Use this when the same form has two VDRs for different DocTypes and you need different hook logic for each:
+
+```js
+frm.vdr_events = {
+    filterRow(df, vdrInstance) {
+        if (vdrInstance.doctype === "Harvesting of Crop") {
+            return harvestingFilter(df);
+        }
+        if (vdrInstance.doctype === "Crop Parameter Monitoring") {
+            return cropParamFilter(df);
+        }
+        return true;
+    },
+};
+```
+
+---
+
 ### Run code after the table is fully rendered
 
 ```js

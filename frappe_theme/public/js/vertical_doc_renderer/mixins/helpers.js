@@ -260,18 +260,28 @@ const HelpersMixin = {
 			(df) => !SKIP_TYPES.has(df.fieldtype) && !df.hidden
 		);
 
+		let visible;
 		if (this.fields_config && this.fields_config.length > 0) {
 			// fields_config is authoritative: defines both order and visibility
 			const map = new Map(all.map((df) => [df.fieldname, df]));
-			return this.fields_config.map((fn) => map.get(fn)).filter(Boolean);
+			visible = this.fields_config.map((fn) => map.get(fn)).filter(Boolean);
+		} else {
+			// Default: apply fields_to_show / fields_to_hide in meta order
+			visible = all.filter((df) => {
+				if (this.fields_to_hide && this.fields_to_hide.includes(df.fieldname)) return false;
+				if (this.fields_to_show && !this.fields_to_show.includes(df.fieldname)) return false;
+				return true;
+			});
 		}
 
-		// Default: apply fields_to_show / fields_to_hide in meta order
-		return all.filter((df) => {
-			if (this.fields_to_hide && this.fields_to_hide.includes(df.fieldname)) return false;
-			if (this.fields_to_show && !this.fields_to_show.includes(df.fieldname)) return false;
-			return true;
-		});
+		// filterRow hook: sync per-field gate; return false to hide a row.
+		// Use this to conditionally show/hide VDR rows based on doc values or config.
+		// Note: must be synchronous — called inside the rendering loop.
+		if (typeof this.events.filterRow === "function") {
+			visible = visible.filter((df) => this.events.filterRow(df, this) !== false);
+		}
+
+		return visible;
 	},
 };
 
