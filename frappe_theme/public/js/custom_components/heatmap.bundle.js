@@ -318,7 +318,7 @@ class SVAHeatmap {
 		}
 
 		let dialog = new frappe.ui.Dialog({
-			title: this.reportName || "Data Table",
+			title: __(this.reportName) || __("Data Table"),
 			fields: [
 				{
 					fieldtype: "HTML",
