@@ -67,7 +67,6 @@ const props = defineProps({
 		default: () => ({}),
 	},
 });
-
 // const emit = defineEmits(['action-clicked']);
 
 const getCardStyles = computed(() => {
@@ -98,6 +97,25 @@ const handleAction = async (action) => {
 	} else if (action == "edit") {
 		frappe.set_route("Form", props.card?.details?.doctype, props.card?.details?.label);
 	} else if (action == "view_table") {
+		if (props.card.redirect_to_list) {
+			if (props.card?.details?.type == "Document Type") {
+				let filters_json = {};
+				try {
+					const parsed_filters = JSON.parse(props.card?.details?.filters_json) || [];
+					if (Array.isArray(parsed_filters)) {
+						parsed_filters.forEach(([, field, op, val]) => {
+							filters_json[field] = [op, val];
+						});
+					} else {
+						filters_json = parsed_filters;
+					}
+				} catch (e) {}
+				frappe.set_route("List", props.card?.details?.document_type, filters_json);
+			} else if (props.card?.details?.type == "Report") {
+				frappe.set_route("List", props.card?.report?.ref_doctype);
+			}
+			return;
+		}
 		if (props.card.fetch_from == "DocField" && props.card.field) {
 			props.frm.scroll_to_field(props.card.field);
 			return;

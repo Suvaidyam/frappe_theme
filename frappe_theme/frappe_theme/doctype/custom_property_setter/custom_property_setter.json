@@ -17,6 +17,7 @@
   "chart",
   "html_block",
   "is_report",
+  "redirect_to_list",
   "column_break_vafi",
   "label",
   "info",
@@ -838,13 +839,20 @@
    "fieldname": "show_full_number",
    "fieldtype": "Check",
    "label": "Show Full Number"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.property_type=='Number Card'",
+   "fieldname": "redirect_to_list",
+   "fieldtype": "Check",
+   "label": "Redirect to List"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_virtual": 1,
  "links": [],
- "modified": "2026-03-30 12:54:41.025050",
+ "modified": "2026-05-20 15:22:29.171326",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Custom Property Setter",
