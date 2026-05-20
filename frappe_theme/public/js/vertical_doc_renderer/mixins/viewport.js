@@ -121,6 +121,11 @@ const ViewportMixin = {
 		});
 		this._rendered_count += batchData.length;
 
+		// Re-sort all rendered columns by order rules (fixes cross-batch ordering)
+		if (typeof this._reorderColumnsByRules === "function") {
+			this._reorderColumnsByRules();
+		}
+
 		// Batch-fetch link titles for newly added columns (non-blocking)
 		if (typeof this.resolveLinkTitles === "function") {
 			this.resolveLinkTitles();

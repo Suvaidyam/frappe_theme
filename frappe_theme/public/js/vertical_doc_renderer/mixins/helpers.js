@@ -214,6 +214,55 @@ const HelpersMixin = {
 	},
 
 	/**
+	 * Re-sort all already-rendered columns by column_order_rules.
+	 * Called after each lazy-loaded batch so cross-batch ordering is correct.
+	 * Reorders this.data, this.docs, this.column_configs, and all DOM columns.
+	 */
+	_reorderColumnsByRules() {
+		if (!this.column_order_rules || !this.column_order_rules.length) return;
+		if (!this.data || !this.data.length) return;
+
+		const labelField = this.column_label_field;
+		const configs = this.column_configs || [];
+
+		const entries = this.data.map((doc, i) => {
+			const label = (labelField && doc[labelField]) || configs[i]?.label || doc.name || "";
+			const rule = this._matchOrderRule(label);
+			return { doc, conf: configs[i] || {}, order: rule ? (rule.order ?? Infinity) : Infinity, origIndex: i };
+		});
+		entries.sort((a, b) => a.order - b.order || a.origIndex - b.origIndex);
+
+		this.data = entries.map((e) => e.doc);
+		this.docs = this.data.map((d) => d.name);
+		this.column_configs = entries.map((e) => e.conf);
+
+		// Reorder header <th>s — insertBefore sentinel/create keeps them before the controls
+		const insertBefore = this._createTh || this._sentinel || null;
+		this.data.forEach((doc) => {
+			const th = this._theadRow.querySelector(`th[data-docname="${doc.name}"]`);
+			if (!th) return;
+			if (insertBefore) this._theadRow.insertBefore(th, insertBefore);
+			else this._theadRow.appendChild(th);
+		});
+
+		// Reorder value <td>s in each field row
+		this._table.querySelectorAll("tr.sva-vdr-field-row").forEach((tr) => {
+			this.data.forEach((doc) => {
+				const td = tr.querySelector(`td[data-docname="${doc.name}"]`);
+				if (td) tr.appendChild(td);
+			});
+		});
+
+		// Reorder delete cells (if delete row exists)
+		if (this._deleteRow) {
+			this.data.forEach((doc) => {
+				const td = this._deleteRow.querySelector(`td[data-docname="${doc.name}"]`);
+				if (td) this._deleteRow.appendChild(td);
+			});
+		}
+	},
+
+	/**
 	 * Resolve the section_configs entry for a given Section/Tab Break field.
 	 * Looks up by fieldname first, then by label (case-sensitive).
 	 * Returns null when no config exists for this section.

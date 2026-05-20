@@ -278,6 +278,17 @@ const EditMixin = {
 			dialog.$wrapper.one("hidden.bs.modal", () => dialog.$wrapper.remove());
 		}
 
+		// getLinkQuery hook — apply get_query filter on the Link control inside the dialog
+		if (df.fieldtype === "Link" && typeof this.events.getLinkQuery === "function") {
+			const query = this.events.getLinkQuery(df, doc, this);
+			if (query != null) {
+				const ctrl = dialog.fields_dict[df.fieldname];
+				if (ctrl) {
+					ctrl.get_query = typeof query === "function" ? query : () => query;
+				}
+			}
+		}
+
 		dialog.set_value(df.fieldname, doc[df.fieldname]);
 		dialog.show();
 	},
