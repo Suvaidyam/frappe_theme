@@ -115,9 +115,16 @@ const EditMixin = {
 			ctrl.$input.focus();
 			// air-datepicker doesn't always open on programmatic focus when a value is
 			// already set — call show() explicitly for date/time types.
+			// Deferred so the opening click event finishes propagating before show() runs;
+			// otherwise air-datepicker's outside-click handler fires during the same tick
+			// and immediately closes the picker (visible on second+ clicks on a dated cell).
 			if (["Date", "Datetime", "Time"].includes(df.fieldtype)) {
 				const dp = ctrl.datepicker || ctrl.$input.data("datepicker");
-				if (dp && typeof dp.show === "function") dp.show();
+				if (dp && typeof dp.show === "function") {
+					setTimeout(() => {
+						if (cell.dataset.editing === "1") dp.show();
+					}, 0);
+				}
 			}
 		}
 
@@ -278,13 +285,17 @@ const EditMixin = {
 			dialog.$wrapper.one("hidden.bs.modal", () => dialog.$wrapper.remove());
 		}
 
-		// getLinkQuery hook — apply get_query filter on the Link control inside the dialog
+		// getLinkQuery hook — apply get_query filter on the Link control inside the dialog.
+		// Must patch ctrl.df too: dialog.show() triggers refresh_fields() → ctrl.refresh()
+		// which resets ctrl.get_query from ctrl.df.get_query, overwriting a ctrl-only patch.
 		if (df.fieldtype === "Link" && typeof this.events.getLinkQuery === "function") {
 			const query = this.events.getLinkQuery(df, doc, this);
 			if (query != null) {
+				const getQueryFn = typeof query === "function" ? query : () => query;
 				const ctrl = dialog.fields_dict[df.fieldname];
 				if (ctrl) {
-					ctrl.get_query = typeof query === "function" ? query : () => query;
+					ctrl.get_query = getQueryFn;
+					ctrl.df = { ...ctrl.df, get_query: getQueryFn };
 				}
 			}
 		}
