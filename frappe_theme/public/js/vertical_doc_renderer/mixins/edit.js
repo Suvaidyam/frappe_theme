@@ -115,9 +115,16 @@ const EditMixin = {
 			ctrl.$input.focus();
 			// air-datepicker doesn't always open on programmatic focus when a value is
 			// already set — call show() explicitly for date/time types.
+			// Deferred so the opening click event finishes propagating before show() runs;
+			// otherwise air-datepicker's outside-click handler fires during the same tick
+			// and immediately closes the picker (visible on second+ clicks on a dated cell).
 			if (["Date", "Datetime", "Time"].includes(df.fieldtype)) {
 				const dp = ctrl.datepicker || ctrl.$input.data("datepicker");
-				if (dp && typeof dp.show === "function") dp.show();
+				if (dp && typeof dp.show === "function") {
+					setTimeout(() => {
+						if (cell.dataset.editing === "1") dp.show();
+					}, 0);
+				}
 			}
 		}
 
@@ -276,6 +283,21 @@ const EditMixin = {
 			// $(document).trigger("frappe.ui.Dialog:shown") never fires for the next
 			// dialog, leaving the map container blank on every reopen after a save.
 			dialog.$wrapper.one("hidden.bs.modal", () => dialog.$wrapper.remove());
+		}
+
+		// getLinkQuery hook — apply get_query filter on the Link control inside the dialog.
+		// Must patch ctrl.df too: dialog.show() triggers refresh_fields() → ctrl.refresh()
+		// which resets ctrl.get_query from ctrl.df.get_query, overwriting a ctrl-only patch.
+		if (df.fieldtype === "Link" && typeof this.events.getLinkQuery === "function") {
+			const query = this.events.getLinkQuery(df, doc, this);
+			if (query != null) {
+				const getQueryFn = typeof query === "function" ? query : () => query;
+				const ctrl = dialog.fields_dict[df.fieldname];
+				if (ctrl) {
+					ctrl.get_query = getQueryFn;
+					ctrl.df = { ...ctrl.df, get_query: getQueryFn };
+				}
+			}
 		}
 
 		dialog.set_value(df.fieldname, doc[df.fieldname]);
@@ -441,7 +463,7 @@ const EditMixin = {
 			// The row is re-used on every click — existing data pre-fills; saving replaces it.
 			if (me.table_max_rows === 1) {
 				const rowData = rows[0] ? { ...rows[0] } : {};
-				me._openChildRowDialog(childMeta, rowData, rows[0] ? 0 : null, async (saved) => {
+				me._openChildRowDialog(df, doc, childMeta, rowData, rows[0] ? 0 : null, async (saved) => {
 					const newRows = [saved];
 					doc[df.fieldname] = newRows; // keep cache fresh
 					await me._saveTableValue(df, doc, newRows, colIndex);
@@ -557,7 +579,7 @@ const EditMixin = {
 			if (addBtn) {
 				addBtn.style.display = atMax() ? "none" : "";
 				addBtn.onclick = () =>
-					me._openChildRowDialog(childMeta, {}, null, (newRow) => {
+					me._openChildRowDialog(df, doc, childMeta, {}, null, (newRow) => {
 						rows.push(newRow);
 						refreshList();
 					});
@@ -566,7 +588,7 @@ const EditMixin = {
 			w.querySelectorAll(".sva-tr-edit").forEach((btn) => {
 				btn.onclick = () => {
 					const idx = parseInt(btn.dataset.idx);
-					me._openChildRowDialog(childMeta, { ...rows[idx] }, idx, (updated) => {
+					me._openChildRowDialog(df, doc, childMeta, { ...rows[idx] }, idx, (updated) => {
 						rows[idx] = updated;
 						refreshList();
 					});
@@ -588,12 +610,21 @@ const EditMixin = {
 	 * Open a sub-dialog for adding or editing a single child row.
 	 * Includes full Geolocation field support (map picker, draw tools, etc.).
 	 *
-	 * @param {Object}   childMeta — meta of the child DocType
-	 * @param {Object}   rowData   — existing row values (empty {} for new row)
-	 * @param {number|null} rowIdx — null = new row; number = edit existing
-	 * @param {Function} onSave   — called with merged row data on confirm
+	 * Supports two optional vdr_events hooks for field filtering:
+	 *   getTableFields(tableDf, parentDoc, vdrInstance) → string[] | null
+	 *     Return an allowlist of fieldnames to show; null = show all.
+	 *   filterTableField(tableDf, childFieldDf, parentDoc, vdrInstance) → boolean
+	 *     Called per-field; return false to hide that field.
+	 * Both hooks support async. filterTableField runs after getTableFields.
+	 *
+	 * @param {Object}      tableDf   — Table field descriptor from parent meta
+	 * @param {Object}      parentDoc — parent VDR document row
+	 * @param {Object}      childMeta — meta of the child DocType
+	 * @param {Object}      rowData   — existing row values (empty {} for new row)
+	 * @param {number|null} rowIdx    — null = new row; number = edit existing
+	 * @param {Function}    onSave    — called with merged row data on confirm
 	 */
-	_openChildRowDialog(childMeta, rowData, rowIdx, onSave) {
+	async _openChildRowDialog(tableDf, parentDoc, childMeta, rowData, rowIdx, onSave) {
 		const me = this;
 		const SKIP_TYPES = new Set([
 			"Column Break",
@@ -606,9 +637,26 @@ const EditMixin = {
 			"Signature",
 			"Barcode",
 		]);
-		const fields = (childMeta.fields || [])
+		let fields = (childMeta.fields || [])
 			.filter((df) => !SKIP_TYPES.has(df.fieldtype) && !df.hidden)
 			.map((df) => ({ ...df, reqd: 0 }));
+
+		// getTableFields: allowlist approach — return fieldname[] or null (show all)
+		if (typeof me.events.getTableFields === "function") {
+			const allowed = await Promise.resolve(me.events.getTableFields(tableDf, parentDoc, me));
+			if (Array.isArray(allowed) && allowed.length) {
+				const allowedSet = new Set(allowed);
+				fields = fields.filter((f) => allowedSet.has(f.fieldname));
+			}
+		}
+
+		// filterTableField: per-field conditional — return false to hide a field
+		if (typeof me.events.filterTableField === "function") {
+			const results = await Promise.all(
+				fields.map((f) => Promise.resolve(me.events.filterTableField(tableDf, f, parentDoc, me)))
+			);
+			fields = fields.filter((_, i) => results[i] !== false);
+		}
 
 		if (!fields.length) return;
 
