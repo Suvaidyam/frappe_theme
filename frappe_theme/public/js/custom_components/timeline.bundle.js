@@ -1219,9 +1219,6 @@ class SVATimelineGenerator {
 					keys.forEach((k) => {
 						let val = row[k];
 						if (val === undefined || val === null) val = "";
-						if (typeof val === "number") {
-							val = frappe.format(val, { fieldtype: "Currency" });
-						}
 						html += `<td>${val}</td>`;
 					});
 					html += `</tr>`;
@@ -1421,14 +1418,14 @@ class SVATimelineGenerator {
 												if (change.__geoChange) {
 													return `
 													<tr>
-														<td>${change.fieldLabel}</td>
+														<td>${__(change.fieldLabel)}</td>
 														<td><span class="old-value">${this.formatGeoPrevious(change)}</span></td>
 														<td><span class="new-value">${this.formatGeoCurrent(change)}</span></td>
 													</tr>`;
 												}
 												return `
 											<tr>
-												<td>${change.fieldLabel}</td>
+												<td>${__(change.fieldLabel)}</td>
 												<td><span class="old-value">${this.formatTimelineValue(change, change.oldValue)}</span></td>
 												<td><span class="new-value">${this.formatTimelineValue(change, change.newValue)}</span></td>
 											</tr>`;
@@ -1478,7 +1475,7 @@ class SVATimelineGenerator {
 														.map(
 															(change) => `
 														<tr>
-															<td>${change.fieldLabel}</td>
+															<td>${__(change.fieldLabel)}</td>
 															<td><span class="old-value">${this.formatCellValue(change.oldValue)}</span></td>
 															<td><span class="new-value">${this.formatCellValue(change.newValue)}</span></td>
 														</tr>
@@ -2375,7 +2372,7 @@ class SVATimelineGenerator {
                 color: #374151;
             `;
 			div.innerHTML = `
-				<div style="font-size: 0.875rem; font-weight: 500; color: #374151;">${opt.label}</div>
+				<div style="font-size: 0.875rem; font-weight: 500; color: #374151;">${__(opt.label)}</div>
 				${
 					opt.doctype
 						? `<div style="font-size: 0.75rem; color: #374151; margin-top: 1px;">${__(
