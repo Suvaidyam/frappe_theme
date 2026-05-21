@@ -272,6 +272,12 @@ const EditMixin = {
 							} catch (e) {
 								console.warn("Could not fit map bounds:", e);
 							}
+						} else {
+							// No existing location — auto-locate current GPS position and zoom in
+							geoCtrl.map.once("locationfound", (e) => {
+	geoCtrl.map.setView(e.latlng, 19);
+});
+geoCtrl.map.locate({ enableHighAccuracy: true });
 						}
 					}
 				});
@@ -690,9 +696,9 @@ const EditMixin = {
 				if (mapReady) return;
 				mapReady = true;
 				protoMakeMap.call(geoCtrl, v !== undefined ? v : existingValue);
-			};
-			subDialog.$wrapper.one("shown.bs.modal", () => {
-				if (geoCtrl.map) {
+				// Delay so Bootstrap animation finishes and container has real dimensions
+				setTimeout(() => {
+					if (!geoCtrl.map) return;
 					geoCtrl.map.invalidateSize();
 					const layers = geoCtrl.editableLayers?.getLayers() || [];
 					if (layers.length) {
@@ -703,9 +709,14 @@ const EditMixin = {
 						} catch (_e) {
 							console.warn("Could not fit map bounds:", _e);
 						}
+					} else {
+						geoCtrl.map.once("locationfound", (e) => {
+							geoCtrl.map.setView(e.latlng, 19);
+						});
+						geoCtrl.map.locate({ enableHighAccuracy: true });
 					}
-				}
-			});
+				}, 350);
+			};
 			subDialog.$wrapper.one("hidden.bs.modal", () => subDialog.$wrapper.remove());
 		});
 
