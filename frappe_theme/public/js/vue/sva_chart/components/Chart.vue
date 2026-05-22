@@ -519,9 +519,9 @@ const handleAction = async (action) => {
 
 		let dialog = new frappe.ui.Dialog({
 			title:
-				props.chart?.details?.report_name ||
-				props.chart?.details?.document_type ||
-				"Data Table",
+				__(props.chart?.details?.report_name) ||
+				__(props.chart?.details?.document_type) ||
+				__("Data Table"),
 			fields: [
 				{
 					fieldtype: "HTML",
