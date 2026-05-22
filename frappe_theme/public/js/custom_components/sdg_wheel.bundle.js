@@ -378,7 +378,7 @@ class SVASDGWheel {
 		}
 
 		let dialog = new frappe.ui.Dialog({
-			title: this.report_name || "Data Table",
+			title: __(this.report_name) || __("Data Table"),
 			fields: [
 				{
 					fieldtype: "HTML",

@@ -217,6 +217,55 @@ class NumberCard:
 			return {"count": 0, "message": str(e), "column": {"fieldtype": "Int"}}
 
 	@staticmethod
+	def _count_with_null_safe_filters(doctype: str, filters: list) -> int:
+		"""Count records using NULL-safe != filter handling.
+
+		SQL's `!=` excludes NULL rows. For filters like `["field","!=","Test"]`,
+		this adds `OR field IS NULL` so unset records are included in the count.
+		"""
+		has_ne = any(len(f) >= 3 and f[2] == "!=" for f in filters)
+		if not has_ne:
+			return frappe.db.count(doctype, filters=filters)
+
+		from frappe.query_builder.functions import Count
+
+		DT = frappe.qb.DocType(doctype)
+		q = frappe.qb.from_(DT).select(Count("*").as_("count"))
+
+		_OP_MAP = {
+			"=": lambda fld, val: fld == val,
+			">": lambda fld, val: fld > val,
+			">=": lambda fld, val: fld >= val,
+			"<": lambda fld, val: fld < val,
+			"<=": lambda fld, val: fld <= val,
+			"like": lambda fld, val: fld.like(val),
+			"not like": lambda fld, val: fld.not_like(val),
+		}
+
+		for f in filters:
+			if len(f) < 4:
+				continue
+			fld = DT[f[1]]
+			op, val = f[2], f[3]
+
+			if op == "!=":
+				# Include rows where field is NULL (unset) as well
+				q = q.where((fld != val) | fld.isnull())
+			elif op == "is" and isinstance(val, str):
+				if val.lower() == "not set":
+					q = q.where(fld.isnull() | (fld == ""))
+				else:
+					q = q.where(fld.isnotnull() & (fld != ""))
+			elif op in ("in", "not in"):
+				vals = val if isinstance(val, list | tuple) else str(val).split(",")
+				q = q.where(fld.isin(vals) if op == "in" else fld.notin(vals))
+			elif op in _OP_MAP:
+				q = q.where(_OP_MAP[op](fld, val))
+
+		result = q.run()
+		return result[0][0] if result else 0
+
+	@staticmethod
 	def card_type_doctype(
 		details: dict,
 		doctype: str | None = None,
@@ -297,7 +346,7 @@ class NumberCard:
 
 			function = details.get("function")
 			if function == "Count":
-				count = frappe.db.count(details.get("document_type"), filters=_filters)
+				count = NumberCard._count_with_null_safe_filters(details.get("document_type"), _filters)
 			else:
 				agg_function = NumberCard.AGGREGATE_FUNCTIONS.get(function)
 				if not agg_function:
