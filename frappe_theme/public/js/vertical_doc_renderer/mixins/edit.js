@@ -525,6 +525,10 @@ const EditMixin = {
 						const newRows = [saved];
 						doc[df.fieldname] = newRows; // keep cache fresh
 						await me._saveTableValue(df, doc, newRows, colIndex);
+					},
+					{
+						title: __(df.label || df.fieldname),
+						primary_action_label: __("Save"),
 					}
 				);
 				return;
@@ -690,7 +694,15 @@ const EditMixin = {
 	 * @param {number|null} rowIdx    — null = new row; number = edit existing
 	 * @param {Function}    onSave    — called with merged row data on confirm
 	 */
-	async _openChildRowDialog(tableDf, parentDoc, childMeta, rowData, rowIdx, onSave) {
+	async _openChildRowDialog(
+		tableDf,
+		parentDoc,
+		childMeta,
+		rowData,
+		rowIdx,
+		onSave,
+		options = {}
+	) {
 		const me = this;
 		const SKIP_TYPES = new Set([
 			"Column Break",
@@ -731,9 +743,10 @@ const EditMixin = {
 		if (!fields.length) return;
 
 		const subDialog = new frappe.ui.Dialog({
-			title: rowIdx === null ? __("Add Row") : __("Edit Row"),
+			title: options.title || (rowIdx === null ? __("Add Row") : __("Edit Row")),
 			fields,
-			primary_action_label: rowIdx === null ? __("Add") : __("Update"),
+			primary_action_label:
+				options.primary_action_label || (rowIdx === null ? __("Add") : __("Update")),
 			primary_action(values) {
 				subDialog.hide();
 				onSave({ ...rowData, ...values });

@@ -77,6 +77,7 @@ const UISetupMixin = {
 		scrollBox.style.cssText = [
 			"width: 100%;",
 			"overflow: auto;",
+			"-webkit-overflow-scrolling: touch;", // iOS momentum scroll
 			this.max_height > 0 ? `max-height: ${this.max_height}px;` : "",
 		]
 			.filter(Boolean)

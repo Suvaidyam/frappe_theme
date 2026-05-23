@@ -1,5 +1,18 @@
 const RenderingMixin = {
 	/**
+	 * Return label column width capped for narrow viewports so the params column
+	 * never pushes all data columns off-screen on mobile.
+	 * On screens wider than 768 px the configured value is returned unchanged.
+	 */
+	_responsiveLabelWidth() {
+		const raw = this.label_width || 160;
+		const vw = window.innerWidth || 375;
+		if (vw >= 768) return raw;
+		// Cap at 42 % of viewport, min 100 px, so at least one data column peeks in.
+		return Math.min(raw, Math.max(100, Math.floor(vw * 0.42)));
+	},
+
+	/**
 	 * Top-level render: build table, optional legend, fire afterRender hook.
 	 */
 	render() {
@@ -49,7 +62,7 @@ const RenderingMixin = {
 		this._theadRow = tr; // stored so viewport + delete mixins can append columns
 
 		// "Parameters" sticky label column — highest z-index (corner cell)
-		const labelW = this.label_width || 160;
+		const labelW = this._responsiveLabelWidth();
 		const paramTh = document.createElement("th");
 		paramTh.textContent = __("Parameters");
 		paramTh.className = "sva-vdr-header-cell sva-vdr-sticky-col";
@@ -332,9 +345,9 @@ const RenderingMixin = {
 			word-break: break-word;
 			overflow-wrap: break-word;
 			border: 1px solid rgba(0,0,0,.06);
-			min-width: ${this.label_width || 160}px;
-			width: ${this.label_width || 160}px;
-			max-width: ${this.label_width || 160}px;
+			min-width: ${this._responsiveLabelWidth()}px;
+			width: ${this._responsiveLabelWidth()}px;
+			max-width: ${this._responsiveLabelWidth()}px;
 		`;
 		labelTd.textContent = __(df.label || df.fieldname);
 		tr.appendChild(labelTd);
@@ -484,7 +497,7 @@ const RenderingMixin = {
 	 * @returns {number}
 	 */
 	_calcTableMinWidth(colCount) {
-		const labelW = this.label_width || 160;
+		const labelW = this._responsiveLabelWidth();
 		const colW = this.column_width || 150;
 		const unitW = this.show_unit ? 60 : 0;
 		return labelW + unitW + colCount * colW;
