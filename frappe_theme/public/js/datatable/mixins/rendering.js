@@ -103,7 +103,7 @@ const RenderingMixin = {
 		});
 
 		// Workflow Column
-		if (this.workflow && (this.wf_editable_allowed || this.wf_transitions_allowed)) {
+		if (this.workflow) {
 			let workflow_state_field = this.workflow?.workflow_state_field;
 			const bg = this.workflow_state_bg?.find(
 				(bg) => bg.name === row[workflow_state_field] && bg.style
@@ -334,7 +334,7 @@ const RenderingMixin = {
 		});
 		// ========================= Workflow Logic ======================
 		if (!this.connection?.disable_workflow && this.connection.connection_type !== "Report") {
-			if (this.workflow && (this.wf_editable_allowed || this.wf_transitions_allowed)) {
+			if (this.workflow) {
 				const addColumn = document.createElement("th");
 				addColumn.textContent = this.connection.action_label
 					? this.connection.action_label
@@ -623,10 +623,7 @@ const RenderingMixin = {
 					!this.connection?.disable_workflow &&
 					this.connection.connection_type !== "Report"
 				) {
-					if (
-						this.workflow &&
-						(this.wf_editable_allowed || this.wf_transitions_allowed)
-					) {
+					if (this.workflow) {
 						let workflow_state_field = this.workflow?.workflow_state_field;
 						const bg = this.workflow_state_bg?.find(
 							(bg) => bg.name === row[workflow_state_field] && bg.style
