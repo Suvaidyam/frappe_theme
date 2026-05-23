@@ -52,24 +52,53 @@ const WorkflowMixin = {
 					const field = metaMap[item.fieldname];
 					if (!field) return null;
 					let field_obj = item;
-					return {
+					let field_data = doc[field.fieldname];
+					let _field = {
 						label: field.label,
 						fieldname: field.fieldname,
 						fieldtype: field.fieldtype,
 						default:
-							(field_obj?.read_only || field_obj?.fetch_if_exists) &&
-							doc[field.fieldname],
+							(field_obj?.read_only || field_obj?.fetch_if_exists) && field_data,
 						reqd: field_obj?.read_only ? 0 : field_obj?.reqd,
 						read_only: field_obj?.read_only,
 						options: field.options,
 						...(["Table MultiSelect", "Table"].includes(field.fieldtype)
 							? {
-									data: doc[field.fieldname],
+									data: field_data,
 									cannot_add_rows: field_obj?.read_only,
 									cannot_delete_rows: field_obj?.read_only,
 							  }
 							: {}),
 					};
+					if (["Attach", "Attach Image", "Attach File"].includes(field.fieldtype)) {
+						const hasValue =
+							field_data?.startsWith("/private/") ||
+							field_data?.startsWith("/files/");
+						if (field_obj?.read_only && hasValue) {
+							const fileName = field_data.split("/").pop() || field_data;
+							_field.label = "";
+							_field.fieldtype = "HTML";
+							_field.options = `<div class="frappe-control" data-fieldtype="Attach">
+								<div class="form-group">
+									<div class="clearfix">
+										<label class="control-label" style="padding-right:0">${field.label}</label>
+									</div>
+									<div class="control-input-wrapper">
+										<div class="control-value like-disabled-input">
+											<a href="${window.location.origin + field_data}" target="_blank">${fileName}</a>
+										</div>
+									</div>
+								</div>
+							</div>`;
+							_field.default = "";
+							_field.read_only = 1;
+							_field.reqd = 0;
+						} else if (!field_obj?.read_only) {
+							_field.default = field_data || "";
+							_field.read_only = 0;
+						}
+					}
+					return _field;
 				})
 				.filter(Boolean);
 		} else {
@@ -254,12 +283,12 @@ const WorkflowMixin = {
 		take_action();
 	},
 
-	// Pre-fetches allowed workflow transitions for all unique non-closed states in the table
-	// in a single API call. Result is stored in this._wfTransitionsByState for sync lookup
+	// Pre-fetches allowed workflow transitions for all unique non-closed docs in the table
+	// in a single API call. Result is stored in this._wfTransitionsByDocname for sync lookup
 	// during render. Call once before renderBatch starts; cleared on each reloadTable.
 	async _prefetchWfTransitions(rows) {
 		if (!this.workflow || !this.wf_transitions_allowed) {
-			this._wfTransitionsByState = {};
+			this._wfTransitionsByDocname = {};
 			return;
 		}
 		const wfField = this.workflow.workflow_state_field;
@@ -268,12 +297,17 @@ const WorkflowMixin = {
 				?.filter((s) => ["Positive", "Negative"].includes(s.custom_closure))
 				.map((e) => e.state) || [];
 
-		const states = [
-			...new Set(rows.map((r) => r[wfField]).filter((s) => s && !closureStates.includes(s))),
+		const docnames = [
+			...new Set(
+				rows
+					.filter((row) => row && !closureStates.includes(row[wfField]))
+					.map((row) => row.name)
+					.filter(Boolean)
+			),
 		];
 
-		if (!states.length) {
-			this._wfTransitionsByState = {};
+		if (!docnames.length) {
+			this._wfTransitionsByDocname = {};
 			return;
 		}
 
@@ -281,11 +315,11 @@ const WorkflowMixin = {
 			const { message } = await this.sva_db.call({
 				method: "frappe_theme.dt_api.get_workflow_transitions_for_table",
 				doctype: this.doctype,
-				states,
+				docnames,
 			});
-			this._wfTransitionsByState = message || {};
+			this._wfTransitionsByDocname = message || {};
 		} catch (e) {
-			this._wfTransitionsByState = {};
+			this._wfTransitionsByDocname = {};
 		}
 	},
 };

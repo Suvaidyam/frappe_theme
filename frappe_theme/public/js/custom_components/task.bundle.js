@@ -962,7 +962,7 @@ class SVAmGrantTask {
 				return field;
 			});
 		let task_form = new frappe.ui.Dialog({
-			title: title,
+			title: __(title),
 			fields: fields,
 			primary_action_label: primaryActionLabel,
 			primary_action: function (values) {

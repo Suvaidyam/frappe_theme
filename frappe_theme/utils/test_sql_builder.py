@@ -428,6 +428,118 @@ class TestSQLBuilderPlaceholders(unittest.TestCase):
 		self.assertEqual(result, "SELECT * FROM tbl WHERE id = 10")
 
 
+class TestSQLBuilderDynamicOperator(unittest.TestCase):
+	"""Tests for the {key}_condition dynamic operator override and single-placeholder BETWEEN."""
+
+	# ---------- Dynamic operator override ({key}_condition) ----------
+
+	def test_dynamic_operator_override_not_equal(self):
+		result = SQLBuilder.apply(
+			"SELECT * FROM tbl WHERE amount = %(amount)s",
+			{"amount": 100, "amount_condition": "!="},
+		)
+		self.assertEqual(result, "SELECT * FROM tbl WHERE amount != 100")
+
+	def test_dynamic_operator_override_greater_than(self):
+		result = SQLBuilder.apply(
+			"SELECT * FROM tbl WHERE amount = %(amount)s",
+			{"amount": 500, "amount_condition": ">"},
+		)
+		self.assertEqual(result, "SELECT * FROM tbl WHERE amount > 500")
+
+	def test_dynamic_operator_override_less_than_or_equal(self):
+		result = SQLBuilder.apply(
+			"SELECT * FROM tbl WHERE age = %(age)s",
+			{"age": 65, "age_condition": "<="},
+		)
+		self.assertEqual(result, "SELECT * FROM tbl WHERE age <= 65")
+
+	def test_dynamic_operator_invalid_ignored(self):
+		"""An unrecognised _condition value must not override the SQL operator."""
+		result = SQLBuilder.apply(
+			"SELECT * FROM tbl WHERE name = %(name)s",
+			{"name": "Alice", "name_condition": "DROP TABLE"},
+		)
+		self.assertEqual(result, "SELECT * FROM tbl WHERE name = 'Alice'")
+
+	def test_dynamic_operator_override_missing_condition_key(self):
+		"""No _condition key → SQL operator is used unchanged."""
+		result = SQLBuilder.apply(
+			"SELECT * FROM tbl WHERE amount = %(amount)s",
+			{"amount": 100},
+		)
+		self.assertEqual(result, "SELECT * FROM tbl WHERE amount = 100")
+
+	# ---------- Single-placeholder BETWEEN with {key}_from / {key}_to ----------
+
+	def test_between_via_from_to_params(self):
+		"""BETWEEN resolved from {key}_from / {key}_to when _condition='Between'."""
+		result = SQLBuilder.apply(
+			"SELECT * FROM tbl WHERE date = %(date)s",
+			{
+				"date": ["2024-01-01", "2024-12-31"],
+				"date_condition": "Between",
+				"date_from": "2024-01-01",
+				"date_to": "2024-12-31",
+			},
+		)
+		self.assertEqual(
+			result,
+			"SELECT * FROM tbl WHERE date BETWEEN '2024-01-01' AND '2024-12-31'",
+		)
+
+	def test_between_via_from_to_params_lowercase_condition(self):
+		"""BETWEEN works with lowercase 'between' condition (case-insensitive)."""
+		result = SQLBuilder.apply(
+			"SELECT * FROM tbl WHERE date = %(date)s",
+			{
+				"date": ["2024-01-01", "2024-12-31"],
+				"date_condition": "between",
+				"date_from": "2024-01-01",
+				"date_to": "2024-12-31",
+			},
+		)
+		self.assertEqual(
+			result,
+			"SELECT * FROM tbl WHERE date BETWEEN '2024-01-01' AND '2024-12-31'",
+		)
+
+	def test_between_fallback_to_list_when_from_to_missing(self):
+		"""Fallback: use [v1, v2] list when neither _from nor _to is provided."""
+		result = SQLBuilder.apply(
+			"SELECT * FROM tbl WHERE date = %(date)s",
+			{"date": ["2024-01-01", "2024-12-31"], "date_condition": "Between"},
+		)
+		self.assertEqual(
+			result,
+			"SELECT * FROM tbl WHERE date BETWEEN '2024-01-01' AND '2024-12-31'",
+		)
+
+	def test_between_fallback_when_only_to_is_missing(self):
+		"""Fallback triggers when _from is set but _to is missing."""
+		result = SQLBuilder.apply(
+			"SELECT * FROM tbl WHERE date = %(date)s",
+			{
+				"date": ["2024-01-01", "2024-12-31"],
+				"date_condition": "Between",
+				"date_from": "2024-01-01",
+				# date_to intentionally absent
+			},
+		)
+		self.assertEqual(
+			result,
+			"SELECT * FROM tbl WHERE date BETWEEN '2024-01-01' AND '2024-12-31'",
+		)
+
+	def test_between_returns_neutral_when_no_range_available(self):
+		"""Returns 1=1 when BETWEEN is requested but no range can be resolved."""
+		result = SQLBuilder.apply(
+			"SELECT * FROM tbl WHERE date = %(date)s",
+			{"date": "not-a-list", "date_condition": "Between"},
+		)
+		self.assertEqual(result, "SELECT * FROM tbl WHERE 1=1")
+
+
 class TestSQLBuilderExtractPlaceholders(unittest.TestCase):
 	"""Tests for extract_placeholders method."""
 

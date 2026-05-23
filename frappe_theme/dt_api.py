@@ -3,6 +3,7 @@ import frappe
 from frappe_theme.controllers.chart import Chart
 from frappe_theme.controllers.dt_conf import DTConf
 from frappe_theme.controllers.number_card import NumberCard
+from frappe_theme.overrides.workflow import get_custom_transitions
 
 
 @frappe.whitelist()
@@ -149,7 +150,7 @@ def get_dt_count(doctype, doc=None, ref_doctype=None, filters=None, _type="List"
 
 
 @frappe.whitelist()
-def get_workflow_transitions_for_table(doctype, states):
+def get_workflow_transitions_for_table(doctype, docnames):
 	"""
 	Return allowed workflow transitions for each unique state in one call.
 	Avoids the per-row DB load that frappe.model.workflow.get_transitions does.
@@ -159,27 +160,67 @@ def get_workflow_transitions_for_table(doctype, states):
 	"""
 	import json
 
-	if isinstance(states, str):
+	if isinstance(docnames, str):
 		try:
-			states = json.loads(states)
+			docnames = json.loads(docnames)
 		except (json.JSONDecodeError, TypeError):
-			frappe.throw(frappe._("Invalid value for 'states': expected a JSON list of strings."))
+			frappe.throw(frappe._("Invalid value for 'docnames': expected a JSON list of strings."))
 
-	if not isinstance(states, list) or not all(isinstance(s, str) for s in states):
-		frappe.throw(frappe._("'states' must be a list of strings."))
+	if not isinstance(docnames, list) or not all(isinstance(s, str) for s in docnames):
+		frappe.throw(frappe._("'docnames' must be a list of strings."))
 
-	try:
-		workflow = frappe.get_doc("Workflow", {"document_type": doctype, "is_active": 1})
-	except Exception:
-		return {}
-
-	user_roles = set(frappe.get_roles())
 	result = {}
-
-	for state in states:
-		transitions = [
-			tr.as_dict() for tr in workflow.transitions if tr.state == state and tr.allowed in user_roles
-		]
-		result[state] = transitions
-
+	for docname in docnames:
+		doc = frappe._dict({"doctype": doctype, "name": docname})
+		transitions = get_custom_transitions(doc)
+		result[docname] = transitions
 	return result
+
+
+@frappe.whitelist()
+def get_approval_tracker_listview_setting(doctype_name):
+	if not doctype_name:
+		return None
+	cache_key = f"approval_tracker_listview_{doctype_name}"
+	cached = frappe.cache.get_value(cache_key)
+	if cached is not None:
+		return cached
+	if frappe.db.exists("Approval Tracker ListView Setting", doctype_name):
+		value = frappe.db.get_value("Approval Tracker ListView Setting", doctype_name, "listview_json")
+		if value:
+			frappe.cache.set_value(cache_key, value)
+		return value
+	return None
+
+
+@frappe.whitelist()
+def save_approval_tracker_listview_setting(doctype_name, listview_json):
+	if not doctype_name:
+		frappe.throw(frappe._("Module is required"))
+
+	cache_key = f"approval_tracker_listview_{doctype_name}"
+
+	if frappe.db.exists("Approval Tracker ListView Setting", doctype_name):
+		doc = frappe.get_doc("Approval Tracker ListView Setting", doctype_name)
+		doc.listview_json = listview_json
+		doc.save(ignore_permissions=True)
+	else:
+		frappe.get_doc(
+			{
+				"doctype": "Approval Tracker ListView Setting",
+				"doctype_name": doctype_name,
+				"listview_json": listview_json,
+			}
+		).insert(ignore_permissions=True)
+	frappe.cache.set_value(cache_key, listview_json)
+	return True
+
+
+@frappe.whitelist()
+def delete_approval_tracker_listview_setting(doctype_name):
+	if not doctype_name:
+		return None
+	if frappe.db.exists("Approval Tracker ListView Setting", doctype_name):
+		frappe.delete_doc("Approval Tracker ListView Setting", doctype_name, ignore_permissions=True)
+		frappe.cache.delete_value(f"approval_tracker_listview_{doctype_name}")
+	return True
