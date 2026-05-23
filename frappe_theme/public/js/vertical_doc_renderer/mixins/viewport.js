@@ -212,7 +212,9 @@ const ViewportMixin = {
 		try {
 			// ── Batched mode: rebuild all batch sections from scratch ─────────────
 			if (this._isBatchGrouped && this._isBatchGrouped()) {
-				this.container.querySelectorAll(".sva-vdr-batch-section").forEach((el) => el.remove());
+				this.container
+					.querySelectorAll(".sva-vdr-batch-section")
+					.forEach((el) => el.remove());
 				this._batchInstances = {};
 				this.showLoading();
 				await this._renderBatchGroups();

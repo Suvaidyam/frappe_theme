@@ -112,6 +112,14 @@ const EditMixin = {
 		ctrl.refresh();
 		ctrl.set_value(doc[df.fieldname]);
 		if (ctrl.$input) {
+			// Frappe's Int/Float/Currency/Percent controls use type="text" internally.
+			// Switch to type="number" so the browser rejects non-numeric input and
+			// shows a numeric keyboard on mobile.
+			if (["Int", "Float", "Currency", "Percent"].includes(df.fieldtype)) {
+				ctrl.$input.attr("type", "number");
+				ctrl.$input.attr("step", df.fieldtype === "Int" ? "1" : "any");
+				if (df.non_negative) ctrl.$input.attr("min", "0");
+			}
 			ctrl.$input.focus();
 			// air-datepicker doesn't always open on programmatic focus when a value is
 			// already set — call show() explicitly for date/time types.
@@ -159,6 +167,41 @@ const EditMixin = {
 				newValue = ctrl.get_value();
 			}
 
+			// For numeric fields, reject non-numeric or invalid values.
+			if (["Int", "Float", "Currency", "Percent"].includes(df.fieldtype)) {
+				const raw = ctrl.$input ? ctrl.$input.val() : String(newValue ?? "");
+				if (raw !== "" && raw !== null) {
+					const parsed = df.fieldtype === "Int" ? parseInt(raw, 10) : parseFloat(raw);
+					if (isNaN(parsed)) {
+						frappe.show_alert(
+							{
+								message: __("{0}: only numeric values are allowed.", [
+									__(df.label || df.fieldname),
+								]),
+								indicator: "orange",
+							},
+							4
+						);
+						cancel();
+						return;
+					}
+					if (df.non_negative && parsed < 0) {
+						frappe.show_alert(
+							{
+								message: __("{0}: value cannot be negative.", [
+									__(df.label || df.fieldname),
+								]),
+								indicator: "orange",
+							},
+							4
+						);
+						cancel();
+						return;
+					}
+					newValue = parsed;
+				}
+			}
+
 			// Set saving visual state
 			cell.dataset.saving = "1";
 			cell.style.opacity = "0.5";
@@ -187,7 +230,10 @@ const EditMixin = {
 				// one tick so ctrl.get_value() reliably returns the new ISO date string.
 				ctrl.$input.on("change", () => setTimeout(triggerSave, 0));
 				ctrl.$input.on("keydown", (e) => {
-					if (e.key === "Escape") { e.preventDefault(); cancel(); }
+					if (e.key === "Escape") {
+						e.preventDefault();
+						cancel();
+					}
 				});
 			} else {
 				// Text-like fields — save when focus leaves the input
@@ -275,9 +321,9 @@ const EditMixin = {
 						} else {
 							// No existing location — auto-locate current GPS position and zoom in
 							geoCtrl.map.once("locationfound", (e) => {
-	geoCtrl.map.setView(e.latlng, 19);
-});
-geoCtrl.map.locate({ enableHighAccuracy: true });
+								geoCtrl.map.setView(e.latlng, 19);
+							});
+							geoCtrl.map.locate({ enableHighAccuracy: true });
 						}
 					}
 				});
@@ -469,11 +515,18 @@ geoCtrl.map.locate({ enableHighAccuracy: true });
 			// The row is re-used on every click — existing data pre-fills; saving replaces it.
 			if (me.table_max_rows === 1) {
 				const rowData = rows[0] ? { ...rows[0] } : {};
-				me._openChildRowDialog(df, doc, childMeta, rowData, rows[0] ? 0 : null, async (saved) => {
-					const newRows = [saved];
-					doc[df.fieldname] = newRows; // keep cache fresh
-					await me._saveTableValue(df, doc, newRows, colIndex);
-				});
+				me._openChildRowDialog(
+					df,
+					doc,
+					childMeta,
+					rowData,
+					rows[0] ? 0 : null,
+					async (saved) => {
+						const newRows = [saved];
+						doc[df.fieldname] = newRows; // keep cache fresh
+						await me._saveTableValue(df, doc, newRows, colIndex);
+					}
+				);
 				return;
 			}
 
@@ -594,10 +647,17 @@ geoCtrl.map.locate({ enableHighAccuracy: true });
 			w.querySelectorAll(".sva-tr-edit").forEach((btn) => {
 				btn.onclick = () => {
 					const idx = parseInt(btn.dataset.idx);
-					me._openChildRowDialog(df, doc, childMeta, { ...rows[idx] }, idx, (updated) => {
-						rows[idx] = updated;
-						refreshList();
-					});
+					me._openChildRowDialog(
+						df,
+						doc,
+						childMeta,
+						{ ...rows[idx] },
+						idx,
+						(updated) => {
+							rows[idx] = updated;
+							refreshList();
+						}
+					);
 				};
 			});
 
@@ -649,7 +709,9 @@ geoCtrl.map.locate({ enableHighAccuracy: true });
 
 		// getTableFields: allowlist approach — return fieldname[] or null (show all)
 		if (typeof me.events.getTableFields === "function") {
-			const allowed = await Promise.resolve(me.events.getTableFields(tableDf, parentDoc, me));
+			const allowed = await Promise.resolve(
+				me.events.getTableFields(tableDf, parentDoc, me)
+			);
 			if (Array.isArray(allowed) && allowed.length) {
 				const allowedSet = new Set(allowed);
 				fields = fields.filter((f) => allowedSet.has(f.fieldname));
@@ -659,7 +721,9 @@ geoCtrl.map.locate({ enableHighAccuracy: true });
 		// filterTableField: per-field conditional — return false to hide a field
 		if (typeof me.events.filterTableField === "function") {
 			const results = await Promise.all(
-				fields.map((f) => Promise.resolve(me.events.filterTableField(tableDf, f, parentDoc, me)))
+				fields.map((f) =>
+					Promise.resolve(me.events.filterTableField(tableDf, f, parentDoc, me))
+				)
 			);
 			fields = fields.filter((_, i) => results[i] !== false);
 		}

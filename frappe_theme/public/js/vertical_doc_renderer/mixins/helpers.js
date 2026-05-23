@@ -228,7 +228,12 @@ const HelpersMixin = {
 		const entries = this.data.map((doc, i) => {
 			const label = (labelField && doc[labelField]) || configs[i]?.label || doc.name || "";
 			const rule = this._matchOrderRule(label);
-			return { doc, conf: configs[i] || {}, order: rule ? (rule.order ?? Infinity) : Infinity, origIndex: i };
+			return {
+				doc,
+				conf: configs[i] || {},
+				order: rule ? rule.order ?? Infinity : Infinity,
+				origIndex: i,
+			};
 		});
 		entries.sort((a, b) => a.order - b.order || a.origIndex - b.origIndex);
 
@@ -317,8 +322,10 @@ const HelpersMixin = {
 		} else {
 			// Default: apply fields_to_show / fields_to_hide in meta order
 			visible = all.filter((df) => {
-				if (this.fields_to_hide && this.fields_to_hide.includes(df.fieldname)) return false;
-				if (this.fields_to_show && !this.fields_to_show.includes(df.fieldname)) return false;
+				if (this.fields_to_hide && this.fields_to_hide.includes(df.fieldname))
+					return false;
+				if (this.fields_to_show && !this.fields_to_show.includes(df.fieldname))
+					return false;
 				return true;
 			});
 		}
