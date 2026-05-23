@@ -10,6 +10,23 @@ from frappe.utils import getdate
 from frappe.workflow.doctype.workflow.workflow import Workflow
 
 
+def _enrich_with_custom_selected_fields(transitions):
+	"""Fetch custom_selected_fields directly from DB to bypass Frappe meta cache."""
+	if not transitions:
+		return transitions or []
+	for t in transitions:
+		name = t.get("name") if isinstance(t, dict) else getattr(t, "name", None)
+		if not name:
+			continue
+		try:
+			t["custom_selected_fields"] = frappe.db.get_value(
+				"Workflow Transition", name, "custom_selected_fields"
+			)
+		except Exception:
+			pass
+	return transitions
+
+
 @frappe.whitelist()
 def get_custom_transitions(
 	doc: Union["Document", str, dict], workflow: "Workflow" = None, raise_exception: bool = False
@@ -24,22 +41,22 @@ def get_custom_transitions(
 	if not workflow:
 		workflow_name = get_workflow_name(doc.doctype)
 		if not workflow_name:
-			return get_transitions(doc, workflow, raise_exception)
+			return _enrich_with_custom_selected_fields(get_transitions(doc, workflow, raise_exception))
 		workflow = get_workflow(doc.doctype)
 
 	workflow_state_field = (
 		workflow.workflow_state_field if workflow is not None else get_workflow_state_field(workflow_name)
 	)
 	if not workflow_state_field:
-		return get_transitions(doc, workflow, raise_exception)
+		return _enrich_with_custom_selected_fields(get_transitions(doc, workflow, raise_exception))
 
 	current_state = doc.get(workflow_state_field)
 	if not current_state:
-		return get_transitions(doc, workflow, raise_exception)
+		return _enrich_with_custom_selected_fields(get_transitions(doc, workflow, raise_exception))
 
 	custom_workflow_doc = _get_custom_workflow_doc(doc, current_state)
 	if not custom_workflow_doc or not len(custom_workflow_doc.approval_assignments):
-		return get_transitions(doc, workflow, raise_exception)
+		return _enrich_with_custom_selected_fields(get_transitions(doc, workflow, raise_exception))
 
 	user = frappe.session.user
 	sva_user = frappe.db.get_value("SVA User", {"email": user}, "name")
@@ -52,7 +69,7 @@ def get_custom_transitions(
 		custom_transitions = make_custom_transitions(custom_workflow_doc)
 		return custom_transitions
 	else:
-		return get_transitions(doc, workflow, raise_exception)
+		return _enrich_with_custom_selected_fields(get_transitions(doc, workflow, raise_exception))
 
 
 def make_custom_transitions(custom_workflow_doc):

@@ -52,24 +52,53 @@ const WorkflowMixin = {
 					const field = metaMap[item.fieldname];
 					if (!field) return null;
 					let field_obj = item;
-					return {
+					let field_data = doc[field.fieldname];
+					let _field = {
 						label: field.label,
 						fieldname: field.fieldname,
 						fieldtype: field.fieldtype,
 						default:
-							(field_obj?.read_only || field_obj?.fetch_if_exists) &&
-							doc[field.fieldname],
+							(field_obj?.read_only || field_obj?.fetch_if_exists) && field_data,
 						reqd: field_obj?.read_only ? 0 : field_obj?.reqd,
 						read_only: field_obj?.read_only,
 						options: field.options,
 						...(["Table MultiSelect", "Table"].includes(field.fieldtype)
 							? {
-									data: doc[field.fieldname],
+									data: field_data,
 									cannot_add_rows: field_obj?.read_only,
 									cannot_delete_rows: field_obj?.read_only,
 							  }
 							: {}),
 					};
+					if (["Attach", "Attach Image", "Attach File"].includes(field.fieldtype)) {
+						const hasValue =
+							field_data?.startsWith("/private/") ||
+							field_data?.startsWith("/files/");
+						if (field_obj?.read_only && hasValue) {
+							const fileName = field_data.split("/").pop() || field_data;
+							_field.label = "";
+							_field.fieldtype = "HTML";
+							_field.options = `<div class="frappe-control" data-fieldtype="Attach">
+								<div class="form-group">
+									<div class="clearfix">
+										<label class="control-label" style="padding-right:0">${field.label}</label>
+									</div>
+									<div class="control-input-wrapper">
+										<div class="control-value like-disabled-input">
+											<a href="${window.location.origin + field_data}" target="_blank">${fileName}</a>
+										</div>
+									</div>
+								</div>
+							</div>`;
+							_field.default = "";
+							_field.read_only = 1;
+							_field.reqd = 0;
+						} else if (!field_obj?.read_only) {
+							_field.default = field_data || "";
+							_field.read_only = 0;
+						}
+					}
+					return _field;
 				})
 				.filter(Boolean);
 		} else {
