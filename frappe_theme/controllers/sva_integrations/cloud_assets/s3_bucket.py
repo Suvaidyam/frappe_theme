@@ -146,7 +146,6 @@ class S3Operations:
 					key,
 					ExtraArgs={
 						"ContentType": content_type,
-						"ACL": "public-read",
 						"Metadata": {
 							"ContentType": content_type,
 						},

@@ -87,23 +87,35 @@ frappe.ui.form.States = class SVAFormStates extends frappe.ui.form.States {
 									_field["fields"] = field_obj.fields;
 								}
 								if (
-									!field_obj?.reqd &&
 									["Attach", "Attach Image", "Attach File"].includes(
 										field.fieldtype
 									)
 								) {
-									if (
+									const hasValue =
 										field_data?.startsWith("/private/") ||
-										field_data?.startsWith("/files/")
-									) {
+										field_data?.startsWith("/files/");
+									if (field_obj?.read_only && hasValue) {
+										const fileName = field_data.split("/").pop() || field_data;
 										_field.label = "";
 										_field.fieldtype = "HTML";
-										_field.options = `${field.label} :  <a href="${
-											window.location.origin + field_data
-										}" target="_blank"><i>${field_data}</i></a>`;
+										_field.options = `<div class="frappe-control" data-fieldtype="Attach">
+											<div class="form-group">
+												<div class="clearfix">
+													<label class="control-label" style="padding-right:0">${field.label}</label>
+												</div>
+												<div class="control-input-wrapper">
+													<div class="control-value like-disabled-input">
+														<a href="${window.location.origin + field_data}" target="_blank">${fileName}</a>
+													</div>
+												</div>
+											</div>
+										</div>`;
 										_field.default = "";
-										_field.read_only = true;
+										_field.read_only = 1;
 										_field.reqd = 0;
+									} else if (!field_obj?.read_only) {
+										_field.default = field_data || "";
+										_field.read_only = 0;
 									}
 								}
 								return _field;
