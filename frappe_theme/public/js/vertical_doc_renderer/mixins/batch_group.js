@@ -116,7 +116,9 @@ const BatchGroupMixin = {
 		header.appendChild(document.createTextNode(label));
 
 		// ── Delete button (right-aligned, shown when allow_delete_batch) ─────
+		// First batch (batchNo == 1) never gets a delete button.
 		const canDeleteBatch =
+			parseInt(batchNo) !== 1 &&
 			this.add_more_config &&
 			this.add_more_config.allow_delete_batch &&
 			frappe.model.can_delete(this.doctype);

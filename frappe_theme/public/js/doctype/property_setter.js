@@ -1114,6 +1114,7 @@ const set_vdr_batch_config = (dialog) => {
 		batch_title_prefix: "Soil Parameters - Batch",
 		allow_delete_batch: false,
 		delete_batch_button_label: "Delete Batch",
+		copy_fields_only: [],
 	};
 	try {
 		const saved = JSON.parse(row.vdr_batch_config || "{}");
@@ -1158,6 +1159,25 @@ const set_vdr_batch_config = (dialog) => {
 				description: __('Text shown on the button (e.g. "Add More")'),
 				depends_on: "eval:doc.allow_add_more_table == 1",
 			},
+			{
+				label: __("Setup Copy Fields"),
+				fieldname: "btn_copy_fields",
+				fieldtype: "Button",
+				depends_on: "eval:doc.allow_add_more_table == 1",
+				click() {
+					_openCopyFieldsPicker(batchDialog, cfg);
+				},
+			},
+			{
+				fieldname: "copy_fields_only",
+				fieldtype: "Data",
+				depends_on: "eval:doc.allow_add_more_table == 1",
+				read_only: 1,
+				default:
+					Array.isArray(cfg.copy_fields_only) && cfg.copy_fields_only.length
+						? cfg.copy_fields_only.join(", ")
+						: "plot_parent",
+			},
 			{ fieldtype: "Section Break", label: __("Data Mapping") },
 			{
 				label: __("Source DocType"),
@@ -1197,6 +1217,7 @@ const set_vdr_batch_config = (dialog) => {
 					'Prefix for auto-generated titles. Result: "Prefix - Batch 2". Use {fieldname} to insert a source-doc field value, e.g. "Seed Treatment - {crop_name}"'
 				),
 			},
+
 			{ fieldtype: "Section Break", label: __("Display") },
 			{
 				label: __("New Tables Start Collapsed"),
@@ -1254,6 +1275,14 @@ const set_vdr_batch_config = (dialog) => {
 				}
 			}
 
+			const copyFieldsRaw = (values.copy_fields_only || "").trim();
+			const copyFieldsParsed = copyFieldsRaw
+				? copyFieldsRaw
+						.split(",")
+						.map((s) => s.trim())
+						.filter(Boolean)
+				: [];
+
 			const result = {
 				enable_batch_config: !!values.enable_batch_config,
 				allow_add_more_table: !!values.allow_add_more_table,
@@ -1269,6 +1298,7 @@ const set_vdr_batch_config = (dialog) => {
 				delete_batch_button_label: (
 					values.delete_batch_button_label || "Delete Batch"
 				).trim(),
+				copy_fields_only: copyFieldsParsed,
 			};
 
 			dialog.set_value("vdr_batch_config", JSON.stringify(result));
@@ -1281,6 +1311,105 @@ const set_vdr_batch_config = (dialog) => {
 	dialog.wrapper.append(`<div class="modal-backdrop fade show sva-batch-bd"></div>`);
 	batchDialog.on_hide = () => dialog.wrapper.find(".sva-batch-bd").remove();
 };
+
+// ─── Copy Fields Picker ───────────────────────────────────────────────────────
+async function _openCopyFieldsPicker(batchDialog, cfg) {
+	const vals = batchDialog.get_values(true, false);
+	const doctype = vals.add_more_doctype || "";
+	if (!doctype) {
+		frappe.show_alert({ message: __("Set Source DocType first"), indicator: "orange" });
+		return;
+	}
+
+	const SKIP_TYPES = new Set([
+		"Section Break",
+		"Column Break",
+		"Tab Break",
+		"HTML",
+		"Button",
+		"Fold",
+		"Image",
+		"Signature",
+		"Barcode",
+		"Heading",
+	]);
+	const SYSTEM_FIELDS = new Set([
+		"name",
+		"creation",
+		"modified",
+		"modified_by",
+		"owner",
+		"docstatus",
+		"idx",
+		"parent",
+		"parentfield",
+		"parenttype",
+		"amended_from",
+	]);
+
+	await new Promise((r) => frappe.model.with_doctype(doctype, r));
+	const meta = frappe.get_meta(doctype);
+	const fields = (meta?.fields || []).filter(
+		(f) => !SKIP_TYPES.has(f.fieldtype) && f.fieldname && !SYSTEM_FIELDS.has(f.fieldname)
+	);
+
+	const currentRaw = (vals.copy_fields_only || "plot_parent").trim();
+	const currentSet = new Set(
+		currentRaw
+			? currentRaw
+					.split(",")
+					.map((s) => s.trim())
+					.filter(Boolean)
+			: []
+	);
+
+	// Build checkbox list HTML
+	const rows = fields
+		.map((f) => {
+			const checked = currentSet.has(f.fieldname) ? "checked" : "";
+			return `<label style="display:flex;align-items:center;justify-content:space-between;
+				padding:7px 12px;border-bottom:1px solid var(--border-color,#e8e8e8);
+				cursor:pointer;gap:8px;">
+			<span style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+				<input type="checkbox" data-fieldname="${f.fieldname}" ${checked}
+					style="width:15px;height:15px;flex-shrink:0;cursor:pointer;">
+				<span style="font-size:13px;overflow:hidden;text-overflow:ellipsis;
+					white-space:nowrap;">${frappe.utils.escape_html(f.label || f.fieldname)}</span>
+			</span>
+			<span style="font-size:11px;color:var(--text-muted,#888);white-space:nowrap;
+				flex-shrink:0;">${frappe.utils.escape_html(f.fieldtype)}</span>
+		</label>`;
+		})
+		.join("");
+
+	const listHtml = `
+		<div style="max-height:380px;overflow-y:auto;border:1px solid var(--border-color,#e8e8e8);
+			border-radius:4px;margin-bottom:4px;">
+			${rows || `<p style="padding:16px;color:var(--text-muted,#888);">${__("No fields found")}</p>`}
+		</div>`;
+
+	const picker = new frappe.ui.Dialog({
+		title: __("Select Fields to Copy"),
+		fields: [{ fieldname: "list_html", fieldtype: "HTML", options: listHtml }],
+		primary_action_label: __("Save Settings"),
+		secondary_action_label: __("Reset to Default"),
+		secondary_action() {
+			picker.$wrapper.find("input[type=checkbox]").prop("checked", false);
+			const defField = picker.$wrapper.find(`input[data-fieldname="plot_parent"]`);
+			if (defField.length) defField.prop("checked", true);
+		},
+		primary_action() {
+			const selected = [];
+			picker.$wrapper.find("input[type=checkbox]:checked").each(function () {
+				selected.push($(this).data("fieldname"));
+			});
+			batchDialog.set_value("copy_fields_only", selected.join(", "));
+			frappe.show_alert({ message: __("Copy fields updated"), indicator: "green" });
+			picker.hide();
+		},
+	});
+	picker.show();
+}
 
 // ─── List Filters ─────────────────────────────────────────────────────────────
 const set_list_filters = async (dialog) => {

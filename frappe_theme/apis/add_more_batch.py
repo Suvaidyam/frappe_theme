@@ -5,7 +5,7 @@ from frappe import _
 
 
 @frappe.whitelist()
-def add_more_batch(doctype, filters, grouping_field, link_field=None):
+def add_more_batch(doctype, filters, grouping_field, link_field=None, copy_fields_only=None):
 	"""
 	Generic "Add More" batch duplication for SVAVerticalDocRenderer.
 
@@ -101,12 +101,28 @@ def add_more_batch(doctype, filters, grouping_field, link_field=None):
 	if not latest_batch:
 		return {"created": 0, "next_batch": next_batch, "names": []}
 
+	# When copy_fields_only is provided, only those fields are carried over.
+	# Otherwise all data fields are copied (original behaviour).
+	if isinstance(copy_fields_only, str):
+		import json as _json
+
+		try:
+			copy_fields_only = _json.loads(copy_fields_only)
+		except Exception:
+			copy_fields_only = None
+
+	allowed_copy = set(copy_fields_only) if copy_fields_only else None
+
 	# ── Duplicate each record in the latest batch ────────────────────────────
 	created_names = []
 	for record in latest_batch:
 		new_doc = frappe.new_doc(doctype)
 		for field in data_fieldnames:
-			if field != grouping_field and field in record:
+			if field == grouping_field:
+				continue
+			if allowed_copy is not None and field not in allowed_copy:
+				continue
+			if field in record:
 				new_doc.set(field, record[field])
 		new_doc.set(grouping_field, next_batch)
 		new_doc.insert(ignore_permissions=False)
