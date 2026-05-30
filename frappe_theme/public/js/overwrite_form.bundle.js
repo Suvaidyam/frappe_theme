@@ -1152,7 +1152,6 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 							vdrFilters = [...vdrFilters, ..._extra];
 						}
 					} catch (_err) {
-						console.error("[VDR] extra filters error", _err);
 						frappe.show_alert({
 							message: __("VDR filters error: ") + _err.message,
 							indicator: "red",
@@ -1212,25 +1211,13 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 
 				// ── Parse vdr_batch_config (nested JSON string inside conf) ────────
 				const _addMoreConfig = (() => {
-					if (!conf.vdr_batch_config) {
-						console.log(
-							"[VDR] vdr_batch_config not found in conf for field:",
-							field.fieldname
-						);
-						return null;
-					}
+					if (!conf.vdr_batch_config) return null;
 					try {
 						const cfg =
 							typeof conf.vdr_batch_config === "string"
 								? JSON.parse(conf.vdr_batch_config)
 								: conf.vdr_batch_config;
-						console.log("[VDR] vdr_batch_config parsed:", cfg);
-						if (!cfg.allow_add_more_table && !cfg.enable_batch_config) {
-							console.log(
-								"[VDR] Neither allow_add_more_table nor enable_batch_config — batch config disabled"
-							);
-							return null;
-						}
+						if (!cfg.allow_add_more_table && !cfg.enable_batch_config) return null;
 						return cfg;
 					} catch (e) {
 						console.warn(

@@ -478,6 +478,19 @@ const RenderingMixin = {
 		const formatted = this.formatCellValue(doc[df.fieldname], df, doc, colIndex);
 		td.innerHTML = formatted;
 
+		// Empty Link cell + write permission → show a subtle dropdown hint
+		if (
+			!formatted &&
+			!readOnly &&
+			df.fieldtype === "Link" &&
+			this.crud_permissions &&
+			this.crud_permissions.includes("write")
+		) {
+			td.innerHTML = `<span style="color:#bbb;font-size:12px;user-select:none;" title="${__(
+				"Click to select"
+			)}">▾</span>`;
+		}
+
 		// Only attach edit listener when the cell is writable
 		if (!readOnly) {
 			this.attachEditListener(td, df, doc, colIndex);
