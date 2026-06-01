@@ -395,8 +395,14 @@ const EditMixin = {
 			const proceed = await this.events.beforeSave(df, doc.name, newValue);
 			if (proceed === false) {
 				if (cell) {
+					const orig = cell.dataset.originalContent;
+					cell.innerHTML =
+						orig !== undefined
+							? orig
+							: this.formatCellValue(doc[df.fieldname], df, doc, colIndex);
 					delete cell.dataset.editing;
 					delete cell.dataset.originalContent;
+					this.attachEditListener(cell, df, doc, colIndex);
 				}
 				return;
 			}
