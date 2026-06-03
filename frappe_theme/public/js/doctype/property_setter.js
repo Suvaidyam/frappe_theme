@@ -307,6 +307,7 @@ const field_changes = {
 			{ fn: "vdr_custom_docs_script", ft: "Code" },
 			{ fn: "vdr_fields_config", ft: "Code" },
 			{ fn: "vdr_batch_config", ft: "Code" },
+			{ fn: "vdr_child_add_row_labels", ft: "Code" },
 			{ fn: "crud_permissions", ft: "Code" },
 		];
 
@@ -471,6 +472,9 @@ const field_changes = {
 	},
 	setup_vdr_batch_config: function (frm) {
 		set_vdr_batch_config(frm.config_dialog);
+	},
+	setup_vdr_child_add_row_labels: function (frm) {
+		set_vdr_child_add_row_labels(frm.config_dialog);
 	},
 	setup_crud_permissions: function (frm) {
 		set_crud_permissiions(frm.config_dialog);
@@ -855,6 +859,9 @@ const child_table_field_changes = {
 	},
 	setup_vdr_batch_config: function (frm) {
 		set_vdr_batch_config(frm.child_dialog);
+	},
+	setup_vdr_child_add_row_labels: function (frm) {
+		set_vdr_child_add_row_labels(frm.child_dialog);
 	},
 	setup_crud_permissions: function (frm) {
 		set_crud_permissiions(frm.child_dialog);
@@ -1310,6 +1317,91 @@ const set_vdr_batch_config = (dialog) => {
 	batchDialog.show();
 	dialog.wrapper.append(`<div class="modal-backdrop fade show sva-batch-bd"></div>`);
 	batchDialog.on_hide = () => dialog.wrapper.find(".sva-batch-bd").remove();
+};
+
+// ─── VDR Child Table Add Row Labels Setup ─────────────────────────────────────
+
+const set_vdr_child_add_row_labels = (dialog) => {
+	const row = dialog.get_values(true, false);
+	let existing = {};
+	try {
+		existing = JSON.parse(row.vdr_child_add_row_labels || "{}");
+	} catch {
+		existing = {};
+	}
+
+	// Build rows from existing config
+	let entries = Object.entries(existing).map(([fieldname, label]) => ({ fieldname, label }));
+
+	const buildRowsHtml = (rows) =>
+		rows
+			.map(
+				(r, i) => `
+		<div class="sva-carl-row" data-idx="${i}" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+			<input class="sva-carl-fieldname form-control form-control-sm" placeholder="${__(
+				"Table fieldname"
+			)}"
+				value="${frappe.utils.escape_html(r.fieldname)}" style="flex:1;" />
+			<input class="sva-carl-label form-control form-control-sm" placeholder="${__("Button label")}"
+				value="${frappe.utils.escape_html(r.label)}" style="flex:1;" />
+			<button class="btn btn-xs btn-danger sva-carl-del" data-idx="${i}">✕</button>
+		</div>`
+			)
+			.join("");
+
+	const subDialog = new frappe.ui.Dialog({
+		title: __("Setup Child Table Add Row Labels"),
+		fields: [
+			{
+				fieldname: "rows_html",
+				fieldtype: "HTML",
+				options: `<div id="sva-carl-list" style="margin-bottom:8px;">${buildRowsHtml(
+					entries
+				)}</div>
+					<button class="btn btn-xs btn-primary sva-carl-add">+ ${__("Add Entry")}</button>`,
+			},
+		],
+		primary_action_label: __("Save"),
+		primary_action() {
+			const result = {};
+			subDialog.$wrapper[0].querySelectorAll(".sva-carl-row").forEach((rowEl) => {
+				const fn = rowEl.querySelector(".sva-carl-fieldname")?.value?.trim();
+				const lbl = rowEl.querySelector(".sva-carl-label")?.value?.trim();
+				if (fn && lbl) result[fn] = lbl;
+			});
+			dialog.set_value("vdr_child_add_row_labels", JSON.stringify(result));
+			subDialog.hide();
+		},
+	});
+
+	subDialog.show();
+
+	const list = subDialog.$wrapper[0].querySelector("#sva-carl-list");
+
+	// Add row
+	subDialog.$wrapper[0].querySelector(".sva-carl-add").addEventListener("click", () => {
+		const div = document.createElement("div");
+		div.className = "sva-carl-row";
+		div.style.cssText = "display:flex;gap:8px;align-items:center;margin-bottom:6px;";
+		div.innerHTML = `
+			<input class="sva-carl-fieldname form-control form-control-sm" placeholder="${__(
+				"Table fieldname"
+			)}" style="flex:1;" />
+			<input class="sva-carl-label form-control form-control-sm" placeholder="${__(
+				"Button label"
+			)}" style="flex:1;" />
+			<button class="btn btn-xs btn-danger sva-carl-del">✕</button>`;
+		list.appendChild(div);
+		div.querySelector(".sva-carl-del").addEventListener("click", () => div.remove());
+	});
+
+	// Delete existing rows
+	list.querySelectorAll(".sva-carl-del").forEach((btn) => {
+		btn.addEventListener("click", () => btn.closest(".sva-carl-row").remove());
+	});
+
+	dialog.wrapper.append(`<div class="modal-backdrop fade show sva-carl-bd"></div>`);
+	subDialog.on_hide = () => dialog.wrapper.find(".sva-carl-bd").remove();
 };
 
 // ─── Copy Fields Picker ───────────────────────────────────────────────────────

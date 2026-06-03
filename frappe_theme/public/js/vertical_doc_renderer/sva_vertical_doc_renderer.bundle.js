@@ -128,6 +128,7 @@ class SVAVerticalDocRenderer {
 		add_more_config = null, // batch config from vdr_batch_config property setter field
 		//   { allow_add_more_table, add_more_button_label, add_more_doctype,
 		//     grouping_field, plot_link_field, default_collapsed_new_table, batch_title_prefix }
+		child_add_row_labels = null, // { [fieldname]: "Custom Label" } — per child-table "Add Row" label
 		_is_sub_vdr = false, // true when instantiated as a batch child — suppresses reload button
 	}) {
 		// Branch on doctype type: string = name to fetch, object = pre-built/mimicked meta
@@ -170,6 +171,7 @@ class SVAVerticalDocRenderer {
 			link_title_fields,
 			table_max_rows: vdr_table_max_rows ? Number(vdr_table_max_rows) : table_max_rows,
 			add_more_config,
+			child_add_row_labels,
 			_is_sub_vdr,
 			_initial_fields_config: fields_config ? [...fields_config] : null,
 			_has_user_settings: false,

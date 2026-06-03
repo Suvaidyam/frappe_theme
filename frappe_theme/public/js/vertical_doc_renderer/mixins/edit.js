@@ -604,6 +604,14 @@ const EditMixin = {
 
 		const atMax = () => me.table_max_rows && rows.length >= me.table_max_rows;
 
+		// Resolve per-field "Add Row" label.
+		// Priority: child_add_row_labels config (from Property Setter) → getAddRowLabel event → default.
+		const addRowLabel =
+			(me.child_add_row_labels && me.child_add_row_labels[df.fieldname]) ||
+			(typeof me.events.getAddRowLabel === "function" &&
+				me.events.getAddRowLabel(df, doc, me)) ||
+			__("Add Row");
+
 		const dialogFields = [
 			{
 				fieldname: "row_list",
@@ -618,7 +626,7 @@ const EditMixin = {
 				fieldname: "add_row_btn",
 				fieldtype: "HTML",
 				options: `<button class="btn btn-xs btn-primary sva-tr-add" style="margin-top:6px;">+ ${__(
-					"Add Row"
+					addRowLabel
 				)}</button>`,
 			});
 		}

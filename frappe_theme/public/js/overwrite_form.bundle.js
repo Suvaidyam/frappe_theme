@@ -1237,6 +1237,9 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 						? JSON.parse(conf.vdr_fields_config)
 						: null,
 					add_more_config: _addMoreConfig,
+					child_add_row_labels: conf.vdr_child_add_row_labels
+						? JSON.parse(conf.vdr_child_add_row_labels)
+						: null,
 				});
 
 				instance._vdr_link_fieldname = conf.vdr_link_fieldname || null;
