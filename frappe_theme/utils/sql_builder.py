@@ -583,6 +583,7 @@ class SQLBuilder:
 			"LIKE",
 			"not like",
 			"NOT LIKE",
+			"MultiRange",
 		]
 	)
 
@@ -601,6 +602,21 @@ class SQLBuilder:
 			dynamic_op = self.params.get(key + "_condition")
 			if dynamic_op and dynamic_op in self._CONDITION_OPERATORS:
 				op = dynamic_op
+
+			# MultiRange: OR BETWEEN for multiple date ranges
+			if op == "MultiRange":
+				ranges = self.params.get(key + "_ranges", [])
+				if not ranges:
+					return "1=1"
+				conditions = []
+				for r in ranges:
+					if isinstance(r, list | tuple) and len(r) == 2:
+						conditions.append(
+							f"{column} BETWEEN {self.format_value(r[0])} AND {self.format_value(r[1])}"
+						)
+				if not conditions:
+					return "1=1"
+				return f"({' OR '.join(conditions)})"
 
 			# Between: use {key}_from / {key}_to or fall back to [val1, val2]
 			if op.upper() == "BETWEEN":
