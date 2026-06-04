@@ -162,7 +162,8 @@ const EditMixin = {
 				const raw = ctrl.$input.val();
 				newValue = raw ? frappe.datetime.user_to_str(raw, true) : "";
 			} else if (df.fieldtype === "Time") {
-				newValue = ctrl.$input.val() || "";
+				// Strip microseconds — Frappe only accepts HH:mm:ss
+				newValue = (ctrl.$input.val() || "").slice(0, 8);
 			} else {
 				newValue = ctrl.get_value();
 			}
