@@ -486,7 +486,7 @@ const RenderingMixin = {
 		const tbody = document.createElement("tbody");
 		this.tBody = tbody;
 		let rowIndex = 0;
-		const batchSize = this.options?.pageLimit || 30;
+		const batchSize = this.limit || this.options?.pageLimit || 30;
 		tbody.style.whiteSpace = "nowrap";
 
 		if (this.currentSort) {
