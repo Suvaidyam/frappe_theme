@@ -102,8 +102,12 @@ frappe.ui.form.ControlDate = class extends frappe.ui.form.ControlDate {
 	}
 
 	_hide_add_range_button() {
+		if (this._adding_range) return;
 		this.$wrapper.find(".sva-add-range-btn").remove();
-		this.$wrapper.find(".sva-date-range-row .control-input-wrapper").unwrap();
+		const $row = this.$wrapper.find(".sva-date-range-row");
+		if ($row.length) {
+			$row.find(".control-input-wrapper").unwrap();
+		}
 	}
 
 	_add_date_range() {
@@ -111,8 +115,10 @@ frappe.ui.form.ControlDate = class extends frappe.ui.form.ControlDate {
 		if (!Array.isArray(val) || val.length !== 2) return;
 		this._date_ranges.push([val[0], val[1]]);
 		this.frm.doc[this.df.fieldname] = [];
+		this._adding_range = true;
 		this.datepicker.clear();
 		this.$input.val("");
+		this._adding_range = false;
 		this._render_range_chips();
 	}
 
@@ -270,7 +276,9 @@ frappe.ui.form.ControlDate = class extends frappe.ui.form.ControlDate {
 				this.set_value(parsed);
 			} else {
 				this.set_value(null);
-				this._hide_add_range_button();
+				if (!this._adding_range) {
+					this._hide_add_range_button();
+				}
 			}
 		});
 	}
