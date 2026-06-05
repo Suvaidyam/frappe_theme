@@ -43,6 +43,9 @@ const AddMoreMixin = {
 				filters: JSON.stringify(this.filters || []),
 				grouping_field: groupingField,
 				link_field: linkField,
+				copy_fields_only: cfg.copy_fields_only
+					? JSON.stringify(cfg.copy_fields_only)
+					: null,
 			});
 
 			if (!result || result.created === 0) {

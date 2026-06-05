@@ -77,6 +77,7 @@ const UISetupMixin = {
 		scrollBox.style.cssText = [
 			"width: 100%;",
 			"overflow: auto;",
+			"-webkit-overflow-scrolling: touch;", // iOS momentum scroll
 			this.max_height > 0 ? `max-height: ${this.max_height}px;` : "",
 		]
 			.filter(Boolean)
@@ -180,20 +181,11 @@ const UISetupMixin = {
 			try {
 				cfg = JSON.parse(cfg);
 				this.add_more_config = cfg; // update in place so callers see the object
-				console.log("[VDR] _renderAddMoreButton: parsed add_more_config from string", cfg);
 			} catch (e) {
-				console.warn(
-					"[VDR] _renderAddMoreButton: failed to parse add_more_config string",
-					e
-				);
 				cfg = null;
 			}
 		}
-		console.log("[VDR] _renderAddMoreButton called — add_more_config:", cfg);
 		if (!cfg || !cfg.allow_add_more_table) {
-			console.log(
-				"[VDR] _renderAddMoreButton: no-op (add_more_config missing or allow_add_more_table false)"
-			);
 			return;
 		}
 
@@ -216,7 +208,6 @@ const UISetupMixin = {
 			if (typeof this._onAddMoreClick === "function") {
 				this._onAddMoreClick(cfg);
 			} else {
-				console.warn("[VDR] _onAddMoreClick not implemented. Batch config:", cfg);
 				frappe.show_alert({
 					message: __(
 						"Add More clicked. Implement _onAddMoreClick() to handle batch creation."
@@ -232,7 +223,6 @@ const UISetupMixin = {
 		if (this._toolbar) {
 			// Insert before the settings gear so Add More is left of gear: [+ Add More][⚙]
 			this._toolbar.insertBefore(btn, this._toolbar.firstChild);
-			console.log("[VDR] Add More button added to toolbar");
 		} else if (this.container) {
 			// No toolbar (no vdr_field_name) — create a minimal footer bar
 			let footer = this.container.querySelector(".sva-vdr-add-more-footer");
@@ -243,7 +233,6 @@ const UISetupMixin = {
 				this.container.appendChild(footer);
 			}
 			footer.appendChild(btn);
-			console.log("[VDR] Add More button added to footer (no toolbar available)");
 		} else {
 			console.warn("[VDR] _renderAddMoreButton: neither _toolbar nor container is ready");
 		}

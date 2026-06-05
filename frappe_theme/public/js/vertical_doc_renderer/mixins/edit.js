@@ -112,6 +112,14 @@ const EditMixin = {
 		ctrl.refresh();
 		ctrl.set_value(doc[df.fieldname]);
 		if (ctrl.$input) {
+			// Frappe's Int/Float/Currency/Percent controls use type="text" internally.
+			// Switch to type="number" so the browser rejects non-numeric input and
+			// shows a numeric keyboard on mobile.
+			if (["Int", "Float", "Currency", "Percent"].includes(df.fieldtype)) {
+				ctrl.$input.attr("type", "number");
+				ctrl.$input.attr("step", df.fieldtype === "Int" ? "1" : "any");
+				if (df.non_negative) ctrl.$input.attr("min", "0");
+			}
 			ctrl.$input.focus();
 			// air-datepicker doesn't always open on programmatic focus when a value is
 			// already set — call show() explicitly for date/time types.
@@ -154,9 +162,45 @@ const EditMixin = {
 				const raw = ctrl.$input.val();
 				newValue = raw ? frappe.datetime.user_to_str(raw, true) : "";
 			} else if (df.fieldtype === "Time") {
-				newValue = ctrl.$input.val() || "";
+				// Strip microseconds — Frappe only accepts HH:mm:ss
+				newValue = (ctrl.$input.val() || "").slice(0, 8);
 			} else {
 				newValue = ctrl.get_value();
+			}
+
+			// For numeric fields, reject non-numeric or invalid values.
+			if (["Int", "Float", "Currency", "Percent"].includes(df.fieldtype)) {
+				const raw = ctrl.$input ? ctrl.$input.val() : String(newValue ?? "");
+				if (raw !== "" && raw !== null) {
+					const parsed = df.fieldtype === "Int" ? parseInt(raw, 10) : parseFloat(raw);
+					if (isNaN(parsed)) {
+						frappe.show_alert(
+							{
+								message: __("{0}: only numeric values are allowed.", [
+									__(df.label || df.fieldname),
+								]),
+								indicator: "orange",
+							},
+							4
+						);
+						cancel();
+						return;
+					}
+					if (df.non_negative && parsed < 0) {
+						frappe.show_alert(
+							{
+								message: __("{0}: value cannot be negative.", [
+									__(df.label || df.fieldname),
+								]),
+								indicator: "orange",
+							},
+							4
+						);
+						cancel();
+						return;
+					}
+					newValue = parsed;
+				}
 			}
 
 			// Set saving visual state
@@ -187,7 +231,10 @@ const EditMixin = {
 				// one tick so ctrl.get_value() reliably returns the new ISO date string.
 				ctrl.$input.on("change", () => setTimeout(triggerSave, 0));
 				ctrl.$input.on("keydown", (e) => {
-					if (e.key === "Escape") { e.preventDefault(); cancel(); }
+					if (e.key === "Escape") {
+						e.preventDefault();
+						cancel();
+					}
 				});
 			} else {
 				// Text-like fields — save when focus leaves the input
@@ -272,6 +319,12 @@ const EditMixin = {
 							} catch (e) {
 								console.warn("Could not fit map bounds:", e);
 							}
+						} else {
+							// No existing location — auto-locate current GPS position and zoom in
+							geoCtrl.map.once("locationfound", (e) => {
+								geoCtrl.map.setView(e.latlng, 19);
+							});
+							geoCtrl.map.locate({ enableHighAccuracy: true });
 						}
 					}
 				});
@@ -343,8 +396,14 @@ const EditMixin = {
 			const proceed = await this.events.beforeSave(df, doc.name, newValue);
 			if (proceed === false) {
 				if (cell) {
+					const orig = cell.dataset.originalContent;
+					cell.innerHTML =
+						orig !== undefined
+							? orig
+							: this.formatCellValue(doc[df.fieldname], df, doc, colIndex);
 					delete cell.dataset.editing;
 					delete cell.dataset.originalContent;
+					this.attachEditListener(cell, df, doc, colIndex);
 				}
 				return;
 			}
@@ -463,11 +522,22 @@ const EditMixin = {
 			// The row is re-used on every click — existing data pre-fills; saving replaces it.
 			if (me.table_max_rows === 1) {
 				const rowData = rows[0] ? { ...rows[0] } : {};
-				me._openChildRowDialog(df, doc, childMeta, rowData, rows[0] ? 0 : null, async (saved) => {
-					const newRows = [saved];
-					doc[df.fieldname] = newRows; // keep cache fresh
-					await me._saveTableValue(df, doc, newRows, colIndex);
-				});
+				me._openChildRowDialog(
+					df,
+					doc,
+					childMeta,
+					rowData,
+					rows[0] ? 0 : null,
+					async (saved) => {
+						const newRows = [saved];
+						doc[df.fieldname] = newRows; // keep cache fresh
+						await me._saveTableValue(df, doc, newRows, colIndex);
+					},
+					{
+						title: __(df.label || df.fieldname),
+						primary_action_label: __("Save"),
+					}
+				);
 				return;
 			}
 
@@ -535,6 +605,14 @@ const EditMixin = {
 
 		const atMax = () => me.table_max_rows && rows.length >= me.table_max_rows;
 
+		// Resolve per-field "Add Row" label.
+		// Priority: child_add_row_labels config (from Property Setter) → getAddRowLabel event → default.
+		const addRowLabel =
+			(me.child_add_row_labels && me.child_add_row_labels[df.fieldname]) ||
+			(typeof me.events.getAddRowLabel === "function" &&
+				me.events.getAddRowLabel(df, doc, me)) ||
+			__("Add Row");
+
 		const dialogFields = [
 			{
 				fieldname: "row_list",
@@ -549,7 +627,7 @@ const EditMixin = {
 				fieldname: "add_row_btn",
 				fieldtype: "HTML",
 				options: `<button class="btn btn-xs btn-primary sva-tr-add" style="margin-top:6px;">+ ${__(
-					"Add Row"
+					addRowLabel
 				)}</button>`,
 			});
 		}
@@ -588,10 +666,17 @@ const EditMixin = {
 			w.querySelectorAll(".sva-tr-edit").forEach((btn) => {
 				btn.onclick = () => {
 					const idx = parseInt(btn.dataset.idx);
-					me._openChildRowDialog(df, doc, childMeta, { ...rows[idx] }, idx, (updated) => {
-						rows[idx] = updated;
-						refreshList();
-					});
+					me._openChildRowDialog(
+						df,
+						doc,
+						childMeta,
+						{ ...rows[idx] },
+						idx,
+						(updated) => {
+							rows[idx] = updated;
+							refreshList();
+						}
+					);
 				};
 			});
 
@@ -624,7 +709,15 @@ const EditMixin = {
 	 * @param {number|null} rowIdx    — null = new row; number = edit existing
 	 * @param {Function}    onSave    — called with merged row data on confirm
 	 */
-	async _openChildRowDialog(tableDf, parentDoc, childMeta, rowData, rowIdx, onSave) {
+	async _openChildRowDialog(
+		tableDf,
+		parentDoc,
+		childMeta,
+		rowData,
+		rowIdx,
+		onSave,
+		options = {}
+	) {
 		const me = this;
 		const SKIP_TYPES = new Set([
 			"Column Break",
@@ -643,7 +736,9 @@ const EditMixin = {
 
 		// getTableFields: allowlist approach — return fieldname[] or null (show all)
 		if (typeof me.events.getTableFields === "function") {
-			const allowed = await Promise.resolve(me.events.getTableFields(tableDf, parentDoc, me));
+			const allowed = await Promise.resolve(
+				me.events.getTableFields(tableDf, parentDoc, me)
+			);
 			if (Array.isArray(allowed) && allowed.length) {
 				const allowedSet = new Set(allowed);
 				fields = fields.filter((f) => allowedSet.has(f.fieldname));
@@ -653,7 +748,9 @@ const EditMixin = {
 		// filterTableField: per-field conditional — return false to hide a field
 		if (typeof me.events.filterTableField === "function") {
 			const results = await Promise.all(
-				fields.map((f) => Promise.resolve(me.events.filterTableField(tableDf, f, parentDoc, me)))
+				fields.map((f) =>
+					Promise.resolve(me.events.filterTableField(tableDf, f, parentDoc, me))
+				)
 			);
 			fields = fields.filter((_, i) => results[i] !== false);
 		}
@@ -661,9 +758,10 @@ const EditMixin = {
 		if (!fields.length) return;
 
 		const subDialog = new frappe.ui.Dialog({
-			title: rowIdx === null ? __("Add Row") : __("Edit Row"),
+			title: options.title || (rowIdx === null ? __("Add Row") : __("Edit Row")),
 			fields,
-			primary_action_label: rowIdx === null ? __("Add") : __("Update"),
+			primary_action_label:
+				options.primary_action_label || (rowIdx === null ? __("Add") : __("Update")),
 			primary_action(values) {
 				subDialog.hide();
 				onSave({ ...rowData, ...values });
@@ -690,9 +788,9 @@ const EditMixin = {
 				if (mapReady) return;
 				mapReady = true;
 				protoMakeMap.call(geoCtrl, v !== undefined ? v : existingValue);
-			};
-			subDialog.$wrapper.one("shown.bs.modal", () => {
-				if (geoCtrl.map) {
+				// Delay so Bootstrap animation finishes and container has real dimensions
+				setTimeout(() => {
+					if (!geoCtrl.map) return;
 					geoCtrl.map.invalidateSize();
 					const layers = geoCtrl.editableLayers?.getLayers() || [];
 					if (layers.length) {
@@ -703,9 +801,14 @@ const EditMixin = {
 						} catch (_e) {
 							console.warn("Could not fit map bounds:", _e);
 						}
+					} else {
+						geoCtrl.map.once("locationfound", (e) => {
+							geoCtrl.map.setView(e.latlng, 19);
+						});
+						geoCtrl.map.locate({ enableHighAccuracy: true });
 					}
-				}
-			});
+				}, 350);
+			};
 			subDialog.$wrapper.one("hidden.bs.modal", () => subDialog.$wrapper.remove());
 		});
 

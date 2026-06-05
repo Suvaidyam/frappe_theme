@@ -57,6 +57,8 @@
   "vdr_fields_config",
   "setup_vdr_batch_config",
   "vdr_batch_config",
+  "setup_vdr_child_add_row_labels",
+  "vdr_child_add_row_labels",
   "section_break_ylfd",
   "sdg_report",
   "sdg_name_column",
@@ -1041,6 +1043,17 @@
    "fieldname": "vdr_batch_config",
    "fieldtype": "Code",
    "label": "Batch Config"
+  },
+  {
+   "fieldname": "setup_vdr_child_add_row_labels",
+   "fieldtype": "Button",
+   "label": "Setup Child Table Labels"
+  },
+  {
+   "fieldname": "vdr_child_add_row_labels",
+   "fieldtype": "Code",
+   "hidden": 1,
+   "label": "Child Table Add Row Labels"
   },
   {
    "depends_on": "eval:doc.property_type == \"Vertical Doc Renderer\"",

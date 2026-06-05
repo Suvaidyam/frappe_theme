@@ -116,7 +116,9 @@ const BatchGroupMixin = {
 		header.appendChild(document.createTextNode(label));
 
 		// ── Delete button (right-aligned, shown when allow_delete_batch) ─────
+		// First batch (batchNo == 1) never gets a delete button.
 		const canDeleteBatch =
+			parseInt(batchNo) !== 1 &&
 			this.add_more_config &&
 			this.add_more_config.allow_delete_batch &&
 			frappe.model.can_delete(this.doctype);
@@ -198,6 +200,7 @@ const BatchGroupMixin = {
 			max_height: 0, // each batch table expands naturally; no inner scroll cap
 			table_max_rows: this.table_max_rows || null,
 			signal: this.signal || null,
+			child_add_row_labels: this.child_add_row_labels || null,
 			// No add_more_config, no vdr_field_name → no nested "Add More" / settings / reload
 			_is_sub_vdr: true,
 		});
