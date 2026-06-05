@@ -291,6 +291,10 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			this.setupDTTriggers(frm);
 			const tab_field = frm.get_active_tab()?.df?.fieldname;
 			await this.tabContent(frm, tab_field);
+			// Re-apply dashboard filters after instances are initialized (handles back-navigation)
+			if (frm?.meta?.issingle && frm?.meta?.is_dashboard) {
+				await this.dashboard_form_events_handler(frm);
+			}
 		} catch (error) {
 			console.error("Error in custom_refresh:", error);
 		}
@@ -571,7 +575,18 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			);
 
 			setTimeout(() => {
-				if (frm?.["sva_active_filters"]?.[apply_button.fieldname]) {
+				const hasActiveFilters = frm?.["sva_active_filters"]?.[apply_button?.fieldname];
+				const filterFields = tab_fields.filter((f) => f.fieldtype !== "Button");
+				const hasFieldValues = filterFields.some((f) => {
+					const val = frm.doc[f.fieldname];
+					return (
+						val !== undefined &&
+						val !== null &&
+						val !== "" &&
+						!(Array.isArray(val) && val.length === 0)
+					);
+				});
+				if (apply_button && (hasActiveFilters || hasFieldValues)) {
 					apply_dashboard_filters(frm, tab_fields, apply_button);
 				}
 			}, 500);

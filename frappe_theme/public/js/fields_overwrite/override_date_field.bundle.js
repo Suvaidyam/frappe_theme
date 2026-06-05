@@ -62,6 +62,7 @@ frappe.ui.form.ControlDate = class extends frappe.ui.form.ControlDate {
 		if (this.$wrapper.find(".sva-add-range-btn").length) return;
 		const $btn = $("<button>")
 			.attr("type", "button")
+			.attr("title", __("Add Range"))
 			.addClass("sva-add-range-btn")
 			.css({
 				flexShrink: "0",
@@ -75,11 +76,9 @@ frappe.ui.form.ControlDate = class extends frappe.ui.form.ControlDate {
 				alignItems: "center",
 				justifyContent: "center",
 				cursor: "pointer",
-				fontSize: "14px",
-				fontWeight: "700",
 				color: "#495057",
 			})
-			.text("+");
+			.html(frappe.utils.icon("small-add", "sm"));
 		$btn.on("click", (e) => {
 			e.preventDefault();
 			e.stopPropagation();
