@@ -170,6 +170,24 @@ class FilterRibbon {
 					return value || "";
 
 				case "Date":
+					// MultiRange: [[from1,to1], [from2,to2], ...]
+					if (Array.isArray(value) && value.length > 0 && Array.isArray(value[0])) {
+						return value
+							.map(
+								([f, t]) =>
+									`${frappe.datetime.str_to_user(
+										f
+									)} – ${frappe.datetime.str_to_user(t)}`
+							)
+							.join(" OR ");
+					}
+					// Between: [date1, date2]
+					if (Array.isArray(value) && value.length === 2) {
+						return `${frappe.datetime.str_to_user(
+							value[0]
+						)} – ${frappe.datetime.str_to_user(value[1])}`;
+					}
+					// Single date
 					if (value && typeof frappe !== "undefined" && frappe.datetime) {
 						return frappe.datetime.str_to_user(value);
 					}
@@ -296,10 +314,37 @@ class FilterRibbon {
 
 		const parsed = [];
 
-		// Handle object format: {"key": "value"}
+		// Handle object format: {"key": "value"} or {"key": ["operator", value]}
 		if (!Array.isArray(filters) && typeof filters === "object") {
+			const KNOWN_OPS = [
+				"=",
+				"!=",
+				"<",
+				">",
+				"<=",
+				">=",
+				"Between",
+				"between",
+				"MultiRange",
+				"multirange",
+				"in",
+				"not in",
+				"like",
+				"not like",
+			];
 			for (const [key, value] of Object.entries(filters)) {
-				const formatted = await this.formatFilter(key, "=", value);
+				let op = "=",
+					unwrapped = value;
+				if (
+					Array.isArray(value) &&
+					value.length === 2 &&
+					typeof value[0] === "string" &&
+					KNOWN_OPS.includes(value[0])
+				) {
+					op = value[0];
+					unwrapped = value[1];
+				}
+				const formatted = await this.formatFilter(key, op, unwrapped);
 				parsed.push(formatted);
 			}
 			return parsed;
@@ -364,6 +409,9 @@ class FilterRibbon {
 			"not in": "is not one of",
 			is: "is",
 			between: "between",
+			Between: "between",
+			MultiRange: "in ranges",
+			multirange: "in ranges",
 		};
 
 		const operatorText = operatorMap[operator] || operator;

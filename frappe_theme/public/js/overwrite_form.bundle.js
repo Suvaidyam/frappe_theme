@@ -291,6 +291,10 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			this.setupDTTriggers(frm);
 			const tab_field = frm.get_active_tab()?.df?.fieldname;
 			await this.tabContent(frm, tab_field);
+			// Re-apply dashboard filters after instances are initialized (handles back-navigation)
+			if (frm?.meta?.issingle && frm?.meta?.is_dashboard) {
+				await this.dashboard_form_events_handler(frm);
+			}
 		} catch (error) {
 			console.error("Error in custom_refresh:", error);
 		}
@@ -389,6 +393,21 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			}
 			let filters = {};
 			fields.forEach((field) => {
+				// Multi-range date filter: when user added extra Between ranges via "+"
+				if (["Date"].includes(field.fieldtype)) {
+					let field_ctrl = frm.fields_dict?.[field.fieldname];
+					const savedRanges = field_ctrl?._date_ranges || [];
+					if (savedRanges.length > 0) {
+						const allRanges = [...savedRanges];
+						const currentVal = frm.doc[field.fieldname];
+						if (Array.isArray(currentVal) && currentVal.length === 2) {
+							allRanges.push(currentVal);
+						}
+						filters[field.filter_key || field.fieldname] = ["MultiRange", allRanges];
+						return; // skip default processing for this field
+					}
+				}
+
 				if (Array.isArray(frm.doc[field.fieldname])) {
 					if (frm.doc[field.fieldname].length > 0) {
 						if (["Date"].includes(field.fieldtype)) {
@@ -498,8 +517,16 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 				} else {
 					frm.set_value(field.fieldname, "");
 				}
-				// reset operator select for date fields
+				// reset operator select and multi-ranges for date fields
 				let field_ctrl = frm.fields_dict?.[field.fieldname];
+				if (field_ctrl?._date_ranges !== undefined) {
+					// clear multi-ranges and chips (covers both sva_date_range and regular date)
+					field_ctrl._date_ranges = [];
+					field_ctrl.$wrapper?.find(".sva-range-chips-area").remove();
+					if (typeof field_ctrl._hide_add_range_button === "function") {
+						field_ctrl._hide_add_range_button();
+					}
+				}
 				if (field_ctrl?._dashboard_condition !== undefined) {
 					field_ctrl._dashboard_condition = "=";
 					field_ctrl.datepicker?.$datepicker?.find(".sva-date-op-select").val("=");
@@ -548,7 +575,18 @@ frappe.ui.form.Form = class CustomForm extends frappe.ui.form.Form {
 			);
 
 			setTimeout(() => {
-				if (frm?.["sva_active_filters"]?.[apply_button.fieldname]) {
+				const hasActiveFilters = frm?.["sva_active_filters"]?.[apply_button?.fieldname];
+				const filterFields = tab_fields.filter((f) => f.fieldtype !== "Button");
+				const hasFieldValues = filterFields.some((f) => {
+					const val = frm.doc[f.fieldname];
+					return (
+						val !== undefined &&
+						val !== null &&
+						val !== "" &&
+						!(Array.isArray(val) && val.length === 0)
+					);
+				});
+				if (apply_button && (hasActiveFilters || hasFieldValues)) {
 					apply_dashboard_filters(frm, tab_fields, apply_button);
 				}
 			}, 500);

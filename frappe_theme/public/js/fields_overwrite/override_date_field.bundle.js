@@ -33,6 +33,7 @@ frappe.ui.form.ControlDate = class extends frappe.ui.form.ControlDate {
 			!this.df?.sva_date_range
 		) {
 			this._dashboard_condition = "=";
+			this._date_ranges = []; // stores additional Between ranges for multi-range OR filter
 			// Directly write to frm.doc on selection so Apply always has the value
 			this.datepicker.update("onSelect", () => {
 				if (this._dashboard_condition === "Between") {
@@ -41,6 +42,7 @@ frappe.ui.form.ControlDate = class extends frappe.ui.form.ControlDate {
 						const d1 = moment(dates[0]).format("YYYY-MM-DD");
 						const d2 = moment(dates[1]).format("YYYY-MM-DD");
 						this.frm.doc[this.df.fieldname] = [d1, d2];
+						this._show_add_range_button();
 					}
 				} else {
 					const raw = this.get_input_value();
@@ -53,6 +55,120 @@ frappe.ui.form.ControlDate = class extends frappe.ui.form.ControlDate {
 				}
 			});
 			this._inject_operator_into_picker();
+		}
+	}
+
+	_show_add_range_button() {
+		if (this.$wrapper.find(".sva-add-range-btn").length) return;
+		const $btn = $("<button>")
+			.attr("type", "button")
+			.attr("title", __("Add Range"))
+			.addClass("sva-add-range-btn")
+			.css({
+				flexShrink: "0",
+				background: "white",
+				border: "1px solid #ced4da",
+				borderRadius: "50%",
+				width: "22px",
+				height: "22px",
+				padding: "0",
+				display: "inline-flex",
+				alignItems: "center",
+				justifyContent: "center",
+				cursor: "pointer",
+				color: "#495057",
+			})
+			.html(frappe.utils.icon("small-add", "sm"));
+		$btn.on("click", (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			this._add_date_range();
+		});
+
+		// Wrap input + "+" in a flex row so they sit side-by-side
+		const $inputWrapper = this.$wrapper.find(".control-input-wrapper");
+		$inputWrapper.css({ position: "" }); // clear any previously set position
+		if (!this.$wrapper.find(".sva-date-range-row").length) {
+			$inputWrapper.wrap(
+				$("<div>").addClass("sva-date-range-row").css({
+					display: "flex",
+					alignItems: "center",
+					gap: "6px",
+				})
+			);
+		}
+		this.$wrapper.find(".sva-date-range-row").append($btn);
+	}
+
+	_hide_add_range_button() {
+		if (this._adding_range) return;
+		this.$wrapper.find(".sva-add-range-btn").remove();
+		const $row = this.$wrapper.find(".sva-date-range-row");
+		if ($row.length) {
+			$row.find(".control-input-wrapper").unwrap();
+		}
+	}
+
+	_add_date_range() {
+		const val = this.frm.doc[this.df.fieldname];
+		if (!Array.isArray(val) || val.length !== 2) return;
+		this._date_ranges.push([val[0], val[1]]);
+		this.frm.doc[this.df.fieldname] = [];
+		this._adding_range = true;
+		this.datepicker.clear();
+		this.$input.val("");
+		this._adding_range = false;
+		this._render_range_chips();
+	}
+
+	_render_range_chips() {
+		let $area = this.$wrapper.find(".sva-range-chips-area");
+		if (!$area.length) {
+			$area = $("<div>").addClass("sva-range-chips-area").css({
+				display: "flex",
+				flexWrap: "wrap",
+				gap: "4px",
+				marginTop: "4px",
+			});
+			const $row = this.$wrapper.find(".sva-date-range-row");
+			($row.length ? $row : this.$wrapper.find(".control-input-wrapper")).after($area);
+		}
+		$area.empty();
+
+		this._date_ranges.forEach((range, idx) => {
+			const [from, to] = range;
+			let fromDisplay = from,
+				toDisplay = to;
+			try {
+				fromDisplay = frappe.datetime.str_to_user(from);
+				toDisplay = frappe.datetime.str_to_user(to);
+			} catch (e) {
+				// keep raw values
+			}
+			const $chip = $("<span>")
+				.addClass("badge badge-light sva-range-chip")
+				.css({ fontSize: "11px", padding: "3px 8px", cursor: "default" })
+				.html(
+					`${fromDisplay} – ${toDisplay} <span class="sva-remove-range" data-idx="${idx}" style="cursor:pointer;margin-left:3px;font-weight:bold;">&times;</span>`
+				);
+			$chip.find(".sva-remove-range").on("click", (e) => {
+				const i = parseInt($(e.currentTarget).data("idx"), 10);
+				this._date_ranges.splice(i, 1);
+				this._render_range_chips();
+				if (this._date_ranges.length === 0) {
+					// Only remove "+" if the current input also has no range selected
+					const currentVal = this.frm.doc[this.df.fieldname];
+					const inputHasRange = Array.isArray(currentVal) && currentVal.length === 2;
+					if (!inputHasRange) {
+						this._hide_add_range_button();
+					}
+				}
+			});
+			$area.append($chip);
+		});
+
+		if (this._date_ranges.length === 0) {
+			$area.remove();
 		}
 	}
 
@@ -116,6 +232,11 @@ frappe.ui.form.ControlDate = class extends frappe.ui.form.ControlDate {
 				this.datepicker.update("range", true);
 				this.datepicker.update("toggleSelected", false);
 			} else {
+				// Clear any saved multi-ranges when leaving Between mode
+				this._date_ranges = [];
+				this._render_range_chips();
+				this._hide_add_range_button();
+
 				this.datepicker.update("range", false);
 				this.datepicker.clear();
 				this.frm.doc[this.df.fieldname] = "";
@@ -126,6 +247,7 @@ frappe.ui.form.ControlDate = class extends frappe.ui.form.ControlDate {
 	}
 
 	make_date_range_picker() {
+		this._date_ranges = []; // multi-range storage
 		let lang = frappe.boot?.user?.language;
 		let datepicker_options = {
 			language: $.fn.datepicker.language?.[lang] ? lang : "en",
@@ -135,6 +257,12 @@ frappe.ui.form.ControlDate = class extends frappe.ui.form.ControlDate {
 			firstDay: frappe.datetime.get_first_day_of_the_week_index(),
 			dateFormat: frappe.boot.sysdefaults?.date_format || "yyyy-mm-dd",
 			onSelect: () => {
+				const dates = this.datepicker.selectedDates;
+				if (dates.length === 2) {
+					this._show_add_range_button();
+				} else {
+					this._hide_add_range_button();
+				}
 				this.$input.trigger("change");
 			},
 		};
@@ -147,6 +275,9 @@ frappe.ui.form.ControlDate = class extends frappe.ui.form.ControlDate {
 				this.set_value(parsed);
 			} else {
 				this.set_value(null);
+				if (!this._adding_range) {
+					this._hide_add_range_button();
+				}
 			}
 		});
 	}
