@@ -15,6 +15,8 @@ OPERATORS = [
 	"not like",
 	"between",
 	"not between",
+	"MultiRange",
+	"multirange",
 ]
 _OPERATORS_LOWER = {op.lower() for op in OPERATORS}
 
@@ -100,6 +102,8 @@ class DTFilters:
 	def _unwrap_operator_value(value):
 		"""If value is an operator expression like ['in', 'foo'], return the operand ('foo').
 
+		Also handles double-wrapped MultiRange produced by the datatable connection path:
+		  ['=', ['MultiRange', [...]]]  →  the ranges list directly.
 		Otherwise return the value as-is.
 		"""
 		if (
@@ -109,7 +113,16 @@ class DTFilters:
 			and isinstance(value[0], str)
 			and value[0].lower() in _OPERATORS_LOWER
 		):
-			return value[1]
+			inner = value[1]
+			# Double-wrapped: ["=", ["MultiRange", [...]]] → unwrap to ranges list
+			if (
+				isinstance(inner, list)
+				and len(inner) >= 2
+				and isinstance(inner[0], str)
+				and inner[0] == "MultiRange"
+			):
+				return inner[1]
+			return inner
 		return value
 
 	@staticmethod
@@ -144,6 +157,8 @@ class DTFilters:
 				if operator.upper() == "BETWEEN" and isinstance(unwrapped, list) and len(unwrapped) == 2:
 					inner_filters[k + "_from"] = unwrapped[0]
 					inner_filters[k + "_to"] = unwrapped[1]
+				elif operator == "MultiRange" and isinstance(unwrapped, list):
+					inner_filters[k + "_ranges"] = unwrapped
 			return {}, inner_filters, []
 
 		sql_params = set(SQLBuilder.extract_placeholders(query))
@@ -160,6 +175,8 @@ class DTFilters:
 				if operator.upper() == "BETWEEN" and isinstance(unwrapped, list) and len(unwrapped) == 2:
 					inner_filters[k + "_from"] = unwrapped[0]
 					inner_filters[k + "_to"] = unwrapped[1]
+				elif operator == "MultiRange" and isinstance(unwrapped, list):
+					inner_filters[k + "_ranges"] = unwrapped
 			else:
 				outer_filters[k] = v  # keep [operator, value] for filters_to_sql_conditions
 
@@ -237,6 +254,8 @@ class DTFilters:
 				if operator.upper() == "BETWEEN" and isinstance(unwrapped, list) and len(unwrapped) == 2:
 					inner_filters[key + "_from"] = unwrapped[0]
 					inner_filters[key + "_to"] = unwrapped[1]
+				elif operator == "MultiRange" and isinstance(unwrapped, list):
+					inner_filters[key + "_ranges"] = unwrapped
 				matched = True
 
 			if not matched:
@@ -262,13 +281,26 @@ class DTFilters:
 
 	@staticmethod
 	def _extract_operator(value):
-		"""Extract the operator from an [operator, value] pair, defaulting to '='."""
+		"""Extract the operator from an [operator, value] pair, defaulting to '='.
+
+		Also detects double-wrapped MultiRange from the datatable connection path:
+		  ['=', ['MultiRange', [...]]]  →  'MultiRange'
+		"""
 		if (
 			isinstance(value, list)
 			and len(value) >= 1
 			and isinstance(value[0], str)
 			and value[0].lower() in _OPERATORS_LOWER
 		):
+			# Detect double-wrapped: ["=", ["MultiRange", [...]]] → treat as MultiRange
+			if (
+				len(value) > 1
+				and isinstance(value[1], list)
+				and len(value[1]) >= 2
+				and isinstance(value[1][0], str)
+				and value[1][0] == "MultiRange"
+			):
+				return "MultiRange"
 			return value[0]
 		return "="
 
@@ -315,6 +347,8 @@ class DTFilters:
 				if operator.upper() == "BETWEEN" and isinstance(unwrapped, list) and len(unwrapped) == 2:
 					inner_filters[report_fn + "_from"] = unwrapped[0]
 					inner_filters[report_fn + "_to"] = unwrapped[1]
+				elif operator == "MultiRange" and isinstance(unwrapped, list):
+					inner_filters[report_fn + "_ranges"] = unwrapped
 
 		for f in custom_date_filters:
 			report_fn = f.get("fieldname")
@@ -324,6 +358,8 @@ class DTFilters:
 			if operator.upper() == "BETWEEN" and isinstance(unwrapped, list) and len(unwrapped) == 2:
 				inner_filters[report_fn + "_from"] = unwrapped[0]
 				inner_filters[report_fn + "_to"] = unwrapped[1]
+			elif operator == "MultiRange" and isinstance(unwrapped, list):
+				inner_filters[report_fn + "_ranges"] = unwrapped
 
 		return bool(matching_column or direct_filter or custom_date_filters)
 

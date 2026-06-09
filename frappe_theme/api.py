@@ -1936,13 +1936,12 @@ def get_user_wise_transitions(doc: Union["Document", str, dict], user=None) -> l
 	"""Return list of possible transitions for the given doc"""
 	if not isinstance(doc, Document):
 		doc = frappe.get_doc(frappe.parse_json(doc))
+		doc.flags.ignore_permissions = True
 		doc.load_from_db()
 
 	if doc.is_new():
 		return []
-
 	doc.check_permission("read")
-
 	workflow = get_workflow(doc.doctype)
 	current_state = doc.get(workflow.workflow_state_field)
 
@@ -1976,6 +1975,7 @@ def get_documents_with_available_transitions(doctype, user=None):
 	result = []
 	for doc in doc_lists:
 		doc = frappe.get_doc(wf.document_type, doc)
+		doc.flags.ignore_permissions = True
 		transitions = get_user_wise_transitions(doc, user=user)
 		if len(transitions) > 0:
 			result.append(doc.name)
