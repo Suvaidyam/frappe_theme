@@ -36,6 +36,7 @@ def get_custom_transitions(
 	Returns empty list if approval assignments exist (to hide regular workflow actions).
 	"""
 	doc = frappe.get_doc(frappe.parse_json(doc))
+	doc.flags.ignore_permissions = True
 	doc.load_from_db()
 
 	if not workflow:
@@ -233,6 +234,7 @@ def handle_custom_approval_action(doc, action, custom_comment=""):
 	"""
 	# Parse incoming doc
 	doc = frappe.get_doc(frappe.parse_json(doc))
+	doc.flags.ignore_permissions = True
 	doc.load_from_db()
 
 	user = frappe.session.user
@@ -417,6 +419,7 @@ def _validate_dialog_fields(required_fields, doc):
 
 def _load_document(doc):
 	data_doc = frappe.get_doc(doc.doctype, doc.name)
+	data_doc.flags.ignore_permissions = True
 	meta = frappe.get_meta(doc.doctype)
 	return data_doc, meta
 
