@@ -152,6 +152,66 @@ const FieldsMixin = {
 		if (column.fieldtype === "Link") {
 			let spanElement;
 			if (
+				this.connection?.connection_type === "Report" &&
+				columnIndex === 0 &&
+				row[column.fieldname]
+			) {
+				const linkDoctype = column.options;
+				const linkName = row[column.fieldname];
+				const href = `/app/${encodeURIComponent(
+					frappe.router.slug(linkDoctype)
+				)}/${encodeURIComponent(linkName)}`;
+				const linkColor = frappe.boot?.my_theme?.navbar_color || "var(--primary-color)";
+				const _a = document.createElement("a");
+				if (!col?.wrap) _a.className = "ellipsis";
+				_a.href = href;
+				_a.dataset.doctype = linkDoctype;
+				_a.dataset.name = linkName;
+				_a.style.cursor = "pointer";
+				_a.style.textDecoration = "underline";
+				_a.style.color = linkColor;
+				const cachedTitle = frappe.utils.get_link_title(linkDoctype, linkName);
+				if (cachedTitle) {
+					_a.textContent = cachedTitle;
+					_a.title = cachedTitle;
+				} else {
+					_a.textContent = linkName;
+					_a.title = linkName;
+					frappe.utils
+						.fetch_link_title(linkDoctype, linkName)
+						.then((res) => {
+							if (res) {
+								_a.textContent = res;
+								_a.title = res;
+							}
+						})
+						.catch(() => {});
+				}
+				td.appendChild(_a);
+				if (col?.width) {
+					$(td).css({
+						width: `${Number(col?.width) * 50}px`,
+						minWidth: `${Number(col?.width) * 50}px`,
+						maxWidth: `${Number(col?.width) * 50}px`,
+						height: "32px",
+						whiteSpace: "nowrap",
+						overflow: "hidden",
+						textOverflow: "ellipsis",
+						padding: "0px 5px",
+					});
+				} else {
+					$(td).css({
+						height: "32px",
+						whiteSpace: "nowrap",
+						overflow: "hidden",
+						textOverflow: "ellipsis",
+						padding: "0px 5px",
+					});
+				}
+				this.bindColumnEvents(_a, linkName, column, row);
+				return;
+			}
+			if (
 				this.frm?.dt_events?.[this.doctype || this.link_report]?.formatter?.[
 					column.fieldname
 				]

@@ -111,3 +111,21 @@
 .modal-header > #sva-dt-error-message {
     flex: 0 0 100% !important;
 }
+
+/* table header freeze */
+.list-view .frappe-list .result {
+    overflow-y: visible !important;
+}
+
+.frappe-list .list-row-container:first-child {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: var(--bg-color);
+}
+
+.dt-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
