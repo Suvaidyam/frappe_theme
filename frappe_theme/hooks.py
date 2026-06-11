@@ -33,6 +33,7 @@ app_include_js = [
 	"override_autocomplete.bundle.js",
 	"override_data.bundle.js",
 	f"/assets/frappe_theme/js/svadb.js?ver={time.time()}",
+	"embedded_form.bundle.js",
 	f"/assets/frappe_theme/js/fields_comment.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/extended_chart.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/list_column_width.js?ver={time.time()}",
