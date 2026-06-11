@@ -75,7 +75,13 @@ const EmbeddedFormMixin = {
 	 * @param {Function}    onAfterSave   - Optional callback fired after successful save
 	 * @returns {Object} dialog-compatible proxy (also stored as this.form_dialog)
 	 */
-	async createEmbeddedForm(doctype, name = null, wrapper_el, mode = "write", onAfterSave = null) {
+	async createEmbeddedForm(
+		doctype,
+		name = null,
+		wrapper_el,
+		mode = "write",
+		onAfterSave = null
+	) {
 		if (!wrapper_el) {
 			console.warn("[embedded_form] wrapper_el is required");
 			return null;
@@ -142,13 +148,16 @@ const EmbeddedFormMixin = {
 		// Field preparation — mirrors FormDialogMixin's create/write path exactly
 		if (mode === "create" || mode === "write") {
 			await this._prepareEmbeddedFieldsWriteMode(
-				doctype, name, doc, fields, mode, fg_holder
+				doctype,
+				name,
+				doc,
+				fields,
+				mode,
+				fg_holder
 			);
 		} else {
 			// view mode — all fields read_only
-			await this._prepareEmbeddedFieldsViewMode(
-				doctype, name, doc, fields, mode
-			);
+			await this._prepareEmbeddedFieldsViewMode(doctype, name, doc, fields, mode);
 		}
 
 		// Split fields into tab groups at Tab Break boundaries
@@ -165,7 +174,10 @@ const EmbeddedFormMixin = {
 			this._renderEmbeddedTabs(wrapper_el, tabGroups, allFgs, allFieldsDict);
 		} else {
 			// No tabs — single FieldGroup (original behavior)
-			const fg0 = new frappe.ui.FieldGroup({ fields: tabGroups[0].fields, body: wrapper_el });
+			const fg0 = new frappe.ui.FieldGroup({
+				fields: tabGroups[0].fields,
+				body: wrapper_el,
+			});
 			fg0.make();
 			allFgs.push(fg0);
 			Object.assign(allFieldsDict, fg0.fields_dict);
@@ -189,7 +201,15 @@ const EmbeddedFormMixin = {
 		// Save / Cancel footer (same UX pattern as FormDialogMixin)
 		// form_proxy is passed as the fg argument — composite exposes get_values() / fields_list
 		if (["create", "write"].includes(mode)) {
-			this._renderEmbeddedFormFooter(wrapper_el, doctype, name, mode, form_proxy, form_proxy, onAfterSave);
+			this._renderEmbeddedFormFooter(
+				wrapper_el,
+				doctype,
+				name,
+				mode,
+				form_proxy,
+				form_proxy,
+				onAfterSave
+			);
 		}
 
 		// after_render dt_events (same args as FormDialogMixin lines 765-782)
@@ -284,7 +304,9 @@ const EmbeddedFormMixin = {
 							tf.get_query = () => {
 								const filters = [];
 								if (this.frm?.["dt_filters"]?.[f.options]?.[tf.fieldname]) {
-									filters.push(...this.frm["dt_filters"][f.options][tf.fieldname]);
+									filters.push(
+										...this.frm["dt_filters"][f.options][tf.fieldname]
+									);
 								}
 								if (tf.link_filter) {
 									const [parentfield, filter_key] = tf.link_filter.split("->");
@@ -574,7 +596,9 @@ const EmbeddedFormMixin = {
 			}
 
 			if (
-				!["Check", "Button", "Table", "Table MultiSelect", "Currency"].includes(f.fieldtype) &&
+				!["Check", "Button", "Table", "Table MultiSelect", "Currency"].includes(
+					f.fieldtype
+				) &&
 				f.read_only &&
 				!doc[f.fieldname]
 			) {
@@ -600,7 +624,15 @@ const EmbeddedFormMixin = {
 	 * Renders the Save footer below the embedded form.
 	 * onAfterSave is called after all dt_events hooks complete (e.g. to hide a panel).
 	 */
-	_renderEmbeddedFormFooter(wrapper_el, doctype, name, mode, form_proxy, fg, onAfterSave = null) {
+	_renderEmbeddedFormFooter(
+		wrapper_el,
+		doctype,
+		name,
+		mode,
+		form_proxy,
+		fg,
+		onAfterSave = null
+	) {
 		const footer = document.createElement("div");
 		footer.className = "embedded-form-footer d-flex justify-content-end gap-2 mt-3 pb-2";
 
@@ -796,7 +828,8 @@ const EmbeddedFormMixin = {
 		// Content container
 		const contentWrap = document.createElement("div");
 		contentWrap.className = "sva-ef-tab-content";
-		contentWrap.style.cssText = "border:1px solid var(--border-color);border-top:none;padding:12px 8px 4px;";
+		contentWrap.style.cssText =
+			"border:1px solid var(--border-color);border-top:none;padding:12px 8px 4px;";
 		wrapper_el.appendChild(contentWrap);
 
 		let renderedCount = 0;
@@ -815,8 +848,7 @@ const EmbeddedFormMixin = {
 			a.className = `nav-link sva-ef-tab-link${isFirst ? " active" : ""}`;
 			a.href = "#";
 			a.textContent = __(group.label);
-			a.style.cssText =
-				"font-size:12px;padding:6px 14px;color:var(--text-color);";
+			a.style.cssText = "font-size:12px;padding:6px 14px;color:var(--text-color);";
 			li.appendChild(a);
 			nav.appendChild(li);
 

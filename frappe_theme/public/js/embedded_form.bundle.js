@@ -83,10 +83,10 @@ frappe_theme.embedded_form.render = async function ({
 	}
 
 	// Initialize per-doctype storage maps lazily
-	if (!parent_frm.sva_dt_frm)        parent_frm.sva_dt_frm       = {};
-	if (!parent_frm.embedded_form)      parent_frm.embedded_form     = {};
-	if (!parent_frm.embedded_frm)       parent_frm.embedded_frm      = {};
-	if (!parent_frm.embedded_controls)  parent_frm.embedded_controls  = {};
+	if (!parent_frm.sva_dt_frm) parent_frm.sva_dt_frm = {};
+	if (!parent_frm.embedded_form) parent_frm.embedded_form = {};
+	if (!parent_frm.embedded_frm) parent_frm.embedded_frm = {};
+	if (!parent_frm.embedded_controls) parent_frm.embedded_controls = {};
 
 	// Build a SvaDataTable-compatible dt_proxy so EmbeddedFormMixin methods work
 	// and dt_events callbacks receive a proper `dt` as first argument.
@@ -133,9 +133,9 @@ frappe_theme.embedded_form.render = async function ({
 	});
 
 	// Store all references keyed by DocType so multiple embeds coexist
-	parent_frm.sva_dt_frm[target_doctype]       = embedded_frm_obj;
-	parent_frm.embedded_form[target_doctype]     = form_proxy;
-	parent_frm.embedded_frm[target_doctype]      = embedded_frm_obj;
+	parent_frm.sva_dt_frm[target_doctype] = embedded_frm_obj;
+	parent_frm.embedded_form[target_doctype] = form_proxy;
+	parent_frm.embedded_frm[target_doctype] = embedded_frm_obj;
 	parent_frm.embedded_controls[target_doctype] = fg?.fields_dict || {};
 
 	// Attach ScriptManager and run lifecycle events for the embedded DocType.
@@ -226,21 +226,21 @@ function _buildEmbeddedFrm({
 			const fns = Array.isArray(fieldnames) ? fieldnames : [fieldnames];
 			fns.forEach((fn) => {
 				const f = fg?.fields_dict?.[fn];
-				if (f) f.df.hidden = show ? 0 : 1, f.refresh?.();
+				if (f) (f.df.hidden = show ? 0 : 1), f.refresh?.();
 			});
 		},
 		toggle_enable(fieldnames, enable) {
 			const fns = Array.isArray(fieldnames) ? fieldnames : [fieldnames];
 			fns.forEach((fn) => {
 				const f = fg?.fields_dict?.[fn];
-				if (f) f.df.read_only = enable ? 0 : 1, f.refresh?.();
+				if (f) (f.df.read_only = enable ? 0 : 1), f.refresh?.();
 			});
 		},
 		toggle_reqd(fieldnames, reqd) {
 			const fns = Array.isArray(fieldnames) ? fieldnames : [fieldnames];
 			fns.forEach((fn) => {
 				const f = fg?.fields_dict?.[fn];
-				if (f) f.df.reqd = reqd ? 1 : 0, f.refresh?.();
+				if (f) (f.df.reqd = reqd ? 1 : 0), f.refresh?.();
 			});
 		},
 		set_query(fieldname, opt_or_query, query) {
