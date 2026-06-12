@@ -69,6 +69,7 @@ def get_data() -> list[list]:
 		)
 		for doc in doc_lists:
 			doc = frappe.get_doc(wf.document_type, doc)
+			doc.flags.ignore_permissions = True
 			transitions = get_transitions(doc)
 			if len(transitions) > 0:
 				pending_on_me_count += 1

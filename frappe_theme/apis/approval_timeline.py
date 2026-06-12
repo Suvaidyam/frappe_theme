@@ -47,6 +47,7 @@ def get_workflow_audit(doctype=None, reference_name=None, limit=100):
 
 			# Get workflow_state from document
 			doc = frappe.get_doc(doctype, reference_name)
+			doc.flags.ignore_permissions = True
 			current_doc_state = doc.get(workflow[0].workflow_state_field)
 
 		# Build filters
@@ -126,6 +127,7 @@ def get_workflow_audit(doctype=None, reference_name=None, limit=100):
 						# Get the doctype value from the parent document
 						if reference_name:
 							parent_doc = frappe.get_doc(doctype, reference_name)
+							parent_doc.flags.ignore_permissions = True
 							link_doctype = parent_doc.get(link_doctype_field)
 							if link_doctype:
 								item["reference_doctype"] = link_doctype
