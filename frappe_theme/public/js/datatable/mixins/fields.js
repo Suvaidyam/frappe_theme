@@ -844,6 +844,7 @@ const FieldsMixin = {
 					this.connection?.connection_type === "Report"
 						? this.connection.report_ref_dt
 						: this.doctype;
+				if (!doctype) return;
 				const href = `/app/${encodeURIComponent(
 					frappe.router.slug(doctype)
 				)}/${encodeURIComponent(row.name)}`;
