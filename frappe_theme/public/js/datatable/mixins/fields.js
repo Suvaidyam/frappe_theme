@@ -844,39 +844,50 @@ const FieldsMixin = {
 					this.connection?.connection_type === "Report"
 						? this.connection.report_ref_dt
 						: this.doctype;
-				if (!doctype) return;
-				const href = `/app/${encodeURIComponent(
-					frappe.router.slug(doctype)
-				)}/${encodeURIComponent(row.name)}`;
 				const value = row[column.fieldname];
-				// If both `name` and `title_field` columns are visible, only the title_field
-				// should get the "link emphasis" color/underline.
-				const titleField = this.meta?.title_field;
-				const hasNameColumn = (this.columns || []).some((c) => c.fieldname === "name");
-				const hasTitleColumn =
-					titleField && (this.columns || []).some((c) => c.fieldname === titleField);
-				const bothVisible = !!(hasNameColumn && hasTitleColumn);
-				const isNameColumn = columnField.fieldname === "name";
-				const emphasizeThisColumn = !(bothVisible && isNameColumn);
+				if (doctype) {
+					const href = `/app/${encodeURIComponent(
+						frappe.router.slug(doctype)
+					)}/${encodeURIComponent(row.name)}`;
+					// If both `name` and `title_field` columns are visible, only the title_field
+					// should get the "link emphasis" color/underline.
+					const titleField = this.meta?.title_field;
+					const hasNameColumn = (this.columns || []).some((c) => c.fieldname === "name");
+					const hasTitleColumn =
+						titleField && (this.columns || []).some((c) => c.fieldname === titleField);
+					const bothVisible = !!(hasNameColumn && hasTitleColumn);
+					const isNameColumn = columnField.fieldname === "name";
+					const emphasizeThisColumn = !(bothVisible && isNameColumn);
 
-				const linkColor = emphasizeThisColumn
-					? frappe.boot?.my_theme?.navbar_color || "var(--primary-color)"
-					: "inherit";
-				const textDecoration = emphasizeThisColumn ? "underline" : "none";
-				if (value && !["null", "undefined", null, undefined].includes(value)) {
-					const _a = document.createElement("a");
-					if (!col?.wrap) _a.className = "ellipsis";
-					_a.href = href;
-					_a.title = value;
-					_a.dataset.doctype = doctype;
-					_a.dataset.name = row.name;
-					_a.style.cursor = "pointer";
-					_a.style.textDecoration = textDecoration;
-					_a.style.color = linkColor;
-					_a.textContent = value;
-					td.appendChild(_a);
+					const linkColor = emphasizeThisColumn
+						? frappe.boot?.my_theme?.navbar_color || "var(--primary-color)"
+						: "inherit";
+					const textDecoration = emphasizeThisColumn ? "underline" : "none";
+					if (value && !["null", "undefined", null, undefined].includes(value)) {
+						const _a = document.createElement("a");
+						if (!col?.wrap) _a.className = "ellipsis";
+						_a.href = href;
+						_a.title = value;
+						_a.dataset.doctype = doctype;
+						_a.dataset.name = row.name;
+						_a.style.cursor = "pointer";
+						_a.style.textDecoration = textDecoration;
+						_a.style.color = linkColor;
+						_a.textContent = value;
+						td.appendChild(_a);
+					} else {
+						td.innerHTML = `<span title="-">-</span>`;
+					}
 				} else {
-					td.innerHTML = `<span title="-">-</span>`;
+					if (value && !["null", "undefined", null, undefined].includes(value)) {
+						const span = document.createElement("span");
+						if (!col?.wrap) span.className = "ellipsis";
+						span.title = value;
+						span.textContent = value;
+						td.appendChild(span);
+					} else {
+						td.innerHTML = `<span title="-">-</span>`;
+					}
 				}
 				if (col?.width) {
 					$(td).css({
