@@ -153,6 +153,9 @@
 								</div>
 							</div>
 							<div class="timestamp">
+								<span class="timestamp-absolute">{{
+									formatDateTime(item.creation)
+								}}</span>
 								{{ formatDate(item.creation) }}
 							</div>
 						</template>
@@ -698,6 +701,18 @@ const getUserName = (email) => {
 const formatFieldLabel = (fieldname) => {
 	if (!fieldname) return "";
 	return fieldname.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+const formatDateTime = (dateStr) => {
+	if (!dateStr) return "";
+	const date = new Date(dateStr);
+	return date.toLocaleDateString("en-US", {
+		year: "numeric",
+		month: "short",
+		day: "numeric",
+		hour: "2-digit",
+		minute: "2-digit",
+	});
 };
 
 const formatDate = (dateStr) => {
@@ -1255,6 +1270,17 @@ defineExpose({
 .timestamp {
 	font-size: 10px;
 	color: #94a3b8;
+	display: flex;
+	gap: 8px;
+}
+
+.timestamp-absolute {
+	font-size: 9px;
+	color: #767c7e;
+	background: #edecec;
+	padding: 1px 7px;
+	border-radius: 4px;
+	font-weight: 700;
 }
 
 /* Right Panel */
