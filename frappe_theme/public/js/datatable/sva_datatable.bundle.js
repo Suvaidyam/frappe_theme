@@ -212,7 +212,7 @@ class SvaDataTable {
 					if (this.filter_area) {
 						this.filter_area.make_standard_filters();
 					}
-					if (this.header.length) {
+					if (this.header.length && columns) {
 						this.columns = [];
 						let ft = {
 							name: { fieldtype: "Data" },
@@ -242,9 +242,11 @@ class SvaDataTable {
 						}
 					} else {
 						if (this.connection.connection_type === "Report") {
-							this.columns = columns;
+							this.columns = columns || [];
 						} else {
-							this.columns = [...columns.filter((f) => f.in_list_view)];
+							this.columns = columns
+								? [...columns.filter((f) => f.in_list_view)]
+								: [];
 						}
 					}
 					// Ensure ID or title_field is always the first column
