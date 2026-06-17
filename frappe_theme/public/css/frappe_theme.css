@@ -117,15 +117,49 @@
     overflow-y: visible !important;
 }
 
-.frappe-list .list-row-container:first-child {
-    position: sticky;
+/* neutralise Frappe's :first-child sticky when it lands on a non-header row */
+.layout-main-section-wrapper:not(.disable-scrolling)
+    .frappe-list .result-container .result
+    .list-row-container:first-child:not(:has(.list-row-head)) {
+    position: static !important;
+    z-index: 0 !important;
+}
+
+/* always sticky the actual column-header container, wherever it sits */
+.frappe-list .result-container .result .list-row-container:has(.list-row-head) {
+    position: sticky !important;
     top: 0;
-    z-index: 10;
-    background-color: var(--bg-color);
+    z-index: 2 !important;
+    background-color: var(--subtle-fg);
+    /* prevent width collapse when sticky — JS sync_header_width overrides this dynamically */
+    min-width: 100%;
+}
+
+/* force every data row below the sticky header */
+.frappe-list .result-container .result .list-row-container:not(:has(.list-row-head)) {
+    position: relative;
+    z-index: 0;
+}
+
+/* ensure columns inside the sticky header don't collapse */
+.frappe-list .result-container .result .list-row-container:has(.list-row-head) .list-row-head {
+    min-width: 100%;
+}
+
+/* increase column right-margin so gap stays visible even when partially scrolled */
+.frappe-list .result-container .result .list-row-container .level-left .list-row-col {
+    margin-right: 20px !important;
 }
 
 .dt-header {
     position: sticky;
     top: 0;
-    z-index: 10;
+    z-index: 2;
+}
+
+/* ensure link field dropdowns appear above sticky table headers */
+.awesomplete > ul,
+.report-wrapper .awesomplete > ul,
+.list-view .awesomplete > ul {
+    z-index: 1000 !important;
 }
