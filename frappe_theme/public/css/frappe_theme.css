@@ -163,3 +163,16 @@
 .list-view .awesomplete > ul {
     z-index: 1000 !important;
 }
+
+/* page-head and its action dropdowns must sit above sticky table/list headers */
+.page-head {
+    /* position: relative; */
+    z-index: 20;
+}
+
+.page-head .dropdown-menu,
+.page-actions .dropdown-menu,
+.standard-actions .dropdown-menu,
+.page-head .dropdown-menu.show {
+    z-index: 1050 !important;
+}
