@@ -18,6 +18,14 @@ const RenderingMixin = {
 	render() {
 		if (!this.meta) return;
 
+		if (!this.data || this.data.length === 0) {
+			this._buildEmptyState();
+			if (typeof this.events.afterRender === "function") {
+				this.events.afterRender(this);
+			}
+			return;
+		}
+
 		this._buildTable();
 		if (this.show_legend && this.legend_items && this.legend_items.length) {
 			this._buildLegend();
@@ -26,6 +34,47 @@ const RenderingMixin = {
 		if (typeof this.events.afterRender === "function") {
 			this.events.afterRender(this);
 		}
+	},
+
+	/**
+	 * Render a clean "No records found" empty state into the scrollBox.
+	 */
+	_buildEmptyState() {
+		const wrapper = document.createElement("div");
+		wrapper.className = "sva-vdr-empty-state";
+		wrapper.style.cssText = `
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			padding: 48px 24px;
+			border: 1px solid rgba(0,0,0,.08);
+			border-radius: 6px;
+			background: var(--card-bg, #fff);
+			color: var(--text-muted, #8d99a6);
+			text-align: center;
+		`;
+
+		const icon = document.createElement("div");
+		icon.style.cssText = `
+			font-size: 40px;
+			margin-bottom: 12px;
+			opacity: 0.45;
+			line-height: 1;
+		`;
+		icon.textContent = "🗂";
+
+		const msg = document.createElement("div");
+		msg.style.cssText = `
+			font-size: 14px;
+			font-weight: 500;
+			color: var(--text-muted, #8d99a6);
+		`;
+		msg.textContent = __("No records found");
+
+		wrapper.appendChild(icon);
+		wrapper.appendChild(msg);
+		this.scrollBox.appendChild(wrapper);
 	},
 
 	// ─── Table ──────────────────────────────────────────────────────────────
