@@ -725,19 +725,18 @@ const formatDate = (dateStr) => {
 	const diffHours = Math.floor(diffMs / 3600000);
 	const diffDays = Math.floor(diffMs / 86400000);
 
+	const diffWeeks = Math.floor(diffDays / 7);
+	const diffMonths = Math.floor(diffDays / 30);
+	const diffYears = Math.floor(diffDays / 365);
+
 	if (diffMins < 1) return "Just now";
 	if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? "s" : ""} ago`;
 	if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
 	if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
-
-	const options = {
-		year: "numeric",
-		month: "short",
-		day: "numeric",
-		hour: "2-digit",
-		minute: "2-digit",
-	};
-	return date.toLocaleDateString("en-US", options);
+	if (diffDays < 30) return `${diffWeeks} week${diffWeeks > 1 ? "s" : ""} ago`;
+	if (diffDays < 365) return `${diffMonths} month${diffMonths > 1 ? "s" : ""} ago`;
+	if (diffYears === 1) return "Over a year ago";
+	return `${diffYears} years ago`;
 };
 
 const getCommentClass = (item) => {
