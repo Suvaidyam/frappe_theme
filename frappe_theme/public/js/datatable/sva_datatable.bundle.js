@@ -3,6 +3,7 @@ import RenderingMixin from "./mixins/rendering.js";
 import FieldsMixin from "./mixins/fields.js";
 import ActionColumnMixin from "./mixins/action_column.js";
 import FormDialogMixin from "./mixins/form_dialog.js";
+import EmbeddedFormMixin from "./mixins/embedded_form.js";
 import WorkflowMixin from "./mixins/workflow.js";
 import PaginationMixin from "./mixins/pagination.js";
 import UISetupMixin from "./mixins/ui_setup.js";
@@ -446,6 +447,7 @@ Object.assign(
 	FieldsMixin,
 	ActionColumnMixin,
 	FormDialogMixin,
+	EmbeddedFormMixin,
 	WorkflowMixin,
 	PaginationMixin,
 	UISetupMixin,

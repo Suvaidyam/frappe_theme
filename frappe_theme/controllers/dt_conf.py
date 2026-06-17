@@ -112,7 +112,7 @@ class DTConf:
 		settings["charts"] = updated_charts
 		return settings
 
-	def get_meta_fields(doctype, _type, meta_attached=False):
+	def get_meta_fields(doctype, _type, meta_attached=False, include_tabs=False):
 		if _type == "Report":
 			report = frappe.get_doc("Report", doctype)
 			if report.report_type != "Query Report":
@@ -135,7 +135,8 @@ class DTConf:
 			# 	ignore_permissions=True,
 			# )
 			# # Convert meta_fields into mutable dictionaries if necessary
-			fields_dict = [f.as_dict() for f in meta_fields if f.fieldtype not in ["Tab Break"]]
+			excluded = [] if frappe.utils.cint(include_tabs) else ["Tab Break"]
+			fields_dict = [f.as_dict() for f in meta_fields if f.fieldtype not in excluded]
 			# # Apply property setter values to the meta fields
 			# for field in fields_dict:
 			# 	for ps in property_setters:

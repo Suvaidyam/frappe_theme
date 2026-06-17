@@ -484,7 +484,7 @@ const UISetupMixin = {
 										cur_frm["sva_dt_prev_route"] = route;
 									});
 							} else {
-								await this.createFormDialog(this.doctype);
+								await this._openForm(this.doctype, null, "create");
 							}
 						};
 					}

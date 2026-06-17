@@ -56,7 +56,7 @@ const ActionColumnMixin = {
 						});
 					});
 				} else {
-					await this.createFormDialog(this.doctype, primaryKey, "view");
+					await this._openForm(this.doctype, primaryKey, "view");
 				}
 			});
 		}
@@ -100,7 +100,7 @@ const ActionColumnMixin = {
 										cur_frm["sva_dt_prev_route"] = route;
 									});
 								} else {
-									await this.createFormDialog(this.doctype, primaryKey, "write");
+									await this._openForm(this.doctype, primaryKey, "write");
 								}
 							}
 						);
@@ -115,7 +115,7 @@ const ActionColumnMixin = {
 									cur_frm["sva_dt_prev_route"] = route;
 								});
 							} else {
-								await this.createFormDialog(this.doctype, primaryKey, "write");
+								await this._openForm(this.doctype, primaryKey, "write");
 							}
 						}
 					);
