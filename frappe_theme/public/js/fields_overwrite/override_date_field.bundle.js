@@ -260,10 +260,14 @@ frappe.ui.form.ControlDate = class extends frappe.ui.form.ControlDate {
 				const dates = this.datepicker.selectedDates;
 				if (dates.length === 2) {
 					this._show_add_range_button();
-				} else {
+					this.$input.trigger("change");
+				} else if (dates.length === 0 && !this._adding_range) {
 					this._hide_add_range_button();
+					this.$input.trigger("change");
 				}
-				this.$input.trigger("change");
+				// dates.length === 1: user picked start date, end date not yet chosen —
+				// do not trigger change here; doing so calls set_value(null) → clears
+				// the input → aiDatepicker detects the empty input and auto-closes.
 			},
 		};
 		this.$input.datepicker(datepicker_options);

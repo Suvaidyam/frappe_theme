@@ -179,6 +179,9 @@ const handleAction = async (action) => {
 					props.card.details?.report_field,
 				];
 			}
+			if (props.card?.report?.ref_doctype) {
+				table_options.connection["report_ref_dt"] = props.card.report.ref_doctype;
+			}
 			table_options.frm.dt_events = {
 				[props.card.details?.report_name]: {
 					get_filters: () => {
