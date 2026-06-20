@@ -27,6 +27,18 @@ const FieldsMixin = {
 			return "";
 		}
 
+		// Frappe's API converts null int/float values to 0 via Python's cint().
+		// Treat 0 as empty for these types when the raw DB value was null.
+		if (
+			(df.fieldtype === "Int" ||
+				df.fieldtype === "Float" ||
+				df.fieldtype === "Currency" ||
+				df.fieldtype === "Percent") &&
+			(value === 0 || value === "0")
+		) {
+			return "";
+		}
+
 		// Geolocation: parse GeoJSON and show human-readable coordinates / type summary
 		if (df.fieldtype === "Geolocation") {
 			return this._formatGeolocation(value);

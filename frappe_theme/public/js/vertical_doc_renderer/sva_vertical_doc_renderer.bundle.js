@@ -130,6 +130,7 @@ class SVAVerticalDocRenderer {
 		//     grouping_field, plot_link_field, default_collapsed_new_table, batch_title_prefix }
 		child_add_row_labels = null, // { [fieldname]: "Custom Label" } — per child-table "Add Row" label
 		_is_sub_vdr = false, // true when instantiated as a batch child — suppresses reload button
+		_parent_vdr = null, // parent SVAVerticalDocRenderer instance (set by _addBatchSection)
 	}) {
 		// Branch on doctype type: string = name to fetch, object = pre-built/mimicked meta
 		const isMetaObj = doctype && typeof doctype === "object";
@@ -173,6 +174,7 @@ class SVAVerticalDocRenderer {
 			add_more_config,
 			child_add_row_labels,
 			_is_sub_vdr,
+			_parent_vdr,
 			_initial_fields_config: fields_config ? [...fields_config] : null,
 			_has_user_settings: false,
 		});

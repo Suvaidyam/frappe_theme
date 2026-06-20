@@ -130,7 +130,22 @@ const EditMixin = {
 				const dp = ctrl.datepicker || ctrl.$input.data("datepicker");
 				if (dp && typeof dp.show === "function") {
 					setTimeout(() => {
-						if (cell.dataset.editing === "1") dp.show();
+						if (cell.dataset.editing !== "1") return;
+						// Apply Disable Future / Past Dates from df.options
+						if (
+							df.fieldtype === "Date" &&
+							df.options &&
+							typeof dp.update === "function"
+						) {
+							const today = new Date();
+							today.setHours(0, 0, 0, 0);
+							if (df.options === "Disable Future Dates") {
+								dp.update({ maxDate: today });
+							} else if (df.options === "Disable Past Dates") {
+								dp.update({ minDate: today });
+							}
+						}
+						dp.show();
 					}, 0);
 				}
 			}
@@ -158,6 +173,36 @@ const EditMixin = {
 			if (df.fieldtype === "Date") {
 				const raw = ctrl.$input.val();
 				newValue = raw ? frappe.datetime.user_to_str(raw) : "";
+				// Validate Disable Future / Past Dates constraint
+				if (newValue && df.options) {
+					const today = frappe.datetime.get_today();
+					if (df.options === "Disable Future Dates" && newValue > today) {
+						frappe.show_alert(
+							{
+								message: __("{0}: future dates are not allowed.", [
+									__(df.label || df.fieldname),
+								]),
+								indicator: "orange",
+							},
+							4
+						);
+						cancel();
+						return;
+					}
+					if (df.options === "Disable Past Dates" && newValue < today) {
+						frappe.show_alert(
+							{
+								message: __("{0}: past dates are not allowed.", [
+									__(df.label || df.fieldname),
+								]),
+								indicator: "orange",
+							},
+							4
+						);
+						cancel();
+						return;
+					}
+				}
 			} else if (df.fieldtype === "Datetime") {
 				const raw = ctrl.$input.val();
 				newValue = raw ? frappe.datetime.user_to_str(raw, true) : "";

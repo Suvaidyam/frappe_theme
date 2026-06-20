@@ -204,6 +204,12 @@ const ViewportMixin = {
 	 * when set (used by the filter ribbon reset/apply flow).
 	 */
 	async reloadTable() {
+		// Sub-VDRs (batch children) hold stale inline docs — delegate to the parent
+		// so all batches are rebuilt with fresh server data.
+		if (this._is_sub_vdr && this._parent_vdr) {
+			return this._parent_vdr.reloadTable();
+		}
+
 		// Spin the reload button while reloading
 		const _icon = this._reloadBtn?.querySelector(".sva-vdr-reload-icon");
 		if (this._reloadBtn) this._reloadBtn.disabled = true;
