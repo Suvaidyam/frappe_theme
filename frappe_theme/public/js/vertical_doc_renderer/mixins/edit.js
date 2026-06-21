@@ -110,7 +110,14 @@ const EditMixin = {
 			render_input: true,
 		});
 		ctrl.refresh();
-		ctrl.set_value(doc[df.fieldname]);
+		const _rawVal = doc[df.fieldname];
+		const _numericTypes = ["Int", "Float", "Currency", "Percent"];
+		ctrl.set_value(
+			_numericTypes.includes(df.fieldtype) && (_rawVal === 0 || _rawVal === null)
+				? ""
+				: _rawVal
+		);
+		// ctrl.set_value(_rawVal);
 		if (ctrl.$input) {
 			// Frappe's Int/Float/Currency/Percent controls use type="text" internally.
 			// Switch to type="number" so the browser rejects non-numeric input and
