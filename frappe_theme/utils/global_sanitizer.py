@@ -18,7 +18,7 @@ def sanitize_all_fields(doc, method=None):
 	Excluded fieldtypes: HTML, Table, Table MultiSelect, Image, Attach, Attach Image,
 	Text Editor, Code.
 	"""
-	if doc.doctype in ["Email Queue"]:
+	if doc.doctype in ["Email Queue", "Error Log"]:
 		return
 
 	# site config flag: set `sanitize_all_fields` in site_config.json or via bench config
