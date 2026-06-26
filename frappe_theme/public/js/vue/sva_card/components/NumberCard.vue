@@ -7,9 +7,15 @@
 					<p
 						class="text-truncate card-label"
 						:style="`font-size: 11px; min-width: 0; flex: 1; color: ${card.text_color}`"
-						:title="card.card_label"
 					>
-						{{ card.card_label }}
+						<span :title="card.card_label">{{ card.card_label }}</span>
+						<span
+							v-if="card.info"
+							class="info-icon badge rounded-circle"
+							@mouseenter="showTooltip($event, card.info)"
+							@mouseleave="hideTooltip"
+							>i</span
+						>
 					</p>
 					<span
 						class="card-icon"
@@ -44,6 +50,22 @@ import { ref, onMounted, inject, computed } from "vue";
 const loading = ref(true);
 const data = ref({});
 const showCard = ref(true);
+let tooltipEl = null;
+
+const showTooltip = (event, text) => {
+	tooltipEl = document.createElement("div");
+	tooltipEl.className = "sva-info-tooltip";
+	tooltipEl.textContent = text;
+	document.body.appendChild(tooltipEl);
+	const rect = event.target.getBoundingClientRect();
+	tooltipEl.style.left = `${rect.left + rect.width / 2}px`;
+	tooltipEl.style.top = `${rect.top - 8}px`;
+};
+
+const hideTooltip = () => {
+	tooltipEl?.remove();
+	tooltipEl = null;
+};
 
 const props = defineProps({
 	card: {
@@ -391,12 +413,27 @@ h4 {
 
 .card-label {
 	transition: color 0.3s ease;
+	display: flex;
+	gap: 3px;
 }
 
 .card-value {
 	transition: color 0.3s ease;
 }
-
+.info-icon {
+	font-size: 9px;
+	width: 14px;
+	height: 14px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	cursor: default;
+	vertical-align: middle;
+	flex-shrink: 0;
+	line-height: 1;
+	background-color: #c8c8c8;
+	color: #fff;
+}
 .card-icon {
 	:deep(svg),
 	:deep(svg *),
@@ -413,5 +450,32 @@ h4 {
 .fade-enter-from,
 .fade-leave-to {
 	opacity: 0;
+}
+</style>
+
+<style>
+.sva-info-tooltip {
+	position: fixed;
+	transform: translate(-50%, -100%);
+	background-color: #333;
+	color: #fff;
+	font-size: 11px;
+	padding: 4px 8px;
+	border-radius: 4px;
+	white-space: normal;
+	max-width: 220px;
+	word-wrap: break-word;
+	pointer-events: none;
+	z-index: 99999;
+
+	&::after {
+		content: "";
+		position: absolute;
+		top: 100%;
+		left: 50%;
+		transform: translateX(-50%);
+		border: 5px solid transparent;
+		border-top-color: #333;
+	}
 }
 </style>
