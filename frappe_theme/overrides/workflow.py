@@ -412,7 +412,7 @@ def _validate_dialog_fields(required_fields, doc):
 		missing = [f for f in required_fields if not wf_dialog_fields.get(f["fieldname"])]
 		if missing:
 			field_list = "".join(f"<li>{f['label']}</li>" for f in missing)
-			frappe.throw("Required workflow data is missing or incomplete." f"<br><ul>{field_list}</ul>")
+			frappe.throw(f"Required workflow data is missing or incomplete.<br><ul>{field_list}</ul>")
 
 	return wf_dialog_fields
 

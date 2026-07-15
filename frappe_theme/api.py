@@ -1853,8 +1853,6 @@ def export_fixtures_runtime():
 	return frappe.as_json(export_data)
 
 
-import os
-
 from frappe.core.doctype.data_import.data_import import import_doc
 
 
