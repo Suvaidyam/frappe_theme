@@ -97,8 +97,8 @@ def check_list_permissions(doctype: str, _type: str = "Direct"):
 
 
 @frappe.whitelist()
-def get_meta_fields(doctype, _type="Direct", meta_attached=False):
-	return DTConf.get_meta_fields(doctype, _type, meta_attached)
+def get_meta_fields(doctype, _type="Direct", meta_attached=False, include_tabs=False):
+	return DTConf.get_meta_fields(doctype, _type, meta_attached, include_tabs)
 
 
 @frappe.whitelist()

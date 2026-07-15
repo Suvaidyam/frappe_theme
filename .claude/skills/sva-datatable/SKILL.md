@@ -17,6 +17,7 @@ frappe_theme/public/js/datatable/
 │   ├── fields.js                    ← Cell rendering: getCellStyle, createEditableField, createNonEditableField, bindColumnEvents, percentageCell
 │   ├── action_column.js             ← Row actions: createActionColumn, checkCondition
 │   ├── form_dialog.js               ← CRUD dialogs: createFormDialog, deleteRecord, childTableDialog
+│   ├── embedded_form.js             ← Inline form rendering (alternative to modal): showEmbeddedFormPanel, createEmbeddedForm, _openForm, _prepareEmbeddedFieldsWriteMode, _prepareEmbeddedFieldsViewMode, _renderEmbeddedFormFooter, _saveEmbeddedForm, _splitFieldsByTabs, _renderEmbeddedTabs, _buildCompositeProxy
 │   ├── workflow.js                  ← Workflow transitions: wf_action
 │   ├── pagination.js                ← Page controls: setupPagination, updatePageButtons
 │   ├── ui_setup.js                  ← Chrome: setupHeader, setupFooter, setupWrapper, setupTableWrapper, setupListviewSettings, createSettingsButton, add_custom_button
@@ -27,6 +28,84 @@ frappe_theme/public/js/datatable/
 ├── list_settings.bundle.js          (standalone)
 └── filters/                         (standalone)
 ```
+
+There is also a **standalone embedded form bundle** for use outside of SvaDataTable:
+
+```
+frappe_theme/public/js/embedded_form.bundle.js
+→ exposes frappe_theme.embedded_form.render({ parent_frm, target_doctype, target_docname, html_field, mode })
+```
+
+## Dual Form Rendering Paths
+
+SvaDataTable has two parallel paths for Create / Edit / View forms. They share identical `dt_events` hook signatures — handlers work in both without changes.
+
+| Path | Entry point | When used |
+|------|-------------|-----------|
+| Modal dialog | `createFormDialog(doctype, name, mode)` | Default |
+| Inline panel | `showEmbeddedFormPanel(doctype, name, mode)` | `use_embedded_form: true` |
+
+### Routing via `_openForm`
+
+All four action triggers (Add Row, View, Edit × 2 workflow branches) go through a single router:
+
+```javascript
+_openForm(doctype, name, mode) {
+    if (this.connection?.use_embedded_form || this.options?.use_embedded_form) {
+        return this.showEmbeddedFormPanel(doctype, name, mode);
+    }
+    return this.createFormDialog(doctype, name, mode);
+}
+```
+
+**Never call `createFormDialog` directly** from `action_column.js` or `ui_setup.js` — always call `_openForm` so the flag is respected.
+
+### Enabling embedded mode
+
+Set `use_embedded_form: true` on the connection config in SVADatatable Configuration, or pass it via the `options` object:
+
+```javascript
+new SvaDataTable({ ..., options: { use_embedded_form: true } });
+```
+
+### Embedded form — key methods
+
+| Method | Purpose |
+|--------|---------|
+| `showEmbeddedFormPanel(doctype, name, mode)` | Creates/resets the panel below the table, wires up close button and `onAfterSave → reloadTable()` |
+| `createEmbeddedForm(doctype, name, wrapper_el, mode, onAfterSave)` | Fetches fields with `include_tabs:1`, runs dt_events hooks, prepares fields, splits at Tab Break boundaries, renders Bootstrap tabs + per-tab FieldGroups, builds composite proxy |
+| `_openForm(doctype, name, mode)` | Router: checks flag, dispatches to panel or dialog |
+| `_buildCompositeProxy(allFgs, allFieldsDict, wrapper_el)` | Aggregates `fields_dict`, `get_value`, `set_value`, `get_values`, `fields_list` across all tab FieldGroups. Stored as `this.form_dialog` so `dt_events.after_render` hooks can call `dt.form_dialog.set_value()` |
+| `_saveEmbeddedForm(doctype, name, mode, form_proxy, fg, onAfterSave)` | Fires `validate` → `frappe.client.insert` or `frappe.client.set_value` → `after_insert/after_update/after_save` |
+
+### Tab rendering
+
+`get_meta_fields` is called with `include_tabs: 1` so Tab Break fields are returned. `_splitFieldsByTabs` groups fields into `{ label, fields }` buckets at Tab Break boundaries. Empty groups (Tab Break with no following fields) are skipped — active tab is determined by `renderedCount === 0`, **not** array index `i === 0`.
+
+### `include_tabs` backend parameter
+
+`frappe_theme.dt_api.get_meta_fields` accepts `include_tabs=True` (default `False`). Normally Tab Break fields are stripped; passing this flag returns them for embedded form tab rendering.
+
+### `set_only_once` fields — two-part fix
+
+Both rendering paths must apply this consistently:
+
+1. **UI (field prep)**: In `mode === "write"`, set `f.read_only = 1` unconditionally (whether or not the field currently has a value).
+2. **Save payload**: Exclude `set_only_once` fields when building the update dict before `frappe.client.set_value`. Missing this causes Frappe to throw _"Value cannot be changed for \<field\>"_.
+
+```javascript
+// form_dialog.js — value_fields filter
+fields.filter(f => !["Section Break", ...].includes(f.fieldtype) && !f.set_only_once)
+
+// embedded_form.js — fields_to_update filter
+fg.fields_list.filter(f => !["Section Break", ...].includes(f.df.fieldtype) && !f.df.set_only_once)
+```
+
+### Changes always apply to BOTH paths
+
+`form_dialog.js` and `embedded_form.js` are parallel. Field preparation logic, save payload filtering, and dt_events hook execution must be kept in sync across both files.
+
+---
 
 ## Pattern: Prototype Mixin via Object.assign
 
@@ -215,6 +294,14 @@ Then manually verify in the browser:
 - Percent columns show progress bar (thin bar + value label)
 - Percent progress bar uses `color` from list view settings (default blue `#3182ce`)
 - Currency formatting in total row matches data rows (`formatCurrency` from `utils.js`)
+
+**When `use_embedded_form: true`:**
+- Add Row opens inline panel (not modal), first tab active by default
+- Edit opens inline panel with existing values populated, `set_only_once` fields are read-only
+- View opens inline panel with all fields read-only
+- Saving does not include `set_only_once` fields in the update payload (no backend error)
+- After save, panel collapses and table reloads
+- Close (✕) button dismisses panel without saving
 
 ## Related Documentation
 

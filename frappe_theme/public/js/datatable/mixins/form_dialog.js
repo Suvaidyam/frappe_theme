@@ -73,7 +73,10 @@ const FormDialogMixin = {
 						}
 					}
 					if (f.set_only_once) {
-						if (doc[f.fieldname]) {
+						if (mode === "write") {
+							// Editing an existing record — field is locked unconditionally
+							f.read_only = 1;
+						} else if (doc[f.fieldname]) {
 							f.default = doc[f.fieldname];
 							f.read_only = 1;
 						} else {
@@ -624,7 +627,7 @@ const FormDialogMixin = {
 											"HTML",
 											"Button",
 											"Tab Break",
-										].includes(f.fieldtype)
+										].includes(f.fieldtype) && !f.set_only_once
 								);
 								let updated_values = {};
 								for (let field of value_fields) {

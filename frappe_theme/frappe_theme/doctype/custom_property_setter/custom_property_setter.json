@@ -48,6 +48,7 @@
   "connection_type",
   "column_break_qdop",
   "hide_table",
+  "use_embedded_form",
   "section_break_qivk",
   "template",
   "link_report",
@@ -846,13 +847,19 @@
    "fieldname": "redirect_to_list",
    "fieldtype": "Check",
    "label": "Redirect to List"
+  },
+  {
+   "default": "0",
+   "fieldname": "use_embedded_form",
+   "fieldtype": "Check",
+   "label": "Use Embedded Form"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_virtual": 1,
  "links": [],
- "modified": "2026-05-20 15:22:29.171326",
+ "modified": "2026-06-11 17:50:04.851872",
  "modified_by": "Administrator",
  "module": "Frappe Theme",
  "name": "Custom Property Setter",
