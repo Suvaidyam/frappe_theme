@@ -365,6 +365,7 @@ export function applyDirectoryViewMixin(GalleryClass) {
 
 	GalleryClass.prototype._attachDirectoryEventListeners = function () {
 		const self = this;
+		const canWrite = this.permissions.includes("write");
 		const canDelete = this.permissions.includes("delete");
 
 		// Attach drag and drop handlers for folder cases
@@ -402,6 +403,11 @@ export function applyDirectoryViewMixin(GalleryClass) {
 
 				const rect = this.getBoundingClientRect();
 				const menuItems = [];
+				if (canWrite) {
+					menuItems.push(
+						`<div class="dir-popup-item dir-popup-rename" style="padding:8px 16px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-color);"><i class="fa fa-pencil"></i> Rename</div>`
+					);
+				}
 				if (canDelete) {
 					menuItems.push(
 						`<div class="dir-popup-item dir-popup-delete" style="padding:8px 16px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--red-500, #e74c3c);"><i class="fa fa-trash"></i> Delete</div>`
@@ -426,6 +432,11 @@ export function applyDirectoryViewMixin(GalleryClass) {
 				const $btn = $(this);
 				$btn.addClass("menu-active");
 
+				$popup.find(".dir-popup-rename").on("click", function () {
+					$popup.remove();
+					$btn.removeClass("menu-active");
+					self._renameFolder(folderDoc, displayName);
+				});
 				$popup.find(".dir-popup-delete").on("click", function () {
 					$popup.remove();
 					$btn.removeClass("menu-active");
@@ -603,6 +614,48 @@ export function applyDirectoryViewMixin(GalleryClass) {
 		} else {
 			frappe.msgprint(__("Failed to upload files"));
 		}
+	};
+
+	GalleryClass.prototype._renameFolder = function (folderDocName, displayName) {
+		const self = this;
+		const renameDialog = new frappe.ui.Dialog({
+			title: __("Rename Folder"),
+			fields: [
+				{
+					label: "Folder Name",
+					fieldname: "folder_name",
+					fieldtype: "Data",
+					reqd: 1,
+					default: displayName,
+				},
+			],
+			primary_action_label: __("Rename"),
+			async primary_action(values) {
+				try {
+					const newName = values.folder_name.trim();
+					if (!newName) {
+						frappe.msgprint(__("Please enter a folder name"));
+						return;
+					}
+					if (newName === displayName) {
+						renameDialog.hide();
+						return;
+					}
+					await frappe.call({
+						method: "frappe_theme.api.rename_folder",
+						args: { old_name: folderDocName, new_name: newName },
+					});
+					renameDialog.hide();
+					frappe.show_alert({ message: __("Folder renamed"), indicator: "green" });
+					await self.fetchFolders();
+					await self.fetchGalleryFiles();
+					self.render();
+				} catch (error) {
+					console.error("Error renaming folder:", error);
+				}
+			},
+		});
+		renameDialog.show();
 	};
 
 	GalleryClass.prototype._deleteFolder = function (folderDocName, displayName) {
