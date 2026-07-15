@@ -945,7 +945,7 @@ class TestSQLBuilderUserPermissions(unittest.TestCase):
 			},
 		)
 
-		sql = "SELECT * FROM `tabGrant` " "WHERE workflow_state IN %(states)s " "AND year = %(year)s"
+		sql = "SELECT * FROM `tabGrant` WHERE workflow_state IN %(states)s AND year = %(year)s"
 
 		with patch.dict(sys.modules, {"frappe": mock_frappe}):
 			result = SQLBuilder.apply(

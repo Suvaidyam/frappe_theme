@@ -1,4 +1,5 @@
 import json
+import os
 import re
 from typing import Optional, Union
 
@@ -1619,6 +1620,36 @@ def upload_file_to_folder(
 	return file_doc.as_dict()
 
 
+UNSAFE_FOLDER_NAME_CHARS = re.compile(r'[~/\\%&#?<>"`*+]')
+
+
+@frappe.whitelist()
+def rename_folder(old_name: str, new_name: str):
+	"""Rename a gallery folder (a `File` doc with is_folder=1), keeping its docname
+	(and hence its children's `folder` links) in sync with the folder's display label.
+	"""
+	file_doc = frappe.get_doc("File", old_name)
+	if not file_doc.is_folder:
+		frappe.throw(_("{0} is not a folder").format(old_name))
+
+	new_display_name = (new_name or "").strip()
+	if not new_display_name:
+		frappe.throw(_("Folder name cannot be empty"))
+	if UNSAFE_FOLDER_NAME_CHARS.search(new_display_name):
+		frappe.throw(_("Folder name contains invalid characters"))
+
+	new_file_name_value = f"{file_doc.attached_to_name}~{new_display_name}"
+	new_docname = os.path.join(file_doc.folder, new_file_name_value)
+
+	if new_docname == old_name:
+		return {"name": old_name}
+
+	frappe.rename_doc("File", old_name, new_docname, force=True)
+	frappe.db.set_value("File", new_docname, "file_name", new_file_name_value)
+
+	return {"name": new_docname}
+
+
 @frappe.whitelist()
 def export_customizations(doctype: str, with_permissions: bool = False):
 	"""
@@ -1821,8 +1852,6 @@ def export_fixtures_runtime():
 
 	return frappe.as_json(export_data)
 
-
-import os
 
 from frappe.core.doctype.data_import.data_import import import_doc
 

@@ -506,6 +506,80 @@ class SVAGalleryComponent {
 		return false;
 	}
 
+	_moveFileToFolder(fileId, currentFolder) {
+		const self = this;
+		let selectedFolder = currentFolder || "Home";
+
+		const moveDialog = new frappe.ui.Dialog({
+			title: __("Move to Folder"),
+			fields: [
+				{
+					fieldname: "folder_tree_wrapper",
+					fieldtype: "HTML",
+				},
+			],
+			primary_action_label: __("Move"),
+			async primary_action() {
+				if (selectedFolder === currentFolder) {
+					moveDialog.hide();
+					return;
+				}
+				try {
+					await frappe.db.set_value("File", fileId, "folder", selectedFolder);
+					moveDialog.hide();
+					frappe.show_alert({ message: __("File moved"), indicator: "green" });
+					await self.fetchFolders();
+					await self.fetchGalleryFiles();
+					self.render();
+				} catch (error) {
+					console.error("Error moving file:", error);
+				}
+			},
+		});
+
+		const renderTree = () => {
+			const folderTree = self._buildFolderTree(self.folders);
+			const $wrapper = moveDialog.fields_dict.folder_tree_wrapper.$wrapper;
+			$wrapper.html(`
+				<div class="folder-tree-container" style="max-height: 320px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 6px;">
+					${self._renderFolderTreeHTML(folderTree, selectedFolder)}
+				</div>
+			`);
+
+			$wrapper
+				.find(".folder-tree-item")
+				.off("click")
+				.on("click", function (e) {
+					if ($(e.target).hasClass("folder-toggle-arrow")) return;
+					selectedFolder = $(this).data("folder");
+					renderTree();
+				});
+
+			$wrapper
+				.find(".folder-toggle-arrow")
+				.off("click")
+				.on("click", function (e) {
+					e.stopPropagation();
+					const $item = $(this).closest(".folder-tree-item");
+					const folderPath = $item.data("folder");
+					const $children = $item.next(".folder-tree-children");
+					if (!self._expandedFolders) self._expandedFolders = new Set();
+					if ($children.is(":visible")) {
+						$children.slideUp(150);
+						$(this).removeClass("fa-chevron-down").addClass("fa-chevron-right");
+						self._expandedFolders.delete(folderPath);
+					} else {
+						$children.slideDown(150);
+						$(this).removeClass("fa-chevron-right").addClass("fa-chevron-down");
+						self._expandedFolders.add(folderPath);
+					}
+				});
+		};
+
+		moveDialog.show();
+		renderTree();
+	}
+
 	async _createNewFolder(parentFolder, uploadDialog) {
 		const self = this;
 		const newFolderDialog = new frappe.ui.Dialog({
@@ -1861,6 +1935,9 @@ class SVAGalleryComponent {
 					items.push(
 						`<div class="sva-popup-item sva-popup-edit" data-id="${fileId}" style="padding:8px 16px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-color);"><i class="fa fa-pencil text-muted"></i> Edit</div>`
 					);
+					items.push(
+						`<div class="sva-popup-item sva-popup-move" data-id="${fileId}" style="padding:8px 16px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-color);"><i class="fa fa-folder-o text-muted"></i> Move</div>`
+					);
 				}
 				if (canDelete) {
 					items.push(
@@ -1890,6 +1967,13 @@ class SVAGalleryComponent {
 					$popup.remove();
 					$container.removeClass("menu-active");
 					await self.renderForm("edit", $(this).data("id"));
+				});
+				$popup.find(".sva-popup-move").on("click", function () {
+					$popup.remove();
+					$container.removeClass("menu-active");
+					const fId = $(this).data("id");
+					const fileData = self.gallery_files.find((f) => f.name === fId);
+					self._moveFileToFolder(fId, fileData ? fileData.folder : "Home");
 				});
 				$popup.find(".sva-popup-delete").on("click", function () {
 					$popup.remove();
