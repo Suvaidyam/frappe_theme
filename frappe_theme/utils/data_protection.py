@@ -203,7 +203,10 @@ def mask_query_report(*args, **kwargs):
 		if not report_name:
 			return result
 
-		report = frappe.get_doc("Report", report_name)
+		# frappe.get_cached_doc avoids a fresh DB fetch on every single report
+		# run just to read ref_doctype — cache is invalidated automatically
+		# when the Report doc is saved.
+		report = frappe.get_cached_doc("Report", report_name)
 		doctype = report.ref_doctype
 		if not doctype:
 			return result
@@ -289,7 +292,7 @@ def mask_query_report_export_query():
 
 	# Step 3: Apply masking here
 	try:
-		report = frappe.get_doc("Report", report_name)
+		report = frappe.get_cached_doc("Report", report_name)
 		doctype = report.ref_doctype
 		if doctype:
 			meta = frappe.get_meta(doctype)
