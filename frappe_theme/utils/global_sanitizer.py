@@ -43,15 +43,10 @@ def sanitize_all_fields(doc, method=None):
 	# doctype (this app's single doctype). Per-document flags are not used.
 	site_flag = bool(conf.get("sanitize_all_fields"))
 
-	# Read the single theme doctype `My Theme` if available (issingle = 1).
-	# Uses the Redis-backed document cache (frappe.get_cached_doc) instead of a
-	# fresh DB query — this hook runs on every validate() of every doctype
-	# site-wide, so a plain frappe.db.get_single_value() here means one extra
-	# SQL query per document save, every time, even when the feature is off.
-	# get_cached_doc is invalidated automatically whenever "My Theme" is saved.
+	# Read the single theme doctype `My Theme` if available (issingle = 1)
 	theme_flag = False
 	try:
-		theme = frappe.get_cached_doc("My Theme").get("sanitize_all_fields")
+		theme = frappe.db.get_single_value("My Theme", "sanitize_all_fields")
 		if theme:
 			theme_flag = bool(theme)
 	except Exception:
