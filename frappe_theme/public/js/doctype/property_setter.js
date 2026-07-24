@@ -39,6 +39,12 @@ after_render_control = async function (dialog, _frm) {
 	let doctype = _frm.docname == "Customize Form" ? _frm.doc.doc_type : _frm.docname;
 	let is_single = _frm.docname != "Customize Form" ? _frm.doc.issingle : 0;
 
+	// Set initial visibility for redirect filter fields based on redirect_to_list value
+	let redirect_checked = row?.redirect_to_list;
+	dialog.set_df_property("number_card_document_type", "hidden", redirect_checked ? 0 : 1);
+	dialog.set_df_property("setup_redirect_filters", "hidden", redirect_checked ? 0 : 1);
+	dialog.set_df_property("redirect_filters", "hidden", (redirect_checked && row?.redirect_filters) ? 0 : 1);
+
 	let frm = dialog;
 	// =============================== Datatable Configuration Part Starts ===============================
 	if (row.connection_type === "Direct") {
@@ -484,6 +490,16 @@ const field_changes = {
 	async setup_list_filters(frm) {
 		await set_list_filters(frm.config_dialog);
 	},
+	async setup_redirect_filters(frm) {
+		await set_number_card_filters(frm.config_dialog, { target_field: "redirect_filters", title_suffix: "Redirect Filters" });
+	},
+	redirect_to_list: function(frm) {
+		let checked = frm.config_dialog.get_value("redirect_to_list");
+		frm.config_dialog.set_df_property("number_card_document_type", "hidden", checked ? 0 : 1);
+		frm.config_dialog.set_df_property("setup_redirect_filters", "hidden", checked ? 0 : 1);
+		let has_filters = frm.config_dialog.get_value("redirect_filters");
+		frm.config_dialog.set_df_property("redirect_filters", "hidden", (checked && has_filters) ? 0 : 1);
+	},
 	// ============================== Datatable Configuration Part Ends ===============================
 
 	// ++++++++++++++++++++++++++++ Heatmap Configuration Part Starts ++++++++++++++++++++++++++++
@@ -782,6 +798,80 @@ const set_list_settings = async (dialog) => {
 		};
 	});
 };
+const set_number_card_filters = async (dialog, { target_field = "number_card_filters", title_suffix = "Filters" } = {}) => {
+	let row = dialog.get_values(true, false);
+	let card_name = row.number_card;
+	if (!card_name) {
+		frappe.msgprint(__("Please select a Number Card first."));
+		return;
+	}
+
+	let doctype = row.number_card_document_type;
+	if (!doctype) {
+		let card_doc = await frappe.db.get_value("Number Card", card_name, "document_type");
+		doctype = card_doc?.message?.document_type;
+	}
+	if (!doctype) {
+		frappe.msgprint(__("Please select a Document Type or choose a Number Card that has a Document Type configured."));
+		return;
+	}
+
+	let existing_filters_raw = row[target_field];
+	let existing_filters = [];
+	if (existing_filters_raw) {
+		try {
+			existing_filters = JSON.parse(existing_filters_raw);
+		} catch (e) {
+			existing_filters = [];
+		}
+	}
+
+	let filter_group;
+
+	let filter_dialog = new frappe.ui.Dialog({
+		title: __("{0} - {1}", [card_name, title_suffix]),
+		fields: [
+			{
+				fieldtype: "HTML",
+				fieldname: "filter_area_loading",
+				options: `<div class="text-muted text-center p-3">${__("Loading fields...")}</div>`,
+			},
+			{ fieldtype: "HTML", fieldname: "filter_area" },
+		],
+		primary_action_label: __("Set"),
+		primary_action() {
+			let filters = filter_group ? filter_group.get_filters() : [];
+			dialog.set_value(target_field, JSON.stringify(filters));
+			dialog.set_df_property(target_field, "hidden", 0);
+			frappe.show_alert({ message: __("Filters updated"), indicator: "green" });
+			filter_dialog.hide();
+		},
+		secondary_action_label: __("Clear Filters"),
+		secondary_action() {
+			filter_group && filter_group.clear_filters();
+		},
+	});
+
+	filter_dialog.show();
+	filter_dialog.get_field("filter_area").$wrapper.hide();
+
+	// Load doctype meta first so FilterGroup field dropdown is populated — same pattern as widget_dialog.js
+	frappe.model.with_doctype(doctype, () => {
+		filter_group = new frappe.ui.FilterGroup({
+			parent: filter_dialog.get_field("filter_area").$wrapper,
+			doctype: doctype,
+			on_change: () => {},
+		});
+
+		if (existing_filters.length) {
+			filter_group.add_filters_to_filter_group(existing_filters);
+		}
+
+		filter_dialog.get_field("filter_area_loading").$wrapper.hide();
+		filter_dialog.get_field("filter_area").$wrapper.show();
+	});
+};
+
 const set_list_filters = async (dialog) => {
 	let row = dialog.get_values(true, false);
 	let dtmeta = await frappe.call({

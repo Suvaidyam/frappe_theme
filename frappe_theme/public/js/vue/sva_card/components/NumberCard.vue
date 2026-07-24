@@ -120,19 +120,37 @@ const handleAction = async (action) => {
 		frappe.set_route("Form", props.card?.details?.doctype, props.card?.details?.label);
 	} else if (action == "view_table") {
 		if (props.card.redirect_to_list) {
-			if (props.card?.details?.type == "Document Type") {
+			if (props.card.redirect_filters) {
 				let filters_json = {};
 				try {
-					const parsed_filters = JSON.parse(props.card?.details?.filters_json) || [];
-					if (Array.isArray(parsed_filters)) {
-						parsed_filters.forEach(([, field, op, val]) => {
+					const redirect_parsed = JSON.parse(props.card.redirect_filters) || [];
+					if (Array.isArray(redirect_parsed)) {
+						redirect_parsed.forEach(([, field, op, val]) => {
 							filters_json[field] = [op, val];
 						});
-					} else {
-						filters_json = parsed_filters;
 					}
 				} catch (e) {}
-				frappe.set_route("List", props.card?.details?.document_type, filters_json);
+				const _dt1 = props.card.number_card_document_type;
+				if (frappe.model.user_settings[_dt1]?.List) frappe.model.user_settings[_dt1].List.filters = [];
+				frappe.set_route("List", _dt1, filters_json);
+			} else if (props.card?.details?.type == "Document Type") {
+				const _dt2 = props.card?.details?.document_type;
+				// patch before_refresh to clear filters at the right time (runs once, then restores)
+				const _lv = Object.values(frappe.views?.list_view || {}).find(lv => lv?.doctype === _dt2);
+				if (_lv) {
+					const _orig = _lv.before_refresh.bind(_lv);
+					_lv.before_refresh = async function () {
+						_lv.before_refresh = _orig;
+						if (_lv.filter_area) await _lv.filter_area.clear(false);
+						frappe.model.user_settings[_dt2] = frappe.model.user_settings[_dt2] || {};
+						frappe.model.user_settings[_dt2]["List"] = { filters: [] };
+						return _orig();
+					};
+				}
+				// for fresh list (not yet in cache): clear user_settings so setup_defaults sees empty
+				frappe.model.user_settings[_dt2] = frappe.model.user_settings[_dt2] || {};
+				frappe.model.user_settings[_dt2]["List"] = { filters: [] };
+				frappe.set_route("List", _dt2);
 			} else if (props.card?.details?.type == "Report") {
 				frappe.set_route("List", props.card?.report?.ref_doctype);
 			}

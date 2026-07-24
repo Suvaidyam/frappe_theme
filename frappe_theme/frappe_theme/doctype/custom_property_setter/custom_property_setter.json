@@ -18,6 +18,9 @@
   "html_block",
   "is_report",
   "redirect_to_list",
+  "number_card_document_type",
+  "setup_redirect_filters",
+  "redirect_filters",
   "column_break_vafi",
   "label",
   "info",
@@ -846,6 +849,27 @@
    "fieldname": "redirect_to_list",
    "fieldtype": "Check",
    "label": "Redirect to List"
+  },
+  {
+   "depends_on": "eval:doc.property_type=='Number Card'",
+   "fieldname": "number_card_document_type",
+   "fieldtype": "Link",
+   "label": "Document Type",
+   "options": "DocType"
+  },
+  {
+   "depends_on": "eval:doc.property_type=='Number Card'",
+   "fieldname": "setup_redirect_filters",
+   "fieldtype": "Button",
+   "label": "Setup Redirect Filters"
+  },
+  {
+   "depends_on": "eval:doc.property_type=='Number Card'",
+   "fieldname": "redirect_filters",
+   "fieldtype": "Code",
+   "label": "Redirect Filters",
+   "max_height": "5rem",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
