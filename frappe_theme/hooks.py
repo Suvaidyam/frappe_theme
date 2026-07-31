@@ -166,7 +166,7 @@ override_doctype_class = {
 
 doc_events = {
 	"*": {
-		"validate": "frappe_theme.utils.global_sanitizer.sanitize_all_fields",
+		# "validate": "frappe_theme.utils.global_sanitizer.sanitize_all_fields",  # disabled — fires on every save site-wide; re-enable by uncommenting
 		"before_insert": "frappe_theme.utils.data_protection.encrypt_doc_fields",
 		"before_save": "frappe_theme.utils.data_protection.encrypt_doc_fields",
 		"onload": "frappe_theme.utils.data_protection.decrypt_doc_fields",

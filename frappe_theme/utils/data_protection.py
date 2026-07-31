@@ -41,7 +41,7 @@ def mask_doc_list_view(*args, **kwargs):
 			doctype = kwargs.get("doctype") or (args[0] if args else None)
 			if doctype:
 				meta = frappe.get_meta(doctype)
-				user_roles = frappe.get_roles(frappe.session.user)
+				user_roles = _get_user_roles()
 
 				processing_fields = []
 				for idx, fieldname in enumerate(result["keys"]):
@@ -95,14 +95,23 @@ def get_data_protection(field):
 
 @frappe.whitelist()
 def get_cipher():
-	"""Get Fernet cipher using site_config.json 'encryption_key'"""
+	"""Get Fernet cipher using site_config.json 'encryption_key', cached per request on frappe.local."""
 	key = frappe.conf.get("encryption_key")
 	if not key:
 		raise RuntimeError("Encryption key not found in site_config.json")
-	try:
-		return Fernet(key.encode())
-	except Exception as e:
-		raise RuntimeError(f"Invalid encryption key: {e}")
+	if not getattr(frappe.local, "_fernet_cipher", None):
+		try:
+			frappe.local._fernet_cipher = Fernet(key.encode())
+		except Exception as e:
+			raise RuntimeError(f"Invalid encryption key: {e}")
+	return frappe.local._fernet_cipher
+
+
+def _get_user_roles():
+	"""Return current user's roles, cached on frappe.local for the duration of the request."""
+	if not getattr(frappe.local, "_cached_user_roles", None):
+		frappe.local._cached_user_roles = _get_user_roles()
+	return frappe.local._cached_user_roles
 
 
 @frappe.whitelist()
@@ -212,7 +221,7 @@ def mask_query_report(*args, **kwargs):
 			return result
 
 		meta = frappe.get_meta(doctype)
-		user_roles = frappe.get_roles(frappe.session.user)
+		user_roles = _get_user_roles()
 
 		for row in result.get("result", []):
 			for col in result.get("columns", []):
@@ -296,7 +305,7 @@ def mask_query_report_export_query():
 		doctype = report.ref_doctype
 		if doctype:
 			meta = frappe.get_meta(doctype)
-			user_roles = frappe.get_roles(frappe.session.user)
+			user_roles = _get_user_roles()
 
 			for row in data.result:
 				for col, val in row.items():
@@ -368,7 +377,7 @@ def mask_export_query(*args, **kwargs):
 			return result
 
 		meta = frappe.get_meta(doctype)
-		user_roles = frappe.get_roles(frappe.session.user)
+		user_roles = _get_user_roles()
 
 		# Keys exist in first row
 		if result and isinstance(result, list):

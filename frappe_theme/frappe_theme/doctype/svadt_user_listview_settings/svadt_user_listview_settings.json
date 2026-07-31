@@ -17,6 +17,7 @@
       "in_list_view": 1,
       "label": "User",
       "options": "User",
+      "search_index": 1,
       "set_only_once": 1
      },
      {
