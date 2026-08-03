@@ -110,7 +110,7 @@ def get_cipher():
 def _get_user_roles():
 	"""Return current user's roles, cached on frappe.local for the duration of the request."""
 	if not getattr(frappe.local, "_cached_user_roles", None):
-		frappe.local._cached_user_roles = _get_user_roles()
+		frappe.local._cached_user_roles = frappe.get_roles(frappe.session.user)
 	return frappe.local._cached_user_roles
 
 
