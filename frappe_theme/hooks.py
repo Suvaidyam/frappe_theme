@@ -165,12 +165,12 @@ override_doctype_class = {
 # Hook on document methods and events
 
 doc_events = {
-	"*": {
-		# "validate": "frappe_theme.utils.global_sanitizer.sanitize_all_fields",  # disabled — fires on every save site-wide; re-enable by uncommenting
-		"before_insert": "frappe_theme.utils.data_protection.encrypt_doc_fields",
-		"before_save": "frappe_theme.utils.data_protection.encrypt_doc_fields",
-		"onload": "frappe_theme.utils.data_protection.decrypt_doc_fields",
-	},
+	# "*": {
+	# 	# "validate": "frappe_theme.utils.global_sanitizer.sanitize_all_fields",  # disabled — fires on every save site-wide; re-enable by uncommenting
+	# 	# "before_insert": "frappe_theme.utils.data_protection.encrypt_doc_fields",
+	# 	# "before_save": "frappe_theme.utils.data_protection.encrypt_doc_fields",
+	# 	# "onload": "frappe_theme.utils.data_protection.decrypt_doc_fields",
+	# },
 	"Version": {
 		"validate": "frappe_theme.controllers.timeline.validate",
 		# "on_cancel": "method",
@@ -179,30 +179,30 @@ doc_events = {
 	"Report": {
 		"before_save": "frappe_theme.overrides.report.before_save",
 	},
-	"File": {
-		"after_insert": "frappe_theme.controllers.sva_integrations.cloud_assets.file_upload_to_cloud",
-		"on_trash": "frappe_theme.controllers.sva_integrations.cloud_assets.delete_from_cloud",
-	},
+	# "File": {
+	# 	"after_insert": "frappe_theme.controllers.sva_integrations.cloud_assets.file_upload_to_cloud",
+	# 	"on_trash": "frappe_theme.controllers.sva_integrations.cloud_assets.delete_from_cloud",
+	# },
 }
 
 override_whitelisted_methods = {
 	"frappe.model.workflow.apply_workflow": "frappe_theme.overrides.workflow.custom_apply_workflow",
 	"frappe.model.workflow.get_transitions": "frappe_theme.overrides.workflow.get_custom_transitions",
-	"frappe.desk.reportview.get": "frappe_theme.utils.data_protection.mask_doc_list_view",
-	"frappe.desk.listview.get": "frappe_theme.utils.data_protection.mask_doc_list_view",
-	"frappe.desk.query_report.run": "frappe_theme.utils.data_protection.mask_query_report",
-	"frappe.desk.query_report.export_query": "frappe_theme.utils.data_protection.mask_query_report_export_query",
+	# "frappe.desk.reportview.get": "frappe_theme.utils.data_protection.mask_doc_list_view",
+	# "frappe.desk.listview.get": "frappe_theme.utils.data_protection.mask_doc_list_view",
+	# "frappe.desk.query_report.run": "frappe_theme.utils.data_protection.mask_query_report",
+	# "frappe.desk.query_report.export_query": "frappe_theme.utils.data_protection.mask_query_report_export_query",
 }
 
 # Scheduled Tasks
 # ---------------
 
 scheduler_events = {
-	"cron": {
-		"*/10 * * * *": [
-			"frappe_theme.cron.sync_ticket_status.run",
-		]
-	}
+	# "cron": {
+	# 	"*/10 * * * *": [
+	# 		"frappe_theme.cron.sync_ticket_status.run",
+	# 	]
+	# }
 }
 
 # Testing
