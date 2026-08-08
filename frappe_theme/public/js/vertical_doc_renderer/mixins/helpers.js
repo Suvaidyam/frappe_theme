@@ -333,8 +333,33 @@ const HelpersMixin = {
 		// filterRow hook: sync per-field gate; return false to hide a row.
 		// Use this to conditionally show/hide VDR rows based on doc values or config.
 		// Note: must be synchronous — called inside the rendering loop.
+		// Signature: filterRow(df, vdrInstance, batchFilterValue)
+		//   batchFilterValue — value of add_more_config.batch_row_filter_field for this
+		//   batch section (null for non-batch VDRs). Use this to vary visible rows per
+		//   batch without manually scanning vdrInstance.data.
+		//
+		// Resolution order for batchFilterValue:
+		//   1. this._batch_filter_value (set by _addBatchSection from add_more_config.batch_row_filter_field)
+		//   2. this.data[0][batch_row_filter_field] (direct read from first doc in batch)
+		//      — used as a safety fallback when batch_row_filter_field is not in add_more_config
+		//      but the data is available (e.g. field is fetched but not configured)
 		if (typeof this.events.filterRow === "function") {
-			visible = visible.filter((df) => this.events.filterRow(df, this) !== false);
+			let batchFilterValue = this._batch_filter_value ?? null;
+			if (
+				batchFilterValue === null &&
+				this._is_sub_vdr &&
+				this.data &&
+				this.data.length > 0
+			) {
+				const parentCfg = this._parent_vdr && this._parent_vdr.add_more_config;
+				const filterField = parentCfg && parentCfg.batch_row_filter_field;
+				if (filterField) {
+					batchFilterValue = this.data[0][filterField] ?? null;
+				}
+			}
+			visible = visible.filter(
+				(df) => this.events.filterRow(df, this, batchFilterValue) !== false
+			);
 		}
 
 		return visible;
