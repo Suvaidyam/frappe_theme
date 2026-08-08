@@ -120,7 +120,41 @@ frm.vdr_events = {
   beforeCreate(values, dialog) {},               // return false to cancel create
   afterCreate(newDoc) {},
   afterRender(instance) {},
+
+  // filterRow(df, vdrInstance, batchFilterValue) — return false to hide a row
+  //   df               — field descriptor
+  //   vdrInstance      — the VDR instance (sub-VDR for batch sections)
+  //   batchFilterValue — value of add_more_config.batch_row_filter_field from the
+  //                      first doc of this batch; null for non-batch VDRs.
+  //                      Use this to show different rows per batch without scanning
+  //                      vdrInstance.data manually.
+  filterRow(df, vdrInstance, batchFilterValue) {},
 };
+```
+
+### Batch-wise row filtering (`batch_row_filter_field`)
+
+Set `batch_row_filter_field` in the VDR's batch config (via "Setup Batch Config" dialog or directly in `vdr_batch_config` JSON) to enable per-batch row filtering:
+
+```json
+{
+  "grouping_field": "batch_no",
+  "batch_row_filter_field": "crop_name"
+}
+```
+
+How it works:
+1. `_addBatchSection()` reads `firstDoc[batch_row_filter_field]` (e.g. `"Paddy"`) and stores it as `_batch_filter_value` on the sub-VDR.
+2. `getVisibleFields()` passes `this._batch_filter_value` as the 3rd arg to `filterRow`.
+3. The consuming app's `filterRow` receives the crop name directly — no need to scan `vdrInstance.data`.
+
+```js
+filterRow(df, vdrInstance, batchFilterValue) {
+  // batchFilterValue = "Paddy" for batch 2, "Ash Gourd" for batch 1, null for non-batch
+  const crop = batchFilterValue || frm.doc.main_crop || "";
+  const cropKey = crop.toLowerCase().replace(/\s+/g, "_");
+  // ... filter based on cropKey
+}
 ```
 
 ---
