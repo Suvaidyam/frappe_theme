@@ -111,15 +111,19 @@ const RenderingMixin = {
 		this._theadRow = tr; // stored so viewport + delete mixins can append columns
 
 		// "Parameters" sticky label column — highest z-index (corner cell)
-		const labelW = this._responsiveLabelWidth();
+		// Use CSS min() so the column stays responsive after device rotation or
+		// DevTools mobile emulation — a JS-computed px value baked at render time
+		// would stay fixed even if the viewport later narrows.
+		const raw = this.label_width || 160;
+		const labelWCss = `min(${raw}px, max(100px, 42vw))`;
 		const paramTh = document.createElement("th");
 		paramTh.textContent = __("Parameters");
 		paramTh.className = "sva-vdr-header-cell sva-vdr-sticky-col";
 		this._styleHeaderCell(paramTh);
 		paramTh.style.left = "0";
 		paramTh.style.zIndex = "3"; // corner: above both sticky-top and sticky-left
-		paramTh.style.minWidth = `${labelW}px`;
-		paramTh.style.width = `${labelW}px`;
+		paramTh.style.minWidth = labelWCss;
+		paramTh.style.width = labelWCss;
 		tr.appendChild(paramTh);
 
 		// Optional "Unit" column
@@ -382,6 +386,8 @@ const RenderingMixin = {
 		// Label cell — sticky left, highest z-index among tbody cells
 		const labelTd = document.createElement("td");
 		labelTd.className = "sva-vdr-label-cell sva-vdr-sticky-col";
+		const _lRaw = this.label_width || 160;
+		const _lCss = `min(${_lRaw}px, max(100px, 42vw))`;
 		labelTd.style.cssText = `
 			position: sticky;
 			left: 0;
@@ -394,9 +400,9 @@ const RenderingMixin = {
 			word-break: break-word;
 			overflow-wrap: break-word;
 			border: 1px solid rgba(0,0,0,.06);
-			min-width: ${this._responsiveLabelWidth()}px;
-			width: ${this._responsiveLabelWidth()}px;
-			max-width: ${this._responsiveLabelWidth()}px;
+			min-width: ${_lCss};
+			width: ${_lCss};
+			max-width: ${_lCss};
 		`;
 		labelTd.textContent = __(df.label || df.fieldname);
 		tr.appendChild(labelTd);

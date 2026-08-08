@@ -22,6 +22,13 @@ const BatchGroupMixin = {
 		const groupField = this.add_more_config.grouping_field;
 		const fields = this._getDataFields();
 
+		// Always include batch_row_filter_field so _addBatchSection() can read the
+		// per-batch crop/filter value even if the field is excluded from visible rows.
+		const batchFilterField = this.add_more_config.batch_row_filter_field;
+		if (batchFilterField && !fields.includes(batchFilterField)) {
+			fields.push(batchFilterField);
+		}
+
 		let allDocs = [];
 		try {
 			allDocs = await frappe.db.get_list(this.doctype, {
@@ -65,6 +72,9 @@ const BatchGroupMixin = {
 			// Wait for sub-VDR to finish initialising (meta + render) before next
 			if (subVDR && subVDR._ready) await subVDR._ready;
 		}
+		// After all sections are rendered, sync delete button and Add More position
+		this._syncLastBatchDelBtn();
+		this._syncAddMoreBtnPosition();
 	},
 
 	/**
@@ -81,6 +91,13 @@ const BatchGroupMixin = {
 		// Replace {fieldname} placeholders with values from the first doc in this batch.
 		// e.g. "Seed Treatment - {crop_name}" → "Seed Treatment - Paddy"
 		const firstDoc = docs && docs.length ? docs[0] : null;
+
+		// Extract batch_row_filter_field value — passed to sub-VDR so filterRow hook
+		// can vary visible rows per batch (e.g. show Paddy params for batch 2, Ash Gourd for batch 1).
+		const batchRowFilterField =
+			this.add_more_config && this.add_more_config.batch_row_filter_field;
+		const batchFilterValue =
+			batchRowFilterField && firstDoc ? firstDoc[batchRowFilterField] ?? null : null;
 		const prefix = rawPrefix.replace(/\{(\w+)\}/g, (_, fn) =>
 			firstDoc && firstDoc[fn] != null ? String(firstDoc[fn]) : `{${fn}}`
 		);
@@ -116,9 +133,10 @@ const BatchGroupMixin = {
 		header.appendChild(document.createTextNode(label));
 
 		// ── Delete button (right-aligned, shown when allow_delete_batch) ─────
-		// First batch (batchNo == 1) never gets a delete button.
+		// Button is created for every eligible batch but visibility is controlled
+		// by _syncLastBatchDelBtn() — only the last batch (highest number) shows it.
+		// Batch 1 never gets a delete button (single-batch safety guard).
 		const canDeleteBatch =
-			parseInt(batchNo) !== 1 &&
 			this.add_more_config &&
 			this.add_more_config.allow_delete_batch &&
 			frappe.model.can_delete(this.doctype);
@@ -126,8 +144,10 @@ const BatchGroupMixin = {
 		if (canDeleteBatch) {
 			const delBtn = document.createElement("button");
 			delBtn.type = "button";
+			delBtn.className = "sva-vdr-del-batch-btn";
 			delBtn.title = __("Delete this batch");
 			delBtn.style.cssText = `
+				display: none;
 				margin-left: auto;
 				background: transparent;
 				border: 1px solid rgba(255,255,255,0.5);
@@ -149,6 +169,9 @@ const BatchGroupMixin = {
 			});
 			header.appendChild(delBtn);
 		}
+
+		// Mark section with batchNo for _syncLastBatchDelBtn() to query
+		section.dataset.batchNo = String(batchNo);
 
 		// ── Content area (holds sub-VDR) ─────────────────────────────────────
 		const content = document.createElement("div");
@@ -204,6 +227,8 @@ const BatchGroupMixin = {
 			// No add_more_config, no vdr_field_name → no nested "Add More" / settings / reload
 			_is_sub_vdr: true,
 			_parent_vdr: this,
+			_batch_no: batchNo,
+			_batch_filter_value: batchFilterValue,
 		});
 
 		this._batchInstances[batchNo] = subVDR;
@@ -260,6 +285,10 @@ const BatchGroupMixin = {
 						delete this._batchInstances[batchNo];
 					}
 
+					// Move delete button and Add More button to the new last batch
+					this._syncLastBatchDelBtn();
+					this._syncAddMoreBtnPosition();
+
 					frappe.show_alert({
 						message: __("{0} record(s) deleted from {1}", [result.deleted, label]),
 						indicator: "green",
@@ -277,6 +306,59 @@ const BatchGroupMixin = {
 				}
 			}
 		);
+	},
+	/**
+	 * Move the "Add More" wrapper div so it always appears directly after the last
+	 * .sva-vdr-batch-section. Called after every render/add/delete operation.
+	 */
+	_syncAddMoreBtnPosition() {
+		const wrapper = this._addMoreWrapper;
+		if (!wrapper || !this.container) return;
+
+		const sections = this.container.querySelectorAll(".sva-vdr-batch-section");
+		if (!sections.length) {
+			// No batch sections yet — keep at end of container
+			this.container.appendChild(wrapper);
+			return;
+		}
+
+		// Insert wrapper right after the last section
+		const lastSection = sections[sections.length - 1];
+		lastSection.insertAdjacentElement("afterend", wrapper);
+	},
+
+	/**
+	 * Show the delete button ONLY on the last batch section (highest batchNo > 1).
+	 * Hides the button on all other sections. Called after initial render and after
+	 * each batch deletion so the button always tracks the current last batch.
+	 */
+	_syncLastBatchDelBtn() {
+		if (!this.add_more_config || !this.add_more_config.allow_delete_batch) return;
+
+		const sections = this.container.querySelectorAll(".sva-vdr-batch-section");
+		if (!sections.length) return;
+
+		// Find the section with the highest batchNo
+		let lastSection = null;
+		let lastNo = -Infinity;
+		sections.forEach((sec) => {
+			const no = Number(sec.dataset.batchNo ?? -Infinity);
+			if (no > lastNo) {
+				lastNo = no;
+				lastSection = sec;
+			}
+		});
+
+		// Hide all delete buttons; then reveal only the last batch's (if batchNo > 1)
+		sections.forEach((sec) => {
+			const btn = sec.querySelector(".sva-vdr-del-batch-btn");
+			if (btn) btn.style.display = "none";
+		});
+
+		if (lastSection && lastNo > 1) {
+			const btn = lastSection.querySelector(".sva-vdr-del-batch-btn");
+			if (btn) btn.style.display = "";
+		}
 	},
 };
 

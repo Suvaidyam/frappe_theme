@@ -1117,6 +1117,7 @@ const set_vdr_batch_config = (dialog) => {
 		add_more_doctype: row.vdr_doctype || "",
 		grouping_field: "",
 		plot_link_field: "",
+		batch_row_filter_field: "",
 		default_collapsed_new_table: true,
 		batch_title_prefix: "Soil Parameters - Batch",
 		allow_delete_batch: false,
@@ -1214,6 +1215,15 @@ const set_vdr_batch_config = (dialog) => {
 					"Link field that points to the column source — e.g. the plot or sample name (e.g. plot)"
 				),
 			},
+			{
+				label: __("Batch Row Filter Field"),
+				fieldname: "batch_row_filter_field",
+				fieldtype: "Data",
+				default: cfg.batch_row_filter_field || "",
+				description: __(
+					"Fieldname in the batch docs whose value is passed as 3rd arg to the filterRow hook. Each batch section then shows only rows relevant to that value (e.g. crop_name for crop-wise parameter filtering)."
+				),
+			},
 			{ fieldtype: "Column Break" },
 			{
 				label: __("Batch Title Prefix"),
@@ -1297,6 +1307,7 @@ const set_vdr_batch_config = (dialog) => {
 				add_more_doctype: values.add_more_doctype || "",
 				grouping_field: (values.grouping_field || "").trim(),
 				plot_link_field: (values.plot_link_field || "").trim(),
+				batch_row_filter_field: (values.batch_row_filter_field || "").trim(),
 				default_collapsed_new_table: !!values.default_collapsed_new_table,
 				batch_title_prefix: (
 					values.batch_title_prefix || "Soil Parameters - Batch"

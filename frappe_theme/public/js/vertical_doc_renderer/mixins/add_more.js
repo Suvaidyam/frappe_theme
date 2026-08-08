@@ -81,6 +81,14 @@ const AddMoreMixin = {
 				const subVDR = this._addBatchSection(result.next_batch, newDocs, collapsed);
 				if (subVDR && subVDR._ready) await subVDR._ready;
 
+				// New batch is now the last — sync delete button and Add More position
+				if (typeof this._syncLastBatchDelBtn === "function") {
+					this._syncLastBatchDelBtn();
+				}
+				if (typeof this._syncAddMoreBtnPosition === "function") {
+					this._syncAddMoreBtnPosition();
+				}
+
 				// Scroll new section into view
 				const newSection = this.container.querySelector(
 					`.sva-vdr-batch-section[data-batch="${result.next_batch}"]`

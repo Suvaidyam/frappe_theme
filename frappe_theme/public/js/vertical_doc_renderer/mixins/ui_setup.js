@@ -22,7 +22,7 @@ const UISetupMixin = {
 			width: 100%;
 			overflow: visible;
 			font-size: 13px;
-			margin-bottom: 24px;
+			margin-bottom: ${this._is_sub_vdr ? "0" : "24px"};
 		`;
 		this.container = container;
 
@@ -143,7 +143,15 @@ const UISetupMixin = {
 		this._toolbar = toolbar; // stored so _renderAddMoreButton() can append to it
 
 		if (hasSettings && typeof this._buildSettingsButton === "function") {
-			toolbar.appendChild(this._buildSettingsButton());
+			const settingsBtn = this._buildSettingsButton();
+			if (typeof this.events.canShowSettings === "function") {
+				// Hide initially; show only after the hook resolves (supports sync + async)
+				settingsBtn.style.display = "none";
+				Promise.resolve(this.events.canShowSettings(this)).then((allowed) => {
+					if (allowed !== false) settingsBtn.style.display = "";
+				});
+			}
+			toolbar.appendChild(settingsBtn);
 		}
 
 		if (hasReload) {
@@ -219,7 +227,24 @@ const UISetupMixin = {
 
 		this._addMoreBtnEl = btn;
 
-		// Prefer toolbar (top-right) when available; fall back to a footer bar below table
+		// Batch-grouped mode: button goes BELOW the last batch section (left-aligned).
+		// A dedicated wrapper div is appended to the container; _syncAddMoreBtnPosition()
+		// repositions it to always appear after the last .sva-vdr-batch-section.
+		if (this._isBatchGrouped && this._isBatchGrouped()) {
+			let wrapper = this.container.querySelector(".sva-vdr-add-more-below");
+			if (!wrapper) {
+				wrapper = document.createElement("div");
+				wrapper.className = "sva-vdr-add-more-below";
+				wrapper.style.cssText = "display:flex;justify-content:flex-start;margin-top:10px;";
+				this.container.appendChild(wrapper);
+			}
+			wrapper.appendChild(btn);
+			this._addMoreWrapper = wrapper;
+			// Position will be finalised by _syncAddMoreBtnPosition() after batches render
+			return;
+		}
+
+		// Flat mode: prefer toolbar (top-right), fall back to a footer bar
 		if (this._toolbar) {
 			// Insert before the settings gear so Add More is left of gear: [+ Add More][⚙]
 			this._toolbar.insertBefore(btn, this._toolbar.firstChild);
