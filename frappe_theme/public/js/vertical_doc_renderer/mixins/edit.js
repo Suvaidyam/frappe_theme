@@ -911,7 +911,7 @@ const EditMixin = {
 				primary_action_label: __("Save"),
 				primary_action: async () => {
 					const ctrl = dialog.fields_dict[df.fieldname];
-					const newRows = ctrl ? (ctrl.get_value() || []) : [];
+					const newRows = ctrl ? ctrl.get_value() || [] : [];
 					dialog.hide();
 					await me._saveTableMultiselectValue(df, doc, newRows, colIndex);
 				},

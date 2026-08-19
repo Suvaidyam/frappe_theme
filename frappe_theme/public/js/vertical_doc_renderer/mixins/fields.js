@@ -202,9 +202,19 @@ const FieldsMixin = {
 		const linkFieldname = linkField ? linkField.fieldname : null;
 
 		const SYSTEM = new Set([
-			"name", "doctype", "parent", "parentfield", "parenttype",
-			"idx", "docstatus", "creation", "modified", "modified_by",
-			"owner", "__islocal", "__unsaved",
+			"name",
+			"doctype",
+			"parent",
+			"parentfield",
+			"parenttype",
+			"idx",
+			"docstatus",
+			"creation",
+			"modified",
+			"modified_by",
+			"owner",
+			"__islocal",
+			"__unsaved",
 		]);
 
 		const labels = value
