@@ -23,6 +23,11 @@ const FieldsMixin = {
 			return this._formatTable(value, df);
 		}
 
+		// Table MultiSelect: show selected link values as inline tags
+		if (df.fieldtype === "Table MultiSelect") {
+			return this._formatTableMultiselect(value, df);
+		}
+
 		if (value === null || value === undefined || value === "") {
 			return "";
 		}
@@ -178,6 +183,53 @@ const FieldsMixin = {
 		} catch (_) {
 			return "";
 		}
+	},
+
+	/**
+	 * Format a Table Multiselect field value as inline tags.
+	 * Finds the Link field in the child DocType and shows each selected value as a tag.
+	 *
+	 * @param {*}      value — raw field value (array of row objects, or null)
+	 * @param {Object} df    — field descriptor (df.options = child DocType name)
+	 */
+	_formatTableMultiselect(value, df) {
+		if (!Array.isArray(value) || !value.length) return "";
+
+		const childMeta = df && df.options ? frappe.get_meta(df.options) : null;
+		const linkField = childMeta
+			? (childMeta.fields || []).find((f) => f.fieldtype === "Link")
+			: null;
+		const linkFieldname = linkField ? linkField.fieldname : null;
+
+		const SYSTEM = new Set([
+			"name", "doctype", "parent", "parentfield", "parenttype",
+			"idx", "docstatus", "creation", "modified", "modified_by",
+			"owner", "__islocal", "__unsaved",
+		]);
+
+		const labels = value
+			.map((row) => {
+				if (linkFieldname && row[linkFieldname] != null && row[linkFieldname] !== "") {
+					return frappe.utils.escape_html(String(row[linkFieldname]));
+				}
+				// Fallback: first non-system non-empty value
+				const entry = Object.entries(row).find(
+					([k, v]) => !SYSTEM.has(k) && v != null && v !== ""
+				);
+				return entry ? frappe.utils.escape_html(String(entry[1])) : null;
+			})
+			.filter(Boolean);
+
+		if (!labels.length) return "";
+
+		return labels
+			.map(
+				(l) =>
+					`<span style="display:inline-block;background:var(--blue-highlight-color,#d9eaf3);` +
+					`color:var(--blue-600,#1472d4);border-radius:3px;padding:1px 6px;` +
+					`margin:1px 2px;font-size:11px;white-space:nowrap;">${l}</span>`
+			)
+			.join("");
 	},
 
 	_formatGeolocation(value) {

@@ -65,6 +65,11 @@ const ViewportMixin = {
 		// All columns have been rendered — nothing left to load
 		if (this._rendered_count >= this._total_col_count()) return;
 
+		// _theadRow is only set when _buildThead() ran (non-empty table).
+		// If render() showed the empty-state instead, there is no header row to
+		// attach the sentinel to — bail out silently.
+		if (!this._theadRow) return;
+
 		const sentinel = document.createElement("th");
 		sentinel.className = "sva-vdr-sentinel";
 		sentinel.style.cssText =
@@ -108,6 +113,11 @@ const ViewportMixin = {
 			// Server returned nothing — all records exhausted
 			this._loading_batch = false;
 			return;
+		}
+
+		// Enrich batch with Table MultiSelect child rows before rendering
+		if (typeof this._fetchTableMultiSelectData === "function") {
+			await this._fetchTableMultiSelectData(batchData);
 		}
 
 		batchData.forEach((doc, i) => {
