@@ -69,6 +69,8 @@ const EditMixin = {
 			if (cell.dataset.editing === "1") return;
 			if (df.fieldtype === "Table") {
 				this._openTableEditDialog(df, doc, colIndex);
+			} else if (df.fieldtype === "Table MultiSelect") {
+				this._openTableMultiselectDialog(df, doc, colIndex);
 			} else if (this.getEditableCellTypes().includes(df.fieldtype)) {
 				this.renderInlineEditor(cell, df, doc, colIndex);
 			} else {
@@ -876,6 +878,96 @@ const EditMixin = {
 		});
 
 		subDialog.show();
+	},
+
+	// ─── Table Multiselect fieldtype editing ────────────────────────────────
+
+	/**
+	 * Open a dialog with Frappe's native Table Multiselect control.
+	 * Fetches the current child rows from the server if not already cached.
+	 */
+	_openTableMultiselectDialog(df, doc, colIndex) {
+		const me = this;
+		const childDt = df.options;
+		if (!childDt) return;
+
+		frappe.model.with_doctype(childDt, async () => {
+			let currentRows;
+			if (Array.isArray(doc[df.fieldname])) {
+				currentRows = JSON.parse(JSON.stringify(doc[df.fieldname]));
+			} else {
+				try {
+					const fullDoc = await frappe.db.get_doc(me.doctype, doc.name);
+					currentRows = fullDoc[df.fieldname] || [];
+					doc[df.fieldname] = currentRows;
+				} catch (_) {
+					currentRows = [];
+				}
+			}
+
+			const dialog = new frappe.ui.Dialog({
+				title: __(df.label || df.fieldname),
+				fields: [{ ...df, reqd: 0 }],
+				primary_action_label: __("Save"),
+				primary_action: async () => {
+					const ctrl = dialog.fields_dict[df.fieldname];
+					const newRows = ctrl ? ctrl.get_value() || [] : [];
+					dialog.hide();
+					await me._saveTableMultiselectValue(df, doc, newRows, colIndex);
+				},
+			});
+
+			dialog.set_value(df.fieldname, currentRows);
+			dialog.show();
+		});
+	},
+
+	/**
+	 * Fetch the full parent doc, replace the Table Multiselect child field, save,
+	 * and refresh the VDR cell.
+	 */
+	async _saveTableMultiselectValue(df, doc, newRows, colIndex) {
+		const me = this;
+		const childDt = df.options;
+
+		const processedRows = (newRows || []).map((row, i) => ({
+			doctype: childDt,
+			idx: i + 1,
+			...row,
+		}));
+
+		try {
+			const fullDoc = await frappe.db.get_doc(me.doctype, doc.name);
+			fullDoc[df.fieldname] = processedRows;
+			const saved = await frappe.xcall("frappe.client.save", { doc: fullDoc });
+
+			doc[df.fieldname] = saved[df.fieldname] || processedRows;
+
+			const cell = me._table?.querySelector(
+				`td.sva-vdr-value-cell[data-fieldname="${CSS.escape(
+					df.fieldname
+				)}"][data-docname="${CSS.escape(doc.name)}"]`
+			);
+			if (cell) {
+				cell.dataset.rawValue = String(doc[df.fieldname].length);
+				cell.innerHTML = me.formatCellValue(doc[df.fieldname], df, doc, colIndex);
+				me.attachEditListener(cell, df, doc, colIndex);
+			}
+
+			if (typeof me.clearErrorBanner === "function") me.clearErrorBanner();
+			frappe.show_alert({ message: __("Saved"), indicator: "green" });
+
+			if (typeof me.events.afterSave === "function") {
+				me.events.afterSave(df, doc.name, doc[df.fieldname], me);
+			}
+		} catch (err) {
+			const errMsg = (err && (err.message || err.exc_type)) || __("Could not save");
+			if (typeof me.showErrorBanner === "function") {
+				me.showErrorBanner([`${__(df.label || df.fieldname)}: ${errMsg}`]);
+			} else {
+				frappe.msgprint({ title: __("Save failed"), message: errMsg, indicator: "red" });
+			}
+		}
 	},
 
 	/**
