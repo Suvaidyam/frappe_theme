@@ -262,7 +262,7 @@ const EditMixin = {
 			cell.style.opacity = "0.5";
 			const spinner = document.createElement("span");
 			spinner.className = "sva-vdr-spinner";
-			spinner.textContent = "\u21BB"; // ↻
+			spinner.textContent = "\u20BB"; // ↻
 			cell.appendChild(spinner);
 
 			await this.saveValue(df, doc, newValue, cell, colIndex);
@@ -340,6 +340,24 @@ const EditMixin = {
 					this.map.addControl(this.draw_control);
 				};
 
+				// L.control.locate defaults to watch:true (watchPosition) without
+				// enableHighAccuracy. On the second+ dialog open the timeout-error (code 3)
+				// is silently swallowed (watch:true branch in _onLocationError), leaving
+				// the spinner stuck forever. Patch to force GPS-level accuracy so the
+				// watcher always succeeds if the device can supply a position at all.
+				geoCtrl.bind_leaflet_locate_control = function () {
+					this.locate_control = L.control.locate({
+						position: "topright",
+						locateOptions: { enableHighAccuracy: true, maxZoom: 20 },
+					});
+					this.locate_control.addTo(this.map);
+					// Always zoom to exactly level 20 on location found
+					// (overrides fitBounds which depends on accuracy circle size).
+					this.locate_control.setView = function () {
+						if (this._event) this._map.setView(this._event.latlng, 20);
+					};
+				};
+
 				// Frappe's dialog path registers a frappe.ui.Dialog:shown handler every
 				// time set_disp_area() is called (dialog init + set_value both call it).
 				// Multiple handlers → multiple make_map() calls → Leaflet "Map container
@@ -374,22 +392,32 @@ const EditMixin = {
 								console.warn("Could not fit map bounds:", e);
 							}
 						} else {
-							// No existing location — auto-locate current GPS position and zoom in
-							geoCtrl.map.once("locationfound", (e) => {
-								geoCtrl.map.setView(e.latlng, 19);
-							});
-							geoCtrl.map.locate({ enableHighAccuracy: true });
+							// No existing location — engage the locate control directly so
+							// its state machine is properly involved (spinner → active → done).
+							// Calling map.locate() directly bypasses the control and leaves
+							// watchPosition running with mismatched options on dialog close.
+							if (geoCtrl.locate_control) {
+								geoCtrl.locate_control.start();
+							}
 						}
 					}
 				});
 			}
 
+			// Stop any active watchPosition before removing the wrapper so the
+			// browser watcher doesn't leak into the next dialog's geolocation calls.
 			// Remove the wrapper only after Bootstrap finishes its hide animation
 			// (hidden.bs.modal fires after animation; onhide fires before it).
 			// Removing mid-animation corrupts Bootstrap's modal stack so
 			// $(document).trigger("frappe.ui.Dialog:shown") never fires for the next
 			// dialog, leaving the map container blank on every reopen after a save.
-			dialog.$wrapper.one("hidden.bs.modal", () => dialog.$wrapper.remove());
+			dialog.$wrapper.one("hidden.bs.modal", () => {
+				if (df.fieldtype === "Geolocation") {
+					const geoCtrl = dialog.fields_dict[df.fieldname];
+					if (geoCtrl?.map) geoCtrl.map.stopLocate();
+				}
+				dialog.$wrapper.remove();
+			});
 		}
 
 		// getLinkQuery hook — apply get_query filter on the Link control inside the dialog.
@@ -835,6 +863,17 @@ const EditMixin = {
 				this.draw_control = this.get_leaflet_controls();
 				this.map.addControl(this.draw_control);
 			};
+			geoCtrl.bind_leaflet_locate_control = function () {
+				this.locate_control = L.control.locate({
+					position: "topright",
+					locateOptions: { enableHighAccuracy: true, maxZoom: 20 },
+				});
+				this.locate_control.addTo(this.map);
+				// Always zoom to exactly level 20 on location found
+				this.locate_control.setView = function () {
+					if (this._event) this._map.setView(this._event.latlng, 20);
+				};
+			};
 			const existingValue = rowData[df.fieldname];
 			let mapReady = false;
 			const protoMakeMap = Object.getPrototypeOf(geoCtrl).make_map;
@@ -856,14 +895,16 @@ const EditMixin = {
 							console.warn("Could not fit map bounds:", _e);
 						}
 					} else {
-						geoCtrl.map.once("locationfound", (e) => {
-							geoCtrl.map.setView(e.latlng, 19);
-						});
-						geoCtrl.map.locate({ enableHighAccuracy: true });
+						if (geoCtrl.locate_control) {
+							geoCtrl.locate_control.start();
+						}
 					}
 				}, 350);
 			};
-			subDialog.$wrapper.one("hidden.bs.modal", () => subDialog.$wrapper.remove());
+			subDialog.$wrapper.one("hidden.bs.modal", () => {
+				if (geoCtrl?.map) geoCtrl.map.stopLocate();
+				subDialog.$wrapper.remove();
+			});
 		});
 
 		// Populate existing values
