@@ -22,7 +22,7 @@ app_include_js = [
 	"global_exporter.bundle.js",
 	"sva_workspace.bundle.js",
 	"overwrite_form.bundle.js",
-	"overwrite_workflow.bundle.js",
+	# "overwrite_workflow.bundle.js",
 	"override_date_field.bundle.js",
 	"frappe_theme.bundle.js",
 	"override_link.bundle.js",
@@ -33,7 +33,7 @@ app_include_js = [
 	"override_autocomplete.bundle.js",
 	"override_data.bundle.js",
 	f"/assets/frappe_theme/js/svadb.js?ver={time.time()}",
-	f"/assets/frappe_theme/js/fields_comment.js?ver={time.time()}",
+	# f"/assets/frappe_theme/js/fields_comment.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/extended_chart.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/list_column_width.js?ver={time.time()}",
 	f"/assets/frappe_theme/js/mobile_view.js?ver={time.time()}",
@@ -66,7 +66,7 @@ webform_include_js = {
 
 # include js in doctype views
 doctype_js = {
-	"Workflow": "public/js/doctype/workflow.js",
+	# "Workflow": "public/js/doctype/workflow.js",
 	"Web Form": "public/js/doctype/web_form.js",
 	"Customize Form": ["public/js/doctype/property_setter.js", "public/js/doctype/customize_form.js"],
 	"DocType": ["public/js/doctype/property_setter.js", "public/js/doctype/doctype.js"],
@@ -172,7 +172,7 @@ doc_events = {
 	# 	# "onload": "frappe_theme.utils.data_protection.decrypt_doc_fields",
 	# },
 	"Version": {
-		"validate": "frappe_theme.controllers.timeline.validate",
+		# "validate": "frappe_theme.controllers.timeline.validate",
 		# "on_cancel": "method",
 		# "on_trash": "method"
 	},
@@ -186,8 +186,8 @@ doc_events = {
 }
 
 override_whitelisted_methods = {
-	"frappe.model.workflow.apply_workflow": "frappe_theme.overrides.workflow.custom_apply_workflow",
-	"frappe.model.workflow.get_transitions": "frappe_theme.overrides.workflow.get_custom_transitions",
+	# "frappe.model.workflow.apply_workflow": "frappe_theme.overrides.workflow.custom_apply_workflow",
+	# "frappe.model.workflow.get_transitions": "frappe_theme.overrides.workflow.get_custom_transitions",
 	# "frappe.desk.reportview.get": "frappe_theme.utils.data_protection.mask_doc_list_view",
 	# "frappe.desk.listview.get": "frappe_theme.utils.data_protection.mask_doc_list_view",
 	# "frappe.desk.query_report.run": "frappe_theme.utils.data_protection.mask_query_report",
