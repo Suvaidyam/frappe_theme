@@ -35,7 +35,7 @@ const BatchGroupMixin = {
 				filters: this.filters || [],
 				fields,
 				limit: 0,
-				order_by: `${groupField} asc`,
+				order_by: `${groupField} asc${this.order_by ? `, ${this.order_by}` : ""}`,
 			});
 		} catch (e) {
 			console.error("[VDR BatchGroup] Failed to fetch all docs", e);
@@ -62,10 +62,12 @@ const BatchGroupMixin = {
 					const lb = (labelField && b[labelField]) || b.name || "";
 					const ra = this._matchOrderRule(la);
 					const rb = this._matchOrderRule(lb);
-					return (
+					const orderDiff =
 						(ra ? ra.order ?? Infinity : Infinity) -
-						(rb ? rb.order ?? Infinity : Infinity)
-					);
+						(rb ? rb.order ?? Infinity : Infinity);
+					if (orderDiff !== 0) return orderDiff;
+					// Secondary: natural sort on label so NF-T1R1 < NF-T1R2 < NF-T2R1
+					return la.localeCompare(lb, undefined, { numeric: true, sensitivity: "base" });
 				});
 			}
 			const subVDR = this._addBatchSection(key, batchDocs, false);
