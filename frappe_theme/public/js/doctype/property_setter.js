@@ -43,7 +43,11 @@ after_render_control = async function (dialog, _frm) {
 	let redirect_checked = row?.redirect_to_list;
 	dialog.set_df_property("number_card_document_type", "hidden", redirect_checked ? 0 : 1);
 	dialog.set_df_property("setup_redirect_filters", "hidden", redirect_checked ? 0 : 1);
-	dialog.set_df_property("redirect_filters", "hidden", (redirect_checked && row?.redirect_filters) ? 0 : 1);
+	dialog.set_df_property(
+		"redirect_filters",
+		"hidden",
+		redirect_checked && row?.redirect_filters ? 0 : 1
+	);
 
 	let frm = dialog;
 	// =============================== Datatable Configuration Part Starts ===============================
@@ -491,14 +495,21 @@ const field_changes = {
 		await set_list_filters(frm.config_dialog);
 	},
 	async setup_redirect_filters(frm) {
-		await set_number_card_filters(frm.config_dialog, { target_field: "redirect_filters", title_suffix: "Redirect Filters" });
+		await set_number_card_filters(frm.config_dialog, {
+			target_field: "redirect_filters",
+			title_suffix: "Redirect Filters",
+		});
 	},
-	redirect_to_list: function(frm) {
+	redirect_to_list: function (frm) {
 		let checked = frm.config_dialog.get_value("redirect_to_list");
 		frm.config_dialog.set_df_property("number_card_document_type", "hidden", checked ? 0 : 1);
 		frm.config_dialog.set_df_property("setup_redirect_filters", "hidden", checked ? 0 : 1);
 		let has_filters = frm.config_dialog.get_value("redirect_filters");
-		frm.config_dialog.set_df_property("redirect_filters", "hidden", (checked && has_filters) ? 0 : 1);
+		frm.config_dialog.set_df_property(
+			"redirect_filters",
+			"hidden",
+			checked && has_filters ? 0 : 1
+		);
 	},
 	// ============================== Datatable Configuration Part Ends ===============================
 
@@ -798,7 +809,10 @@ const set_list_settings = async (dialog) => {
 		};
 	});
 };
-const set_number_card_filters = async (dialog, { target_field = "number_card_filters", title_suffix = "Filters" } = {}) => {
+const set_number_card_filters = async (
+	dialog,
+	{ target_field = "number_card_filters", title_suffix = "Filters" } = {}
+) => {
 	let row = dialog.get_values(true, false);
 	let card_name = row.number_card;
 	if (!card_name) {
@@ -812,7 +826,11 @@ const set_number_card_filters = async (dialog, { target_field = "number_card_fil
 		doctype = card_doc?.message?.document_type;
 	}
 	if (!doctype) {
-		frappe.msgprint(__("Please select a Document Type or choose a Number Card that has a Document Type configured."));
+		frappe.msgprint(
+			__(
+				"Please select a Document Type or choose a Number Card that has a Document Type configured."
+			)
+		);
 		return;
 	}
 
@@ -834,7 +852,9 @@ const set_number_card_filters = async (dialog, { target_field = "number_card_fil
 			{
 				fieldtype: "HTML",
 				fieldname: "filter_area_loading",
-				options: `<div class="text-muted text-center p-3">${__("Loading fields...")}</div>`,
+				options: `<div class="text-muted text-center p-3">${__(
+					"Loading fields..."
+				)}</div>`,
 			},
 			{ fieldtype: "HTML", fieldname: "filter_area" },
 		],

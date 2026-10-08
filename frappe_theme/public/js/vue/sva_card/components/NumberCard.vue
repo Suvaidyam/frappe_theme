@@ -131,12 +131,15 @@ const handleAction = async (action) => {
 					}
 				} catch (e) {}
 				const _dt1 = props.card.number_card_document_type;
-				if (frappe.model.user_settings[_dt1]?.List) frappe.model.user_settings[_dt1].List.filters = [];
+				if (frappe.model.user_settings[_dt1]?.List)
+					frappe.model.user_settings[_dt1].List.filters = [];
 				frappe.set_route("List", _dt1, filters_json);
 			} else if (props.card?.details?.type == "Document Type") {
 				const _dt2 = props.card?.details?.document_type;
 				// patch before_refresh to clear filters at the right time (runs once, then restores)
-				const _lv = Object.values(frappe.views?.list_view || {}).find(lv => lv?.doctype === _dt2);
+				const _lv = Object.values(frappe.views?.list_view || {}).find(
+					(lv) => lv?.doctype === _dt2
+				);
 				if (_lv) {
 					const _orig = _lv.before_refresh.bind(_lv);
 					_lv.before_refresh = async function () {
