@@ -29,8 +29,14 @@ TOOL_REGISTRY: dict = {}
 # independently.
 ConnectionType = Literal["Direct", "Indirect", "Referenced", "Unfiltered", "Is Custom Design", "Report"]
 CustomDesignTemplate = Literal[
-	"Tasks", "Email", "Timeline", "Gallery", "Notes",
-	"Linked Users", "Approval Request", "HTML View From API",
+	"Tasks",
+	"Email",
+	"Timeline",
+	"Gallery",
+	"Notes",
+	"Linked Users",
+	"Approval Request",
+	"HTML View From API",
 ]
 ChartType = Literal["Count", "Sum", "Average", "Group By", "Custom", "Report"]
 ChartKind = Literal["Line", "Bar", "Percentage", "Pie", "Donut", "Heatmap"]
@@ -65,7 +71,7 @@ def list_html_fields(doctype: str):
 	plus whether an SVADatatable Configuration already exists for it.
 
 	Args:
-		doctype: DocType to inspect.
+	        doctype: DocType to inspect.
 	"""
 	_require_doctype(doctype)
 	meta = frappe.get_meta(doctype)
@@ -94,8 +100,8 @@ def get_possible_connections(doctype: str, parent_doctype: str):
 	connections.
 
 	Args:
-		doctype: Child DocType.
-		parent_doctype: Parent DocType to connect it to.
+	        doctype: Child DocType.
+	        parent_doctype: Parent DocType to connect it to.
 	"""
 	return {"connections": get_possible_link_filters(doctype, parent_doctype)}
 
@@ -132,15 +138,15 @@ def configure_svadatatable(
 	validates without writing.
 
 	Args:
-		parent_doctype: DocType the table gets embedded into.
-		html_field: Fieldname of an HTML field on parent_doctype's form.
-		link_doctype: Required for Direct/Unfiltered/Indirect.
-		link_fieldname: Optional for Direct; auto-detected if omitted.
-		local_field: Required for Indirect.
-		foreign_field: Required for Indirect.
-		link_report: Required for Report.
-		endpoint: Required if template is 'HTML View From API'.
-		crud_permissions: Default ['read'].
+	        parent_doctype: DocType the table gets embedded into.
+	        html_field: Fieldname of an HTML field on parent_doctype's form.
+	        link_doctype: Required for Direct/Unfiltered/Indirect.
+	        link_fieldname: Optional for Direct; auto-detected if omitted.
+	        local_field: Required for Indirect.
+	        foreign_field: Required for Indirect.
+	        link_report: Required for Report.
+	        endpoint: Required if template is 'HTML View From API'.
+	        crud_permissions: Default ['read'].
 	"""
 	dry_run = _bool(dry_run)
 	_require_doctype(parent_doctype)
@@ -306,8 +312,8 @@ def create_dashboard_chart(
 	dry_run=true validates without writing.
 
 	Args:
-		document_type: Required unless chart_type is Report.
-		report_name: Required when chart_type is Report.
+	        document_type: Required unless chart_type is Report.
+	        report_name: Required when chart_type is Report.
 	"""
 	dry_run = _bool(dry_run)
 	args = {"chart_name": chart_name, "chart_type": chart_type, "type": type}
@@ -352,7 +358,9 @@ def create_dashboard_chart(
 	if dry_run:
 		note = {}
 		if frappe.db.exists("Dashboard Chart", chart_name):
-			note["note"] = f"'{chart_name}' already exists; core create_dashboard_chart will append a numeric suffix."
+			note[
+				"note"
+			] = f"'{chart_name}' already exists; core create_dashboard_chart will append a numeric suffix."
 		return {"dry_run": True, "would_insert": "Dashboard Chart", "payload": args, **note}
 
 	doc = _core_create_dashboard_chart(json.dumps(args))
@@ -377,9 +385,9 @@ def create_report(
 	writing.
 
 	Args:
-		report_settings: Required for Report Builder. Keys: filters, fields
-			([[fieldname,doctype],...]), order_by, add_totals_row,
-			page_length, column_widths, group_by, chart_args.
+	        report_settings: Required for Report Builder. Keys: filters, fields
+	                ([[fieldname,doctype],...]), order_by, add_totals_row,
+	                page_length, column_widths, group_by, chart_args.
 	"""
 	dry_run = _bool(dry_run)
 	_require_doctype(ref_doctype)
