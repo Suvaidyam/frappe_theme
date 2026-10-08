@@ -13,6 +13,7 @@ import json
 from typing import Literal, get_args
 
 import frappe
+from frappe import _
 from frappe.desk.doctype.dashboard_chart.dashboard_chart import (
 	create_dashboard_chart as _core_create_dashboard_chart,
 )
@@ -49,16 +50,21 @@ def _bool(v, default=False):
 
 def _require_doctype(doctype):
 	if not doctype or not frappe.db.exists("DocType", doctype):
-		frappe.throw(f"DocType '{doctype}' does not exist.", frappe.DoesNotExistError)
+		frappe.throw(_("DocType '{0}' does not exist.").format(doctype), frappe.DoesNotExistError)
 
 
 def _require_fieldname(doctype, fieldname, fieldtypes=None):
 	field = frappe.get_meta(doctype).get_field(fieldname)
 	if not field:
-		frappe.throw(f"Field '{fieldname}' does not exist on DocType '{doctype}'.", frappe.ValidationError)
+		frappe.throw(
+			_("Field '{0}' does not exist on DocType '{1}'.").format(fieldname, doctype),
+			frappe.ValidationError,
+		)
 	if fieldtypes and field.fieldtype not in fieldtypes:
 		frappe.throw(
-			f"Field '{fieldname}' on '{doctype}' is '{field.fieldtype}', expected one of {fieldtypes}.",
+			_("Field '{0}' on '{1}' is '{2}', expected one of {3}.").format(
+				fieldname, doctype, field.fieldtype, fieldtypes
+			),
 			frappe.ValidationError,
 		)
 	return field
@@ -153,7 +159,7 @@ def configure_svadatatable(
 	_require_fieldname(parent_doctype, html_field, fieldtypes=["HTML"])
 
 	if connection_type not in get_args(ConnectionType):
-		frappe.throw(f"Invalid connection_type '{connection_type}'.", frappe.ValidationError)
+		frappe.throw(_("Invalid connection_type '{0}'.").format(connection_type), frappe.ValidationError)
 
 	child_row = {"html_field": html_field, "connection_type": connection_type}
 
@@ -170,8 +176,10 @@ def configure_svadatatable(
 				)
 				if not match:
 					frappe.throw(
-						f"Could not auto-detect a Link field on '{link_doctype}' pointing to "
-						f"'{parent_doctype}'. Pass link_fieldname explicitly.",
+						_(
+							"Could not auto-detect a Link field on '{0}' pointing to '{1}'. "
+							"Pass link_fieldname explicitly."
+						).format(link_doctype, parent_doctype),
 						frappe.ValidationError,
 					)
 				link_fieldname = match.fieldname
@@ -179,7 +187,7 @@ def configure_svadatatable(
 		if connection_type == "Indirect":
 			if not local_field or not foreign_field:
 				frappe.throw(
-					"local_field and foreign_field are required for Indirect connections.",
+					_("local_field and foreign_field are required for Indirect connections."),
 					frappe.ValidationError,
 				)
 			_require_fieldname(parent_doctype, local_field, fieldtypes=["Link"])
@@ -188,8 +196,10 @@ def configure_svadatatable(
 	elif connection_type == "Referenced":
 		if not (referenced_link_doctype and dt_reference_field and dn_reference_field):
 			frappe.throw(
-				"referenced_link_doctype, dt_reference_field, and dn_reference_field are all "
-				"required for Referenced connections.",
+				_(
+					"referenced_link_doctype, dt_reference_field, and dn_reference_field are all "
+					"required for Referenced connections."
+				),
 				frappe.ValidationError,
 			)
 		_require_doctype(referenced_link_doctype)
@@ -204,9 +214,9 @@ def configure_svadatatable(
 		)
 	elif connection_type == "Report":
 		if not link_report:
-			frappe.throw("link_report is required for Report connections.", frappe.ValidationError)
+			frappe.throw(_("link_report is required for Report connections."), frappe.ValidationError)
 		if not frappe.db.exists("Report", link_report):
-			frappe.throw(f"Report '{link_report}' does not exist.", frappe.DoesNotExistError)
+			frappe.throw(_("Report '{0}' does not exist.").format(link_report), frappe.DoesNotExistError)
 		child_row["link_report"] = link_report
 		if unfiltered is not None:
 			child_row["unfiltered"] = int(_bool(unfiltered))
@@ -214,13 +224,15 @@ def configure_svadatatable(
 		valid_templates = get_args(CustomDesignTemplate)
 		if template not in valid_templates:
 			frappe.throw(
-				f"template must be one of {valid_templates} for Is Custom Design.", frappe.ValidationError
+				_("template must be one of {0} for Is Custom Design.").format(valid_templates),
+				frappe.ValidationError,
 			)
 		child_row["template"] = template
 		if template == "HTML View From API":
 			if not endpoint:
 				frappe.throw(
-					"endpoint is required when template is 'HTML View From API'.", frappe.ValidationError
+					_("endpoint is required when template is 'HTML View From API'."),
+					frappe.ValidationError,
 				)
 			child_row["endpoint"] = endpoint
 
@@ -320,13 +332,15 @@ def create_dashboard_chart(
 
 	if chart_type == "Report":
 		if not report_name:
-			frappe.throw("report_name is required when chart_type is 'Report'.", frappe.ValidationError)
+			frappe.throw(_("report_name is required when chart_type is 'Report'."), frappe.ValidationError)
 		if not frappe.db.exists("Report", report_name):
-			frappe.throw(f"Report '{report_name}' does not exist.", frappe.DoesNotExistError)
+			frappe.throw(_("Report '{0}' does not exist.").format(report_name), frappe.DoesNotExistError)
 		args["report_name"] = report_name
 	else:
 		if not document_type:
-			frappe.throw("document_type is required unless chart_type is 'Report'.", frappe.ValidationError)
+			frappe.throw(
+				_("document_type is required unless chart_type is 'Report'."), frappe.ValidationError
+			)
 		_require_doctype(document_type)
 		args["document_type"] = document_type
 		if based_on:
@@ -392,19 +406,20 @@ def create_report(
 	dry_run = _bool(dry_run)
 	_require_doctype(ref_doctype)
 	if report_type not in get_args(ReportType):
-		frappe.throw(f"Invalid report_type '{report_type}'.", frappe.ValidationError)
+		frappe.throw(_("Invalid report_type '{0}'.").format(report_type), frappe.ValidationError)
 	if frappe.db.exists("Report", report_name):
-		frappe.throw(f"Report '{report_name}' already exists.", frappe.ValidationError)
+		frappe.throw(_("Report '{0}' already exists.").format(report_name), frappe.ValidationError)
 
 	if report_type == "Report Builder":
 		if not report_settings:
 			frappe.throw(
-				"report_settings is required for report_type 'Report Builder'.", frappe.ValidationError
+				_("report_settings is required for report_type 'Report Builder'."),
+				frappe.ValidationError,
 			)
 		if not frappe.has_permission("Report", "create"):
-			frappe.throw("Missing 'create' permission on Report.", frappe.PermissionError)
+			frappe.throw(_("Missing 'create' permission on Report."), frappe.PermissionError)
 		if not frappe.has_permission(ref_doctype, "read"):
-			frappe.throw(f"Missing 'read' permission on '{ref_doctype}'.", frappe.PermissionError)
+			frappe.throw(_("Missing 'read' permission on '{0}'.").format(ref_doctype), frappe.PermissionError)
 		settings_json = report_settings if isinstance(report_settings, str) else json.dumps(report_settings)
 		if dry_run:
 			return {
@@ -420,14 +435,16 @@ def create_report(
 	# real save fail.
 	if "Script Manager" not in frappe.get_roles():
 		frappe.throw(
-			"Creating a Query Report or Script Report requires the 'Script Manager' role "
-			"(enforced by Frappe core's Report.validate()).",
+			_(
+				"Creating a Query Report or Script Report requires the 'Script Manager' role "
+				"(enforced by Frappe core's Report.validate())."
+			),
 			frappe.PermissionError,
 		)
 	if report_type == "Query Report" and not query:
-		frappe.throw("query is required for report_type 'Query Report'.", frappe.ValidationError)
+		frappe.throw(_("query is required for report_type 'Query Report'."), frappe.ValidationError)
 	if report_type == "Script Report" and not report_script:
-		frappe.throw("report_script is required for report_type 'Script Report'.", frappe.ValidationError)
+		frappe.throw(_("report_script is required for report_type 'Script Report'."), frappe.ValidationError)
 
 	doc_dict = {
 		"doctype": "Report",
@@ -472,13 +489,16 @@ def add_chart_to_svadatatable(
 	_require_doctype(parent_doctype)
 	_require_fieldname(parent_doctype, html_field, fieldtypes=["HTML"])
 	if not frappe.db.exists("Dashboard Chart", dashboard_chart):
-		frappe.throw(f"Dashboard Chart '{dashboard_chart}' does not exist.", frappe.DoesNotExistError)
+		frappe.throw(
+			_("Dashboard Chart '{0}' does not exist.").format(dashboard_chart), frappe.DoesNotExistError
+		)
 
 	existing_name = frappe.db.exists("SVADatatable Configuration", {"parent_doctype": parent_doctype})
 	if not existing_name:
 		frappe.throw(
-			f"No SVADatatable Configuration exists for '{parent_doctype}' yet. "
-			f"Run configure_svadatatable first.",
+			_("No SVADatatable Configuration exists for '{0}' yet. Run configure_svadatatable first.").format(
+				parent_doctype
+			),
 			frappe.DoesNotExistError,
 		)
 
