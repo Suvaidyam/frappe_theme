@@ -3,10 +3,14 @@ MCP tool implementations for frappe_theme's own features (SVADatatable
 Configuration) plus Frappe core Report/Dashboard Chart creation.
 
 Transport (JSON-RPC dispatch) lives in apis/mcp.py — this module only
-contains the tool schemas and business logic.
+contains the tool schemas and business logic. Schemas are derived from each
+function's type hints + docstring by mcp_schema.tool() — see that module's
+docstring for why (and why not frappe-mcp's own generator, or frappe-mcp
+itself).
 """
 
 import json
+from typing import Literal, get_args
 
 import frappe
 from frappe.desk.doctype.dashboard_chart.dashboard_chart import (
@@ -15,164 +19,22 @@ from frappe.desk.doctype.dashboard_chart.dashboard_chart import (
 from frappe.desk.reportview import save_report as _core_save_report
 
 from frappe_theme.apis.meta import get_possible_link_filters
+from frappe_theme.controllers.mcp_schema import tool
 
-TOOL_SCHEMAS = {
-	"list_html_fields": {
-		"description": (
-			"Discovery tool. Given a DocType, returns its HTML fields (candidates for html_field) "
-			"and Link/Table fields (candidates for get_possible_connections), plus whether an "
-			"SVADatatable Configuration already exists for it."
-		),
-		"inputSchema": {
-			"type": "object",
-			"properties": {"doctype": {"type": "string"}},
-			"required": ["doctype"],
-		},
-	},
-	"get_possible_connections": {
-		"description": (
-			"Discovery tool. Thin wrapper around frappe_theme.apis.meta.get_possible_link_filters "
-			"— given a child doctype and parent doctype, returns valid relationship shapes with the "
-			"exact local_fieldname/foreign_fieldname to use for Direct/Indirect connections."
-		),
-		"inputSchema": {
-			"type": "object",
-			"properties": {"doctype": {"type": "string"}, "parent_doctype": {"type": "string"}},
-			"required": ["doctype", "parent_doctype"],
-		},
-	},
-	"configure_svadatatable": {
-		"description": (
-			"Create (if missing) the SVADatatable Configuration for parent_doctype and add/update a "
-			"child-table row on an HTML field of its form. dry_run=true validates without writing."
-		),
-		"inputSchema": {
-			"type": "object",
-			"properties": {
-				"parent_doctype": {"type": "string"},
-				"html_field": {"type": "string", "description": "Fieldname of an HTML field on parent_doctype's form."},
-				"connection_type": {
-					"type": "string",
-					"enum": ["Direct", "Indirect", "Referenced", "Unfiltered", "Is Custom Design", "Report"],
-				},
-				"link_doctype": {"type": "string", "description": "Required for Direct/Unfiltered/Indirect."},
-				"link_fieldname": {"type": "string", "description": "Optional for Direct; auto-detected if omitted."},
-				"local_field": {"type": "string", "description": "Required for Indirect."},
-				"foreign_field": {"type": "string", "description": "Required for Indirect."},
-				"referenced_link_doctype": {"type": "string"},
-				"dt_reference_field": {"type": "string"},
-				"dn_reference_field": {"type": "string"},
-				"link_report": {"type": "string", "description": "Required for Report."},
-				"unfiltered": {"type": "boolean"},
-				"template": {
-					"type": "string",
-					"enum": [
-						"Tasks", "Email", "Timeline", "Gallery", "Notes",
-						"Linked Users", "Approval Request", "HTML View From API",
-					],
-				},
-				"endpoint": {"type": "string", "description": "Required if template is 'HTML View From API'."},
-				"title": {"type": "string"},
-				"action_label": {"type": "string"},
-				"add_row_button_label": {"type": "string"},
-				"crud_permissions": {
-					"type": "array",
-					"items": {"type": "string"},
-					"description": "Default ['read'].",
-				},
-				"hide_table": {"type": "boolean"},
-				"allow_export": {"type": "boolean"},
-				"allow_import": {"type": "boolean"},
-				"add_total_row": {"type": "boolean"},
-				"redirect_to_main_form": {"type": "boolean"},
-				"dry_run": {"type": "boolean", "default": False},
-			},
-			"required": ["parent_doctype", "html_field", "connection_type"],
-		},
-	},
-	"create_dashboard_chart": {
-		"description": (
-			"Create a standalone Dashboard Chart via Frappe core's create_dashboard_chart. "
-			"dry_run=true validates without writing."
-		),
-		"inputSchema": {
-			"type": "object",
-			"properties": {
-				"chart_name": {"type": "string"},
-				"chart_type": {"type": "string", "enum": ["Count", "Sum", "Average", "Group By", "Custom", "Report"]},
-				"document_type": {"type": "string", "description": "Required unless chart_type is Report."},
-				"based_on": {"type": "string"},
-				"value_based_on": {"type": "string"},
-				"type": {"type": "string", "enum": ["Line", "Bar", "Percentage", "Pie", "Donut", "Heatmap"]},
-				"timespan": {"type": "string"},
-				"time_interval": {"type": "string"},
-				"timeseries": {"type": "boolean"},
-				"filters_json": {"type": "string"},
-				"group_by_based_on": {"type": "string"},
-				"group_by_type": {"type": "string"},
-				"aggregate_function_based_on": {"type": "string"},
-				"report_name": {"type": "string", "description": "Required when chart_type is Report."},
-				"is_public": {"type": "boolean"},
-				"color": {"type": "string"},
-				"dry_run": {"type": "boolean", "default": False},
-			},
-			"required": ["chart_name", "chart_type", "type"],
-		},
-	},
-	"create_report": {
-		"description": (
-			"Create a Frappe Report. Report Builder delegates to core save_report; Query/Script "
-			"Report creates the doc directly and requires the caller to have the 'Script Manager' "
-			"role (Frappe core enforces this — dry_run surfaces it before the real write fails). "
-			"dry_run=true validates without writing."
-		),
-		"inputSchema": {
-			"type": "object",
-			"properties": {
-				"report_name": {"type": "string"},
-				"ref_doctype": {"type": "string"},
-				"report_type": {"type": "string", "enum": ["Report Builder", "Query Report", "Script Report"]},
-				"module": {"type": "string"},
-				"query": {"type": "string"},
-				"report_script": {"type": "string"},
-				"report_settings": {
-					"type": "object",
-					"description": (
-						"Required for Report Builder. Keys: filters, fields ([[fieldname,doctype],...]), "
-						"order_by, add_totals_row, page_length, column_widths, group_by, chart_args."
-					),
-				},
-				"dry_run": {"type": "boolean", "default": False},
-			},
-			"required": ["report_name", "ref_doctype", "report_type"],
-		},
-	},
-	"add_chart_to_svadatatable": {
-		"description": (
-			"Append a Dashboard Chart Child row to an existing SVADatatable Configuration's charts "
-			"table. Fails (DoesNotExistError) if no SVADatatable Configuration exists yet for "
-			"parent_doctype — run configure_svadatatable first. dry_run=true validates without writing."
-		),
-		"inputSchema": {
-			"type": "object",
-			"properties": {
-				"parent_doctype": {"type": "string"},
-				"html_field": {"type": "string"},
-				"dashboard_chart": {"type": "string"},
-				"chart_label": {"type": "string"},
-				"background_color": {"type": "string"},
-				"text_color": {"type": "string"},
-				"border_color": {"type": "string"},
-				"chart_height": {"type": "integer", "default": 300},
-				"show_legend": {"type": "boolean", "default": True},
-				"sequence": {"type": "integer", "default": 0},
-				"is_visible": {"type": "boolean", "default": True},
-				"dry_run": {"type": "boolean", "default": False},
-			},
-			"required": ["parent_doctype", "html_field", "dashboard_chart"],
-		},
-	},
-}
+TOOL_REGISTRY: dict = {}
+
+# Single source of truth for each enum-constrained param: the type alias
+# drives both the generated JSON-schema `enum` list and the function body's
+# own runtime validation (via get_args below), instead of the two drifting
+# independently.
+ConnectionType = Literal["Direct", "Indirect", "Referenced", "Unfiltered", "Is Custom Design", "Report"]
+CustomDesignTemplate = Literal[
+	"Tasks", "Email", "Timeline", "Gallery", "Notes",
+	"Linked Users", "Approval Request", "HTML View From API",
+]
+ChartType = Literal["Count", "Sum", "Average", "Group By", "Custom", "Report"]
+ChartKind = Literal["Line", "Bar", "Percentage", "Pie", "Donut", "Heatmap"]
+ReportType = Literal["Report Builder", "Query Report", "Script Report"]
 
 
 def _bool(v, default=False):
@@ -196,7 +58,15 @@ def _require_fieldname(doctype, fieldname, fieldtypes=None):
 	return field
 
 
-def list_html_fields(doctype):
+@tool(TOOL_REGISTRY)
+def list_html_fields(doctype: str):
+	"""Discovery tool. Given a DocType, returns its HTML fields (candidates for
+	html_field) and Link/Table fields (candidates for get_possible_connections),
+	plus whether an SVADatatable Configuration already exists for it.
+
+	Args:
+		doctype: DocType to inspect.
+	"""
 	_require_doctype(doctype)
 	meta = frappe.get_meta(doctype)
 	return {
@@ -216,42 +86,67 @@ def list_html_fields(doctype):
 	}
 
 
-def get_possible_connections(doctype, parent_doctype):
+@tool(TOOL_REGISTRY)
+def get_possible_connections(doctype: str, parent_doctype: str):
+	"""Discovery tool. Thin wrapper around frappe_theme.apis.meta.get_possible_link_filters
+	— given a child doctype and parent doctype, returns valid relationship shapes
+	with the exact local_fieldname/foreign_fieldname to use for Direct/Indirect
+	connections.
+
+	Args:
+		doctype: Child DocType.
+		parent_doctype: Parent DocType to connect it to.
+	"""
 	return {"connections": get_possible_link_filters(doctype, parent_doctype)}
 
 
+@tool(TOOL_REGISTRY)
 def configure_svadatatable(
-	parent_doctype,
-	html_field,
-	connection_type,
-	link_doctype=None,
-	link_fieldname=None,
-	local_field=None,
-	foreign_field=None,
-	referenced_link_doctype=None,
-	dt_reference_field=None,
-	dn_reference_field=None,
-	link_report=None,
-	unfiltered=None,
-	template=None,
-	endpoint=None,
-	title=None,
-	action_label=None,
-	add_row_button_label=None,
-	crud_permissions=None,
-	hide_table=None,
-	allow_export=None,
-	allow_import=None,
-	add_total_row=None,
-	redirect_to_main_form=None,
-	dry_run=False,
+	parent_doctype: str,
+	html_field: str,
+	connection_type: ConnectionType,
+	link_doctype: str | None = None,
+	link_fieldname: str | None = None,
+	local_field: str | None = None,
+	foreign_field: str | None = None,
+	referenced_link_doctype: str | None = None,
+	dt_reference_field: str | None = None,
+	dn_reference_field: str | None = None,
+	link_report: str | None = None,
+	unfiltered: bool | None = None,
+	template: CustomDesignTemplate | None = None,
+	endpoint: str | None = None,
+	title: str | None = None,
+	action_label: str | None = None,
+	add_row_button_label: str | None = None,
+	crud_permissions: list[str] | None = None,
+	hide_table: bool | None = None,
+	allow_export: bool | None = None,
+	allow_import: bool | None = None,
+	add_total_row: bool | None = None,
+	redirect_to_main_form: bool | None = None,
+	dry_run: bool = False,
 ):
+	"""Create (if missing) the SVADatatable Configuration for parent_doctype and
+	add/update a child-table row on an HTML field of its form. dry_run=true
+	validates without writing.
+
+	Args:
+		parent_doctype: DocType the table gets embedded into.
+		html_field: Fieldname of an HTML field on parent_doctype's form.
+		link_doctype: Required for Direct/Unfiltered/Indirect.
+		link_fieldname: Optional for Direct; auto-detected if omitted.
+		local_field: Required for Indirect.
+		foreign_field: Required for Indirect.
+		link_report: Required for Report.
+		endpoint: Required if template is 'HTML View From API'.
+		crud_permissions: Default ['read'].
+	"""
 	dry_run = _bool(dry_run)
 	_require_doctype(parent_doctype)
 	_require_fieldname(parent_doctype, html_field, fieldtypes=["HTML"])
 
-	valid_types = ("Direct", "Indirect", "Referenced", "Unfiltered", "Is Custom Design", "Report")
-	if connection_type not in valid_types:
+	if connection_type not in get_args(ConnectionType):
 		frappe.throw(f"Invalid connection_type '{connection_type}'.", frappe.ValidationError)
 
 	child_row = {"html_field": html_field, "connection_type": connection_type}
@@ -310,10 +205,7 @@ def configure_svadatatable(
 		if unfiltered is not None:
 			child_row["unfiltered"] = int(_bool(unfiltered))
 	elif connection_type == "Is Custom Design":
-		valid_templates = [
-			"Tasks", "Email", "Timeline", "Gallery", "Notes",
-			"Linked Users", "Approval Request", "HTML View From API",
-		]
+		valid_templates = get_args(CustomDesignTemplate)
 		if template not in valid_templates:
 			frappe.throw(
 				f"template must be one of {valid_templates} for Is Custom Design.", frappe.ValidationError
@@ -390,25 +282,33 @@ def configure_svadatatable(
 	}
 
 
+@tool(TOOL_REGISTRY)
 def create_dashboard_chart(
-	chart_name,
-	chart_type,
-	type,
-	document_type=None,
-	based_on=None,
-	value_based_on=None,
-	timespan=None,
-	time_interval=None,
-	timeseries=None,
-	filters_json=None,
-	group_by_based_on=None,
-	group_by_type=None,
-	aggregate_function_based_on=None,
-	report_name=None,
-	is_public=None,
-	color=None,
-	dry_run=False,
+	chart_name: str,
+	chart_type: ChartType,
+	type: ChartKind,
+	document_type: str | None = None,
+	based_on: str | None = None,
+	value_based_on: str | None = None,
+	timespan: str | None = None,
+	time_interval: str | None = None,
+	timeseries: bool | None = None,
+	filters_json: str | None = None,
+	group_by_based_on: str | None = None,
+	group_by_type: str | None = None,
+	aggregate_function_based_on: str | None = None,
+	report_name: str | None = None,
+	is_public: bool | None = None,
+	color: str | None = None,
+	dry_run: bool = False,
 ):
+	"""Create a standalone Dashboard Chart via Frappe core's create_dashboard_chart.
+	dry_run=true validates without writing.
+
+	Args:
+		document_type: Required unless chart_type is Report.
+		report_name: Required when chart_type is Report.
+	"""
 	dry_run = _bool(dry_run)
 	args = {"chart_name": chart_name, "chart_type": chart_type, "type": type}
 
@@ -459,19 +359,31 @@ def create_dashboard_chart(
 	return {"dry_run": False, "name": doc.name}
 
 
+@tool(TOOL_REGISTRY)
 def create_report(
-	report_name,
-	ref_doctype,
-	report_type,
-	module=None,
-	query=None,
-	report_script=None,
-	report_settings=None,
-	dry_run=False,
+	report_name: str,
+	ref_doctype: str,
+	report_type: ReportType,
+	module: str | None = None,
+	query: str | None = None,
+	report_script: str | None = None,
+	report_settings: dict | str | None = None,
+	dry_run: bool = False,
 ):
+	"""Create a Frappe Report. Report Builder delegates to core save_report;
+	Query/Script Report creates the doc directly and requires the caller to
+	have the 'Script Manager' role (Frappe core enforces this — dry_run
+	surfaces it before the real write fails). dry_run=true validates without
+	writing.
+
+	Args:
+		report_settings: Required for Report Builder. Keys: filters, fields
+			([[fieldname,doctype],...]), order_by, add_totals_row,
+			page_length, column_widths, group_by, chart_args.
+	"""
 	dry_run = _bool(dry_run)
 	_require_doctype(ref_doctype)
-	if report_type not in ("Report Builder", "Query Report", "Script Report"):
+	if report_type not in get_args(ReportType):
 		frappe.throw(f"Invalid report_type '{report_type}'.", frappe.ValidationError)
 	if frappe.db.exists("Report", report_name):
 		frappe.throw(f"Report '{report_name}' already exists.", frappe.ValidationError)
@@ -528,20 +440,26 @@ def create_report(
 	return {"dry_run": False, "name": doc.name}
 
 
+@tool(TOOL_REGISTRY)
 def add_chart_to_svadatatable(
-	parent_doctype,
-	html_field,
-	dashboard_chart,
-	chart_label=None,
-	background_color=None,
-	text_color=None,
-	border_color=None,
-	chart_height=None,
-	show_legend=None,
-	sequence=None,
-	is_visible=None,
-	dry_run=False,
+	parent_doctype: str,
+	html_field: str,
+	dashboard_chart: str,
+	chart_label: str | None = None,
+	background_color: str | None = None,
+	text_color: str | None = None,
+	border_color: str | None = None,
+	chart_height: int | None = None,
+	show_legend: bool | None = None,
+	sequence: int | None = None,
+	is_visible: bool | None = None,
+	dry_run: bool = False,
 ):
+	"""Append a Dashboard Chart Child row to an existing SVADatatable Configuration's
+	charts table. Fails (DoesNotExistError) if no SVADatatable Configuration exists
+	yet for parent_doctype — run configure_svadatatable first. dry_run=true
+	validates without writing.
+	"""
 	dry_run = _bool(dry_run)
 	_require_doctype(parent_doctype)
 	_require_fieldname(parent_doctype, html_field, fieldtypes=["HTML"])
@@ -603,25 +521,3 @@ def add_chart_to_svadatatable(
 		"updated_existing_row": existing_row_idx is not None,
 		"chart_row": chart_row,
 	}
-
-
-TOOL_REGISTRY = {
-	"list_html_fields": {"schema": TOOL_SCHEMAS["list_html_fields"], "handler": list_html_fields},
-	"get_possible_connections": {
-		"schema": TOOL_SCHEMAS["get_possible_connections"],
-		"handler": get_possible_connections,
-	},
-	"configure_svadatatable": {
-		"schema": TOOL_SCHEMAS["configure_svadatatable"],
-		"handler": configure_svadatatable,
-	},
-	"create_dashboard_chart": {
-		"schema": TOOL_SCHEMAS["create_dashboard_chart"],
-		"handler": create_dashboard_chart,
-	},
-	"create_report": {"schema": TOOL_SCHEMAS["create_report"], "handler": create_report},
-	"add_chart_to_svadatatable": {
-		"schema": TOOL_SCHEMAS["add_chart_to_svadatatable"],
-		"handler": add_chart_to_svadatatable,
-	},
-}
