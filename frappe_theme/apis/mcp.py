@@ -8,7 +8,12 @@ SDK (it's ASGI-only and doesn't mount on Frappe's sync gunicorn workers), no
 SSE/streaming (would block sync workers; unnecessary for tool-calling).
 Requires standard Frappe session/API-key auth like every other whitelisted
 method in this app — NOT allow_guest, since these tools mutate live desk
-configuration.
+configuration. On top of that, every method (including initialize/tools/list)
+requires the caller to hold the "MCP" role — a coarse, all-or-nothing gate
+shipped as a fixture (fixtures/role.json). Past that gate, each tool still
+enforces its own normal Frappe permission checks against the caller's other
+roles (see controllers/mcp_tools.py) — the MCP role only answers "can this
+user touch this server at all," not "can they do this specific thing."
 
 Supported methods: initialize, notifications/initialized, tools/list, tools/call.
 Business-logic failures inside tools/call return HTTP 200 with
@@ -38,6 +43,9 @@ PROTOCOL_VERSION = "2024-11-05"
 SERVER_INFO = {"name": "frappe-theme-mcp", "version": "1.0.0"}
 TOOLS = mcp_tools.TOOL_REGISTRY
 
+MCP_ROLE = "MCP"
+ERR_FORBIDDEN = -32001  # implementation-defined server error, JSON-RPC's -32000..-32099 range
+
 
 @frappe.whitelist(methods=["POST"])
 def mcp():
@@ -59,6 +67,13 @@ def mcp():
 	params = req.get("params") or {}
 	req_id = req.get("id")
 	is_notification = "id" not in req
+
+	if MCP_ROLE not in frappe.get_roles():
+		return _json_response(
+			_rpc_error(
+				req_id, ERR_FORBIDDEN, f"Access denied: the '{MCP_ROLE}' role is required to use this server."
+			)
+		)
 
 	if method == "initialize":
 		return _json_response(

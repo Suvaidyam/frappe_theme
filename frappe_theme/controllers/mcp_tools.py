@@ -287,9 +287,7 @@ def configure_svadatatable(
 	else:
 		doc.append("child_doctypes", child_row)
 
-	# Arbitrary MCP caller may lack System Manager — matches this app's own privileged-
-	# whitelisted-method pattern (e.g. DTConf.setup_user_list_settings).
-	doc.save(ignore_permissions=True)
+	doc.save()
 
 	return {
 		"dry_run": False,
@@ -368,6 +366,11 @@ def create_dashboard_chart(
 	}.items():
 		if val is not None:
 			args[key] = val
+
+	if not frappe.has_permission("Dashboard Chart", "create"):
+		frappe.throw(_("Missing 'create' permission on Dashboard Chart."), frappe.PermissionError)
+	if document_type and not frappe.has_permission(document_type, "read"):
+		frappe.throw(_("Missing 'read' permission on '{0}'.").format(document_type), frappe.PermissionError)
 
 	if dry_run:
 		note = {}
@@ -542,7 +545,7 @@ def add_chart_to_svadatatable(
 		doc.charts[existing_row_idx].update(chart_row)
 	else:
 		doc.append("charts", chart_row)
-	doc.save(ignore_permissions=True)
+	doc.save()
 	return {
 		"dry_run": False,
 		"svadatatable_configuration": doc.name,
