@@ -150,6 +150,9 @@ after_migrate = "frappe_theme.setup.migration.after_migrate"
 # has_permission = {
 # 	"Event": "frappe.desk.doctype.event.event.has_permission",
 # }
+has_permission = {
+	"*": "frappe_theme.permission_overrides.doc_has_permission_via_query_conditions",
+}
 
 # DocType Class
 # ---------------
@@ -237,12 +240,12 @@ scheduler_events = {
 
 # Request Events
 # ----------------
-# before_request = ["frappe_theme.utils.before_request"]
+before_request = ["frappe_theme.permission_overrides.patch_db_query_permissions_operator"]
 # after_request = ["frappe_theme.utils.after_request"]
 
 # Job Events
 # ----------
-# before_job = ["frappe_theme.utils.before_job"]
+before_job = ["frappe_theme.permission_overrides.patch_db_query_permissions_operator"]
 # after_job = ["frappe_theme.utils.after_job"]
 
 # User Data Protection
