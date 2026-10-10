@@ -121,14 +121,25 @@ const EditMixin = {
 		);
 		// ctrl.set_value(_rawVal);
 		if (ctrl.$input) {
-			// Frappe's Int/Float/Currency/Percent controls use type="text" internally.
-			// Switch to type="number" so the browser rejects non-numeric input and
-			// shows a numeric keyboard on mobile.
-			if (["Int", "Float", "Currency", "Percent"].includes(df.fieldtype)) {
+			// Only Int is safe to switch to a native type="number" input. Frappe's own
+			// "change" handler (bound inside make_input(), fires before our own "blur"
+			// listener below since it's attached earlier) reformats the input on blur via
+			// format_for_input(). For Int that's a plain passthrough (no grouping), but
+			// Float/Currency/Percent use ControlFloat.format_for_input -> format_number(),
+			// which inserts a "," once there are 4+ integer digits (e.g. 1111 -> "1,111.00").
+			// Writing a comma-containing string into a type="number" input is invalid per
+			// the HTML spec, so the browser silently clears it to "" - wiping out any value
+			// >= 1000 before triggerSave() ever reads it (values <= 999 format without a
+			// comma and happen to survive). Keep these three as text inputs (Frappe's
+			// default) and only hint a numeric keyboard; the value is parsed below anyway.
+			if (df.fieldtype === "Int") {
 				ctrl.$input.attr("type", "number");
-				ctrl.$input.attr("step", df.fieldtype === "Int" ? "1" : "any");
+				ctrl.$input.attr("step", "1");
 				if (df.non_negative) ctrl.$input.attr("min", "0");
+			} else if (["Float", "Currency", "Percent"].includes(df.fieldtype)) {
+				ctrl.$input.attr("inputmode", "decimal");
 			}
+		
 			ctrl.$input.focus();
 			// air-datepicker doesn't always open on programmatic focus when a value is
 			// already set — call show() explicitly for date/time types.
@@ -224,8 +235,12 @@ const EditMixin = {
 
 			// For numeric fields, reject non-numeric or invalid values.
 			if (["Int", "Float", "Currency", "Percent"].includes(df.fieldtype)) {
-				const raw = ctrl.$input ? ctrl.$input.val() : String(newValue ?? "");
+				let raw = ctrl.$input ? ctrl.$input.val() : String(newValue ?? "");
 				if (raw !== "" && raw !== null) {
+					// Float/Currency/Percent are text inputs, so Frappe's own blur-time
+					// reformat (format_number) may have written a grouped value back in
+					// here, e.g. "1,111.00" - strip the separators before parsing.
+					if (df.fieldtype !== "Int") raw = strip_number_groups(String(raw));
 					const parsed = df.fieldtype === "Int" ? parseInt(raw, 10) : parseFloat(raw);
 					if (isNaN(parsed)) {
 						frappe.show_alert(
