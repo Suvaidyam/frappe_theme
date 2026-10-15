@@ -35,8 +35,9 @@ def run():
 		frappe.logger().info("No SVA Ticket found. Sync skipped.")
 		return
 
-	mainCreds = frappe.db.get_single_value("My Theme", "hd_creds")
-	mainBaseURL = frappe.db.get_single_value("My Theme", "hd_url")
+	theme = frappe.get_cached_doc("My Theme")
+	mainCreds = theme.hd_creds
+	mainBaseURL = theme.hd_url
 
 	if not (mainCreds and mainBaseURL):
 		frappe.logger().info("Client helpdesk creds not configured. Sync skipped.")
@@ -75,4 +76,4 @@ def run():
 		if updates:
 			frappe.db.set_value("SVA Ticket", sva_ticket.name, updates)
 
-	frappe.log_error("HD → SVA ticket sync completed successfully")
+	frappe.logger().info("HD → SVA ticket sync completed successfully")
