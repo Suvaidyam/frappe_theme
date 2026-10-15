@@ -69,6 +69,8 @@ const EditMixin = {
 			if (cell.dataset.editing === "1") return;
 			if (df.fieldtype === "Table") {
 				this._openTableEditDialog(df, doc, colIndex);
+			} else if (df.fieldtype === "Table MultiSelect") {
+				this._openTableMultiselectDialog(df, doc, colIndex);
 			} else if (this.getEditableCellTypes().includes(df.fieldtype)) {
 				this.renderInlineEditor(cell, df, doc, colIndex);
 			} else {
@@ -119,14 +121,25 @@ const EditMixin = {
 		);
 		// ctrl.set_value(_rawVal);
 		if (ctrl.$input) {
-			// Frappe's Int/Float/Currency/Percent controls use type="text" internally.
-			// Switch to type="number" so the browser rejects non-numeric input and
-			// shows a numeric keyboard on mobile.
-			if (["Int", "Float", "Currency", "Percent"].includes(df.fieldtype)) {
+			// Only Int is safe to switch to a native type="number" input. Frappe's own
+			// "change" handler (bound inside make_input(), fires before our own "blur"
+			// listener below since it's attached earlier) reformats the input on blur via
+			// format_for_input(). For Int that's a plain passthrough (no grouping), but
+			// Float/Currency/Percent use ControlFloat.format_for_input -> format_number(),
+			// which inserts a "," once there are 4+ integer digits (e.g. 1111 -> "1,111.00").
+			// Writing a comma-containing string into a type="number" input is invalid per
+			// the HTML spec, so the browser silently clears it to "" - wiping out any value
+			// >= 1000 before triggerSave() ever reads it (values <= 999 format without a
+			// comma and happen to survive). Keep these three as text inputs (Frappe's
+			// default) and only hint a numeric keyboard; the value is parsed below anyway.
+			if (df.fieldtype === "Int") {
 				ctrl.$input.attr("type", "number");
-				ctrl.$input.attr("step", df.fieldtype === "Int" ? "1" : "any");
+				ctrl.$input.attr("step", "1");
 				if (df.non_negative) ctrl.$input.attr("min", "0");
+			} else if (["Float", "Currency", "Percent"].includes(df.fieldtype)) {
+				ctrl.$input.attr("inputmode", "decimal");
 			}
+		
 			ctrl.$input.focus();
 			// air-datepicker doesn't always open on programmatic focus when a value is
 			// already set — call show() explicitly for date/time types.
@@ -222,8 +235,12 @@ const EditMixin = {
 
 			// For numeric fields, reject non-numeric or invalid values.
 			if (["Int", "Float", "Currency", "Percent"].includes(df.fieldtype)) {
-				const raw = ctrl.$input ? ctrl.$input.val() : String(newValue ?? "");
+				let raw = ctrl.$input ? ctrl.$input.val() : String(newValue ?? "");
 				if (raw !== "" && raw !== null) {
+					// Float/Currency/Percent are text inputs, so Frappe's own blur-time
+					// reformat (format_number) may have written a grouped value back in
+					// here, e.g. "1,111.00" - strip the separators before parsing.
+					if (df.fieldtype !== "Int") raw = strip_number_groups(String(raw));
 					const parsed = df.fieldtype === "Int" ? parseInt(raw, 10) : parseFloat(raw);
 					if (isNaN(parsed)) {
 						frappe.show_alert(
@@ -260,7 +277,7 @@ const EditMixin = {
 			cell.style.opacity = "0.5";
 			const spinner = document.createElement("span");
 			spinner.className = "sva-vdr-spinner";
-			spinner.textContent = "\u21BB"; // ↻
+			spinner.textContent = "\u20BB"; // ↻
 			cell.appendChild(spinner);
 
 			await this.saveValue(df, doc, newValue, cell, colIndex);
@@ -338,6 +355,24 @@ const EditMixin = {
 					this.map.addControl(this.draw_control);
 				};
 
+				// L.control.locate defaults to watch:true (watchPosition) without
+				// enableHighAccuracy. On the second+ dialog open the timeout-error (code 3)
+				// is silently swallowed (watch:true branch in _onLocationError), leaving
+				// the spinner stuck forever. Patch to force GPS-level accuracy so the
+				// watcher always succeeds if the device can supply a position at all.
+				geoCtrl.bind_leaflet_locate_control = function () {
+					this.locate_control = L.control.locate({
+						position: "topright",
+						locateOptions: { enableHighAccuracy: true, maxZoom: 20 },
+					});
+					this.locate_control.addTo(this.map);
+					// Always zoom to exactly level 20 on location found
+					// (overrides fitBounds which depends on accuracy circle size).
+					this.locate_control.setView = function () {
+						if (this._event) this._map.setView(this._event.latlng, 20);
+					};
+				};
+
 				// Frappe's dialog path registers a frappe.ui.Dialog:shown handler every
 				// time set_disp_area() is called (dialog init + set_value both call it).
 				// Multiple handlers → multiple make_map() calls → Leaflet "Map container
@@ -372,22 +407,32 @@ const EditMixin = {
 								console.warn("Could not fit map bounds:", e);
 							}
 						} else {
-							// No existing location — auto-locate current GPS position and zoom in
-							geoCtrl.map.once("locationfound", (e) => {
-								geoCtrl.map.setView(e.latlng, 19);
-							});
-							geoCtrl.map.locate({ enableHighAccuracy: true });
+							// No existing location — engage the locate control directly so
+							// its state machine is properly involved (spinner → active → done).
+							// Calling map.locate() directly bypasses the control and leaves
+							// watchPosition running with mismatched options on dialog close.
+							if (geoCtrl.locate_control) {
+								geoCtrl.locate_control.start();
+							}
 						}
 					}
 				});
 			}
 
+			// Stop any active watchPosition before removing the wrapper so the
+			// browser watcher doesn't leak into the next dialog's geolocation calls.
 			// Remove the wrapper only after Bootstrap finishes its hide animation
 			// (hidden.bs.modal fires after animation; onhide fires before it).
 			// Removing mid-animation corrupts Bootstrap's modal stack so
 			// $(document).trigger("frappe.ui.Dialog:shown") never fires for the next
 			// dialog, leaving the map container blank on every reopen after a save.
-			dialog.$wrapper.one("hidden.bs.modal", () => dialog.$wrapper.remove());
+			dialog.$wrapper.one("hidden.bs.modal", () => {
+				if (df.fieldtype === "Geolocation") {
+					const geoCtrl = dialog.fields_dict[df.fieldname];
+					if (geoCtrl?.map) geoCtrl.map.stopLocate();
+				}
+				dialog.$wrapper.remove();
+			});
 		}
 
 		// getLinkQuery hook — apply get_query filter on the Link control inside the dialog.
@@ -833,6 +878,17 @@ const EditMixin = {
 				this.draw_control = this.get_leaflet_controls();
 				this.map.addControl(this.draw_control);
 			};
+			geoCtrl.bind_leaflet_locate_control = function () {
+				this.locate_control = L.control.locate({
+					position: "topright",
+					locateOptions: { enableHighAccuracy: true, maxZoom: 20 },
+				});
+				this.locate_control.addTo(this.map);
+				// Always zoom to exactly level 20 on location found
+				this.locate_control.setView = function () {
+					if (this._event) this._map.setView(this._event.latlng, 20);
+				};
+			};
 			const existingValue = rowData[df.fieldname];
 			let mapReady = false;
 			const protoMakeMap = Object.getPrototypeOf(geoCtrl).make_map;
@@ -854,14 +910,16 @@ const EditMixin = {
 							console.warn("Could not fit map bounds:", _e);
 						}
 					} else {
-						geoCtrl.map.once("locationfound", (e) => {
-							geoCtrl.map.setView(e.latlng, 19);
-						});
-						geoCtrl.map.locate({ enableHighAccuracy: true });
+						if (geoCtrl.locate_control) {
+							geoCtrl.locate_control.start();
+						}
 					}
 				}, 350);
 			};
-			subDialog.$wrapper.one("hidden.bs.modal", () => subDialog.$wrapper.remove());
+			subDialog.$wrapper.one("hidden.bs.modal", () => {
+				if (geoCtrl?.map) geoCtrl.map.stopLocate();
+				subDialog.$wrapper.remove();
+			});
 		});
 
 		// Populate existing values
@@ -876,6 +934,96 @@ const EditMixin = {
 		});
 
 		subDialog.show();
+	},
+
+	// ─── Table Multiselect fieldtype editing ────────────────────────────────
+
+	/**
+	 * Open a dialog with Frappe's native Table Multiselect control.
+	 * Fetches the current child rows from the server if not already cached.
+	 */
+	_openTableMultiselectDialog(df, doc, colIndex) {
+		const me = this;
+		const childDt = df.options;
+		if (!childDt) return;
+
+		frappe.model.with_doctype(childDt, async () => {
+			let currentRows;
+			if (Array.isArray(doc[df.fieldname])) {
+				currentRows = JSON.parse(JSON.stringify(doc[df.fieldname]));
+			} else {
+				try {
+					const fullDoc = await frappe.db.get_doc(me.doctype, doc.name);
+					currentRows = fullDoc[df.fieldname] || [];
+					doc[df.fieldname] = currentRows;
+				} catch (_) {
+					currentRows = [];
+				}
+			}
+
+			const dialog = new frappe.ui.Dialog({
+				title: __(df.label || df.fieldname),
+				fields: [{ ...df, reqd: 0 }],
+				primary_action_label: __("Save"),
+				primary_action: async () => {
+					const ctrl = dialog.fields_dict[df.fieldname];
+					const newRows = ctrl ? ctrl.get_value() || [] : [];
+					dialog.hide();
+					await me._saveTableMultiselectValue(df, doc, newRows, colIndex);
+				},
+			});
+
+			dialog.set_value(df.fieldname, currentRows);
+			dialog.show();
+		});
+	},
+
+	/**
+	 * Fetch the full parent doc, replace the Table Multiselect child field, save,
+	 * and refresh the VDR cell.
+	 */
+	async _saveTableMultiselectValue(df, doc, newRows, colIndex) {
+		const me = this;
+		const childDt = df.options;
+
+		const processedRows = (newRows || []).map((row, i) => ({
+			doctype: childDt,
+			idx: i + 1,
+			...row,
+		}));
+
+		try {
+			const fullDoc = await frappe.db.get_doc(me.doctype, doc.name);
+			fullDoc[df.fieldname] = processedRows;
+			const saved = await frappe.xcall("frappe.client.save", { doc: fullDoc });
+
+			doc[df.fieldname] = saved[df.fieldname] || processedRows;
+
+			const cell = me._table?.querySelector(
+				`td.sva-vdr-value-cell[data-fieldname="${CSS.escape(
+					df.fieldname
+				)}"][data-docname="${CSS.escape(doc.name)}"]`
+			);
+			if (cell) {
+				cell.dataset.rawValue = String(doc[df.fieldname].length);
+				cell.innerHTML = me.formatCellValue(doc[df.fieldname], df, doc, colIndex);
+				me.attachEditListener(cell, df, doc, colIndex);
+			}
+
+			if (typeof me.clearErrorBanner === "function") me.clearErrorBanner();
+			frappe.show_alert({ message: __("Saved"), indicator: "green" });
+
+			if (typeof me.events.afterSave === "function") {
+				me.events.afterSave(df, doc.name, doc[df.fieldname], me);
+			}
+		} catch (err) {
+			const errMsg = (err && (err.message || err.exc_type)) || __("Could not save");
+			if (typeof me.showErrorBanner === "function") {
+				me.showErrorBanner([`${__(df.label || df.fieldname)}: ${errMsg}`]);
+			} else {
+				frappe.msgprint({ title: __("Save failed"), message: errMsg, indicator: "red" });
+			}
+		}
 	},
 
 	/**

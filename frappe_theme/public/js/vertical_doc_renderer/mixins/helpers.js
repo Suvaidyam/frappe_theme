@@ -191,8 +191,16 @@ const HelpersMixin = {
 				doc,
 				conf: configs[i] || {},
 				order: getOrder(doc, i),
+				label: (labelField && doc[labelField]) || configs[i]?.label || doc.name || "",
 			}));
-			entries.sort((a, b) => a.order - b.order);
+			entries.sort((a, b) => {
+				const orderDiff = a.order - b.order;
+				if (orderDiff !== 0) return orderDiff;
+				return a.label.localeCompare(b.label, undefined, {
+					numeric: true,
+					sensitivity: "base",
+				});
+			});
 			this._all_inputs = entries.map((e) => e.doc);
 			this.column_configs = entries.map((e) => e.conf);
 			const batchSize = this.data.length;
@@ -206,8 +214,16 @@ const HelpersMixin = {
 			doc,
 			conf: configs[i] || {},
 			order: getOrder(doc, i),
+			label: (labelField && doc[labelField]) || configs[i]?.label || doc.name || "",
 		}));
-		entries.sort((a, b) => a.order - b.order);
+		entries.sort((a, b) => {
+			const orderDiff = a.order - b.order;
+			if (orderDiff !== 0) return orderDiff;
+			return a.label.localeCompare(b.label, undefined, {
+				numeric: true,
+				sensitivity: "base",
+			});
+		});
 		this.data = entries.map((e) => e.doc);
 		this.column_configs = entries.map((e) => e.conf);
 		this.docs = this.data.map((d) => d.name);

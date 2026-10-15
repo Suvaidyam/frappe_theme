@@ -42,6 +42,7 @@ def add_more_batch(doctype, filters, grouping_field, link_field=None, copy_field
 		"Tab Break",
 		"HTML",
 		"Table",
+		"Table MultiSelect",
 		"Button",
 		"Fold",
 		"Heading",

@@ -4,6 +4,9 @@ const DataMixin = {
 	 * Used by fetchDocs() and viewport._fetchBatchData() to request consistent fields.
 	 */
 	_getDataFields() {
+		// Table and Table MultiSelect are child tables — no column in the parent DB table,
+		// so they must never be included in frappe.db.get_list() fields (causes SQL error).
+		// Their values are fetched separately via _fetchTableMultiSelectData().
 		const LAYOUT_TYPES = new Set([
 			"Section Break",
 			"Column Break",
@@ -12,6 +15,8 @@ const DataMixin = {
 			"Button",
 			"Fold",
 			"Image",
+			"Table",
+			"Table MultiSelect",
 		]);
 		const fields = ["name"];
 		(this.meta.fields || []).forEach((df) => {
@@ -20,6 +25,47 @@ const DataMixin = {
 			}
 		});
 		return fields;
+	},
+
+	/**
+	 * Fetch child table rows for all Table MultiSelect fields in this.meta
+	 * and merge them into the provided docs array.
+	 *
+	 * frappe.db.get_list cannot return child table data, so this makes one
+	 * extra get_list call per Table MultiSelect field, filtering by parent.
+	 *
+	 * Frappe convention: child doctype's link fieldname == parent fieldname (df.fieldname).
+	 *
+	 * @param {object[]} docs — array of document objects to enrich
+	 */
+	async _fetchTableMultiSelectData(docs) {
+		if (!docs || !docs.length || !this.meta) return;
+
+		const msFields = (this.meta.fields || []).filter(
+			(df) => df.fieldtype === "Table MultiSelect" && df.options && df.fieldname
+		);
+		if (!msFields.length) return;
+
+		// frappe.db.get_doc guarantees child table data is included.
+		// Docs are fetched in parallel — for the typical VDR of 3-10 columns this is fast.
+		await Promise.all(
+			docs.map(async (doc) => {
+				try {
+					const fullDoc = await frappe.db.get_doc(this.doctype, doc.name);
+					msFields.forEach((df) => {
+						doc[df.fieldname] = fullDoc[df.fieldname] || [];
+					});
+				} catch (e) {
+					console.warn(
+						`SVAVerticalDocRenderer: _fetchTableMultiSelectData failed for ${doc.name}`,
+						e
+					);
+					msFields.forEach((df) => {
+						if (!Array.isArray(doc[df.fieldname])) doc[df.fieldname] = [];
+					});
+				}
+			})
+		);
 	},
 
 	/**
@@ -97,6 +143,7 @@ const DataMixin = {
 			const batch = input.slice(0, batchSize);
 			this.data = batch;
 			this.docs = batch.map((d) => d.name);
+			await this._fetchTableMultiSelectData(this.data);
 			return;
 		}
 
@@ -126,6 +173,7 @@ const DataMixin = {
 			data.forEach((d) => (nameMap[d.name] = d));
 			this.data = names.map((name) => nameMap[name] || { name });
 			this.docs = this.data.map((d) => d.name);
+			await this._fetchTableMultiSelectData(this.data);
 			return;
 		}
 
@@ -147,6 +195,7 @@ const DataMixin = {
 		}
 		this.data = data;
 		this.docs = data.map((d) => d.name);
+		await this._fetchTableMultiSelectData(this.data);
 	},
 };
 
