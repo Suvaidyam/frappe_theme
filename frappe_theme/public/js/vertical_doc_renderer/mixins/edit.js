@@ -114,7 +114,12 @@ const EditMixin = {
 		ctrl.refresh();
 		const _rawVal = doc[df.fieldname];
 		const _numericTypes = ["Int", "Float", "Currency", "Percent"];
-		ctrl.set_value(
+		// set_value() is async (frappe.run_serially). For Date/Datetime with an existing
+		// value it ends in datepicker.selectDate() -> onSelect -> $input "change". Events are
+		// wired only after this resolves (see below), otherwise that synthetic change saves
+		// the unchanged value, replaces cell.innerHTML and detaches the input while the
+		// picker stays open — the next month nav then positions the picker at (0,0).
+		const _setValuePromise = ctrl.set_value(
 			_numericTypes.includes(df.fieldtype) && (_rawVal === 0 || _rawVal === null)
 				? ""
 				: _rawVal
@@ -290,7 +295,8 @@ const EditMixin = {
 		};
 
 		// ── wire events based on field type ───────────────────────────────
-		if (ctrl.$input) {
+		Promise.resolve(_setValuePromise).then(() => {
+			if (cell.dataset.editing !== "1" || !ctrl.$input) return;
 			if (this._getInstantSaveTypes().includes(df.fieldtype)) {
 				// Check, Select — save immediately on change
 				ctrl.$input.on("change", triggerSave);
@@ -315,7 +321,7 @@ const EditMixin = {
 					}
 				});
 			}
-		}
+		});
 	},
 
 	/**
