@@ -2,7 +2,9 @@ import frappe
 
 
 def validate(self, method):
-	dt_connections = frappe.get_all("SVADatatable Configuration", pluck="name")
+	if not getattr(frappe.local, "_sva_dt_conf_names", None):
+		frappe.local._sva_dt_conf_names = frappe.get_all("SVADatatable Configuration", pluck="name")
+	dt_connections = frappe.local._sva_dt_conf_names
 	if self.ref_doctype in dt_connections:
 		return
 	template_dt = {

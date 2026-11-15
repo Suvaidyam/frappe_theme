@@ -32,7 +32,8 @@
    "in_standard_filter": 1,
    "label": "Reference Name",
    "options": "reference_doctype",
-   "read_only": 1
+   "read_only": 1,
+   "search_index": 1
   },
   {
    "fieldname": "reference_doctype",
